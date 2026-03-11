@@ -6,15 +6,21 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
+
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
+
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "googleMobileAdsAppId": "ca-app-pub-3940256099942544~1458002511"
     },
+
     "android": {
+      "package": "com.vasunthara71.Dinamalar",
+      "googleMobileAdsAppId": "ca-app-pub-3940256099942544~3347511713",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -22,8 +28,29 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       }
     },
+
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+
+    "plugins": [
+       [ 
+        "expo-font",
+        {
+          "fonts": [
+            "./assets/fonts/mukta/Mukta_Malar/MuktaMalar-Regular.ttf",
+            "./assets/fonts/mukta/Mukta_Malar/MuktaMalar-Bold.ttf",
+            "./assets/fonts/mukta/Mukta_Malar/MuktaMalar-Medium.ttf",
+            "./assets/fonts/mukta/Mukta_Malar/MuktaMalar-SemiBold.ttf"
+          ]
+        }
+      ]
+    ],
+
+    "extra": {
+      "eas": {
+        "projectId": "32bed8d9-8f9a-4505-a9f8-347f429ac9f7"
+      }
     }
   }
 }
