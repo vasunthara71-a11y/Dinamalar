@@ -332,7 +332,7 @@ export default function TharpothaiyaSeithigalScreen({ route }) {
   const goToArticle = (item) => {
     navigation.navigate('NewsDetailsScreen', {
       newsId:   item.newsid || item.id,
-      newsItem: item,
+      newsItem: item, 
       slug:     item.slug || '',
     });
   };

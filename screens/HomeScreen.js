@@ -373,7 +373,7 @@ function NewsCard({ item, onPress }) {
   return (
     <View style={NewsCardStyles.wrap}>
       <TouchableOpacity onPress={onPress} activeOpacity={0.88}>
-        
+
         {/* TopMenuStrip and AppHeaderComponent */}
         {/* Image with horizontal padding */}
         <View style={NewsCardStyles.imageWrap}>
@@ -910,6 +910,10 @@ export default function HomeScreen() {
 
   // ─── Navigation ────────────────────────────────────────────────────────────
   const goToArticle = (item) => {
+    console.log('Item keys:', Object.keys(item));
+    console.log('item.id:', item.id);
+    console.log('item.newsid:', item.newsid);
+    console.log('item.nid:', item.nid); // maybe it's nid?
     const category = item.maincat || item.categrorytitle || item.ctitle || item.maincategory || '';
     const districtId = item.districtid || item.district_id;
     const districtTitle = item.districttitle || item.district_title;

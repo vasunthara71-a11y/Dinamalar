@@ -14,7 +14,7 @@ import RenderHtml from 'react-native-render-html';
 
 const getAudioPlayer = () => { try { return ExpoAV?.useAudioPlayer || null; } catch { return null; } };
 
-import { u38Api } from '../config/api';
+import { mainApi, u38Api } from '../config/api';
 import { COLORS, FONTS } from '../utils/constants';
 import { s, vs, scaledSizes } from '../utils/scaling';
 import { ms } from 'react-native-size-matters';
@@ -44,22 +44,22 @@ const sanitizeHtml = (html) => {
 const buildTagsStyles = (fontSize, textColor = COLORS.text) => {
   const lh = Math.round(fontSize * LINE_HEIGHT_RATIO);
   return {
-    p:    { margin: 0, marginBottom: vs(12), fontSize, color: textColor, lineHeight: lh, textAlign: 'left', fontFamily: FONTS?.muktaMalar?.medium || undefined },
+    p: { margin: 0, marginBottom: vs(12), fontSize, color: textColor, lineHeight: lh, textAlign: 'left', fontFamily: FONTS?.muktaMalar?.medium || undefined },
     strong: { fontWeight: '700', color: textColor },
-    b:    { fontWeight: '700', color: textColor },
-    em:   { fontStyle: 'italic', color: textColor },
-    i:    { fontStyle: 'italic', color: textColor },
-    h1:   { fontSize: fontSize + 6, fontWeight: '800', color: textColor, marginBottom: vs(16), marginTop: vs(8), textAlign: 'left', lineHeight: Math.round((fontSize + 6) * LINE_HEIGHT_RATIO) },
-    h2:   { fontSize: fontSize + 4, fontWeight: '700', color: textColor, marginBottom: vs(12), marginTop: vs(8), textAlign: 'left', lineHeight: Math.round((fontSize + 4) * LINE_HEIGHT_RATIO) },
-    h3:   { fontSize: fontSize + 2, fontWeight: '700', color: textColor, marginBottom: vs(10), marginTop: vs(8), textAlign: 'left', lineHeight: Math.round((fontSize + 2) * LINE_HEIGHT_RATIO) },
-    h4:   { fontSize, fontWeight: '700', color: textColor, marginBottom: vs(8), marginTop: vs(6), textAlign: 'left', lineHeight: lh },
-    ul:   { margin: 0, marginLeft: s(20), marginBottom: vs(12) },
-    ol:   { margin: 0, marginLeft: s(20), marginBottom: vs(12) },
-    li:   { fontSize, color: textColor, marginBottom: vs(6), lineHeight: lh },
-    a:    { color: COLORS.primary, textDecorationLine: 'underline', fontWeight: '600' },
+    b: { fontWeight: '700', color: textColor },
+    em: { fontStyle: 'italic', color: textColor },
+    i: { fontStyle: 'italic', color: textColor },
+    h1: { fontSize: fontSize + 6, fontWeight: '800', color: textColor, marginBottom: vs(16), marginTop: vs(8), textAlign: 'left', lineHeight: Math.round((fontSize + 6) * LINE_HEIGHT_RATIO) },
+    h2: { fontSize: fontSize + 4, fontWeight: '700', color: textColor, marginBottom: vs(12), marginTop: vs(8), textAlign: 'left', lineHeight: Math.round((fontSize + 4) * LINE_HEIGHT_RATIO) },
+    h3: { fontSize: fontSize + 2, fontWeight: '700', color: textColor, marginBottom: vs(10), marginTop: vs(8), textAlign: 'left', lineHeight: Math.round((fontSize + 2) * LINE_HEIGHT_RATIO) },
+    h4: { fontSize, fontWeight: '700', color: textColor, marginBottom: vs(8), marginTop: vs(6), textAlign: 'left', lineHeight: lh },
+    ul: { margin: 0, marginLeft: s(20), marginBottom: vs(12) },
+    ol: { margin: 0, marginLeft: s(20), marginBottom: vs(12) },
+    li: { fontSize, color: textColor, marginBottom: vs(6), lineHeight: lh },
+    a: { color: COLORS.primary, textDecorationLine: 'underline', fontWeight: '600' },
     blockquote: { backgroundColor: COLORS.primary + '10', borderLeftWidth: 4, borderLeftColor: COLORS.primary, paddingLeft: s(12), paddingVertical: vs(8), marginVertical: vs(12), fontStyle: 'italic' },
-    br:   { margin: 0, height: vs(8) },
-    div:  { marginBottom: vs(8) },
+    br: { margin: 0, height: vs(8) },
+    div: { marginBottom: vs(8) },
     span: { fontSize, color: textColor },
   };
 };
@@ -83,7 +83,7 @@ function ContentLoader() {
       </View>
       <View style={styles.skeletonImage} />
       <View style={styles.skeletonContent}>
-        {[1,2,3,4,5,6,7,8].map((i) => (
+        {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
           <View key={`sk-${i}`} style={[styles.skeletonLine, { width: i === 8 ? '75%' : '100%' }]} />
         ))}
       </View>
@@ -106,7 +106,7 @@ const getYouTubeId = (url = '') => {
 
 function formatTime(seconds) {
   if (!seconds || isNaN(seconds)) return '0:00';
-  const m   = Math.floor(seconds / 60);
+  const m = Math.floor(seconds / 60);
   const sec = Math.floor(seconds % 60);
   return `${m}:${sec.toString().padStart(2, '0')}`;
 }
@@ -130,11 +130,11 @@ function AudioPlayer({ audioUrl, label = 'கேளுங்கள்' }) {
 
 function ExpoAudioPlayer({ audioUrl, label = 'கேளுங்கள்' }) {
   const useAudioPlayer = getAudioPlayer();
-  const player  = useAudioPlayer(audioUrl);
-  const [playing, setPlaying]  = useState(false);
+  const player = useAudioPlayer(audioUrl);
+  const [playing, setPlaying] = useState(false);
   const [position, setPosition] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [speed,    setSpeed]    = useState(1.0);
+  const [speed, setSpeed] = useState(1.0);
   const speeds = [1.0, 1.25, 1.5, 2.0];
   const [sound, setSound] = useState(null);
 
@@ -142,8 +142,8 @@ function ExpoAudioPlayer({ audioUrl, label = 'கேளுங்கள்' }) {
     const interval = setInterval(() => {
       if (player) {
         setPosition(player.currentTime || 0);
-        setDuration(player.duration    || 0);
-        setPlaying(player.playing      || false);
+        setDuration(player.duration || 0);
+        setPlaying(player.playing || false);
       }
     }, 500);
     return () => clearInterval(interval);
@@ -215,21 +215,21 @@ const ap = StyleSheet.create({
     elevation: 4, shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: vs(3) }, shadowOpacity: 0.35, shadowRadius: s(6),
   },
-  header:      { flexDirection: 'row', alignItems: 'center', gap: s(6), marginBottom: vs(10) },
-  headerText:  { color: '#fff', fontSize: ms(13), fontWeight: '700', letterSpacing: 0.3 },
+  header: { flexDirection: 'row', alignItems: 'center', gap: s(6), marginBottom: vs(10) },
+  headerText: { color: '#fff', fontSize: ms(13), fontWeight: '700', letterSpacing: 0.3 },
   progressRow: { flexDirection: 'row', alignItems: 'center', marginBottom: vs(14) },
-  timeText:    { color: 'rgba(255,255,255,0.8)', fontSize: ms(10), minWidth: s(32) },
-  trackWrap:   { flex: 1, marginHorizontal: s(8), height: vs(18), justifyContent: 'center' },
-  track:       { height: vs(4), backgroundColor: 'rgba(255,255,255,0.25)', borderRadius: s(2) },
-  fill:        { height: '100%', backgroundColor: '#fff', borderRadius: s(2) },
-  controls:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: s(20) },
-  skipBtn:     { alignItems: 'center', padding: s(6) },
-  skipLabel:   { color: '#fff', fontSize: ms(8), fontWeight: '700', marginTop: -vs(2) },
-  playBtn:     { width: s(52), height: s(52), borderRadius: s(26), backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center', elevation: 2 },
-  speedBtn:    { backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: s(10), paddingVertical: vs(5), borderRadius: s(14), borderWidth: 1, borderColor: 'rgba(255,255,255,0.4)' },
-  speedText:   { color: '#fff', fontSize: ms(11), fontWeight: '800' },
-  fallback:    { flexDirection: 'row', alignItems: 'center', gap: s(10), backgroundColor: COLORS.primary, borderRadius: s(8), padding: s(14), marginHorizontal: s(16), marginBottom: vs(16) },
-  fallbackText:{ flex: 1, color: '#fff', fontSize: ms(13), fontWeight: '700' },
+  timeText: { color: 'rgba(255,255,255,0.8)', fontSize: ms(10), minWidth: s(32) },
+  trackWrap: { flex: 1, marginHorizontal: s(8), height: vs(18), justifyContent: 'center' },
+  track: { height: vs(4), backgroundColor: 'rgba(255,255,255,0.25)', borderRadius: s(2) },
+  fill: { height: '100%', backgroundColor: '#fff', borderRadius: s(2) },
+  controls: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: s(20) },
+  skipBtn: { alignItems: 'center', padding: s(6) },
+  skipLabel: { color: '#fff', fontSize: ms(8), fontWeight: '700', marginTop: -vs(2) },
+  playBtn: { width: s(52), height: s(52), borderRadius: s(26), backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center', elevation: 2 },
+  speedBtn: { backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: s(10), paddingVertical: vs(5), borderRadius: s(14), borderWidth: 1, borderColor: 'rgba(255,255,255,0.4)' },
+  speedText: { color: '#fff', fontSize: ms(11), fontWeight: '800' },
+  fallback: { flexDirection: 'row', alignItems: 'center', gap: s(10), backgroundColor: COLORS.primary, borderRadius: s(8), padding: s(14), marginHorizontal: s(16), marginBottom: vs(16) },
+  fallbackText: { flex: 1, color: '#fff', fontSize: ms(13), fontWeight: '700' },
 });
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -237,25 +237,25 @@ const ap = StyleSheet.create({
 // ══════════════════════════════════════════════════════════════════════════════
 export default function NewsDetailsScreen() {
   const navigation = useNavigation();
-  const route      = useRoute();
-  const { sf }     = useFontSize();
+  const route = useRoute();
+  const { sf } = useFontSize();
   const { newsId, newsItem, disableComments = false } = route.params || {};
 
-  const [detail,                  setDetail]                  = useState(null);
-  const [loading,                 setLoading]                 = useState(true);
-  const [error,                   setError]                   = useState(null);
-  const [isDrawerVisible,         setIsDrawerVisible]         = useState(false);
+  const [detail, setDetail] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [isDrawerVisible, setIsDrawerVisible] = useState(false);
   const [isLocationDrawerVisible, setIsLocationDrawerVisible] = useState(false);
-  const [selectedDistrict,        setSelectedDistrict]        = useState('உள்ளூர்');
-  const [commentsVisible,         setCommentsVisible]         = useState(false);
-  const [bookmarked,              setBookmarked]              = useState(false);
-  const [contentWidth,            setContentWidth]            = useState(SCREEN_W - s(32));
+  const [selectedDistrict, setSelectedDistrict] = useState('உள்ளூர்');
+  const [commentsVisible, setCommentsVisible] = useState(false);
+  const [bookmarked, setBookmarked] = useState(false);
+  const [contentWidth, setContentWidth] = useState(SCREEN_W - s(32));
 
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const triggerPulse = () => {
     Animated.sequence([
-      Animated.timing(pulseAnim, { toValue: 0.96, duration: 80,  useNativeDriver: true }),
-      Animated.timing(pulseAnim, { toValue: 1,    duration: 160, useNativeDriver: true }),
+      Animated.timing(pulseAnim, { toValue: 0.96, duration: 80, useNativeDriver: true }),
+      Animated.timing(pulseAnim, { toValue: 1, duration: 160, useNativeDriver: true }),
     ]).start();
   };
 
@@ -273,6 +273,13 @@ export default function NewsDetailsScreen() {
   // ─── Fetch ────────────────────────────────────────────────────────────────
   const fetchDetail = useCallback(async () => {
     const id = newsId || newsItem?.id || newsItem?.newsid;
+    console.log('=== FETCH DEBUG ===');
+    console.log('newsId from params:', newsId);
+    console.log('newsItem?.id:', newsItem?.id);
+    console.log('newsItem?.newsid:', newsItem?.newsid);
+    console.log('Final ID being used:', id);
+    console.log('Full URL:', `/detaildata?newsid=${id}`);
+    console.log('==================');
     if (!id) {
       if (newsItem) { setDetail(newsItem); setLoading(false); return; }
       setError('செய்தி ID கிடைக்கவில்லை');
@@ -281,7 +288,7 @@ export default function NewsDetailsScreen() {
     }
     try {
       setLoading(true); setError(null);
-      const res  = await u38Api.get(`/detaildata?newsid=${id}`);
+      const res = await mainApi.get(`/detaildata?newsid=${id}`);
       const data = res.data;
       const article =
         data?.detailnews?.detailpage?.[0] ||
@@ -293,6 +300,13 @@ export default function NewsDetailsScreen() {
       setDetail(article || newsItem || null);
     } catch (err) {
       console.error('Detail fetch error:', err?.message);
+      console.log('=== ERROR DETAILS ===');
+      console.log('Status:', err?.response?.status);
+      console.log('Response data:', JSON.stringify(err?.response?.data));
+      console.log('Response headers:', JSON.stringify(err?.response?.headers));
+      console.log('Request URL:', err?.config?.url);
+      console.log('Request headers sent:', JSON.stringify(err?.config?.headers));
+      console.log('====================');
       setDetail(newsItem || null);
       if (!newsItem) setError('செய்தியை ஏற்ற முடியவில்லை.');
     } finally {
@@ -305,15 +319,15 @@ export default function NewsDetailsScreen() {
 
   // ─── Share ────────────────────────────────────────────────────────────────
   const getShareUrl = () => {
-    const slug     = detail?.slug     || newsItem?.slug     || '';
+    const slug = detail?.slug || newsItem?.slug || '';
     const shareUrl = detail?.shareurl || newsItem?.shareurl || '';
     return shareUrl || (slug ? `https://www.dinamalar.com${slug}` : 'https://www.dinamalar.com');
   };
 
   const handleShare = async () => {
     try {
-      const url   = getShareUrl();
-      const ttl   = detail?.newstitle || newsItem?.newstitle || 'தினமலர் செய்தி';
+      const url = getShareUrl();
+      const ttl = detail?.newstitle || newsItem?.newstitle || 'தினமலர் செய்தி';
       await Share.share({ title: ttl, message: `${ttl}\n\n${url}`, url });
     } catch (err) { console.error('Share error:', err); }
   };
@@ -321,28 +335,28 @@ export default function NewsDetailsScreen() {
   const handleOpenBrowser = () => Linking.openURL(getShareUrl());
 
   // ─── Derived values ───────────────────────────────────────────────────────
-  const d   = detail   || {};
-  const ni  = newsItem || {};
+  const d = detail || {};
+  const ni = newsItem || {};
 
-  const title     = d.newstitle       || ni.newstitle    || ni.title   || '';
-  const image     = d.largeimages     || d.images        || ni.largeimages || ni.images || '';
-  const catKey    = d.maincat         || ni.maincat      || '';
-  const ago       = d.ago             || ni.ago          || '';
-  const date      = d.standarddate    || ni.standarddate || '';
-  const content   = d.newsdescription || d.content       || ni.content || '';
-  const videoPath = d.path            || ni.path         || '';
+  const title = d.newstitle || ni.newstitle || ni.title || '';
+  const image = d.largeimages || d.images || ni.largeimages || ni.images || '';
+  const catKey = d.maincat || ni.maincat || '';
+  const ago = d.ago || ni.ago || '';
+  const date = d.standarddate || ni.standarddate || '';
+  const content = d.newsdescription || d.content || ni.content || '';
+  const videoPath = d.path || ni.path || '';
 
-  const isVideo   = catKey === 'video' || videoPath?.includes('youtube');
+  const isVideo = catKey === 'video' || videoPath?.includes('youtube');
   // isPodcast: true for podcast category OR when audio flag is set
   const isPodcast = catKey === 'podcast' || d.audio === '1' || d.audio === 1;
 
-  const comments  = parseInt(d.newscomment || d.nmcomment || 0);
+  const comments = parseInt(d.newscomment || d.nmcomment || 0);
   const relatedNews = Array.isArray(d.relateddata) ? d.relateddata
-    : Array.isArray(d.related)     ? d.related
-    : Array.isArray(d.relatedNews) ? d.relatedNews : [];
-  const tags      = Array.isArray(d.tags) ? d.tags : [];
+    : Array.isArray(d.related) ? d.related
+      : Array.isArray(d.relatedNews) ? d.relatedNews : [];
+  const tags = Array.isArray(d.tags) ? d.tags : [];
 
-  const ytId    = getYouTubeId(videoPath);
+  const ytId = getYouTubeId(videoPath);
   const ytThumb = ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : '';
 
   const currentNewsId = newsId || newsItem?.id || newsItem?.newsid;
@@ -351,14 +365,14 @@ export default function NewsDetailsScreen() {
   const podcastAudioUrl = videoPath || d.audiofile || d.audiourl || null;
 
   // ── Standalone audio (non-podcast articles with audio field)
-  const hasAudio  = !isPodcast && d.audio && d.audio !== '0' && d.audio !== 0;
-  const audioUrl  = d.audiofile || d.audiourl || d.audio_url ||
+  const hasAudio = !isPodcast && d.audio && d.audio !== '0' && d.audio !== 0;
+  const audioUrl = d.audiofile || d.audiourl || d.audio_url ||
     (typeof d.audio === 'string' && d.audio.startsWith('http') ? d.audio : null);
 
   // ── RenderHtml ────────────────────────────────────────────────────────────
-  const BASE_FONT  = sf(16);
+  const BASE_FONT = sf(16);
   const tagsStyles = React.useMemo(() => buildTagsStyles(BASE_FONT, COLORS.text), [BASE_FONT]);
-  const baseStyle  = React.useMemo(() => buildBaseStyle(BASE_FONT, COLORS.text),  [BASE_FONT]);
+  const baseStyle = React.useMemo(() => buildBaseStyle(BASE_FONT, COLORS.text), [BASE_FONT]);
   const safeContent = sanitizeHtml(content);
 
   // ─── Render ───────────────────────────────────────────────────────────────
@@ -521,7 +535,7 @@ export default function NewsDetailsScreen() {
                 enableExperimentalMarginCollapsing
                 systemFonts={SYSTEM_FONTS}
                 renderersProps={{
-                  a:   { onPress: (_event, href) => { if (href) Linking.openURL(href); } },
+                  a: { onPress: (_event, href) => { if (href) Linking.openURL(href); } },
                   img: { enableExperimentalPercentWidth: true },
                 }}
               />
@@ -627,21 +641,21 @@ const styles = StyleSheet.create({
     paddingVertical: vs(3), borderRadius: s(10),
   },
   metaChipTxt: { fontSize: 10, color: COLORS.subtext },
-  iconAction:  { flexDirection: 'row', alignItems: 'center', gap: s(3), padding: s(4) },
-  iconBadge:   { fontSize: 10, color: COLORS.subtext, fontWeight: '600' },
+  iconAction: { flexDirection: 'row', alignItems: 'center', gap: s(3), padding: s(4) },
+  iconBadge: { fontSize: 10, color: COLORS.subtext, fontWeight: '600' },
 
-  heroWrap:  { marginHorizontal: s(16), marginBottom: vs(12) },
+  heroWrap: { marginHorizontal: s(16), marginBottom: vs(12) },
   heroImage: { width: '100%', height: ms(210), backgroundColor: '#f0f0f0' },
-  caption:   { fontSize: 10, color: COLORS.subtext, fontStyle: 'italic', marginTop: vs(4), textAlign: 'center' },
+  caption: { fontSize: 10, color: COLORS.subtext, fontStyle: 'italic', marginTop: vs(4), textAlign: 'center' },
 
   videoWrap: {
     marginHorizontal: s(16), height: ms(200), backgroundColor: '#1a1a2e',
     borderRadius: s(10), justifyContent: 'center', alignItems: 'center',
     marginBottom: vs(12), overflow: 'hidden',
   },
-  ytThumb:       { position: 'absolute', width: '100%', height: '100%' },
+  ytThumb: { position: 'absolute', width: '100%', height: '100%' },
   ytPlayOverlay: { position: 'absolute', justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.35)', width: '100%', height: '100%' },
-  videoTxt:      { fontSize: scaledSizes.font.sm, color: '#fff', fontWeight: '600', marginTop: vs(8) },
+  videoTxt: { fontSize: scaledSizes.font.sm, color: '#fff', fontWeight: '600', marginTop: vs(8) },
 
   // ── Podcast ──────────────────────────────────────────────────────────────
   podcastSection: { marginBottom: vs(4) },
@@ -656,24 +670,24 @@ const styles = StyleSheet.create({
     overflow: 'hidden', backgroundColor: '#ede0f7',
     justifyContent: 'center', alignItems: 'center',
   },
-  podcastArtworkImg:      { width: '100%', height: '100%' },
+  podcastArtworkImg: { width: '100%', height: '100%' },
   podcastArtworkFallback: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  podcastInfo:     { flex: 1 },
+  podcastInfo: { flex: 1 },
   podcastBadge: {
     flexDirection: 'row', alignItems: 'center', gap: s(4),
     backgroundColor: '#9c27b0', alignSelf: 'flex-start',
     paddingHorizontal: s(7), paddingVertical: vs(2),
     borderRadius: s(8), marginBottom: vs(6),
   },
-  podcastBadgeTxt:  { color: '#fff', fontSize: ms(8), fontWeight: '800', letterSpacing: 0.5 },
+  podcastBadgeTxt: { color: '#fff', fontSize: ms(8), fontWeight: '800', letterSpacing: 0.5 },
   podcastCardTitle: { fontSize: ms(13), fontWeight: '700', color: COLORS.text, lineHeight: ms(18), marginBottom: vs(4) },
-  podcastCardDate:  { fontSize: ms(10), color: COLORS.subtext },
+  podcastCardDate: { fontSize: ms(10), color: COLORS.subtext },
 
   contentSection: { paddingHorizontal: s(16), marginBottom: vs(16) },
 
-  tagsSection:      { paddingHorizontal: s(16), marginBottom: vs(16) },
+  tagsSection: { paddingHorizontal: s(16), marginBottom: vs(16) },
   tagsSectionTitle: { fontSize: scaledSizes.font.sm, fontWeight: '700', color: COLORS.text, marginBottom: vs(8) },
-  tagsWrap:         { flexDirection: 'row', flexWrap: 'wrap', gap: s(6) },
+  tagsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: s(6) },
   tagChip: {
     backgroundColor: COLORS.primary + '15', paddingHorizontal: s(10),
     paddingVertical: vs(4), borderRadius: s(14),
@@ -706,26 +720,26 @@ const styles = StyleSheet.create({
     elevation: 1, shadowColor: '#000', shadowOffset: { width: 0, height: s(1) },
     shadowOpacity: 0.05, shadowRadius: s(3),
   },
-  relatedImg:       { width: s(95), height: vs(72), backgroundColor: '#f0f0f0' },
-  relatedBody:      { flex: 1, padding: s(10) },
-  relatedCat:       { fontSize: 9, color: COLORS.primary, fontWeight: '700', textTransform: 'uppercase', marginBottom: vs(3) },
+  relatedImg: { width: s(95), height: vs(72), backgroundColor: '#f0f0f0' },
+  relatedBody: { flex: 1, padding: s(10) },
+  relatedCat: { fontSize: 9, color: COLORS.primary, fontWeight: '700', textTransform: 'uppercase', marginBottom: vs(3) },
   relatedItemTitle: { fontSize: scaledSizes.font.sm, fontWeight: '600', color: COLORS.text, lineHeight: scaledSizes.lineHeight.md, marginBottom: vs(4) },
-  relatedDate:      { fontSize: 9, color: COLORS.subtext },
+  relatedDate: { fontSize: 9, color: COLORS.subtext },
 
-  errorWrap:   { flex: 1, justifyContent: 'center', alignItems: 'center', padding: s(32) },
-  errorTxt:    { fontSize: scaledSizes.font.md, color: COLORS.subtext, textAlign: 'center', marginTop: vs(12), marginBottom: vs(20), lineHeight: scaledSizes.lineHeight.lg },
-  retryBtn:    { backgroundColor: COLORS.primary, paddingHorizontal: s(24), paddingVertical: vs(10), borderRadius: s(8) },
+  errorWrap: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: s(32) },
+  errorTxt: { fontSize: scaledSizes.font.md, color: COLORS.subtext, textAlign: 'center', marginTop: vs(12), marginBottom: vs(20), lineHeight: scaledSizes.lineHeight.lg },
+  retryBtn: { backgroundColor: COLORS.primary, paddingHorizontal: s(24), paddingVertical: vs(10), borderRadius: s(8) },
   retryBtnTxt: { fontSize: scaledSizes.font.md, color: '#fff', fontWeight: '700' },
 
-  loaderContainer:    { flex: 1, backgroundColor: COLORS.white, paddingHorizontal: s(16), paddingTop: vs(16) },
-  skeletonTitle:      { height: vs(28), backgroundColor: '#f0f0f0', borderRadius: s(6), marginBottom: vs(8), width: '92%' },
+  loaderContainer: { flex: 1, backgroundColor: COLORS.white, paddingHorizontal: s(16), paddingTop: vs(16) },
+  skeletonTitle: { height: vs(28), backgroundColor: '#f0f0f0', borderRadius: s(6), marginBottom: vs(8), width: '92%' },
   skeletonTitleShort: { height: vs(28), backgroundColor: '#f0f0f0', borderRadius: s(6), marginBottom: vs(12), width: '75%' },
-  skeletonMeta:       { flexDirection: 'row', alignItems: 'center', gap: s(8), marginBottom: vs(16) },
-  skeletonChip:       { height: vs(22), backgroundColor: '#f5f5f5', borderRadius: s(10), width: s(80) },
-  skeletonImage:      { height: ms(210), backgroundColor: '#f0f0f0', borderRadius: s(8), marginBottom: vs(16) },
-  skeletonContent:    { marginBottom: vs(16), gap: vs(8) },
-  skeletonLine:       { height: vs(13), backgroundColor: '#f0f0f0', borderRadius: 4 },
-  skeletonTags:       { flexDirection: 'row', gap: s(8), marginBottom: vs(16) },
-  skeletonTag:        { height: vs(24), backgroundColor: '#f0f0f0', borderRadius: s(12), width: s(60) },
-  skeletonShare:      { height: vs(44), backgroundColor: '#f0f0f0', borderRadius: s(8), marginBottom: vs(20) },
+  skeletonMeta: { flexDirection: 'row', alignItems: 'center', gap: s(8), marginBottom: vs(16) },
+  skeletonChip: { height: vs(22), backgroundColor: '#f5f5f5', borderRadius: s(10), width: s(80) },
+  skeletonImage: { height: ms(210), backgroundColor: '#f0f0f0', borderRadius: s(8), marginBottom: vs(16) },
+  skeletonContent: { marginBottom: vs(16), gap: vs(8) },
+  skeletonLine: { height: vs(13), backgroundColor: '#f0f0f0', borderRadius: 4 },
+  skeletonTags: { flexDirection: 'row', gap: s(8), marginBottom: vs(16) },
+  skeletonTag: { height: vs(24), backgroundColor: '#f0f0f0', borderRadius: s(12), width: s(60) },
+  skeletonShare: { height: vs(44), backgroundColor: '#f0f0f0', borderRadius: s(8), marginBottom: vs(20) },
 });

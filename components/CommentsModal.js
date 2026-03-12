@@ -15,7 +15,7 @@ import {
   Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { u38Api } from '../config/api';
+import { mainApi, u38Api } from '../config/api';
 import { COLORS, FONTS } from '../utils/constants';
 import { s, vs, ms, scaledSizes } from '../utils/scaling';
 import FontSizeControl from './FontSizeControl';
@@ -178,7 +178,7 @@ export default function CommentsModal({ visible, onClose, newsId, newsTitle, com
 
     try {
       const url = `/detaildata?newsid=${id}&page=${pg}`;
-      const res = await u38Api.get(url);
+      const res = await mainApi.get(url);
       const d   = res?.data;
 
       const list = extractComments(d);
