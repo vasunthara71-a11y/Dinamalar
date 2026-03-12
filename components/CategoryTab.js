@@ -26,7 +26,7 @@ const CategoryTab = ({
   onCategoryPress,
   trendingTags = [],
 }) => {
-  const { sf } = useFontSize(); // Add font scaling
+  // const { ms } = useFontSize(); // Add font scaling
   
   const [specialTodayData, setSpecialTodayData] = useState([]);
   const [loadingSpecial, setLoadingSpecial] = useState(false);
@@ -87,7 +87,7 @@ const CategoryTab = ({
         <View style={st.row}>
           {/* Icon box — square, white bg, gray border, blue icon */}
           <View style={st.iconBox}>
-            <Ionicons name="trending-up" size={sf(16)} color="#096dd2" />
+            <Ionicons name="trending-up" size={ms(15)} color="#096dd2" />
           </View>
 
           <ScrollView
@@ -106,7 +106,7 @@ const CategoryTab = ({
                   onPress={() => handleRow1Press(tag)}
                   activeOpacity={0.7}
                 >
-                  <Text style={[st.pillText, isActive && st.pillTextActive, { fontSize: sf(11) }]}>
+                  <Text style={[st.pillText, isActive && st.pillTextActive, { fontSize: ms(11) }]}>
                     {tag.name}
                   </Text>
                 </TouchableOpacity>
@@ -126,7 +126,7 @@ const CategoryTab = ({
         <View style={st.row}>
           {/* Icon box — calendar, same style */}
           <View style={st.iconBox}>
-            <Ionicons name="calendar-clear-outline" size={sf(15)} color="#096dd2" />
+            <Ionicons name="calendar-clear-outline" size={ms(15)} color="#096dd2" />
           </View>
 
           <ScrollView
@@ -137,7 +137,7 @@ const CategoryTab = ({
             style={st.scroll}
           >
             {loadingSpecial ? (
-              <ActivityIndicator size="small" color="#096dd2" style={{ marginLeft: sf(8) }} />
+              <ActivityIndicator size="small" color="#096dd2" style={{ marginLeft: ms(8) }} />
             ) : (
               specialTodayData.map((item, index) => {
                 const id       = item.key || `special-${index}`;
@@ -149,7 +149,7 @@ const CategoryTab = ({
                     onPress={() => handleRow2Press(item, index)}
                     activeOpacity={0.7}
                   >
-                    <Text style={[st.pillText, isActive && st.pillTextActive,{ fontSize: sf(11) }]}>
+                    <Text style={[st.pillText, isActive && st.pillTextActive,{ fontSize: ms(11) }]}>
                       {item.key}
                     </Text>
                   </TouchableOpacity>
@@ -184,25 +184,25 @@ const st = StyleSheet.create({
 
   // Icon box — white bg, gray border, slight rounding matching screenshot
   iconBox: {
-    width:           sf(32),
-    height:          sf(32),
+    width:           ms(32),
+    height:          ms(32),
     borderWidth:     1,
     borderColor:     '#D0D0D0',   // matches screenshot gray border
     backgroundColor: '#FFFFFF',   // white bg — matches screenshot
-    borderRadius:    sf(4),        // slight rounding — matches screenshot
+    borderRadius:    ms(4),        // slight rounding — matches screenshot
     alignItems:      'center',
     justifyContent:  'center',
-    marginLeft:      sf(10),
-    marginRight:     sf(8),
+    marginLeft:      ms(10),
+    marginRight:     ms(8),
     flexShrink:      0,
   },
 
   scroll: { flex: 1 },
 
   scrollContent: {
-    paddingHorizontal: sf(2),
+    paddingHorizontal: ms(2),
     alignItems:        'center',
-    gap:               sf(8),      // gap between pills — matches screenshot spacing
+    gap:               ms(8),      // gap between pills — matches screenshot spacing
     paddingVertical:   vs(2),
   },
 
@@ -210,8 +210,8 @@ const st = StyleSheet.create({
   pill: {
     borderWidth:     1,
     borderColor:     '#D8D8D8',   // screenshot gray border — slightly darker than wrapper
-    borderRadius:    sf(20),       // fully rounded pill
-    paddingHorizontal: sf(14),
+    borderRadius:    ms(20),       // fully rounded pill
+    paddingHorizontal: ms(14),
     paddingVertical: vs(5),
     backgroundColor: '#eeeeee',   // pure white — matches screenshot
     alignItems:      'center',
@@ -227,7 +227,7 @@ const st = StyleSheet.create({
   // Pill text — near-black — matches screenshot dark text on white pill
   pillText: {
     fontFamily: FONTS.muktaMalar.medium,
-    fontSize:   sf(13),
+    fontSize:   ms(14),
     color:      '#212B36',        // GREY[800] — near-black, matches screenshot
     textAlign:  'center',
   },
@@ -236,14 +236,14 @@ const st = StyleSheet.create({
   pillTextActive: {
     fontFamily: FONTS.muktaMalar.bold,
     color:      '#FFFFFF',
-    fontSize:   sf(13),
+    fontSize:   ms(14),
   },
 
   // Thin divider between row 1 and row 2
   rowDivider: {
     height:          1,
     backgroundColor: '#EBEBEB',   // matches screenshot thin gray line
-    marginHorizontal: sf(10),
+    marginHorizontal: ms(10),
   },
 });
 
