@@ -1,20 +1,16 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, Text, ScrollView, Image, TouchableOpacity,
-  ActivityIndicator, StyleSheet, Platform, Share,
-  Linking, StatusBar, Dimensions, Animated,
+  StyleSheet, Platform, Share, Linking, Dimensions,
+  Animated, PanResponder,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import RenderHtml from 'react-native-render-html';
 
-// ─── Audio: lazy-loaded to avoid "Cannot find native module 'ExponentAV'"
-// import * as ExpoAV from 'expo-av';
-// import * as ExpoVideo from 'expo-video'; // Temporarily disabled
-
 const getAudioPlayer = () => { try { return ExpoAV?.useAudioPlayer || null; } catch { return null; } };
 
-import { mainApi, u38Api } from '../config/api';
+import { mainApi } from '../config/api';
 import { COLORS, FONTS } from '../utils/constants';
 import { s, vs, scaledSizes } from '../utils/scaling';
 import { ms } from 'react-native-size-matters';
@@ -24,6 +20,9 @@ import CommentsModal from '../components/CommentsModal';
 import { useFontSize } from '../context/FontSizeContext';
 
 const { width: SCREEN_W } = Dimensions.get('window');
+
+const SWIPE_THRESHOLD = 60;
+const SWIPE_VELOCITY = 0.3;
 
 const SYSTEM_FONTS = [
   'MuktaMalar', 'MuktaMalar-Regular', 'MuktaMalar-Bold',
@@ -49,10 +48,10 @@ const buildTagsStyles = (fontSize, textColor = COLORS.text) => {
     b: { fontWeight: '700', color: textColor },
     em: { fontStyle: 'italic', color: textColor },
     i: { fontStyle: 'italic', color: textColor },
-    h1: { fontSize: fontSize + 6, fontWeight: '800', color: textColor, marginBottom: vs(16), marginTop: vs(8), textAlign: 'left', lineHeight: Math.round((fontSize + 6) * LINE_HEIGHT_RATIO) },
-    h2: { fontSize: fontSize + 4, fontWeight: '700', color: textColor, marginBottom: vs(12), marginTop: vs(8), textAlign: 'left', lineHeight: Math.round((fontSize + 4) * LINE_HEIGHT_RATIO) },
-    h3: { fontSize: fontSize + 2, fontWeight: '700', color: textColor, marginBottom: vs(10), marginTop: vs(8), textAlign: 'left', lineHeight: Math.round((fontSize + 2) * LINE_HEIGHT_RATIO) },
-    h4: { fontSize, fontWeight: '700', color: textColor, marginBottom: vs(8), marginTop: vs(6), textAlign: 'left', lineHeight: lh },
+    h1: { fontSize: fontSize + 6, fontWeight: '800', color: textColor, marginBottom: vs(16), marginTop: vs(8), lineHeight: Math.round((fontSize + 6) * LINE_HEIGHT_RATIO) },
+    h2: { fontSize: fontSize + 4, fontWeight: '700', color: textColor, marginBottom: vs(12), marginTop: vs(8), lineHeight: Math.round((fontSize + 4) * LINE_HEIGHT_RATIO) },
+    h3: { fontSize: fontSize + 2, fontWeight: '700', color: textColor, marginBottom: vs(10), marginTop: vs(8), lineHeight: Math.round((fontSize + 2) * LINE_HEIGHT_RATIO) },
+    h4: { fontSize, fontWeight: '700', color: textColor, marginBottom: vs(8), marginTop: vs(6), lineHeight: lh },
     ul: { margin: 0, marginLeft: s(20), marginBottom: vs(12) },
     ol: { margin: 0, marginLeft: s(20), marginBottom: vs(12) },
     li: { fontSize, color: textColor, marginBottom: vs(6), lineHeight: lh },
@@ -78,8 +77,7 @@ function ContentLoader() {
       <View style={styles.skeletonTitle} />
       <View style={styles.skeletonTitleShort} />
       <View style={styles.skeletonMeta}>
-        <View style={styles.skeletonChip} />
-        <View style={styles.skeletonChip} />
+        <View style={styles.skeletonChip} /><View style={styles.skeletonChip} />
       </View>
       <View style={styles.skeletonImage} />
       <View style={styles.skeletonContent}>
@@ -88,16 +86,14 @@ function ContentLoader() {
         ))}
       </View>
       <View style={styles.skeletonTags}>
-        <View style={styles.skeletonTag} /><View style={styles.skeletonTag} /><View style={styles.skeletonTag} />
+        <View style={styles.skeletonTag} />
+        <View style={styles.skeletonTag} />
+        <View style={styles.skeletonTag} />
       </View>
       <View style={styles.skeletonShare} />
     </View>
   );
 }
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-const CAT_COLORS = { photo: '#e91e8c', video: '#f44336', podcast: '#9c27b0', seithigal: '#1565c0' };
-const getCatColor = (cat) => CAT_COLORS[cat] || COLORS.primary;
 
 const getYouTubeId = (url = '') => {
   const match = url.match(/(?:embed\/|v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
@@ -111,125 +107,44 @@ function formatTime(seconds) {
   return `${m}:${sec.toString().padStart(2, '0')}`;
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
-// AUDIO PLAYER — shared by podcast and audio fields
-// ══════════════════════════════════════════════════════════════════════════════
-function AudioPlayer({ audioUrl, label = 'கேளுங்கள்' }) {
-  const useAudioPlayer = getAudioPlayer();
-  if (!useAudioPlayer) {
-    return (
-      <TouchableOpacity style={ap.fallback} onPress={() => Linking.openURL(audioUrl)}>
-        <Ionicons name="volume-high" size={s(20)} color="#fff" />
-        <Text style={ap.fallbackText}>🎧 கேட்க இங்கே தட்டவும்</Text>
-        <Ionicons name="open-outline" size={s(16)} color="rgba(255,255,255,0.7)" />
-      </TouchableOpacity>
-    );
-  }
-  return <ExpoAudioPlayer audioUrl={audioUrl} label={label} />;
-}
-
-function ExpoAudioPlayer({ audioUrl, label = 'கேளுங்கள்' }) {
-  const useAudioPlayer = getAudioPlayer();
-  const player = useAudioPlayer(audioUrl);
-  const [playing, setPlaying] = useState(false);
-  const [position, setPosition] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const [speed, setSpeed] = useState(1.0);
-  const speeds = [1.0, 1.25, 1.5, 2.0];
-  const [sound, setSound] = useState(null);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (player) {
-        setPosition(player.currentTime || 0);
-        setDuration(player.duration || 0);
-        setPlaying(player.playing || false);
-      }
-    }, 500);
-    return () => clearInterval(interval);
-  }, [player]);
-
-  const handlePlayPause = () => {
-    if (!player) return;
-    playing ? player.pause() : player.play();
-  };
-
-  const seek = (sec) => {
-    if (!player) return;
-    player.seekTo(Math.max(0, Math.min(sec, duration)));
-  };
-
-  const changeSpeed = () => {
-    if (!player) return;
-    const next = speeds[(speeds.indexOf(speed) + 1) % speeds.length];
-    setSpeed(next);
-    player.setPlaybackRate(next);
-  };
-
-  const progress = duration > 0 ? position / duration : 0;
-
+// ─── Swipe Hint ───────────────────────────────────────────────────────────────
+function SwipeHint({ direction }) {
   return (
-    <View style={ap.container}>
-      <View style={ap.header}>
-        <Ionicons name="headset" size={s(15)} color="#fff" />
-        <Text style={ap.headerText}>{label}</Text>
-      </View>
-      <View style={ap.progressRow}>
-        <Text style={ap.timeText}>{formatTime(position)}</Text>
-        <View style={ap.trackWrap}>
-          <View style={ap.track}>
-            <View style={[ap.fill, { width: `${progress * 100}%` }]} />
-          </View>
-        </View>
-        <Text style={ap.timeText}>{formatTime(duration)}</Text>
-      </View>
-      <View style={ap.controls}>
-        <TouchableOpacity style={ap.skipBtn} onPress={() => seek(position - 10)}>
-          <Ionicons name="play-back" size={s(20)} color="rgba(255,255,255,0.85)" />
-          <Text style={ap.skipLabel}>10</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={ap.playBtn} onPress={handlePlayPause}>
-          <Ionicons
-            name={playing ? 'pause' : 'play'}
-            size={s(24)}
-            color={COLORS.primary}
-            style={!playing ? { marginLeft: s(2) } : undefined}
-          />
-        </TouchableOpacity>
-        <TouchableOpacity style={ap.skipBtn} onPress={() => seek(position + 10)}>
-          <Ionicons name="play-forward" size={s(20)} color="rgba(255,255,255,0.85)" />
-          <Text style={ap.skipLabel}>10</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={ap.speedBtn} onPress={changeSpeed}>
-          <Text style={ap.speedText}>{speed}x</Text>
-        </TouchableOpacity>
-      </View>
+    <View
+      pointerEvents="none"
+      style={[
+        swipeHintSt.container,
+        direction === 'left' && swipeHintSt.left,
+        direction === 'right' && swipeHintSt.right,
+      ]}
+    >
+      <Ionicons
+        name={direction === 'left' ? 'chevron-back' : 'chevron-forward'}
+        size={s(22)}
+        color="#fff"
+      />
+      <Text style={swipeHintSt.text}>
+        {direction === 'left' ? 'முந்தைய' : 'அடுத்த'}
+      </Text>
     </View>
   );
 }
 
-const ap = StyleSheet.create({
+const swipeHintSt = StyleSheet.create({
   container: {
-    backgroundColor: COLORS.primary, borderRadius: s(8), padding: s(14),
-    marginHorizontal: s(16), marginBottom: vs(16),
-    elevation: 4, shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: vs(3) }, shadowOpacity: 0.35, shadowRadius: s(6),
+    position: 'absolute',
+    top: '40%',
+    zIndex: 999,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    borderRadius: s(10),
+    paddingHorizontal: s(12),
+    paddingVertical: vs(10),
+    alignItems: 'center',
+    gap: vs(2),
   },
-  header: { flexDirection: 'row', alignItems: 'center', gap: s(6), marginBottom: vs(10) },
-  headerText: { color: '#fff', fontSize: ms(13), fontWeight: '700', letterSpacing: 0.3 },
-  progressRow: { flexDirection: 'row', alignItems: 'center', marginBottom: vs(14) },
-  timeText: { color: 'rgba(255,255,255,0.8)', fontSize: ms(10), minWidth: s(32) },
-  trackWrap: { flex: 1, marginHorizontal: s(8), height: vs(18), justifyContent: 'center' },
-  track: { height: vs(4), backgroundColor: 'rgba(255,255,255,0.25)', borderRadius: s(2) },
-  fill: { height: '100%', backgroundColor: '#fff', borderRadius: s(2) },
-  controls: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: s(20) },
-  skipBtn: { alignItems: 'center', padding: s(6) },
-  skipLabel: { color: '#fff', fontSize: ms(8), fontWeight: '700', marginTop: -vs(2) },
-  playBtn: { width: s(52), height: s(52), borderRadius: s(26), backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center', elevation: 2 },
-  speedBtn: { backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: s(10), paddingVertical: vs(5), borderRadius: s(14), borderWidth: 1, borderColor: 'rgba(255,255,255,0.4)' },
-  speedText: { color: '#fff', fontSize: ms(11), fontWeight: '800' },
-  fallback: { flexDirection: 'row', alignItems: 'center', gap: s(10), backgroundColor: COLORS.primary, borderRadius: s(8), padding: s(14), marginHorizontal: s(16), marginBottom: vs(16) },
-  fallbackText: { flex: 1, color: '#fff', fontSize: ms(13), fontWeight: '700' },
+  left: { left: s(10) },
+  right: { right: s(10) },
+  text: { color: '#fff', fontSize: ms(10), fontWeight: '700' },
 });
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -239,7 +154,13 @@ export default function NewsDetailsScreen() {
   const navigation = useNavigation();
   const route = useRoute();
   const { sf } = useFontSize();
-  const { newsId, newsItem, disableComments = false } = route.params || {};
+
+  const {
+    newsId,
+    newsItem,
+    newsList = [],
+    disableComments = false,
+  } = route.params || {};
 
   const [detail, setDetail] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -250,36 +171,144 @@ export default function NewsDetailsScreen() {
   const [commentsVisible, setCommentsVisible] = useState(false);
   const [bookmarked, setBookmarked] = useState(false);
   const [contentWidth, setContentWidth] = useState(SCREEN_W - s(32));
+  const [scrollLocked, setScrollLocked] = useState(false);
+  const [hintDir, setHintDir] = useState(null);
 
+  const translateX = useRef(new Animated.Value(0)).current;
+  const isAnimating = useRef(false);
+  const isHorizontalDrag = useRef(false);
+  const scrollRef = useRef(null);
   const pulseAnim = useRef(new Animated.Value(1)).current;
+
+  // ── Current index in newsList ──────────────────────────────────────────────
+  const currentId = newsId || newsItem?.id || newsItem?.newsid;
+  const currentListIndex = useRef(
+    newsList.findIndex(n => (n.id || n.newsid)?.toString() === currentId?.toString())
+  );
+  const idx = currentListIndex.current;
+  const hasPrev = idx > 0 && newsList.length > 0;
+  const hasNext = idx >= 0 && idx < newsList.length - 1 && newsList.length > 0;
+
   const triggerPulse = () => {
     Animated.sequence([
-      Animated.timing(pulseAnim, { toValue: 0.96, duration: 80, useNativeDriver: true }),
+      Animated.timing(pulseAnim, { toValue: 0.97, duration: 80, useNativeDriver: true }),
       Animated.timing(pulseAnim, { toValue: 1, duration: 160, useNativeDriver: true }),
     ]).start();
   };
 
+  // ── Navigate to prev/next ──────────────────────────────────────────────────
+  const navigateToNews = useCallback((direction) => {
+    if (isAnimating.current) return;
+
+    const currentIdx = currentListIndex.current;
+    const nextIdx = direction === 'next' ? currentIdx + 1 : currentIdx - 1;
+
+    if (nextIdx < 0 || nextIdx >= newsList.length) {
+      // Bounce back
+      Animated.spring(translateX, {
+        toValue: 0, useNativeDriver: true, tension: 180, friction: 12,
+      }).start();
+      return;
+    }
+
+    isAnimating.current = true;
+    const exitTo = direction === 'next' ? -SCREEN_W : SCREEN_W;
+
+    Animated.timing(translateX, {
+      toValue: exitTo,
+      duration: 220,
+      useNativeDriver: true,
+    }).start(() => {
+      translateX.setValue(0);
+      isAnimating.current = false;
+      currentListIndex.current = nextIdx;
+
+      const nextItem = newsList[nextIdx];
+      navigation.replace('NewsDetailsScreen', {
+        newsId: nextItem.id || nextItem.newsid,
+        newsItem: nextItem,
+        newsList,
+      });
+    });
+  }, [newsList, navigation, translateX]);
+
+  // ── PanResponder ───────────────────────────────────────────────────────────
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => false,
+      onStartShouldSetPanResponderCapture: () => false,
+
+      // Capture from children (ScrollView) when clearly horizontal
+      onMoveShouldSetPanResponderCapture: (_, g) => {
+        const isH = Math.abs(g.dx) > Math.abs(g.dy) * 2.5 && Math.abs(g.dx) > 15;
+        return isH;
+      },
+
+      onMoveShouldSetPanResponder: (_, g) => {
+        const isH = Math.abs(g.dx) > Math.abs(g.dy) * 1.8 && Math.abs(g.dx) > 10;
+        if (isH) {
+          isHorizontalDrag.current = true;
+          setScrollLocked(true);
+        }
+        return isH;
+      },
+
+      onPanResponderGrant: () => {
+        isHorizontalDrag.current = false;
+      },
+
+      onPanResponderMove: (_, g) => {
+        if (!isHorizontalDrag.current) return;
+        // Rubber band resistance
+        translateX.setValue(g.dx * 0.38);
+        setHintDir(g.dx < 0 ? 'right' : 'left');
+      },
+
+      onPanResponderRelease: (_, g) => {
+        setScrollLocked(false);
+        isHorizontalDrag.current = false;
+        setHintDir(null);
+
+        if (isAnimating.current) return;
+
+        const swipedLeft = g.dx < -SWIPE_THRESHOLD || g.vx < -SWIPE_VELOCITY;
+        const swipedRight = g.dx > SWIPE_THRESHOLD || g.vx > SWIPE_VELOCITY;
+
+        if (swipedLeft) {
+          navigateToNews('next');
+        } else if (swipedRight) {
+          navigateToNews('prev');
+        } else {
+          Animated.spring(translateX, {
+            toValue: 0, useNativeDriver: true, tension: 200, friction: 15,
+          }).start();
+        }
+      },
+
+      onPanResponderTerminate: () => {
+        setScrollLocked(false);
+        isHorizontalDrag.current = false;
+        setHintDir(null);
+        Animated.spring(translateX, {
+          toValue: 0, useNativeDriver: true,
+        }).start();
+      },
+    })
+  ).current;
+
+  // ── Handlers ───────────────────────────────────────────────────────────────
   const handleMenuPress = (menuItem) => {
     const link = menuItem?.Link || menuItem?.link || '';
-    if (link.startsWith('http://') || link.startsWith('https://') || link.startsWith('www.')) {
-      Linking.openURL(link);
-    }
+    if (link.startsWith('http') || link.startsWith('www.')) Linking.openURL(link);
   };
 
   const goToSearch = () => navigation?.navigate('SearchScreen');
   const goToNotifs = () => navigation?.navigate('NotificationScreen');
   const handleSelectDistrict = (district) => setSelectedDistrict(district.title);
 
-  // ─── Fetch ────────────────────────────────────────────────────────────────
+  // ── Fetch detail ───────────────────────────────────────────────────────────
   const fetchDetail = useCallback(async () => {
     const id = newsId || newsItem?.id || newsItem?.newsid;
-    console.log('=== FETCH DEBUG ===');
-    console.log('newsId from params:', newsId);
-    console.log('newsItem?.id:', newsItem?.id);
-    console.log('newsItem?.newsid:', newsItem?.newsid);
-    console.log('Final ID being used:', id);
-    console.log('Full URL:', `/detaildata?newsid=${id}`);
-    console.log('==================');
     if (!id) {
       if (newsItem) { setDetail(newsItem); setLoading(false); return; }
       setError('செய்தி ID கிடைக்கவில்லை');
@@ -300,13 +329,6 @@ export default function NewsDetailsScreen() {
       setDetail(article || newsItem || null);
     } catch (err) {
       console.error('Detail fetch error:', err?.message);
-      console.log('=== ERROR DETAILS ===');
-      console.log('Status:', err?.response?.status);
-      console.log('Response data:', JSON.stringify(err?.response?.data));
-      console.log('Response headers:', JSON.stringify(err?.response?.headers));
-      console.log('Request URL:', err?.config?.url);
-      console.log('Request headers sent:', JSON.stringify(err?.config?.headers));
-      console.log('====================');
       setDetail(newsItem || null);
       if (!newsItem) setError('செய்தியை ஏற்ற முடியவில்லை.');
     } finally {
@@ -317,7 +339,7 @@ export default function NewsDetailsScreen() {
   useEffect(() => { fetchDetail(); }, [fetchDetail]);
   useEffect(() => { if (detail) triggerPulse(); }, [detail]);
 
-  // ─── Share ────────────────────────────────────────────────────────────────
+  // ── Share ──────────────────────────────────────────────────────────────────
   const getShareUrl = () => {
     const slug = detail?.slug || newsItem?.slug || '';
     const shareUrl = detail?.shareurl || newsItem?.shareurl || '';
@@ -334,7 +356,7 @@ export default function NewsDetailsScreen() {
 
   const handleOpenBrowser = () => Linking.openURL(getShareUrl());
 
-  // ─── Derived values ───────────────────────────────────────────────────────
+  // ── Derived ────────────────────────────────────────────────────────────────
   const d = detail || {};
   const ni = newsItem || {};
 
@@ -347,7 +369,6 @@ export default function NewsDetailsScreen() {
   const videoPath = d.path || ni.path || '';
 
   const isVideo = catKey === 'video' || videoPath?.includes('youtube');
-  // isPodcast: true for podcast category OR when audio flag is set
   const isPodcast = catKey === 'podcast' || d.audio === '1' || d.audio === 1;
 
   const comments = parseInt(d.newscomment || d.nmcomment || 0);
@@ -360,16 +381,8 @@ export default function NewsDetailsScreen() {
   const ytThumb = ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : '';
 
   const currentNewsId = newsId || newsItem?.id || newsItem?.newsid;
-
-  // ── Audio URL for podcast: videoPath is the stream URL
   const podcastAudioUrl = videoPath || d.audiofile || d.audiourl || null;
 
-  // ── Standalone audio (non-podcast articles with audio field)
-  const hasAudio = !isPodcast && d.audio && d.audio !== '0' && d.audio !== 0;
-  const audioUrl = d.audiofile || d.audiourl || d.audio_url ||
-    (typeof d.audio === 'string' && d.audio.startsWith('http') ? d.audio : null);
-
-  // ── RenderHtml ────────────────────────────────────────────────────────────
   const BASE_FONT = sf(16);
   const tagsStyles = React.useMemo(() => buildTagsStyles(BASE_FONT, COLORS.text), [BASE_FONT]);
   const baseStyle = React.useMemo(() => buildBaseStyle(BASE_FONT, COLORS.text), [BASE_FONT]);
@@ -378,6 +391,7 @@ export default function NewsDetailsScreen() {
   // ─── Render ───────────────────────────────────────────────────────────────
   return (
     <View style={styles.container}>
+
       <UniversalHeaderComponent
         statusBarStyle="dark-content"
         statusBarBackgroundColor={COLORS.white}
@@ -400,208 +414,317 @@ export default function NewsDetailsScreen() {
         />
       </UniversalHeaderComponent>
 
-      {/* Loading */}
-      {loading && (
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-          <ContentLoader />
-        </ScrollView>
-      )}
+      {/* ── Pan capture layer ── */}
+      <View style={styles.panLayer} {...panResponder.panHandlers}>
+        <Animated.View style={[styles.animLayer, { transform: [{ translateX }] }]}>
 
-      {/* Error */}
-      {!loading && !!error && (
-        <View style={styles.errorWrap}>
-          <Ionicons name="alert-circle-outline" size={s(52)} color="#f44336" />
-          <Text style={styles.errorTxt}>{error}</Text>
-          <TouchableOpacity style={styles.retryBtn} onPress={fetchDetail}>
-            <Text style={styles.retryBtnTxt}>மீண்டும் முயற்சி</Text>
-          </TouchableOpacity>
-        </View>
-      )}
+          {/* Swipe hints */}
+          {hintDir === 'left' && <SwipeHint direction="left" />}
+          {hintDir === 'right' && <SwipeHint direction="right" />}
 
-      {/* Content */}
-      {!loading && !error && (
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-
-          {/* Title */}
-          <Text style={[styles.title, { fontSize: sf(20), lineHeight: sf(28) }]}>{title}</Text>
-
-          {/* Meta row */}
-          <View style={styles.metaRow}>
-            {/* {!!ago && (
-              <View style={styles.metaChip}>
-                <Ionicons name="time-outline" size={11} color={COLORS.subtext} />
-                <Text style={[styles.metaChipTxt, { fontSize: sf(10) }]}>{ago}</Text>
-              </View>
-            )}
-            {!!date && !ago && (
-              <View style={styles.metaChip}>
-                <Ionicons name="calendar-outline" size={11} color={COLORS.subtext} />
-                <Text style={[styles.metaChipTxt, { fontSize: sf(10) }]}>{date}</Text>
-              </View>
-            )} */}
-            <View style={{ flex: 1 }} />
-            {!disableComments && (
-              <TouchableOpacity style={styles.iconAction} onPress={() => setCommentsVisible(true)}>
-                <Ionicons name="chatbox" size={s(20)} color={COLORS.subtext} />
-                {comments > 0 && <Text style={[styles.iconBadge, { fontSize: sf(10) }]}>{comments}</Text>}
-              </TouchableOpacity>
-            )}
-            <TouchableOpacity style={styles.iconAction} onPress={() => setBookmarked(p => !p)}>
-              <Ionicons
-                name={bookmarked ? 'bookmark' : 'bookmark-outline'}
-                size={s(20)}
-                color={bookmarked ? COLORS.primary : COLORS.subtext}
-              />
-            </TouchableOpacity>
-          </View>
-
-          {/* Hero image — hidden for podcast (artwork shown in podcast card) */}
-          {!!image && !isVideo && !isPodcast && (
-            <View style={styles.heroWrap}>
-              <Image source={{ uri: image }} style={styles.heroImage} resizeMode="cover" />
-              {!!d.imagecaption && <Text style={[styles.caption, { fontSize: sf(12) }]}>{d.imagecaption}</Text>}
-            </View>
-          )}
-
-          {/* YouTube */}
-          {isVideo && (
-            <TouchableOpacity style={styles.videoWrap} onPress={() => videoPath && Linking.openURL(videoPath)}>
-              {!!ytThumb ? (
-                <>
-                  <Image source={{ uri: ytThumb }} style={styles.ytThumb} resizeMode="cover" />
-                  <View style={styles.ytPlayOverlay}>
-                    <Ionicons name="play-circle" size={s(56)} color="#fff" />
-                  </View>
-                </>
-              ) : (
-                <>
-                  <Ionicons name="play-circle" size={s(56)} color="#fff" />
-                  <Text style={styles.videoTxt}>வீடியோ பார்க்க தட்டவும்</Text>
-                </>
-              )}
-            </TouchableOpacity>
-          )}
-
-          {/* ── PODCAST — artwork card + inline AudioPlayer (no browser redirect) ── */}
-          {isPodcast && !!podcastAudioUrl && (
-            <View style={styles.podcastSection}>
-              {/* Artwork card */}
-              <View style={styles.podcastCard}>
-                <View style={styles.podcastArtwork}>
-                  {!!image ? (
-                    <Image source={{ uri: image }} style={styles.podcastArtworkImg} resizeMode="cover" />
-                  ) : (
-                    <View style={styles.podcastArtworkFallback}>
-                      <Ionicons name="mic-circle" size={s(48)} color="#9c27b0" />
-                    </View>
-                  )}
-                </View>
-                <View style={styles.podcastInfo}>
-                  <View style={styles.podcastBadge}>
-                    <Ionicons name="mic" size={s(9)} color="#fff" />
-                    <Text style={styles.podcastBadgeTxt}>PODCAST</Text>
-                  </View>
-                  <Text style={styles.podcastCardTitle} numberOfLines={3}>{title}</Text>
-                  {!!(date || ago) && (
-                    <Text style={styles.podcastCardDate}>{date || ago}</Text>
-                  )}
-                </View>
-              </View>
-              {/* Inline player — plays without leaving the screen */}
-              {/* <AudioPlayer audioUrl={podcastAudioUrl} label="Podcast கேளுங்கள்" /> */}
-            </View>
-          )}
-
-          {/* Standalone audio (non-podcast articles) */}
-          {/* {hasAudio && !!audioUrl && (
-            <AudioPlayer audioUrl={audioUrl} label="கேளுங்கள்" />
-          )} */}
-
-          {/* Article HTML content */}
-          {!!safeContent && (
-            <Animated.View
-              style={[styles.contentSection, { opacity: pulseAnim }]}
-              onLayout={(e) => {
-                const w = e.nativeEvent.layout.width;
-                if (w > 0) setContentWidth(w);
-              }}
+          {/* Edge tap buttons */}
+          {hasPrev && (
+            <TouchableOpacity
+              style={styles.edgeBtnLeft}
+              onPress={() => navigateToNews('prev')}
+              activeOpacity={0.7}
             >
-              <RenderHtml
-                contentWidth={contentWidth}
-                source={{ html: safeContent }}
-                baseStyle={baseStyle}
-                tagsStyles={tagsStyles}
-                ignoredDomTags={['script', 'style', 'meta', 'head', 'html', 'body', 'subtitle']}
-                enableExperimentalMarginCollapsing
-                systemFonts={SYSTEM_FONTS}
-                renderersProps={{
-                  a: { onPress: (_event, href) => { if (href) Linking.openURL(href); } },
-                  img: { enableExperimentalPercentWidth: true },
-                }}
-              />
-            </Animated.View>
+              <Ionicons name="chevron-back" size={s(20)} color={COLORS.subtext} />
+            </TouchableOpacity>
+          )}
+          {hasNext && (
+            <TouchableOpacity
+              style={styles.edgeBtnRight}
+              onPress={() => navigateToNews('next')}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="chevron-forward" size={s(20)} color={COLORS.subtext} />
+            </TouchableOpacity>
           )}
 
-          {/* Tags */}
-          {tags.length > 0 && (
-            <View style={styles.tagsSection}>
-              <Text style={[styles.tagsSectionTitle, { fontSize: sf(14) }]}>Tags</Text>
-              <View style={styles.tagsWrap}>
-                {tags.map((tag, i) => (
-                  <View key={`tag-${i}-${typeof tag === 'string' ? tag : tag?.title || ''}`} style={styles.tagChip}>
-                    <Text style={[styles.tagTxt, { fontSize: sf(12) }]}>
-                      #{typeof tag === 'string' ? tag : tag?.title || tag?.name || ''}
-                    </Text>
+          {/* Loading */}
+          {loading && (
+            <ScrollView
+              scrollEnabled={!scrollLocked}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.scrollContent}
+            >
+              <ContentLoader />
+            </ScrollView>
+          )}
+
+          {/* Error */}
+          {!loading && !!error && (
+            <View style={styles.errorWrap}>
+              <Ionicons name="alert-circle-outline" size={s(52)} color="#f44336" />
+              <Text style={styles.errorTxt}>{error}</Text>
+              <TouchableOpacity style={styles.retryBtn} onPress={fetchDetail}>
+                <Text style={styles.retryBtnTxt}>மீண்டும் முயற்சி</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* Content */}
+          {!loading && !error && (
+            <ScrollView
+              ref={scrollRef}
+              scrollEnabled={!scrollLocked}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.scrollContent}
+              scrollEventThrottle={16}
+            >
+
+              {/* Progress bar */}
+              {/* {newsList.length > 1 && (
+                <View style={styles.progressWrap}>
+                  <View style={styles.progressBar}>
+                    <View
+                      style={[
+                        styles.progressFill,
+                        { width: `${((idx + 1) / newsList.length) * 100}%` },
+                      ]}
+                    />
                   </View>
-                ))}
-              </View>
-            </View>
-          )}
+                  <Text style={styles.progressTxt}>
+                    {idx + 1} / {newsList.length}
+                  </Text>
+                </View>
+              )} */}
 
-          {/* Share bar */}
-          <View style={styles.shareBar}>
-            <Text style={[styles.shareBarTitle, { fontSize: sf(14) }]}>பகிரவும்</Text>
-            <TouchableOpacity style={styles.shareBtn} onPress={handleShare}>
-              <Ionicons name="share-social-outline" size={s(16)} color={COLORS.primary} />
-              <Text style={[styles.shareBtnTxt, { fontSize: sf(12) }]}>Share</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.shareBtn} onPress={handleOpenBrowser}>
-              <Ionicons name="globe-outline" size={s(16)} color={COLORS.primary} />
-              <Text style={[styles.shareBtnTxt, { fontSize: sf(12) }]}>Browser</Text>
-            </TouchableOpacity>
-          </View>
+              {/* Title */}
+              <Text style={[styles.title, { fontSize: sf(20), lineHeight: sf(28) }]}>
+                {title}
+              </Text>
 
-          {/* Related news */}
-          {relatedNews.length > 0 && (
-            <View style={styles.relatedSection}>
-              <Text style={[styles.relatedTitle, { fontSize: sf(18) }]}>தொடர்புடைய செய்திகள்</Text>
-              {relatedNews.map((rel, i) => {
-                const relId = rel.id || rel.newsid;
-                return (
+              {/* Meta row */}
+              <View style={styles.metaRow}>
+                <View style={{ flex: 1 }} />
+                {!disableComments && (
                   <TouchableOpacity
-                    key={`related-${i}-${relId || 'no-id'}`}
-                    style={styles.relatedCard}
-                    onPress={() => navigation.push('NewsDetailsScreen', { newsId: relId, newsItem: rel })}
+                    style={styles.iconAction}
+                    onPress={() => setCommentsVisible(true)}
                   >
-                    {!!rel.images && (
-                      <Image source={{ uri: rel.images }} style={styles.relatedImg} resizeMode="cover" />
+                    <Ionicons name="chatbox" size={s(20)} color={COLORS.subtext} />
+                    {comments > 0 && (
+                      <Text style={[styles.iconBadge, { fontSize: sf(10) }]}>{comments}</Text>
                     )}
-                    <View style={styles.relatedBody}>
-                      <Text style={[styles.relatedCat, { fontSize: sf(10) }]}>{rel.categrorytitle || rel.maincat || ''}</Text>
-                      <Text style={[styles.relatedItemTitle, { fontSize: sf(13), lineHeight: sf(19) }]} numberOfLines={3}>
-                        {rel.newstitle || rel.title || ''}
-                      </Text>
-                      <Text style={[styles.relatedDate, { fontSize: sf(10) }]}>{rel.standarddate || rel.ago || ''}</Text>
-                    </View>
                   </TouchableOpacity>
-                );
-              })}
-            </View>
+                )}
+                <TouchableOpacity
+                  style={styles.iconAction}
+                  onPress={() => setBookmarked(p => !p)}
+                >
+                  <Ionicons
+                    name={bookmarked ? 'bookmark' : 'bookmark-outline'}
+                    size={s(20)}
+                    color={bookmarked ? COLORS.primary : COLORS.subtext}
+                  />
+                </TouchableOpacity>
+              </View>
+
+              {/* Hero image */}
+              {!!image && !isVideo && !isPodcast && (
+                <View style={styles.heroWrap}>
+                  <Image
+                    source={{ uri: image }}
+                    style={styles.heroImage}
+                    resizeMode="cover"
+                  />
+                  {!!d.imagecaption && (
+                    <Text style={[styles.caption, { fontSize: sf(12) }]}>
+                      {d.imagecaption}
+                    </Text>
+                  )}
+                </View>
+              )}
+
+              {/* YouTube */}
+              {isVideo && (
+                <TouchableOpacity
+                  style={styles.videoWrap}
+                  onPress={() => videoPath && Linking.openURL(videoPath)}
+                >
+                  {!!ytThumb ? (
+                    <>
+                      <Image source={{ uri: ytThumb }} style={styles.ytThumb} resizeMode="cover" />
+                      <View style={styles.ytPlayOverlay}>
+                        <Ionicons name="play-circle" size={s(56)} color="#fff" />
+                      </View>
+                    </>
+                  ) : (
+                    <>
+                      <Ionicons name="play-circle" size={s(56)} color="#fff" />
+                      <Text style={styles.videoTxt}>வீடியோ பார்க்க தட்டவும்</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              )}
+
+              {/* Podcast */}
+              {isPodcast && !!podcastAudioUrl && (
+                <View style={styles.podcastSection}>
+                  <View style={styles.podcastCard}>
+                    <View style={styles.podcastArtwork}>
+                      {!!image ? (
+                        <Image
+                          source={{ uri: image }}
+                          style={styles.podcastArtworkImg}
+                          resizeMode="cover"
+                        />
+                      ) : (
+                        <View style={styles.podcastArtworkFallback}>
+                          <Ionicons name="mic-circle" size={s(48)} color="#9c27b0" />
+                        </View>
+                      )}
+                    </View>
+                    <View style={styles.podcastInfo}>
+                      <View style={styles.podcastBadge}>
+                        <Ionicons name="mic" size={s(9)} color="#fff" />
+                        <Text style={styles.podcastBadgeTxt}>PODCAST</Text>
+                      </View>
+                      <Text style={styles.podcastCardTitle} numberOfLines={3}>{title}</Text>
+                      {!!(date || ago) && (
+                        <Text style={styles.podcastCardDate}>{date || ago}</Text>
+                      )}
+                    </View>
+                  </View>
+                </View>
+              )}
+
+              {/* HTML content */}
+              {!!safeContent && (
+                <Animated.View
+                  style={[styles.contentSection, { opacity: pulseAnim }]}
+                  onLayout={(e) => {
+                    const w = e.nativeEvent.layout.width;
+                    if (w > 0) setContentWidth(w);
+                  }}
+                >
+                  <RenderHtml
+                    contentWidth={contentWidth}
+                    source={{ html: safeContent }}
+                    baseStyle={baseStyle}
+                    tagsStyles={tagsStyles}
+                    ignoredDomTags={['script', 'style', 'meta', 'head', 'html', 'body', 'subtitle']}
+                    enableExperimentalMarginCollapsing
+                    systemFonts={SYSTEM_FONTS}
+                    renderersProps={{
+                      a: { onPress: (_e, href) => { if (href) Linking.openURL(href); } },
+                      img: { enableExperimentalPercentWidth: true },
+                    }}
+                  />
+                </Animated.View>
+              )}
+
+              {/* Tags */}
+              {tags.length > 0 && (
+                <View style={styles.tagsSection}>
+                  <Text style={[styles.tagsSectionTitle, { fontSize: sf(14) }]}>Tags</Text>
+                  <View style={styles.tagsWrap}>
+                    {tags.map((tag, i) => (
+                      <View key={`tag-${i}`} style={styles.tagChip}>
+                        <Text style={[styles.tagTxt, { fontSize: sf(12) }]}>
+                          #{typeof tag === 'string' ? tag : tag?.title || tag?.name || ''}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              )}
+
+              {/* Share bar */}
+              <View style={styles.shareBar}>
+                <Text style={[styles.shareBarTitle, { fontSize: sf(14) }]}>பகிரவும்</Text>
+                <TouchableOpacity style={styles.shareBtn} onPress={handleShare}>
+                  <Ionicons name="share-social-outline" size={s(16)} color={COLORS.primary} />
+                  <Text style={[styles.shareBtnTxt, { fontSize: sf(12) }]}>Share</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.shareBtn} onPress={handleOpenBrowser}>
+                  <Ionicons name="globe-outline" size={s(16)} color={COLORS.primary} />
+                  <Text style={[styles.shareBtnTxt, { fontSize: sf(12) }]}>Browser</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Swipe nav row */}
+              {newsList.length > 1 && (
+                <View style={styles.swipeNavRow}>
+                  <TouchableOpacity
+                    style={[styles.swipeNavBtn, !hasPrev && styles.swipeNavBtnDisabled]}
+                    onPress={() => hasPrev && navigateToNews('prev')}
+                    disabled={!hasPrev}
+                  >
+                    <Ionicons name="arrow-back" size={s(15)} color={hasPrev ? COLORS.primary : '#ccc'} />
+                    <Text style={[styles.swipeNavTxt, !hasPrev && styles.swipeNavTxtDisabled]}>
+                      முந்தைய
+                    </Text>
+                  </TouchableOpacity>
+
+                  <Text style={styles.swipeNavCount}>{idx + 1} / {newsList.length}</Text>
+
+                  <TouchableOpacity
+                    style={[styles.swipeNavBtn, !hasNext && styles.swipeNavBtnDisabled]}
+                    onPress={() => hasNext && navigateToNews('next')}
+                    disabled={!hasNext}
+                  >
+                    <Text style={[styles.swipeNavTxt, !hasNext && styles.swipeNavTxtDisabled]}>
+                      அடுத்த
+                    </Text>
+                    <Ionicons name="arrow-forward" size={s(15)} color={hasNext ? COLORS.primary : '#ccc'} />
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {/* Related news */}
+              {relatedNews.length > 0 && (
+                <View style={styles.relatedSection}>
+                  <Text style={[styles.relatedTitle, { fontSize: sf(18) }]}>
+                    தொடர்புடைய செய்திகள்
+                  </Text>
+                  {relatedNews.map((rel, i) => {
+                    const relId = rel.id || rel.newsid;
+                    return (
+                      <TouchableOpacity
+                        key={`related-${i}-${relId || i}`}
+                        style={styles.relatedCard}
+                        onPress={() => navigation.push('NewsDetailsScreen', {
+                          newsId: relId,
+                          newsItem: rel,
+                          newsList,
+                        })}
+                      >
+                        {!!rel.images && (
+                          <Image
+                            source={{ uri: rel.images }}
+                            style={styles.relatedImg}
+                            resizeMode="cover"
+                          />
+                        )}
+                        <View style={styles.relatedBody}>
+                          <Text style={[styles.relatedCat, { fontSize: sf(10) }]}>
+                            {rel.categrorytitle || rel.maincat || ''}
+                          </Text>
+                          <Text
+                            style={[styles.relatedItemTitle, { fontSize: sf(13), lineHeight: sf(19) }]}
+                            numberOfLines={3}
+                          >
+                            {rel.newstitle || rel.title || ''}
+                          </Text>
+                          <Text style={[styles.relatedDate, { fontSize: sf(10) }]}>
+                            {rel.standarddate || rel.ago || ''}
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              )}
+
+              <View style={{ height: vs(40) }} />
+            </ScrollView>
           )}
 
-          <View style={{ height: vs(40) }} />
-        </ScrollView>
-      )}
+        </Animated.View>
+      </View>
 
       {/* Comments Modal */}
       {!disableComments && (
@@ -620,33 +743,104 @@ export default function NewsDetailsScreen() {
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   container: {
-    flex: 1, backgroundColor: COLORS.white,
+    flex: 1,
+    backgroundColor: COLORS.white,
     paddingTop: Platform.OS === 'android' ? vs(30) : 0,
   },
+
+  // ── Pan + Anim layers ──
+  panLayer: {
+    flex: 1,
+    overflow: 'hidden',
+  },
+  animLayer: {
+    flex: 1,
+  },
+
+  // ── Progress ──
+  progressWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: s(16),
+    paddingTop: vs(8),
+    paddingBottom: vs(4),
+    gap: s(8),
+  },
+  progressBar: {
+    flex: 1,
+    height: vs(3),
+    backgroundColor: '#eee',
+    borderRadius: vs(2),
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: COLORS.primary,
+    borderRadius: vs(2),
+  },
+  progressTxt: {
+    fontSize: ms(10),
+    color: COLORS.subtext,
+    fontWeight: '600',
+    minWidth: s(36),
+    textAlign: 'right',
+  },
+
+  // ── Edge buttons ──
+  edgeBtnLeft: {
+    position: 'absolute',
+    left: 0,
+    top: '45%',
+    zIndex: 10,
+    // backgroundColor: COLORS.subtext + '20',
+    width: ms(40),
+    height: ms(40),
+    borderRadius: ms(20),
+    justifyContent:"center",
+    alignItems:"center",
+    backgroundColor:COLORS.white
+  },
+  edgeBtnRight: {
+    position: 'absolute',
+    right: 0,
+    top: '45%',
+    zIndex: 10,
+    // backgroundColor: COLORS.primary + '20',
+    // borderTopLeftRadius: s(20),
+    // borderBottomLeftRadius: s(18),
+    // paddingVertical: vs(12),
+    // paddingHorizontal: s(5),
+    width: ms(40),
+    height: ms(40),
+    borderRadius: ms(20),
+    justifyContent:"center",
+    alignItems:"center",
+        backgroundColor:COLORS.white
+
+  },
+
   scrollContent: { paddingBottom: vs(20) },
 
   title: {
-    fontSize: scaledSizes.font.xl, fontWeight: '800', color: COLORS.text,
-    lineHeight: scaledSizes.lineHeight.xl,
-    paddingHorizontal: s(16), paddingTop: vs(12), paddingBottom: vs(8),
+    fontWeight: '800',
+    color: COLORS.text,
+    paddingHorizontal: s(16),
+    paddingTop: vs(12),
+    paddingBottom: vs(8),
   },
-
   metaRow: {
-    flexDirection: 'row', alignItems: 'center', gap: s(8),
-    paddingHorizontal: s(16), marginBottom: vs(12), flexWrap: 'wrap',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: s(8),
+    paddingHorizontal: s(16),
+    marginBottom: vs(12),
   },
-  metaChip: {
-    flexDirection: 'row', alignItems: 'center', gap: s(3),
-    backgroundColor: '#f5f5f5', paddingHorizontal: s(8),
-    paddingVertical: vs(3), borderRadius: s(10),
-  },
-  metaChipTxt: { fontSize: 10, color: COLORS.subtext },
   iconAction: { flexDirection: 'row', alignItems: 'center', gap: s(3), padding: s(4) },
-  iconBadge: { fontSize: 10, color: COLORS.subtext, fontWeight: '600' },
+  iconBadge: { color: COLORS.subtext, fontWeight: '600' },
 
   heroWrap: { marginHorizontal: s(16), marginBottom: vs(12) },
   heroImage: { width: '100%', height: ms(210), backgroundColor: '#f0f0f0' },
-  caption: { fontSize: 10, color: COLORS.subtext, fontStyle: 'italic', marginTop: vs(4), textAlign: 'center' },
+  caption: { color: COLORS.subtext, fontStyle: 'italic', marginTop: vs(4), textAlign: 'center' },
 
   videoWrap: {
     marginHorizontal: s(16), height: ms(200), backgroundColor: '#1a1a2e',
@@ -654,10 +848,12 @@ const styles = StyleSheet.create({
     marginBottom: vs(12), overflow: 'hidden',
   },
   ytThumb: { position: 'absolute', width: '100%', height: '100%' },
-  ytPlayOverlay: { position: 'absolute', justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.35)', width: '100%', height: '100%' },
-  videoTxt: { fontSize: scaledSizes.font.sm, color: '#fff', fontWeight: '600', marginTop: vs(8) },
+  ytPlayOverlay: {
+    position: 'absolute', justifyContent: 'center', alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.35)', width: '100%', height: '100%',
+  },
+  videoTxt: { color: '#fff', fontWeight: '600', marginTop: vs(8) },
 
-  // ── Podcast ──────────────────────────────────────────────────────────────
   podcastSection: { marginBottom: vs(4) },
   podcastCard: {
     flexDirection: 'row', alignItems: 'center', gap: s(12),
@@ -686,52 +882,81 @@ const styles = StyleSheet.create({
   contentSection: { paddingHorizontal: s(16), marginBottom: vs(16) },
 
   tagsSection: { paddingHorizontal: s(16), marginBottom: vs(16) },
-  tagsSectionTitle: { fontSize: scaledSizes.font.sm, fontWeight: '700', color: COLORS.text, marginBottom: vs(8) },
+  tagsSectionTitle: { fontWeight: '700', color: COLORS.text, marginBottom: vs(8) },
   tagsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: s(6) },
   tagChip: {
     backgroundColor: COLORS.primary + '15', paddingHorizontal: s(10),
     paddingVertical: vs(4), borderRadius: s(14),
     borderWidth: 1, borderColor: COLORS.primary + '30',
   },
-  tagTxt: { fontSize: 10, color: COLORS.primary, fontWeight: '600' },
+  tagTxt: { color: COLORS.primary, fontWeight: '600' },
 
   shareBar: {
     flexDirection: 'row', alignItems: 'center', gap: s(10),
-    marginHorizontal: s(16), marginBottom: vs(20),
-    paddingVertical: vs(12), borderTopWidth: 1, borderBottomWidth: 1, borderColor: '#f0f0f0',
+    marginHorizontal: s(16), marginBottom: vs(8),
+    paddingVertical: vs(12),
+    borderTopWidth: 1, borderBottomWidth: 1, borderColor: '#f0f0f0',
   },
-  shareBarTitle: { flex: 1, fontSize: scaledSizes.font.sm, fontWeight: '700', color: COLORS.text },
+  shareBarTitle: { flex: 1, fontWeight: '700', color: COLORS.text },
   shareBtn: {
     flexDirection: 'row', alignItems: 'center', gap: s(4),
-    backgroundColor: COLORS.primary + '12', paddingHorizontal: s(12),
-    paddingVertical: vs(6), borderRadius: s(16),
+    backgroundColor: COLORS.primary + '12',
+    paddingHorizontal: s(12), paddingVertical: vs(6), borderRadius: s(16),
   },
-  shareBtnTxt: { fontSize: scaledSizes.font.sm, color: COLORS.primary, fontWeight: '600' },
+  shareBtnTxt: { color: COLORS.primary, fontWeight: '600' },
+
+  // ── Swipe nav row ──
+  swipeNavRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginHorizontal: s(16),
+    marginTop: vs(4),
+    marginBottom: vs(16),
+    paddingVertical: vs(10),
+    paddingHorizontal: s(12),
+    borderWidth: 1,
+    borderColor: '#f0f0f0',
+    borderRadius: s(10),
+    backgroundColor: '#fafafa',
+  },
+  swipeNavBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: s(4), padding: s(6),
+  },
+  swipeNavBtnDisabled: { opacity: 0.3 },
+  swipeNavTxt: { fontSize: ms(13), fontWeight: '700', color: COLORS.primary },
+  swipeNavTxtDisabled: { color: '#ccc' },
+  swipeNavCount: { fontSize: ms(12), color: COLORS.subtext, fontWeight: '600' },
 
   relatedSection: { paddingHorizontal: s(16), marginBottom: vs(16) },
   relatedTitle: {
-    fontSize: scaledSizes.font.lg, fontWeight: '700', color: COLORS.text,
+    fontWeight: '700', color: COLORS.text,
     marginBottom: vs(12), paddingBottom: vs(8),
     borderBottomWidth: 2, borderBottomColor: COLORS.primary,
   },
   relatedCard: {
     flexDirection: 'row', backgroundColor: COLORS.white, borderRadius: s(8),
-    marginBottom: vs(10), overflow: 'hidden', borderWidth: 1, borderColor: '#f0f0f0',
-    elevation: 1, shadowColor: '#000', shadowOffset: { width: 0, height: s(1) },
+    marginBottom: vs(10), overflow: 'hidden',
+    borderWidth: 1, borderColor: '#f0f0f0',
+    elevation: 1, shadowColor: '#000',
+    shadowOffset: { width: 0, height: s(1) },
     shadowOpacity: 0.05, shadowRadius: s(3),
   },
   relatedImg: { width: s(95), height: vs(72), backgroundColor: '#f0f0f0' },
   relatedBody: { flex: 1, padding: s(10) },
-  relatedCat: { fontSize: 9, color: COLORS.primary, fontWeight: '700', textTransform: 'uppercase', marginBottom: vs(3) },
-  relatedItemTitle: { fontSize: scaledSizes.font.sm, fontWeight: '600', color: COLORS.text, lineHeight: scaledSizes.lineHeight.md, marginBottom: vs(4) },
-  relatedDate: { fontSize: 9, color: COLORS.subtext },
+  relatedCat: { color: COLORS.primary, fontWeight: '700', textTransform: 'uppercase', marginBottom: vs(3) },
+  relatedItemTitle: { fontWeight: '600', color: COLORS.text, marginBottom: vs(4) },
+  relatedDate: { color: COLORS.subtext },
 
   errorWrap: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: s(32) },
-  errorTxt: { fontSize: scaledSizes.font.md, color: COLORS.subtext, textAlign: 'center', marginTop: vs(12), marginBottom: vs(20), lineHeight: scaledSizes.lineHeight.lg },
+  errorTxt: {
+    color: COLORS.subtext, textAlign: 'center',
+    marginTop: vs(12), marginBottom: vs(20),
+  },
   retryBtn: { backgroundColor: COLORS.primary, paddingHorizontal: s(24), paddingVertical: vs(10), borderRadius: s(8) },
-  retryBtnTxt: { fontSize: scaledSizes.font.md, color: '#fff', fontWeight: '700' },
+  retryBtnTxt: { color: '#fff', fontWeight: '700' },
 
-  loaderContainer: { flex: 1, backgroundColor: COLORS.white, paddingHorizontal: s(16), paddingTop: vs(16) },
+  loaderContainer: { backgroundColor: COLORS.white, paddingHorizontal: s(16), paddingTop: vs(16) },
   skeletonTitle: { height: vs(28), backgroundColor: '#f0f0f0', borderRadius: s(6), marginBottom: vs(8), width: '92%' },
   skeletonTitleShort: { height: vs(28), backgroundColor: '#f0f0f0', borderRadius: s(6), marginBottom: vs(12), width: '75%' },
   skeletonMeta: { flexDirection: 'row', alignItems: 'center', gap: s(8), marginBottom: vs(16) },

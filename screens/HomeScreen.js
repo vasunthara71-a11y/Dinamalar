@@ -1004,6 +1004,7 @@ export default function HomeScreen() {
     navigation?.navigate('NewsDetailsScreen', {
       newsId: item.id || item.newsid,
       newsItem: item,
+      newsList: section.data,
     });
   };
 
@@ -1107,6 +1108,7 @@ export default function HomeScreen() {
                           newsId: item.newsid || item.id,
                           newsItem: item,
                           slug: item.slug || '',
+                          newsList: section.data,
                         });
                         return;
                       }

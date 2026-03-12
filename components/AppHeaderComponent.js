@@ -5,10 +5,11 @@ import { COLORS, FONTS } from '../utils/constants';
 import { s, vs } from '../utils/scaling';
 import { ms } from 'react-native-size-matters';
 import { useFontSize } from '../context/FontSizeContext';
+import { useNavigation } from '@react-navigation/native';
 
 // ─── Palette ──────────────────────────────────────────────────────────────────
 const PRIMARY = '#096dd2';
-const TEXT    = '#212B36';
+const TEXT = '#212B36';
 
 // ─── App Header Component ─────────────────────────────────────────────────────
 // Matches screenshot exactly:
@@ -22,6 +23,7 @@ export default function AppHeaderComponent({
   selectedDistrict = 'உள்ளூர்',
 }) {
   const { sf } = useFontSize();
+  const navigation = useNavigation();
   return (
     <View style={styles.appHeader}>
 
@@ -30,11 +32,15 @@ export default function AppHeaderComponent({
         <TouchableOpacity style={styles.iconBtn} onPress={onMenu} activeOpacity={0.7}>
           <Ionicons name="menu" size={s(24)} color={TEXT} />
         </TouchableOpacity>
-        <Image
-          source={{ uri: 'https://stat.dinamalar.com/new/2025/images/dinamalar-pavala-vizha-logo-day.png' }}
-          style={styles.logoImage}
-          resizeMode="contain"
-        />
+
+        <TouchableOpacity onPress={()=>navigation.navigate("HomeScreen")}>
+          <Image
+            source={{ uri: 'https://stat.dinamalar.com/new/2025/images/dinamalar-pavala-vizha-logo-day.png' }}
+            style={styles.logoImage}
+            resizeMode="contain"
+          />
+        </TouchableOpacity>
+
       </View>
 
       {/* ── Right: search + location ──────────────────────────────────── */}
@@ -67,8 +73,8 @@ const styles = StyleSheet.create({
     paddingTop: Platform.OS === 'android' ? vs(10) : vs(52),
     paddingBottom: vs(10),
     paddingHorizontal: s(14),
-    borderBottomWidth: 1,
-    borderBottomColor: '#F4F6F8',
+    // borderBottomWidth: 1,
+    // borderBottomColor: '#F4F6F8',
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
