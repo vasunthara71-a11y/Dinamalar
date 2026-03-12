@@ -162,8 +162,25 @@ export default function TharpothaiyaSeithigalScreen({ route }) {
   const navigation = useNavigation();
 
   const initialTabId = route?.params?.tabId || 'tharpothaiya';
+  const initialTabTitle = route?.params?.initialTabTitle;
+  
+  // Map tab titles to tab IDs
+  const getTabIdFromTitle = (title) => {
+    const titleToIdMap = {
+      'தற்போதைய': 'tharpothaiya',
+      'தமிழகம்': 'tamilagam',
+      'இந்தியா': 'india',
+      'உலகம்': 'world',
+      'பிரீமியம்': 'premium',
+    };
+    return titleToIdMap[title] || 'tharpothaiya';
+  };
+  
+  // Use initialTabTitle if provided, otherwise use tabId
+  const resolvedTabId = initialTabTitle ? getTabIdFromTitle(initialTabTitle) : initialTabId;
+  
   // Only fetchable tabs can be the initial active tab
-  const initialTab   = TOP_TABS.find(t => t.id === initialTabId) || TOP_TABS[0];
+  const initialTab   = TOP_TABS.find(t => t.id === resolvedTabId) || TOP_TABS[0];
 
   const [activeTopTab,            setActiveTopTab]            = useState(initialTab);
   const [subTabs,                 setSubTabs]                 = useState([]);
@@ -186,19 +203,31 @@ export default function TharpothaiyaSeithigalScreen({ route }) {
   // ✅ On every focus: if tabId is a nav-only tab, redirect immediately
   useEffect(() => {
     const newTabId = route?.params?.tabId;
-    if (!newTabId) return;
+    const newTabTitle = route?.params?.initialTabTitle;
+    
+    // Handle tabId parameter
+    if (newTabId) {
+      const navOnly = NAV_ONLY_TABS.find(t => t.id === newTabId);
+      if (navOnly) {
+        navigation.navigate(navOnly.screen);
+        return;
+      }
 
-    const navOnly = NAV_ONLY_TABS.find(t => t.id === newTabId);
-    if (navOnly) {
-      navigation.navigate(navOnly.screen);
-      return;
+      const newTab = TOP_TABS.find(t => t.id === newTabId);
+      if (newTab && newTab.id !== activeTopTab.id) {
+        setActiveTopTab(newTab);
+      }
     }
-
-    const newTab = TOP_TABS.find(t => t.id === newTabId);
-    if (newTab && newTab.id !== activeTopTab.id) {
-      setActiveTopTab(newTab);
+    
+    // Handle initialTabTitle parameter
+    if (newTabTitle) {
+      const resolvedTabId = getTabIdFromTitle(newTabTitle);
+      const newTab = TOP_TABS.find(t => t.id === resolvedTabId);
+      if (newTab && newTab.id !== activeTopTab.id) {
+        setActiveTopTab(newTab);
+      }
     }
-  }, [route?.params?.tabId]);
+  }, [route?.params?.tabId, route?.params?.initialTabTitle]);
 
   const handleScroll = useCallback((event) => {
     setShowScrollTop(event.nativeEvent.contentOffset.y > 300);
@@ -324,7 +353,10 @@ export default function TharpothaiyaSeithigalScreen({ route }) {
 
   const handleSelectDistrict = (district) => {
     setSelectedDistrict(district.title);
-    if (district.id) navigation?.navigate('CategoryNewsScreen', { catId: district.id, catName: district.title });
+    if (district.id) navigation?.navigate('DistrictNewsScreen', { 
+      districtId: district.id, 
+      districtTitle: district.title 
+    });
   };
 
   return (
@@ -340,6 +372,7 @@ export default function TharpothaiyaSeithigalScreen({ route }) {
         onNotification={goToNotifs}
         onLocation={() => setIsLocationDrawerVisible(true)}
         selectedDistrict={selectedDistrict}
+        onSelectDistrict={handleSelectDistrict}
         navigation={navigation}
         isDrawerVisible={isDrawerVisible}
         setIsDrawerVisible={setIsDrawerVisible}

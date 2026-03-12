@@ -37,8 +37,8 @@ const P = {
   grey600: '#637381',
   grey700: '#454F5B',
   grey800: '#212B36',
-  white:   '#FFFFFF',
-  border:  '#EBEBEB',
+  white: '#FFFFFF',
+  border: '#EBEBEB',
 };
 
 const LINK_ROUTE_MAP = [
@@ -117,10 +117,10 @@ const isJoshiyamItem = (title = '', link = '', id = '') => {
 
 const toArray = (val) => {
   if (Array.isArray(val)) return val;
-  if (val && Array.isArray(val.data))    return val.data;
-  if (val && Array.isArray(val.menu))    return val.menu;
-  if (val && Array.isArray(val.items))   return val.items;
-  if (val && Array.isArray(val.result))  return val.result;
+  if (val && Array.isArray(val.data)) return val.data;
+  if (val && Array.isArray(val.menu)) return val.menu;
+  if (val && Array.isArray(val.items)) return val.items;
+  if (val && Array.isArray(val.result)) return val.result;
   if (val && typeof val === 'object') {
     const arrKey = Object.keys(val).find(k => Array.isArray(val[k]));
     if (arrKey) return val[arrKey];
@@ -130,7 +130,7 @@ const toArray = (val) => {
 
 const isValidSubItem = (sub) => {
   const t = (sub?.Title || sub?.title || sub?.name || '').trim();
-  const l = (sub?.Link  || sub?.link  || sub?.slug  || '').trim();
+  const l = (sub?.Link || sub?.link || sub?.slug || '').trim();
   if (!t || !l) return false;
   if (Array.isArray(sub.data) && sub.data.length === 0) return false;
   return true;
@@ -154,39 +154,39 @@ const isValidFollowItem = (item) => {
 };
 
 const THARPOTHAIYA_TAB_MAP = [
-  { titles: ['அனைத்தும்', 'All', 'all'],           catIds: ['5010'],       tabTitle: null            },
-  { titles: ['தமிழகம்'],                            catIds: ['89'],         tabTitle: 'தமிழகம்'       },
-  { titles: ['இந்தியா'],                            catIds: ['100'],        tabTitle: 'இந்தியா'       },
-  { titles: ['உலகம்'],                              catIds: ['34'],         tabTitle: 'உலகம்'         },
-  { titles: ['Premium', 'பிரீமியம்', 'ப்ரீமியம்'], catIds: ['651'],        tabTitle: 'பிரீமியம்'     },
-  { titles: ['விளையாட்டு', 'Sports'],               catIds: [],             tabTitle: '__sports__'    },
-  { titles: ['சினிமா', 'Cinema'],                   catIds: [],             tabTitle: '__cinema__'    },
-  { titles: ['வர்த்தகம்', 'Business'],              catIds: [],             tabTitle: '__varthagam__' },
-  { titles: ['நேரலை', 'Timeline', 'Latest'],        catIds: ['latestmain'], tabTitle: '__timeline__'  },
+  { titles: ['அனைத்தும்', 'All', 'all'], catIds: ['5010'], tabTitle: null },
+  { titles: ['தமிழகம்'], catIds: ['89'], tabTitle: 'தமிழகம்' },
+  { titles: ['இந்தியா'], catIds: ['100'], tabTitle: 'இந்தியா' },
+  { titles: ['உலகம்'], catIds: ['34'], tabTitle: 'உலகம்' },
+  { titles: ['Premium', 'பிரீமியம்', 'ப்ரீமியம்'], catIds: ['651'], tabTitle: 'பிரீமியம்' },
+  { titles: ['விளையாட்டு', 'Sports'], catIds: [], tabTitle: '__sports__' },
+  { titles: ['சினிமா', 'Cinema'], catIds: [], tabTitle: '__cinema__' },
+  { titles: ['வர்த்தகம்', 'Business'], catIds: [], tabTitle: '__varthagam__' },
+  { titles: ['நேரலை', 'Timeline', 'Latest'], catIds: ['latestmain'], tabTitle: '__timeline__' },
 ];
 
 const DrawerMenu = ({ isVisible, onClose, onMenuPress, navigation }) => {
 
   const slideAnim = useRef(new Animated.Value(-DRAWER_W)).current;
-  const fadeAnim  = useRef(new Animated.Value(0)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
 
-  const [menuData, setMenuData]               = useState({ menu1: [], menu2: [], title: '', follow: [], menuIndex1: [] });
-  const [loading, setLoading]                 = useState(true);
+  const [menuData, setMenuData] = useState({ menu1: [], menu2: [], title: '', follow: [], menuIndex1: [] });
+  const [loading, setLoading] = useState(true);
   const [showDistrictDrawer, setShowDistrictDrawer] = useState(false);
-  const [district, setdistrict]               = useState(null);
-  const [expandedItems, setExpandedItems]     = useState(new Set());
+  const [district, setdistrict] = useState(null);
+  const [expandedItems, setExpandedItems] = useState(new Set());
   const [dinamDinamSubcats, setDinamDinamSubcats] = useState(null);
 
   useEffect(() => {
     if (isVisible) {
       Animated.parallel([
-        Animated.timing(slideAnim, { toValue: 0,        duration: 280, useNativeDriver: true }),
-        Animated.timing(fadeAnim,  { toValue: 1,        duration: 280, useNativeDriver: true }),
+        Animated.timing(slideAnim, { toValue: 0, duration: 280, useNativeDriver: true }),
+        Animated.timing(fadeAnim, { toValue: 1, duration: 280, useNativeDriver: true }),
       ]).start();
     } else {
       Animated.parallel([
         Animated.timing(slideAnim, { toValue: -DRAWER_W, duration: 220, useNativeDriver: true }),
-        Animated.timing(fadeAnim,  { toValue: 0,         duration: 220, useNativeDriver: true }),
+        Animated.timing(fadeAnim, { toValue: 0, duration: 220, useNativeDriver: true }),
       ]).start();
     }
   }, [isVisible]);
@@ -206,10 +206,10 @@ const DrawerMenu = ({ isVisible, onClose, onMenuPress, navigation }) => {
           console.error('Failed to load menuindex1:', menuIndex1Error);
         }
         setMenuData({
-          menu1:      toArray(d.menu1),
-          menu2:      toArray(d.menu2),
-          title:      d.title || '',
-          follow:     toArray(d.follow),
+          menu1: toArray(d.menu1),
+          menu2: toArray(d.menu2),
+          title: d.title || '',
+          follow: toArray(d.follow),
           menuIndex1: toArray(menuIndex1Data),
         });
         if (d.district) setdistrict(d.district);
@@ -243,41 +243,41 @@ const DrawerMenu = ({ isVisible, onClose, onMenuPress, navigation }) => {
 
   // ─── Navigation — UNTOUCHED ───────────────────────────────────────────────
   const handleMenuItemPress = (item, parentItem = null) => {
-    const link        = item.Link  || item.link  || '';
-    const title       = item.Title || item.title || item.name || '';
-    const id          = String(item.id || '');
+    const link = item.Link || item.link || '';
+    const title = item.Title || item.title || item.name || '';
+    const id = String(item.id || '');
     const parentTitle = parentItem?.Title || parentItem?.title || parentItem?.name || '';
-    const parentLink  = parentItem?.Link  || parentItem?.link  || '';
-    const parentId    = String(parentItem?.id || '');
+    const parentLink = parentItem?.Link || parentItem?.link || '';
+    const parentId = String(parentItem?.id || '');
 
     const catFromLink = (link.match(/cat=(\w+)/i) || [])[1] || '';
     for (const entry of THARPOTHAIYA_TAB_MAP) {
       const titleMatch = entry.titles.some(t => t === title);
-      const catMatch   = entry.catIds.length > 0 && entry.catIds.some(
+      const catMatch = entry.catIds.length > 0 && entry.catIds.some(
         c => c === id || c === catFromLink || link.includes(c)
       );
       if (titleMatch || catMatch) {
-        if (entry.tabTitle === '__timeline__')       navigation?.navigate('TimelineScreen');
-        else if (entry.tabTitle === '__sports__')    navigation?.navigate('SportsScreen');
-        else if (entry.tabTitle === '__cinema__')    navigation?.navigate('CategoryNewsScreen', { catName: title });
+        if (entry.tabTitle === '__timeline__') navigation?.navigate('TimelineScreen');
+        else if (entry.tabTitle === '__sports__') navigation?.navigate('SportsScreen');
+        else if (entry.tabTitle === '__cinema__') navigation?.navigate('CategoryNewsScreen', { catName: title });
         else if (entry.tabTitle === '__varthagam__') navigation?.navigate('VarthagamScreen');
         else if (entry.tabTitle === '__tamilnadu__') navigation?.navigate('TamilNaduScreen');
-        else if (entry.tabTitle === '__india__')     navigation?.navigate('CategoryNewsScreen', { catName: 'இந்தியா', catId: '100' });
-        else if (entry.tabTitle === 'தமிழகம்')       navigation?.navigate('TharpothaiyaSeithigalScreen', { initialTabTitle: 'தமிழகம்' });
-        else if (entry.tabTitle === 'இந்தியா')       navigation?.navigate('TharpothaiyaSeithigalScreen', { initialTabTitle: 'இந்தியா' });
-        else if (entry.tabTitle === 'உலகம்')         navigation?.navigate('TharpothaiyaSeithigalScreen', { initialTabTitle: 'உலகம்' });
-        else if (entry.tabTitle === 'பிரீமியம்')     navigation?.navigate('TharpothaiyaSeithigalScreen', { initialTabTitle: 'பிரீமியம்' });
-        else if (entry.tabTitle === null)            navigation?.navigate('TharpothaiyaSeithigalScreen');
-        else                                         navigation?.navigate('TharpothaiyaSeithigalScreen', { initialTabTitle: entry.tabTitle });
+        else if (entry.tabTitle === '__india__') navigation?.navigate('CategoryNewsScreen', { catName: 'இந்தியா', catId: '100' });
+        else if (entry.tabTitle === 'தமிழகம்') navigation?.navigate('TharpothaiyaSeithigalScreen', { initialTabTitle: 'தமிழகம்' });
+        else if (entry.tabTitle === 'இந்தியா') navigation?.navigate('TharpothaiyaSeithigalScreen', { initialTabTitle: 'இந்தியா' });
+        else if (entry.tabTitle === 'உலகம்') navigation?.navigate('TharpothaiyaSeithigalScreen', { initialTabTitle: 'உலகம்' });
+        else if (entry.tabTitle === 'பிரீமியம்') navigation?.navigate('TharpothaiyaSeithigalScreen', { initialTabTitle: 'பிரீமியம்' });
+        else if (entry.tabTitle === null) navigation?.navigate('TharpothaiyaSeithigalScreen');
+        else navigation?.navigate('TharpothaiyaSeithigalScreen', { initialTabTitle: entry.tabTitle });
         onClose(); return;
       }
     }
 
     if (link.includes('cat=5010') || id === '5010' || title.includes('தற்போதைய')) { navigation?.navigate('TharpothaiyaSeithigalScreen'); onClose(); return; }
     if (link.includes('latestmain') || title === 'நேரலை' || title.toLowerCase().includes('timeline')) { navigation?.navigate('TimelineScreen'); onClose(); return; }
-    if (title === 'தமிழகம்'  || id === '89'  || link.includes('cat=89'))  { navigation?.navigate('TharpothaiyaSeithigalScreen', { initialTabTitle: 'தமிழகம்' });  onClose(); return; }
-    if (title === 'உலகம்'    || id === '34'  || link.includes('cat=34'))  { navigation?.navigate('TharpothaiyaSeithigalScreen', { initialTabTitle: 'உலகம்' });    onClose(); return; }
-    if (title === 'Premium'  || title === 'பிரீமியம்' || id === '651' || link.includes('cat=651')) { navigation?.navigate('TharpothaiyaSeithigalScreen', { initialTabTitle: 'பிரீமியம்' }); onClose(); return; }
+    if (title === 'தமிழகம்' || id === '89' || link.includes('cat=89')) { navigation?.navigate('TharpothaiyaSeithigalScreen', { initialTabTitle: 'தமிழகம்' }); onClose(); return; }
+    if (title === 'உலகம்' || id === '34' || link.includes('cat=34')) { navigation?.navigate('TharpothaiyaSeithigalScreen', { initialTabTitle: 'உலகம்' }); onClose(); return; }
+    if (title === 'Premium' || title === 'பிரீமியம்' || id === '651' || link.includes('cat=651')) { navigation?.navigate('TharpothaiyaSeithigalScreen', { initialTabTitle: 'பிரீமியம்' }); onClose(); return; }
     if (title === 'வர்த்தகம்' || link.includes('varthagam') || link.includes('varthagamdata')) { navigation?.navigate('VarthagamScreen'); onClose(); return; }
     if (title === 'உள்ளூர்' && (link === '/district' || link === '')) { navigation?.navigate('DistrictNewsScreen'); onClose(); return; }
     if (link.includes('districtdata') && item.id) { navigation?.navigate('DistrictNewsScreen', { districtId: item.id, districtTitle: title, districtLink: link }); onClose(); return; }
@@ -329,10 +329,10 @@ const DrawerMenu = ({ isVisible, onClose, onMenuPress, navigation }) => {
   };
 
   // ─── Filtered data ────────────────────────────────────────────────────────
-  const validMenu1      = menuData.menu1.filter(isValidMenuItem);
+  const validMenu1 = menuData.menu1.filter(isValidMenuItem);
   const validMenuIndex1 = menuData.menuIndex1.filter(isValidMenuItem);
-  const validMenu2      = menuData.menu2.filter(isValidMenu2Item);
-  const validFollow     = menuData.follow.filter(isValidFollowItem);
+  const validMenu2 = menuData.menu2.filter(isValidMenu2Item);
+  const validFollow = menuData.follow.filter(isValidFollowItem);
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
@@ -406,8 +406,8 @@ const DrawerMenu = ({ isVisible, onClose, onMenuPress, navigation }) => {
                   onPress={() => { navigation?.navigate('HomeScreen'); onClose(); }}
                   activeOpacity={0.7}
                 >
-                  <Ionicons name="home-outline" size={s(16)} color={P.grey800} style={{ marginRight: s(10) }} />
-                  <Text style={{ fontFamily: FONTS.muktaMalar.bold, fontSize: 16, color: P.grey800 }}>
+                  <Ionicons name="home-outline" size={s(20)} color={P.grey800} style={{ marginRight: s(10) }} />
+                  <Text style={{ fontFamily: FONTS.muktaMalar.bold, fontSize: ms(16), color: P.grey800 }}>
                     முகப்பு
                   </Text>
                 </TouchableOpacity>
@@ -423,7 +423,7 @@ const DrawerMenu = ({ isVisible, onClose, onMenuPress, navigation }) => {
                     <Text style={{ fontSize: 16, color: P.primary, fontFamily: FONTS.muktaMalar.bold, marginRight: s(8), lineHeight: 22 }}>
                       »
                     </Text>
-                    <Text style={{ fontFamily: FONTS.muktaMalar.bold, fontSize: 16, color: P.grey800, flex: 1 }} numberOfLines={1}>
+                    <Text style={{ fontFamily: FONTS.muktaMalar.bold, fontSize: ms(16), color: "#454F5B", flex: 1 }} numberOfLines={1}>
                       {item.Title || item.title || item.name || ''}
                     </Text>
                   </TouchableOpacity>
@@ -437,10 +437,10 @@ const DrawerMenu = ({ isVisible, onClose, onMenuPress, navigation }) => {
                     onPress={() => handleMenuItemPress(item)}
                     activeOpacity={0.7}
                   >
-                    <Text style={{ fontSize: 16, color: P.primary, fontFamily: FONTS.muktaMalar.bold, marginRight: s(8), lineHeight: 22 }}>
+                    <Text style={{ fontSize: 25, color: P.primary, fontFamily: FONTS.muktaMalar.bold, marginRight: s(8), lineHeight: ms(22) }}>
                       »
                     </Text>
-                    <Text style={{ fontFamily: FONTS.muktaMalar.bold, fontSize: 16, color: P.grey800, flex: 1 }} numberOfLines={1}>
+                    <Text style={{ fontFamily: FONTS.muktaMalar.bold, fontSize: ms(25), color: P.grey800, flex: 1 }} numberOfLines={1}>
                       {item.Title || item.title || item.name || ''}
                     </Text>
                   </TouchableOpacity>
@@ -454,22 +454,22 @@ const DrawerMenu = ({ isVisible, onClose, onMenuPress, navigation }) => {
               {validMenu2.length > 0 && (
                 <View>
                   {validMenu2.map((item, index) => {
-                    const rawSub   = item.sub || item.subcatlist || [];
+                    const rawSub = item.sub || item.subcatlist || [];
                     const itemTitle = item.Title || item.title || item.name || '';
-                    const itemLink  = item.Link  || item.link  || '';
-                    const itemId    = String(item.id || '');
-                    const iconUri   = item.Icon  || item.icon  || '';
+                    const itemLink = item.Link || item.link || '';
+                    const itemId = String(item.id || '');
+                    const iconUri = item.Icon || item.icon || '';
 
                     const isDinamDinam = itemTitle === 'தினம் தினம்';
-                    const isJoshiyam   = itemTitle === 'ஜோசியம்'     || itemId === 'astrology' || itemLink === '/joshiyam';
-                    const isNri        = itemTitle === 'உலக தமிழர்'  || itemId === 'nrimain'   || itemLink === '/nrimain';
-                    const isSpecial    = itemTitle === 'ஸ்பெஷல்'     || itemId === 'special '  || itemLink === '/specialmain';
-                    const isweekly     = itemTitle === 'வாராவாரம்'   || itemId === 'weekly'    || itemLink === '/weekly';
-                    const isSpritual   = itemTitle === 'ஆன்மிகம்'   || itemId === 'anmigam'   || itemLink === '/anmegam';
-                    const isCalendar   = itemTitle === 'காலண்டர்'    || itemId === 'calendar'  || itemLink === '/calendar';
-                    const isMalargal   = itemTitle === 'மலர்கள்'     || itemId === 'malargal'  || itemLink === '/malargal';
-                    const isPhoto      = itemTitle === 'போட்டோ'      || itemId === 'photo'     || itemLink === '/photodata';
-                    const isDistrict   = itemTitle === 'மாவட்டங்கள்' || itemId === 'district'  || itemLink === '/district';
+                    const isJoshiyam = itemTitle === 'ஜோசியம்' || itemId === 'astrology' || itemLink === '/joshiyam';
+                    const isNri = itemTitle === 'உலக தமிழர்' || itemId === 'nrimain' || itemLink === '/nrimain';
+                    const isSpecial = itemTitle === 'ஸ்பெஷல்' || itemId === 'special ' || itemLink === '/specialmain';
+                    const isweekly = itemTitle === 'வாராவாரம்' || itemId === 'weekly' || itemLink === '/weekly';
+                    const isSpritual = itemTitle === 'ஆன்மிகம்' || itemId === 'anmigam' || itemLink === '/anmegam';
+                    const isCalendar = itemTitle === 'காலண்டர்' || itemId === 'calendar' || itemLink === '/calendar';
+                    const isMalargal = itemTitle === 'மலர்கள்' || itemId === 'malargal' || itemLink === '/malargal';
+                    const isPhoto = itemTitle === 'போட்டோ' || itemId === 'photo' || itemLink === '/photodata';
+                    const isDistrict = itemTitle === 'மாவட்டங்கள்' || itemId === 'district' || itemLink === '/district';
 
                     let subItems = rawSub;
                     if (isDinamDinam && dinamDinamSubcats && dinamDinamSubcats.length > 0) {
@@ -508,8 +508,8 @@ const DrawerMenu = ({ isVisible, onClose, onMenuPress, navigation }) => {
                     }
 
                     const validSubItems = subItems.filter(isValidSubItem);
-                    const hasSub     = validSubItems.length > 0;
-                    const key        = item.id || item.title || String(index);
+                    const hasSub = validSubItems.length > 0;
+                    const key = item.id || item.title || String(index);
                     const isExpanded = expandedItems.has(key);
 
                     return (
@@ -525,13 +525,13 @@ const DrawerMenu = ({ isVisible, onClose, onMenuPress, navigation }) => {
                             {iconUri ? (
                               <MenuIcon uri={iconUri} size={s(18)} />
                             ) : (
-                              <Ionicons name={getIconName(index)} size={s(16)} color={P.grey600} />
+                              <Ionicons name={getIconName(index)} size={s(20)} color={P.grey800} />
                             )}
                           </View>
 
                           {/* Title — flex:1 pushes chevron to right edge */}
                           <Text
-                            style={{ fontFamily: FONTS.muktaMalar.bold, fontSize: 16, color: P.grey800, flex: 1 }}
+                            style={{ fontFamily: FONTS.muktaMalar.bold, fontSize: ms(16), color: P.grey800, flex: 1 }}
                             numberOfLines={1}
                           >
                             {itemTitle}
@@ -565,14 +565,16 @@ const DrawerMenu = ({ isVisible, onClose, onMenuPress, navigation }) => {
                                     style={{
                                       flex: 1,
                                       fontFamily: isAllRow ? FONTS.muktaMalar.bold : FONTS.muktaMalar.bold,
-                                      fontSize: 15,
+                                      fontSize: ms(14),
                                       color: isAllRow ? P.primary : P.grey600,
+                                      marginLeft: ms(10)
+
                                     }}
                                     numberOfLines={1}
                                   >
                                     {subTitle}
                                   </Text>
-                                  <Ionicons name="chevron-forward" size={s(11)} color={isAllRow ? P.primary : P.grey500} />
+                                  <Ionicons name="chevron-forward" size={s(14)} color={isAllRow ? P.primary : P.grey500} />
                                 </TouchableOpacity>
                               );
                             })}
@@ -627,7 +629,7 @@ export default DrawerMenu;
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 const ds = StyleSheet.create({
-  root:    { flex: 1, flexDirection: 'row' },
+  root: { flex: 1, flexDirection: 'row' },
   backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.45)' },
 
   drawerPanel: {
@@ -684,20 +686,20 @@ const ds = StyleSheet.create({
 
   loaderWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: vs(40) },
   scrollView: { flex: 1 },
-  section:    { paddingVertical: vs(0) },
+  section: { paddingVertical: vs(0) },
 
   // ── Menu 1 rows (Home + blue-arrow list) ────────────────────────────────
   homeRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: s(16),
+    paddingHorizontal: s(12),
     paddingVertical: vs(5),
   },
   menuRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: s(16),
-    paddingVertical: vs(4),
+    paddingVertical: vs(6),
     backgroundColor: P.white,
   },
 
@@ -708,7 +710,7 @@ const ds = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: s(12),
-    paddingVertical: vs(10),
+    paddingVertical: vs(8),
     borderBottomWidth: 1,
     borderBottomColor: P.grey200,
     backgroundColor: P.white,
@@ -720,14 +722,15 @@ const ds = StyleSheet.create({
   },
 
   // ── Sub-items ────────────────────────────────────────────────────────────
-  subList:       { backgroundColor: P.grey100, borderTopWidth: 1, borderTopColor: P.grey200 },
+  subList: { backgroundColor: P.grey100, borderTopWidth: 1, borderTopColor: P.grey200 },
   subRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: s(50),
+    paddingHorizontal: s(12),
     paddingVertical: vs(9),
     borderBottomWidth: 1,
     borderBottomColor: P.grey200,
+
   },
   subRowAll: { backgroundColor: P.primary + '14' },
 

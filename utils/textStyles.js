@@ -197,7 +197,7 @@ export const TEXT_STYLES = {
     small: {
       fontSize: ms(14),
       fontFamily: FONTS.muktaMalar.medium,
-      color: '#555',
+      color: COLORS.black,
     },
     smallActive: {
       fontSize: ms(14),

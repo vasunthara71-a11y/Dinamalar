@@ -15,7 +15,7 @@ import {
   Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { dmrApi } from '../config/api';
+import { u38Api } from '../config/api';
 import { COLORS, FONTS } from '../utils/constants';
 import { s, vs, ms, scaledSizes } from '../utils/scaling';
 import FontSizeControl from './FontSizeControl';
@@ -135,7 +135,7 @@ const em = StyleSheet.create({
 });
 
 // ─── Extract helpers ──────────────────────────────────────────────────────────
-// dmrApi /detaildata?newsid=ID response shape (CONFIRMED):
+// u38Api /detaildata?newsid=ID response shape (CONFIRMED):
 // { comments: { current_page: 1, data: [...], last_page: N } }
 // Each comment: { id, name, city, images, comments, com_like, com_dislike, ago, standarddate, reply: [] }
 function extractComments(d) {
@@ -171,14 +171,14 @@ export default function CommentsModal({ visible, onClose, newsId, newsTitle, com
     }
   }, [visible]);
 
-  // ── Fetch — dmrApi /detaildata?newsid=ID (CONFIRMED: comments at d.comments.data)
+  // ── Fetch — u38Api /detaildata?newsid=ID (CONFIRMED: comments at d.comments.data)
   const fetchComments = useCallback(async (id, pg = 1, append = false) => {
     if (!id) return;
     pg === 1 ? setLoading(true) : setLoadingMore(true);
 
     try {
       const url = `/detaildata?newsid=${id}&page=${pg}`;
-      const res = await dmrApi.get(url);
+      const res = await u38Api.get(url);
       const d   = res?.data;
 
       const list = extractComments(d);

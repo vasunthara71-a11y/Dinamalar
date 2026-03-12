@@ -81,7 +81,8 @@ export const COLORS = {
   success: '#4caf50',
   warning: '#ff9800',
   catText: "#454F5B",
-  catborder: "#DFE3E8"
+  catborder: "#DFE3E8",
+  black:"#000000"
 };
 
 // ─── Font Configuration ───────────────────────────────────────────────────────────────
