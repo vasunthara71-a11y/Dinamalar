@@ -1,19 +1,20 @@
 /**
  * VideoPlayerModal.js
  * 
- * Plays video inline using an iframe HTML string.
+ * Simple video player modal like CommonSectionScreen.
  * WebView is imported ONLY here — remove it from all other files.
  * 
- * Usage:  <VideoPlayerModal url={videoUrl} />
+ * Usage:  <VideoPlayerModal visible={true} url={videoUrl} onClose={() => {}} />
  * Place inside a View with desired height — fills 100% of parent.
  */
 
 import React from 'react';
-import { View } from 'react-native';
+import { View, Modal, TouchableOpacity } from 'react-native';
 import { WebView } from 'react-native-webview';
+import { Ionicons } from '@expo/vector-icons';
 
-export default function VideoPlayerModal({ url }) {
-  if (!url) return null;
+export default function VideoPlayerModal({ visible = false, url = '', onClose }) {
+  if (!visible || !url) return null;
 
   const html = `
     <!DOCTYPE html>
@@ -41,17 +42,44 @@ export default function VideoPlayerModal({ url }) {
   `;
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#000' }}>
-      <WebView
-        source={{ html }}
-        style={{ flex: 1 }}
-        allowsFullscreenVideo
-        javaScriptEnabled
-        domStorageEnabled
-        mediaPlaybackRequiresUserAction={false}
-        scrollEnabled={false}
-        originWhitelist={['*']}
-      />
-    </View>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="fullScreen"
+      onRequestClose={onClose}
+    >
+      <View style={{ flex: 1, backgroundColor: '#000' }}>
+        {/* Close button */}
+        <TouchableOpacity
+          style={{
+            position: 'absolute',
+            top: 50,
+            right: 20,
+            zIndex: 1,
+            backgroundColor: 'rgba(0,0,0,0.7)',
+            borderRadius: 20,
+            width: 40,
+            height: 40,
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}
+          onPress={onClose}
+        >
+          <Ionicons name="close" size={24} color="#fff" />
+        </TouchableOpacity>
+        
+        {/* WebView for video */}
+        <WebView
+          source={{ html }}
+          style={{ flex: 1 }}
+          allowsFullscreenVideo
+          javaScriptEnabled
+          domStorageEnabled
+          mediaPlaybackRequiresUserAction={false}
+          scrollEnabled={false}
+          originWhitelist={['*']}
+        />
+      </View>
+    </Modal>
   );
 }

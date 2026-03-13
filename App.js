@@ -1,9 +1,9 @@
-import { View } from 'react-native';
-import { StatusBar } from 'expo-status-bar';
+ import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import AppNavigator from './navigation/AppNavigator';
 import { ThemeProvider } from './theme/ThemeContext';
 import { FontSizeProvider } from './context/FontSizeContext';
+import { View } from 'react-native';
 
 export default function App() {
   const [fontsLoaded] = useFonts({
