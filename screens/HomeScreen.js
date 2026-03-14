@@ -16,7 +16,7 @@ import {
   Animated,
   Linking,
 } from 'react-native';
-import { u38Api, API_ENDPOINTS } from '../config/api';
+import { CDNApi, API_ENDPOINTS } from '../config/api';
 import axios from 'axios';
 import { COLORS, FONTS, NewsCard as NewsCardStyles } from '../utils/constants';
 import { ms, s, vs } from '../utils/scaling';
@@ -871,12 +871,12 @@ export default function HomeScreen() {
       const [homeRes, shortRes, shortsRes, varthagamRes, varavaramRes, joshiyamRes, districtRes, premiumRes] = await Promise.allSettled([
         fetchHomeData(),
         fetchShortNews(),
-        u38Api.get(API_ENDPOINTS.SHORTS),
-        u38Api.get(API_ENDPOINTS.VARthagam),
-        axios.get('https://u38.dinamalar.com/varavaram'),
-        u38Api.get(API_ENDPOINTS.JOSHIYAM),
-        u38Api.get(API_ENDPOINTS.DISTRICT),
-        u38Api.get(`/newsdata?cat=651`),
+        CDNApi.get(API_ENDPOINTS.SHORTS),
+        CDNApi.get(API_ENDPOINTS.VARthagam),
+        axios.get('https://api-st-cdn.dinamalar.com/varavaram'),
+        CDNApi.get(API_ENDPOINTS.JOSHIYAM),
+        CDNApi.get(API_ENDPOINTS.DISTRICT),
+        CDNApi.get(`/newsdata?cat=651`),
       ]);
 
       if (homeRes.status === 'fulfilled') {
@@ -1261,8 +1261,8 @@ export default function HomeScreen() {
                       if (sectionTitle.includes('வாராவாரம்') || sectionTitle.includes('varavaram')) {
                         navigation?.navigate('CommonSectionScreen', {
                           screenTitle: 'வாராவாரம்',
-                          apiEndpoint: 'https://u38.dinamalar.com/varavaram',
-                          allTabLink: 'https://u38.dinamalar.com/varavaram'
+                          apiEndpoint: 'https://api-st-cdn.dinamalar.com/varavaram',
+                          allTabLink: 'https://api-st-cdn.dinamalar.com/varavaram'
                         });
                         return;
                       }
@@ -1304,8 +1304,8 @@ export default function HomeScreen() {
                       if (sectionTitle.includes('பிரீமியம்') || sectionTitle.includes('premium')) {
                         navigation?.navigate('CommonSectionScreen', {
                           screenTitle: 'பிரீமியம்',
-                          apiEndpoint: 'https://u38.dinamalar.com/newsdata?cat=651',
-                          allTabLink: 'https://u38.dinamalar.com/newsdata?cat=651',
+                          apiEndpoint: 'https://api-st-cdn.dinamalar.com/newsdata?cat=651',
+                          allTabLink: 'https://api-st-cdn.dinamalar.com/newsdata?cat=651',
                         });
                         return;
                       }

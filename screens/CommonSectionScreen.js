@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
-import { u38Api } from '../config/api';
+import { CDNApi } from '../config/api';
 import { ms, s, vs } from '../utils/scaling';
 import { COLORS, FONTS } from '../utils/constants';
 import TEXT_STYLES from '../utils/textStyles';
@@ -182,7 +182,7 @@ function RasiDetailView({ tabId, tabTitle, initialJcat, initialItem, onBack, sub
       const dateStr = date.toISOString().split('T')[0];
       const url = `${resolvedEndpoint}?jcat=${targetJcat}&date=${dateStr}`;
       console.log('[RasiDetailView] fetch:', url);
-      const res = await u38Api.get(url);
+      const res = await CDNApi.get(url);
       const d = res?.data;
       console.log('[RasiDetailView] full response:', JSON.stringify(d, null, 2));
       console.log('[RasiDetailView] keys:', Object.keys(d || {}));
@@ -760,7 +760,7 @@ export default function CommonSectionScreen() {
       let url = isRasiSubTab ? '/joshiyam' : tab.link;
       const sep = url.includes('?') ? '&' : '?';
       const fullUrl = `${url}${sep}page=${pg}`;
-      const res = await u38Api.get(fullUrl);
+      const res = await CDNApi.get(fullUrl);
       const d = res?.data;
 
       let list = [];
@@ -785,7 +785,7 @@ export default function CommonSectionScreen() {
   // ── Fetch main endpoint ────────────────────────────────────────────────────
   const fetchAll = useCallback(async () => {
     try {
-      const res = await u38Api.get(apiEndpoint);
+      const res = await CDNApi.get(apiEndpoint);
       const d = res?.data;
 
       const tabs =
@@ -931,7 +931,7 @@ export default function CommonSectionScreen() {
       newsId: item.newsid || item.id || item.rasiid || item.nid,
       newsItem: item,
       slug: item.slug || item.reacturl || '',
-      disableComments: apiEndpoint?.includes('u38.dinamalar.com/varavaram'),
+      disableComments: apiEndpoint?.includes('api-st-cdn.dinamalar.com/varavaram'),
     });
   };
 

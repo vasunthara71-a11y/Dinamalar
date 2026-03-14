@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { u38Api, API_ENDPOINTS } from '../config/api';
+import { CDNApi, API_ENDPOINTS } from '../config/api';
 import { COLORS } from '../utils/constants';
 import { s, vs, scaledSizes } from '../utils/scaling';
 import { ms } from 'react-native-size-matters';
@@ -113,7 +113,7 @@ export default function TamilNaduScreen() {
       }
 
       // Use correct API endpoint for Tamil Nadu news (category ID 89)
-      const response = await u38Api.get('/newsdata?cat=89');
+      const response = await CDNApi.get('/newsdata?cat=89');
       const newsData = response.data?.detail || [];
 
       console.log('Tamil Nadu news response:', response.data);

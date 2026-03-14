@@ -18,7 +18,7 @@ import RenderHtml from 'react-native-render-html';
 import AppHeaderComponent from '../components/AppHeaderComponent';
 import TopMenuStrip from '../components/TopMenuStrip';
 import { ms, s, vs } from '../utils/scaling';
-import { u38Api, API_ENDPOINTS } from '../config/api';
+import { CDNApi, API_ENDPOINTS } from '../config/api';
 import { FONTS } from '../utils/constants';
 import { useFontSize } from '../context/FontSizeContext';
 
@@ -72,12 +72,14 @@ const VideoCard = ({ video, onPress }) => {
   if (video.type === 'reels' || video.type === 'googlead') return null;
 
   const timeAgo = getTimeAgo(video.videodate);
+  const commentCount = parseInt(video?.nmcomment || 0);
+  const hasComments = commentCount > 0;
 
   return (
     <TouchableOpacity activeOpacity={0.88} onPress={() => onPress?.(video)} style={styles.card}>
       <View style={styles.thumbWrap}>
         {video.images ? (
-          <Image source={{ uri: video.images }} style={styles.thumbnail} resizeMode="cover" />
+          <Image source={{ uri: video.images }} style={[styles.thumbnail,]} resizeMode="cover" />
         ) : (
           <View style={[styles.thumbnail, styles.thumbPlaceholder]}>
             <Text style={styles.thumbPlaceholderIcon}>🎬</Text>
@@ -88,6 +90,14 @@ const VideoCard = ({ video, onPress }) => {
         {!!video.duration && (
           <View style={styles.durationBadge}>
             <Text style={[styles.durationText, { fontSize: sf(11) }]}>{video.duration}</Text>
+          </View>
+        )}
+
+        {/* Comment indicator in top-right corner */}
+        {hasComments && (
+          <View style={styles.commentIndicator}>
+            <Ionicons name="chatbox" size={ms(14)} color={PALETTE.white} />
+            <Text style={[styles.commentCount, { fontSize: sf(10) }]}>{commentCount}</Text>
           </View>
         )}
 
@@ -196,9 +206,15 @@ const VideosScreen = ({ navigation }) => {
   
   // ── API data ──────────────────────────────────────────────────────────────────
   const [allVideos, setAllVideos] = useState([]);
-  const [categories, setCategories] = useState([]);   // api.category
+  const [categories, setCategories] = useState([]);
   const [filterOptions, setFilterOptions] = useState([]);   // api.filter
   const [districtOptions, setDistrictOptions] = useState([]);   // api.districtlist.data
+
+  // ── Pagination state ────────────────────────────────────────────────────────────
+  const [currentPage, setCurrentPage] = useState(1);
+  const [lastPage, setLastPage] = useState(1);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
 
   // ── UI state ──────────────────────────────────────────────────────────────────
   const [loading, setLoading] = useState(true);
@@ -211,28 +227,48 @@ const VideosScreen = ({ navigation }) => {
   const [isDrawerVisible, setIsDrawerVisible] = useState(false);
   const [isLocationDrawerVisible, setIsLocationDrawerVisible] = useState(false);
 
-  // ── Fetch: u38Api + API_ENDPOINTS.VIDEO_MAIN (/videomain) ────────────────────
-  const fetchVideos = useCallback(async ({ cat = '', date = '', district = '' } = {}) => {
-    setLoading(true);
+  // ── Fetch: CDNApi + API_ENDPOINTS.VIDEO_MAIN (/videomain) ────────────────────
+  const fetchVideos = useCallback(async ({ cat = '', date = '', district = '', page = 1, append = false } = {}) => {
+    if (!append) {
+      setLoading(true);
+      setCurrentPage(1);
+      setHasMore(true);
+    } else {
+      setLoadingMore(true);
+    }
     setError(null);
+    
     try {
       // Build query params
       const params = new URLSearchParams();
       if (cat) params.append('cat', cat);
       if (date) params.append('date', date);
       if (district) params.append('district', district);
+      if (page > 1) params.append('page', page.toString());
 
       const query = params.toString();
       const endpoint = query
         ? `${API_ENDPOINTS.VIDEO_MAIN}?${query}`
         : API_ENDPOINTS.VIDEO_MAIN;
 
-      const response = await u38Api.get(endpoint);
+      const response = await CDNApi.get(endpoint);
       const data = response.data;
 
       // ── Videos — filter out reels / ads ──────────────────────────────────────
       const raw = data?.videomix?.data ?? [];
-      setAllVideos(raw.filter((v) => v.type === 'news'));
+      const filteredVideos = raw.filter((v) => v.type === 'news');
+      
+      if (append) {
+        setAllVideos(prev => [...prev, ...filteredVideos]);
+      } else {
+        setAllVideos(filteredVideos);
+      }
+
+      // ── Pagination info ───────────────────────────────────────────────────────
+      const pagination = data?.videomix || {};
+      setCurrentPage(pagination.current_page || page);
+      setLastPage(pagination.last_page || 1);
+      setHasMore((pagination.current_page || page) < (pagination.last_page || 1));
 
       // ── Category tabs (first load only) ──────────────────────────────────────
       if (data?.category?.length && categories.length === 0) {
@@ -260,7 +296,11 @@ const VideosScreen = ({ navigation }) => {
       console.error('VideosScreen fetch error:', err?.message);
       setError(err?.message || 'பிழை ஏற்பட்டது');
     } finally {
-      setLoading(false);
+      if (append) {
+        setLoadingMore(false);
+      } else {
+        setLoading(false);
+      }
     }
   }, [categories.length, filterOptions.length, districtOptions.length]);
 
@@ -354,6 +394,32 @@ const VideosScreen = ({ navigation }) => {
     </View>
   );
 
+  // ── Load more handler ───────────────────────────────────────────────────────────
+  const handleLoadMore = () => {
+    if (!hasMore || loadingMore || loading) return;
+    
+    const nextPage = currentPage + 1;
+    const params = { page: nextPage, append: true };
+    
+    if (activeCategory) params.cat = activeCategory;
+    if (selectedFilter) params.date = selectedFilter;
+    if (selectedDistrict) params.district = selectedDistrict;
+    
+    fetchVideos(params);
+  };
+
+  // ── Footer component ───────────────────────────────────────────────────────────
+  const ListFooter = () => {
+    if (!loadingMore) return null;
+    
+    return (
+      <View style={styles.loadingFooter}>
+        <ActivityIndicator size="small" color={PALETTE.primary} />
+        <Text style={[styles.loadingText, { fontSize: sf(12) }]}>மேலும் ஏற்றுகிறது...</Text>
+      </View>
+    );
+  };
+
   // ── Empty / error / loading ───────────────────────────────────────────────────
   const ListEmpty = () => {
     if (loading) return (
@@ -396,10 +462,13 @@ const VideosScreen = ({ navigation }) => {
           />
         )}
         ListHeaderComponent={ListHeader}
+        ListFooterComponent={ListFooter}
         ListEmptyComponent={ListEmpty}
         ItemSeparatorComponent={() => <View style={styles.divider} />}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
+        onEndReached={handleLoadMore}
+        onEndReachedThreshold={0.5}
       />
 
       <FilterSheet
@@ -516,6 +585,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: s(7), paddingVertical: vs(2),
   },
   durationText: { color: PALETTE.white, fontSize: ms(15), fontWeight: '700' },
+  commentIndicator: {
+    position: 'absolute', top: s(8), right: s(8),
+    backgroundColor: 'rgba(0,0,0,0.72)',
+    borderRadius: s(12),
+    paddingHorizontal: s(6),
+    paddingVertical: vs(3),
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: s(3),
+  },
+  commentCount: {
+    color: PALETTE.white,
+    fontWeight: '700',
+    fontFamily: FONTS.muktaMalar.bold,
+  },
   watermarkWrap: { position: 'absolute', bottom: vs(10), left: s(46), flexDirection: 'row' },
   watermarkRed: { fontSize: ms(9), color: '#FF4444', fontWeight: '800', opacity: 0.85 },
   watermarkYellow: { fontSize: ms(9), color: '#FFD700', fontWeight: '800', opacity: 0.85 },
@@ -604,6 +688,20 @@ const styles = StyleSheet.create({
   chipActive: { borderColor: PALETTE.primary, backgroundColor: PALETTE.primary },
   chipText: { fontSize: ms(13), color: PALETTE.grey700, fontWeight: '500', fontFamily: FONTS.muktaMalar.semibold },
   chipTextActive: { color: PALETTE.white, fontWeight: '700', fontFamily: FONTS.muktaMalar.bold },
+
+  // Loading footer
+  loadingFooter: {
+    flexDirection: 'row', 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    paddingVertical: vs(20),
+    backgroundColor: PALETTE.grey200,
+  },
+  loadingText: {
+    marginLeft: s(8),
+    color: PALETTE.grey600,
+    fontFamily: FONTS.muktaMalar.regular,
+  },
 });
 
 export default VideosScreen;

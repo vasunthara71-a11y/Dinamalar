@@ -6,13 +6,24 @@
   <component name="ChangeListManager">
     <list default="true" id="7dff0835-ba21-4555-8c27-70a8bbe09433" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/components/TopMenuStrip.js" beforeDir="false" afterPath="$PROJECT_DIR$/components/TopMenuStrip.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/navigation/AppNavigator.js" beforeDir="false" afterPath="$PROJECT_DIR$/navigation/AppNavigator.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/package-lock.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/screens/DinamalarTVScreen.js" beforeDir="false" afterPath="$PROJECT_DIR$/screens/DinamalarTVScreen.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/api/news.js" beforeDir="false" afterPath="$PROJECT_DIR$/api/news.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/CommentsModal.js" beforeDir="false" afterPath="$PROJECT_DIR$/components/CommentsModal.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/DrawerMenu.js" beforeDir="false" afterPath="$PROJECT_DIR$/components/DrawerMenu.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/screens/CommonSectionScreen.js" beforeDir="false" afterPath="$PROJECT_DIR$/screens/CommonSectionScreen.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/screens/DinamDinamScreen.js" beforeDir="false" afterPath="$PROJECT_DIR$/screens/DinamDinamScreen.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/screens/DistrictNewsScreen.js" beforeDir="false" afterPath="$PROJECT_DIR$/screens/DistrictNewsScreen.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/screens/HomeScreen.js" beforeDir="false" afterPath="$PROJECT_DIR$/screens/HomeScreen.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/screens/NewsDetailsScreen.js" beforeDir="false" afterPath="$PROJECT_DIR$/screens/NewsDetailsScreen.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/screens/PhotoDetailsScreen.js" beforeDir="false" afterPath="$PROJECT_DIR$/screens/PhotoDetailsScreen.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/screens/RasiDetailScreen.js" beforeDir="false" afterPath="$PROJECT_DIR$/screens/RasiDetailScreen.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/screens/ShortNewsSwiperScreen.js" beforeDir="false" afterPath="$PROJECT_DIR$/screens/ShortNewsSwiperScreen.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/screens/SportsScreen.js" beforeDir="false" afterPath="$PROJECT_DIR$/screens/SportsScreen.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/screens/TamilNaduScreen.js" beforeDir="false" afterPath="$PROJECT_DIR$/screens/TamilNaduScreen.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/screens/TharpothaiyaSeithigalScreen.js" beforeDir="false" afterPath="$PROJECT_DIR$/screens/TharpothaiyaSeithigalScreen.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/screens/ThirukkuralScreen.js" beforeDir="false" afterPath="$PROJECT_DIR$/screens/ThirukkuralScreen.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/screens/TimelineDetailsScreen.js" beforeDir="false" afterPath="$PROJECT_DIR$/screens/TimelineDetailsScreen.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/screens/TimelineScreen.js" beforeDir="false" afterPath="$PROJECT_DIR$/screens/TimelineScreen.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/screens/VarthagamScreen.js" beforeDir="false" afterPath="$PROJECT_DIR$/screens/VarthagamScreen.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/screens/VideoDetailScreen.js" beforeDir="false" afterPath="$PROJECT_DIR$/screens/VideoDetailScreen.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/screens/VideosScreen.js" beforeDir="false" afterPath="$PROJECT_DIR$/screens/VideosScreen.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -34,20 +45,20 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "ModuleVcsDetector.initialDetectionPerformed": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.cidr.known.project.marker": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "RunOnceActivity.readMode.enableVisualFormatting": "true",
-    "cf.first.check.clang-format": "false",
-    "cidr.known.project.marker": "true",
-    "git-widget-placeholder": "videodetail",
-    "kotlin-language-version-configured": "true",
-    "last_opened_file_path": "D:/Dinamalar"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.cidr.known.project.marker&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.readMode.enableVisualFormatting&quot;: &quot;true&quot;,
+    &quot;cf.first.check.clang-format&quot;: &quot;false&quot;,
+    &quot;cidr.known.project.marker&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;videodrag&quot;,
+    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;D:/Dinamalar&quot;
   }
-}]]></component>
+}</component>
   <component name="TaskManager">
     <task active="true" id="Default" summary="Default task">
       <changelist id="7dff0835-ba21-4555-8c27-70a8bbe09433" name="Changes" comment="" />

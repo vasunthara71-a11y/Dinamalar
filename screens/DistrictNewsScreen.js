@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { u38Api } from '../config/api';
+import { CDNApi } from '../config/api';
 import { s, vs, ms, scaledSizes } from '../utils/scaling';
 import { COLORS, FONTS, NewsCard as NewsCardStyles } from '../utils/constants';
 import UniversalHeaderComponent from '../components/UniversalHeaderComponent';
@@ -265,7 +265,7 @@ export default function DistrictNewsScreen() {
   // ── Fetch /district (All tab) ─────────────────────────────────────────────
   const fetchAll = useCallback(async () => {
     try {
-      const res  = await u38Api.get('/district');
+      const res  = await CDNApi.get('/district');
       const d    = res?.data;
       const tabs = d?.subcatlist || [];
       setDistricts(tabs);
@@ -336,7 +336,7 @@ export default function DistrictNewsScreen() {
       const url = `${district.link}${sep}page=${pg}`;
       console.log('DistrictNews fetch:', url);
 
-      const res  = await u38Api.get(url);
+      const res  = await CDNApi.get(url);
       const d    = res?.data;
       const list = extractList(d);
       const lp   = extractLastPage(d);

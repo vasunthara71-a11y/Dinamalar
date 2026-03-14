@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { u38Api } from '../config/api';
+import { CDNApi } from '../config/api';
 import { s, vs, ms, scaledSizes } from '../utils/scaling';
 import { COLORS, FONTS, NewsCard } from '../utils/constants';
 import UniversalHeaderComponent from '../components/UniversalHeaderComponent';
@@ -175,7 +175,7 @@ export default function SportsScreen() {
   const fetchAll = useCallback(async () => {
     try {
       console.log('SportsScreen: fetching /sports');
-      const res = await u38Api.get('/sports');
+      const res = await CDNApi.get('/sports');
       const d = res?.data;
 
       // subcatlist → tabs
@@ -206,7 +206,7 @@ export default function SportsScreen() {
       const sep = tab.link.includes('?') ? '&' : '?';
       const url = `${tab.link}${sep}page=${pg}`;
       console.log('SportsScreen tab fetch:', url);
-      const res = await u38Api.get(url);
+      const res = await CDNApi.get(url);
       const d = res?.data;
 
       // Sub-tab endpoints return newsdata structure:

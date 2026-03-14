@@ -15,7 +15,7 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { mainApi, u38Api, API_ENDPOINTS } from '../config/api';
+import { mainApi, CDNApi, API_ENDPOINTS } from '../config/api';
 import { COLORS, FONTS } from '../utils/constants';
 import { s, vs, scaledSizes } from '../utils/scaling';
 import { ms } from 'react-native-size-matters';
@@ -290,9 +290,9 @@ const DrawerMenu = ({ isVisible, onClose, onMenuPress, navigation }) => {
       const matchedSubcat = dinamDinamSubcats.find(sc => sc.link === link || (sc.id && item.id && String(sc.id) === String(item.id)));
       if (matchedSubcat) { navigation?.navigate('CommonSectionScreen', { screenTitle: 'தினம் தினம்', apiEndpoint: '/dinamdinam', allTabLink: '/dinamdinam', initialTabId: matchedSubcat.id || null, initialTabLink: matchedSubcat.link || '', initialTabTitle: matchedSubcat.title || title }); onClose(); return; }
     }
-    if (title === 'வராவாரம்' || id === 'varavaram' || link === '/varavaram' || link.includes('varavaram')) { navigation?.navigate('CommonSectionScreen', { screenTitle: 'வராவாரம்', apiEndpoint: 'https://u38.dinamalar.com/varavaram', allTabLink: 'https://u38.dinamalar.com/varavaram', initialTabId: 'all' }); onClose(); return; }
+    if (title === 'வராவாரம்' || id === 'varavaram' || link === '/varavaram' || link.includes('varavaram')) { navigation?.navigate('CommonSectionScreen', { screenTitle: 'வராவாரம்', apiEndpoint: 'https://api-st-cdn.dinamalar.com/varavaram', allTabLink: 'https://api-st-cdn.dinamalar.com/varavaram', initialTabId: 'all' }); onClose(); return; }
     const isVaravaramParent = parentTitle === 'வராவாரம்' || parentId === 'varavaram' || parentLink === '/varavaram';
-    if (isVaravaramParent) { navigation?.navigate('CommonSectionScreen', { screenTitle: 'வராவாரம்', apiEndpoint: 'https://u38.dinamalar.com/varavaram', allTabLink: 'https://u38.dinamalar.com/varavaram', initialTabId: id || 'all', initialTabLink: link || '', initialTabTitle: title || '' }); onClose(); return; }
+    if (isVaravaramParent) { navigation?.navigate('CommonSectionScreen', { screenTitle: 'வராவாரம்', apiEndpoint: 'https://api-st-cdn.dinamalar.com/varavaram', allTabLink: 'https://api-st-cdn.dinamalar.com/varavaram', initialTabId: id || 'all', initialTabLink: link || '', initialTabTitle: title || '' }); onClose(); return; }
     if (title === 'ஜோசியம்' || id === 'astrology' || link === '/joshiyam' || link.includes('joshiyam')) { navigation?.navigate('CommonSectionScreen', { screenTitle: 'ஜோசியம்', apiEndpoint: '/joshiyam', allTabLink: '/joshiyam', initialTabId: 'all', initialTabLink: '/joshiyam', initialTabTitle: 'அனைத்தும்' }); onClose(); return; }
     const isJoshiyamParent = isJoshiyamItem(parentTitle, parentLink, parentId);
     if (isJoshiyamParent || isJoshiyamItem('', link, id)) { navigation?.navigate('CommonSectionScreen', { screenTitle: 'ஜோசியம்', apiEndpoint: '/joshiyam', allTabLink: '/joshiyam', initialTabId: id || item.etitle || 'all', initialTabLink: link || '', initialTabTitle: title || '' }); onClose(); return; }
@@ -311,9 +311,9 @@ const DrawerMenu = ({ isVisible, onClose, onMenuPress, navigation }) => {
     if (title === 'மலர்கள்' || id === 'malargal' || link === '/malargal' || link.includes('malargal')) { navigation?.navigate('CommonSectionScreen', { screenTitle: 'மலர்கள்', apiEndpoint: '/malargal', allTabLink: '/malaragal' }); onClose(); return; }
     const isMalargalParent = parentTitle === 'மலர்கள்' || parentId === 'malargal' || parentLink === '/malargal';
     if (isMalargalParent) { navigation?.navigate('CommonSectionScreen', { screenTitle: 'மலர்கள்', apiEndpoint: '/malargal', allTabLink: '/malaragal', initialTabId: id || '', initialTabLink: link || '', initialTabTitle: title || '' }); onClose(); return; }
-    if (title === 'போட்டோ' || id === 'photo' || link === '/photo' || link.includes('photo')) { navigation?.navigate('CommonSectionScreen', { screenTitle: 'போட்டோ', apiEndpoint: 'https://u38.dinamalar.com/photodata', allTabLink: 'https://u38.dinamalar.com/photodata' }); onClose(); return; }
+    if (title === 'போட்டோ' || id === 'photo' || link === '/photo' || link.includes('photo')) { navigation?.navigate('CommonSectionScreen', { screenTitle: 'போட்டோ', apiEndpoint: 'https://api-st-cdn.dinamalar.com/photodata', allTabLink: 'https://api-st-cdn.dinamalar.com/photodata' }); onClose(); return; }
     const isPhotoParent = parentTitle === 'போட்டோ' || parentId === 'photo' || parentLink === '/photo';
-    if (isPhotoParent) { navigation?.navigate('CommonSectionScreen', { screenTitle: 'போட்டோ', apiEndpoint: 'https://u38.dinamalar.com/photodata', allTabLink: 'https://u38.dinamalar.com/photodata', initialTabId: id || '', initialTabLink: link || '', initialTabTitle: title || '' }); onClose(); return; }
+    if (isPhotoParent) { navigation?.navigate('CommonSectionScreen', { screenTitle: 'போட்டோ', apiEndpoint: 'https://api-st-cdn.dinamalar.com/photodata', allTabLink: 'https://api-st-cdn.dinamalar.com/photodata', initialTabId: id || '', initialTabLink: link || '', initialTabTitle: title || '' }); onClose(); return; }
     if (title === 'மாவட்டங்கள்' || id === 'district' || link === '/district' || link.includes('district')) { navigation?.navigate('CommonSectionScreen', { screenTitle: 'மாவட்டங்கள்', apiEndpoint: '/district', allTabLink: '/district' }); onClose(); return; }
     const isdistrictParent = parentTitle === 'மாவட்டங்கள்' || parentId === 'district' || parentLink === '/district';
     if (isdistrictParent) { navigation?.navigate('CommonSectionScreen', { screenTitle: 'மாவட்டங்கள்', apiEndpoint: '/district', allTabLink: '/district', initialTabId: id || '', initialTabLink: link || '', initialTabTitle: title || '' }); onClose(); return; }
@@ -500,8 +500,8 @@ const DrawerMenu = ({ isVisible, onClose, onMenuPress, navigation }) => {
                       subItems = !rawSub.find(s => s.link === '/malargal' || s.title === 'All')
                         ? [{ title: 'All', link: '/malargal', id: 'all', etitle: 'all' }, ...rawSub] : rawSub;
                     } else if (isPhoto && rawSub.length > 0) {
-                      subItems = !rawSub.find(s => s.link === 'https://u38.dinamalar.com/photodata' || s.title === 'All')
-                        ? [{ title: 'All', link: 'https://u38.dinamalar.com/photodata', id: 'all', etitle: 'all' }, ...rawSub] : rawSub;
+                      subItems = !rawSub.find(s => s.link === 'https://api-st-cdn.dinamalar.com/photodata' || s.title === 'All')
+                        ? [{ title: 'All', link: 'https://api-st-cdn.dinamalar.com/photodata', id: 'all', etitle: 'all' }, ...rawSub] : rawSub;
                     } else if (isDistrict && rawSub.length > 0) {
                       subItems = !rawSub.find(s => s.link === '/district' || s.title === 'All')
                         ? [{ title: 'All', link: '/district', id: 'all', etitle: 'all' }, ...rawSub] : rawSub;

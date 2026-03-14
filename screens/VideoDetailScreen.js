@@ -19,12 +19,13 @@ import RenderHtml from 'react-native-render-html';
 import { WebView } from 'react-native-webview';
 import YoutubePlayer from 'react-native-youtube-iframe';
 import { ms, s, vs } from '../utils/scaling';
-import { u38Api } from '../config/api';
+import { CDNApi } from '../config/api';
 import { FONTS } from '../utils/constants';
 import { useFontSize } from '../context/FontSizeContext';
 import AppHeaderComponent from '../components/AppHeaderComponent';
 import DrawerMenu from '../components/DrawerMenu';
 import LocationDrawer from '../components/LocationDrawer';
+import CommentsModal from '../components/CommentsModal';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const VIDEO_HEIGHT = (SCREEN_WIDTH * 9) / 16;
@@ -184,6 +185,7 @@ const VideoDetailScreen = ({ navigation, route }) => {
   const [isDrawerVisible, setIsDrawerVisible] = useState(false);
   const [isLocationDrawerVisible, setIsLocationDrawerVisible] = useState(false);
   const [selectedDistrict, setSelectedDistrict] = useState('உள்ளூர்');
+  const [isCommentsModalVisible, setIsCommentsModalVisible] = useState(false);
 
   // ── Player state ────────────────────────────────────────────────────────────
   // activeYtId   → non-null means YouTube player is showing
@@ -199,7 +201,7 @@ const VideoDetailScreen = ({ navigation, route }) => {
     setLoading(true);
     setError(null);
     try {
-      const res = await u38Api.get(`/videodetail?id=${id}`);
+      const res = await CDNApi.get(`/videodetail?id=${id}`);
       const data = res.data;
       if (data?.latestvideo) setLatestvideo(data.latestvideo);
       const related = data?.videomix?.data ?? [];
@@ -232,6 +234,8 @@ const VideoDetailScreen = ({ navigation, route }) => {
   const ytId = getYouTubeId(rawUrl);
   const bodyText = video?.videodescription ?? '';
   const timeAgo = getTimeAgo(video?.videodate);
+  const commentCount = parseInt(video?.nmcomment || 0);
+  const hasComments = commentCount > 0;
   const shareUrl = video?.slug
     ? `https://www.dinamalar.com${video.slug}`
     : `https://www.dinamalar.com/video/${videoId}`;
@@ -252,22 +256,78 @@ const VideoDetailScreen = ({ navigation, route }) => {
   };
 
   // ── Related video tap ──────────────────────────────────────────────────────
-  const handleRelatedPress = (v) => {
-    const relRaw = v?.videopath ?? v?.y_path ?? v?.vidg_path ?? null;
-    const relYtId = getYouTubeId(relRaw);
-    if (relYtId) {
-      setActiveRawUrl(null);
-      setActiveYtId(relYtId);
-      setYtPlaying(true);
-    } else if (relRaw) {
-      setActiveYtId(null);
-      setActiveRawUrl(relRaw);
+  const handleRelatedPress = async (v) => {
+    console.log('=== Related video clicked ===');
+    console.log('Video data:', v);
+    console.log('Video ID:', v?.videoid);
+    
+    if (!v?.videoid) {
+      console.log('No video ID found');
+      return;
     }
-    scrollRef.current?.scrollTo({ y: 0, animated: true });
+    
+    try {
+      console.log('Fetching full video details for ID:', v.videoid);
+      const res = await CDNApi.get(`/videodetail?id=${v.videoid}`);
+      const data = res.data;
+      
+      console.log('API Response:', data);
+      console.log('Latest video:', data?.latestvideo);
+      
+      if (data?.latestvideo) {
+        // Update the main video with complete details (like YouTube)
+        console.log('Setting main video with:', data.latestvideo);
+        setLatestvideo(data.latestvideo);
+        
+        // Update related videos for the new video
+        const newRelated = data?.videomix?.data ?? [];
+        setRelatedVideos(
+          newRelated.filter(item =>
+            item?.type !== 'reels' &&
+            item?.type !== 'googlead' &&
+            String(item?.videoid) !== String(v.videoid)
+          )
+        );
+        
+        // Extract YouTube ID and play the video
+        const relRaw = data.latestvideo?.videopath ?? data.latestvideo?.y_path ?? data.latestvideo?.vidg_path ?? null;
+        const relYtId = getYouTubeId(relRaw);
+        
+        console.log('Raw URL:', relRaw);
+        console.log('YouTube ID:', relYtId);
+        
+        if (relYtId) {
+          setActiveRawUrl(null);
+          setActiveYtId(relYtId);
+          setYtPlaying(true);
+        } else if (relRaw) {
+          setActiveYtId(null);
+          setActiveRawUrl(relRaw);
+        }
+        
+        // Scroll to top to show new video
+        scrollRef.current?.scrollTo({ y: 0, animated: true });
+      } else {
+        console.log('No latestvideo found in API response');
+      }
+    } catch (e) {
+      console.error('Error fetching video details:', e);
+    }
   };
 
   const handleShare = async () => {
     try { await Share.share({ message: `${video?.videotitle ?? 'Dinamalar Video'}\n${shareUrl}` }); } catch { }
+  };
+
+  const handleBookmark = () => {
+    setBookmarked(!bookmarked);
+    // TODO: Add actual bookmark functionality (save to backend/local storage)
+    console.log(bookmarked ? 'Video bookmarked' : 'Video unbookmarked', video?.videoid);
+  };
+
+  const handleChat = () => {
+    console.log('Opening comments for video:', video?.videoid);
+    setIsCommentsModalVisible(true);
   };
 
   const handleSelectDistrict = (district) => {
@@ -433,41 +493,6 @@ const VideoDetailScreen = ({ navigation, route }) => {
           <Text style={[styles.articleTitle, { fontSize: sf(18), lineHeight: sf(27) }]}>
             {video?.videotitle ?? ''}
           </Text>
-
-          <View style={styles.metaRow}>
-            {!!video?.ctitle && (
-              <View style={styles.categoryPill}>
-                <Text style={[styles.categoryPillText, { fontSize: sf(11) }]}>{video.ctitle}</Text>
-              </View>
-            )}
-            <Text style={[styles.metaDate, { fontSize: sf(12) }]}>
-              {video?.standarddate || timeAgo || ''}
-            </Text>
-          </View>
-
-          {/* <View style={styles.thinDivider} /> */}
-
-          {/* <View style={styles.socialRow}>
-            <View style={styles.socialIcons}>
-              <SocialBtn icon="f" color="#1877F2" bg="#E7F0FF" onPress={handleShare} />
-              <SocialBtn icon="𝕏" color="#000" bg="#F0F0F0" onPress={handleShare} />
-              <SocialBtn icon="📱" color="#25D366" bg="#E6F9EE" onPress={handleShare} />
-              <SocialBtn icon="✈️" color="#229ED9" bg="#E3F3FC" onPress={handleShare} />
-            </View>
-            {!!ytId && (
-              <TouchableOpacity
-                style={styles.ytDirectBtn}
-                onPress={handlePlayVideo}
-                activeOpacity={0.8}
-              >
-                <Ionicons name="logo-youtube" size={ms(16)} color="#FF0000" />
-                <Text style={[styles.ytDirectText, { fontSize: sf(11) }]}>Play Video</Text>
-              </TouchableOpacity>
-            )}
-          </View> */}
-
-          {/* <View style={styles.thinDivider} /> */}
-
           {loading && !latestvideo ? (
             <View style={styles.descSkeleton}>
               {[1, 0.9, 0.75].map((w, i) => (
@@ -496,6 +521,43 @@ const VideoDetailScreen = ({ navigation, route }) => {
                   },
                 }}
               />
+               <Text style={[styles.metaDate, { fontSize: sf(14) }]}>
+                {video?.standarddate || timeAgo || ''}
+              </Text>
+
+          <View style={[styles.metaRow, { marginTop: vs(5) }]}>
+            <View style={styles.metaLeft}>
+              {!!video?.ctitle && (
+                <View style={styles.categoryPill}>
+                  <Text style={[styles.categoryPillText, { fontSize: sf(11) }]}>{video.ctitle}</Text>
+                </View>
+              )}
+              
+            </View>
+            <View style={styles.metaRight}>
+              {hasComments && (
+                <TouchableOpacity
+                  style={styles.metaActionBtn}
+                  onPress={handleChat}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="chatbox" size={ms(20)} color={PALETTE.grey600} />
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity
+                style={styles.metaActionBtn}
+                onPress={handleBookmark}
+                activeOpacity={0.8}
+              >
+                <Ionicons 
+                  name={bookmarked ? "bookmark" : "bookmark-outline"} 
+                  size={ms(20)} 
+                  color={bookmarked ? PALETTE.primary : PALETTE.grey600} 
+                />
+              </TouchableOpacity>
+             
+            </View>
+          </View>
             </View>
           ) : null}
 
@@ -537,6 +599,14 @@ const VideoDetailScreen = ({ navigation, route }) => {
         onClose={() => setIsLocationDrawerVisible(false)}
         onSelectDistrict={handleSelectDistrict}
         selectedDistrict={selectedDistrict}
+      />
+
+      <CommentsModal
+        visible={isCommentsModalVisible}
+        onClose={() => setIsCommentsModalVisible(false)}
+        newsId={videoId}
+        newsTitle={video?.videotitle}
+        commentCount={0}
       />
     </SafeAreaView>
   );
@@ -586,14 +656,17 @@ const styles = StyleSheet.create({
   durationText: { color: PALETTE.white, fontWeight: '700', fontFamily: FONTS.muktaMalar.bold },
   thumbPlaceholder: { justifyContent: 'center', alignItems: 'center', backgroundColor: '#2A2A2A' },
 
-  articleBody: { backgroundColor: PALETTE.white, paddingHorizontal: s(14), paddingTop: vs(14), paddingBottom: vs(4) },
+  articleBody: { backgroundColor: PALETTE.white, paddingHorizontal: s(14), paddingTop: vs(14),  },
   articleTitle: { fontFamily: FONTS.muktaMalar.bold, color: PALETTE.grey800, fontWeight: '800', marginBottom: vs(10) },
-  metaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: vs(10) },
+  metaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: vs(5) },
+  metaLeft: { flexDirection: 'row', alignItems: 'center', gap: s(8), flex: 1 },
+  metaRight: { flexDirection: 'row', alignItems: 'center', gap: s(8) },
+  metaActionBtn: { padding: s(6), borderRadius: s(4), backgroundColor: PALETTE.grey100,borderWidth: 1,borderColor: PALETTE.grey400 },
   categoryPill: { paddingHorizontal: s(10), paddingVertical: vs(2), borderWidth: 1, borderColor: PALETTE.grey400, },
   categoryPillText: { color: PALETTE.grey600, fontWeight: '600', fontFamily: FONTS.muktaMalar.semibold },
-  metaDate: { color: PALETTE.grey500, fontFamily: FONTS.muktaMalar.regular },
+  metaDate: { color: PALETTE.grey600, fontFamily: FONTS.muktaMalar.regular },
   thinDivider: { height: 1, backgroundColor: PALETTE.grey300, marginVertical: vs(10) },
-  socialRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: vs(4) },
+  socialRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: vs(4) },
   socialIcons: { flexDirection: 'row', gap: s(8) },
   socialBtn: { width: s(36), height: s(36), borderRadius: s(18), alignItems: 'center', justifyContent: 'center', elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2 },
   socialBtnIcon: { fontSize: ms(16), fontWeight: '800' },

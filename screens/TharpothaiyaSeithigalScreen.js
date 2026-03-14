@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { u38Api, CATEGORY_MAP, SPECIAL_ENDPOINTS } from '../config/api';
+import { CDNApi, CATEGORY_MAP, SPECIAL_ENDPOINTS } from '../config/api';
 import { COLORS, FONTS, NewsCard } from '../utils/constants';
 import { s, vs, ms, scaledSizes } from '../utils/scaling';
 import UniversalHeaderComponent from '../components/UniversalHeaderComponent';
@@ -247,7 +247,7 @@ export default function TharpothaiyaSeithigalScreen({ route }) {
     try {
       const url = buildUrl(topTab, subTab, pg);
       console.log('Fetching:', url);
-      const res = await u38Api.get(url);
+      const res = await CDNApi.get(url);
       const d   = res?.data;
 
       if (!append && !subTab) {

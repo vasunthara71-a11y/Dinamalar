@@ -12,7 +12,7 @@ import {
   Share,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { u38Api } from '../config/api';
+import { CDNApi } from '../config/api';
 import { COLORS, FONTS } from '../utils/constants';
 import { s, vs, ms } from '../utils/scaling';
 import TEXT_STYLES from '../utils/textStyles';
@@ -30,7 +30,7 @@ export default function PhotoDetailsScreen({ route, navigation }) {
     try {
       setLoading(true);
       setError(null);
-      const response = await u38Api.get('/photodata');
+      const response = await CDNApi.get('/photodata');
       const data = response?.data || [];
       
       // Handle different data structures
