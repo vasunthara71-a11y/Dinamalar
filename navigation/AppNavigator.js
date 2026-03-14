@@ -25,6 +25,8 @@ import JoshiyamScreen from '../screens/JoshiyamScreen';
 import CommonSectionScreen from '../screens/CommonSectionScreen';
 import RasiDetailScreen from '../screens/RasiDetailScreen';
 import PhotoDetailsScreen from '../screens/PhotoDetailsScreen';
+import ShortNewsSwiperScreen from '../screens/ShortNewsSwiperScreen';
+import VideoDetailScreen from '../screens/VideoDetailScreen';
   
 const Stack = createNativeStackNavigator();
 
@@ -72,6 +74,8 @@ const AppNavigator = () => {
         <Stack.Screen name='CommonSectionScreen' component={CommonSectionScreen}/>
         <Stack.Screen name='RasiDetailScreen' component={RasiDetailScreen}/>
         <Stack.Screen name='PhotoDetailsScreen' component={PhotoDetailsScreen}/>
+        <Stack.Screen name='ShortNewsSwiperScreen' component={ShortNewsSwiperScreen}/>
+        <Stack.Screen name='VideoDetailScreen' component={VideoDetailScreen}/>
       </Stack.Navigator>
     </NavigationContainer>
   );

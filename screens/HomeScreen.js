@@ -1,4 +1,4 @@
-// HomeScreen.js
+﻿// HomeScreen.js
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
@@ -30,10 +30,8 @@ import { useNavigation } from '@react-navigation/native';
 import LocationDrawer from '../components/LocationDrawer';
 import TopMenuStrip from '../components/TopMenuStrip';
 import AppHeaderComponent from '../components/AppHeaderComponent';
-import VideoPlayerModal from '../components/VideoPlayerModal';
-import { useFontSize } from '../context/FontSizeContext';
-import DinaMalarTVModal from '../components/DinaMalarTVModal';
-
+ import { useFontSize } from '../context/FontSizeContext';
+ 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 // ─── Palette ──────────────────────────────────────────────────────────────────
@@ -433,7 +431,7 @@ function DinaMalarTVCard({ item, onVideoPress }) {
 
         {/* Thumbnail with play-button overlay */}
         <View style={NewsCardStyles.imageWrap}>
-          <Image source={{ uri: imageUri }} style={[NewsCardStyles.image,{height:ms(185)}]} resizeMode="cover" />
+          <Image source={{ uri: imageUri }} style={[NewsCardStyles.image, { height: ms(200) }]} resizeMode="contain" />
 
           {/* Semi-transparent scrim + centred play circle */}
           <View style={tvCardSt.playOverlay}>
@@ -827,9 +825,7 @@ export default function HomeScreen() {
   const [isLocationDrawerVisible, setIsLocationDrawerVisible] = useState(false);
   const [selectedDistrict, setSelectedDistrict] = useState('உள்ளூர்');
   const [showScrollTop, setShowScrollTop] = useState(false);
-  const [videoPlaying, setVideoPlaying] = useState(false);
-  const [videoUrl, setVideoUrl] = useState('');
-
+ 
   const flatListRef = useRef(null);
 
   const handleScroll = useCallback((e) => {
@@ -963,7 +959,7 @@ export default function HomeScreen() {
           }
         }
 
-        
+
 
         if (Array.isArray(d?.webstories) && d.webstories[0]?.data?.length > 0)
           sections.push({ title: d.webstories[0].title || 'வெப் ஸ்டோரிஸ்', data: d.webstories[0].data, type: 'shorts' });
@@ -1227,15 +1223,10 @@ export default function HomeScreen() {
                 key={`sec-${si}`}
                 data={section.data}
                 onVideoPress={(item) => {
-                  const videoUri =
-                    item.videopath || item.video || item.video_url ||
-                    item.videolink || item.videourl || item.url || '';
-                  if (videoUri) {
-                    setVideoUrl(videoUri);
-                    setVideoPlaying(true);
-                  } else {
-                    goToArticle(item);
-                  }
+                  navigation?.navigate('VideoDetailScreen', {
+                    videoId: item.videoid || item.id || item.newsid,
+                    video: item,
+                  });
                 }}
               />
 
@@ -1331,77 +1322,68 @@ export default function HomeScreen() {
     </>
   );
 
- // ─── Render ────────────────────────────────────────────────────────────────
-return (
-  <View style={styles.container}>
-    <StatusBar barStyle="dark-content" backgroundColor={PALETTE.white} />
+  // ─── Render ────────────────────────────────────────────────────────────────
+  return (
+    <View style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor={PALETTE.white} />
 
-    <TopMenuStrip
-      onMenuPress={handleMenuPress}
-      onNotification={goToNotifs}
-      notifCount={3}
-    />
+      <TopMenuStrip
+        onMenuPress={handleMenuPress}
+        onNotification={goToNotifs}
+        notifCount={3}
+      />
 
-    <AppHeaderComponent
-      onSearch={goToSearch}
-      onMenu={() => setIsDrawerVisible(true)}
-      onLocation={() => setIsLocationDrawerVisible(true)}
-      selectedDistrict={selectedDistrict}
-    />
+      <AppHeaderComponent
+        onSearch={goToSearch}
+        onMenu={() => setIsDrawerVisible(true)}
+        onLocation={() => setIsLocationDrawerVisible(true)}
+        selectedDistrict={selectedDistrict}
+      />
 
-    <DrawerMenu
-      isVisible={isDrawerVisible}
-      onClose={() => setIsDrawerVisible(false)}
-      onMenuPress={handleMenuPress}
-      navigation={navigation}
-    />
+      <DrawerMenu
+        isVisible={isDrawerVisible}
+        onClose={() => setIsDrawerVisible(false)}
+        onMenuPress={handleMenuPress}
+        navigation={navigation}
+      />
 
-    <LocationDrawer
-      isVisible={isLocationDrawerVisible}
-      onClose={() => setIsLocationDrawerVisible(false)}
-      onSelectDistrict={handleSelectDistrict}
-      selectedDistrict={selectedDistrict}
-    />
+      <LocationDrawer
+        isVisible={isLocationDrawerVisible}
+        onClose={() => setIsLocationDrawerVisible(false)}
+        onSelectDistrict={handleSelectDistrict}
+        selectedDistrict={selectedDistrict}
+      />
 
-    <FlatList
-      ref={flatListRef}
-      data={[]}
-      renderItem={null}
-      keyExtractor={(_, i) => `empty-${i}`}
-      ListHeaderComponent={ListHeader}
-      ListFooterComponent={!loading ? <FooterMenu /> : null}
-      contentContainerStyle={styles.feedContent}
-      showsVerticalScrollIndicator={false}
-      onScroll={handleScroll}
-      scrollEventThrottle={16}
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={onRefresh}
-          colors={[PALETTE.primary]}
-          tintColor={PALETTE.primary}
-        />
-      }
-    />
+      <FlatList
+        ref={flatListRef}
+        data={[]}
+        renderItem={null}
+        keyExtractor={(_, i) => `empty-${i}`}
+        ListHeaderComponent={ListHeader}
+        ListFooterComponent={!loading ? <FooterMenu /> : null}
+        contentContainerStyle={styles.feedContent}
+        showsVerticalScrollIndicator={false}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[PALETTE.primary]}
+            tintColor={PALETTE.primary}
+          />
+        }
+      />
 
-    {showScrollTop && (
-      <TouchableOpacity style={styles.scrollTopBtn} onPress={scrollToTop} activeOpacity={0.85}>
-        <Ionicons name="arrow-up" size={s(20)} color={PALETTE.white} />
-      </TouchableOpacity>
-    )}
+      {showScrollTop && (
+        <TouchableOpacity style={styles.scrollTopBtn} onPress={scrollToTop} activeOpacity={0.85}>
+          <Ionicons name="arrow-up" size={s(20)} color={PALETTE.white} />
+        </TouchableOpacity>
+      )}
 
-    {/* ── Video overlay — outside FlatList, sibling to everything,
-        pointerEvents="box-none" so scroll behind it still works ── */}
-    <DinaMalarTVModal
-      visible={videoPlaying}
-      url={videoUrl}
-      onClose={() => {
-        setVideoPlaying(false);
-        setVideoUrl('');
-      }}
-    />
-  </View>
-);
+  
+    </View>
+  );
 }
 
 // ─── Main Styles ──────────────────────────────────────────────────────────────

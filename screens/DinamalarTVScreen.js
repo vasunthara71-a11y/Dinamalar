@@ -1,329 +1,251 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
-  View, Text, FlatList, TouchableOpacity, Image,
-  ActivityIndicator, RefreshControl, StyleSheet,
-  StatusBar, Dimensions, ScrollView, Platform,
+  View,
+  Text,
+  Image,
+  ScrollView,
+  TouchableOpacity,
+  FlatList,
+  Modal,
+  StyleSheet,
+  SafeAreaView,
+  StatusBar,
+  Platform,
+  ActivityIndicator,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
-import { ms, mvs } from 'react-native-size-matters';
-import { COLORS } from '../utils/constants';
 
-const { width } = Dimensions.get('window');
-const GRID_ITEM_WIDTH = (width - 28) / 2;
-const GRID_THUMB_HEIGHT = GRID_ITEM_WIDTH * 0.6;
+// ─── Replace with your actual API base URL ─────────────────────────────────────
+const API_URL = 'https://www.dinamalar.com/videodata';
 
-// New API endpoint
-const API_BASE = 'https://api-st-cdn.dinamalar.com/videomain';
+const DURATION_FILTERS = [
+  { title: 'அனைத்தும்', value: 'all' },
+  { title: '0–2 நிமிடங்கள்', value: '0' },
+  { title: '2–4 நிமிடங்கள்', value: '2' },
+  { title: '4–6 நிமிடங்கள்', value: '4' },
+  { title: '6+ நிமிடங்கள்', value: '6' },
+];
 
-// ─── Category Color Map ────────────────────────────────
-const CAT_COLORS = {
-  'அரசியல்': '#6a1b9a',
-  'பொது': '#1565c0',
-  'செய்திச்சுருக்கம்': COLORS.primary,
-  'ஆன்மிகம்': '#e65100',
-  'மாவட்ட செய்திகள்': '#2e7d32',
-  'சினிமா வீடியோ': '#ad1457',
-  'விளையாட்டு': '#00695c',
-  'Live': COLORS.primary,
-};
-const getCatColor = (title) => CAT_COLORS[title] || '#555';
+const SORT_OPTIONS = [
+  { title: 'புதியவை', value: 'newest' },
+  { title: 'பழையவை', value: 'oldest' },
+];
 
-// ─── Featured (Latest) Video Banner ───────────────────
-function FeaturedVideo({ item, onPress }) {
-  if (!item) return null;
-  const title = item.videotitle || '';
-  const image = item.images;
-  const catTitle = item.ctitle || item.category || '';
-  const catColor = getCatColor(catTitle);
-  const timeAgo = item.ago || item.standarddate || '';
+const RED = '#E63946';
+const DARK = '#1A1A1A';
+const GRAY = '#888888';
+const LIGHT_GRAY = '#F5F5F5';
+const BORDER = '#EEEEEE';
 
-  return (
-    <TouchableOpacity onPress={onPress} activeOpacity={0.9}>
-      {/* ── Image Container ── */}
-      <View style={styles.featured}>
-        {image ? (
-          <Image source={{ uri: image }} style={styles.featuredImage} resizeMode="cover" />
-        ) : (
-          <View style={[styles.featuredImage, styles.featuredPlaceholder]}>
-            <Ionicons name="tv-outline" size={48} color="rgba(255,255,255,0.4)" />
-          </View>
-        )}
-
-        {/* Play button */}
-        <View style={styles.featuredPlayBtn}>
-          <Ionicons name="play" size={28} color="#fff" />
-        </View>
-      </View>
-
-      {/* ── Info Below Image ── */}
-      <View style={styles.featuredInfo}>
-        {catTitle !== '' && (
-          <View style={[styles.featuredCatBadge, { backgroundColor: '#dc2626' }]}>
-            <Text style={styles.featuredCatText}>{catTitle}</Text>
-          </View>
-        )}
-        <Text style={styles.featuredTitle} numberOfLines={2}>{title}</Text>
-        <View style={styles.featuredMeta}>
-          <Ionicons name="time-outline" size={12} color="#888" />
-          <Text style={styles.featuredMetaText}> {timeAgo}</Text>
-        </View>
-      </View>
-    </TouchableOpacity>
-  );
-}
-
-// ─── Video Grid Card ───────────────────────────────────
-function VideoCard({ item, onPress }) {
-  const image = item.images;
-  const title = item.videotitle || '';
-  const duration = item.duration || '';
-  const catTitle = item.ctitle || '';
-  const catColor = getCatColor(catTitle);
-  const timeAgo = item.ago || '';
-
-  return (
-    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.88}>
-      {/* Thumbnail */}
-      <View style={styles.thumbWrapper}>
-        {image ? (
-          <Image source={{ uri: image }} style={styles.thumb} resizeMode="cover" />
-        ) : (
-          <View style={[styles.thumb, styles.thumbPlaceholder]}>
-            <Ionicons name="play-circle-outline" size={34} color="#bbb" />
-          </View>
-        )}
-
-        {/* Dim overlay + play icon */}
-        <View style={styles.thumbOverlay}>
-          <View style={styles.playCircle}>
-            <Ionicons name="play" size={13} color="#fff" />
-          </View>
-        </View>
-
-        {/* Duration bottom-right */}
-        {duration !== '' && (
-          <View style={styles.durationBadge}>
-            <Text style={styles.durationText}>{duration}</Text>
-          </View>
-        )}
-
-        {/* Category top-left */}
-        {catTitle !== '' && (
-          <View style={[styles.cardCatBadge, { backgroundColor: catColor }]}>
-            <Text style={styles.cardCatText} numberOfLines={1}>{catTitle}</Text>
-          </View>
-        )}
-      </View>
-
-      {/* Info */}
-      <View style={styles.cardInfo}>
-        <Text style={styles.cardTitle} numberOfLines={2}>{title}</Text>
-        <View style={styles.cardMeta}>
-          <Ionicons name="time-outline" size={10} color="#aaa" />
-          <Text style={styles.cardMetaText}> {timeAgo}</Text>
-        </View>
-      </View>
-    </TouchableOpacity>
-  );
-}
-
-// ─── Skeleton Card ─────────────────────────────────────
-function SkeletonCard() {
-  return (
-    <View style={[styles.card, { opacity: 0.45 }]}>
-      <View style={[styles.thumb, { backgroundColor: '#ddd' }]} />
-      <View style={styles.cardInfo}>
-        <View style={{ height: 13, backgroundColor: '#ddd', borderRadius: 4, marginBottom: 6 }} />
-        <View style={{ height: 13, backgroundColor: '#ddd', borderRadius: 4, width: '70%', marginBottom: 6 }} />
-        <View style={{ height: 10, backgroundColor: '#ddd', borderRadius: 4, width: '40%' }} />
-      </View>
-    </View>
-  );
-}
-
-// ─── Section Header ────────────────────────────────────
-function SectionHeader({ title }) {
-  return (
-    <View style={styles.sectionHeader}>
-      <View style={styles.sectionAccent} />
-      <Text style={styles.sectionTitle}>{title}</Text>
-    </View>
-  );
-}
-
-// ─── Main Screen ───────────────────────────────────────
-export default function DinamalarTVScreen() {
-  const navigation = useNavigation();
-
-  const [videos, setVideos] = useState([]);
-  const [latestVideo, setLatestVideo] = useState(null);
-  const [categories, setCategories] = useState([]);
-  const [subscriberCount, setSubscriberCount] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
-  const [page, setPage] = useState(1);
-  const [activeCategory, setActiveCategory] = useState('');
-
-  const fetchVideos = useCallback(async (pageNum = 1, isRefresh = false, catId = '') => {
-    try {
-      if (pageNum === 1) isRefresh ? setRefreshing(true) : setLoading(true);
-      else setLoadingMore(true);
-
-      const endpoint = catId
-        ? `${API_BASE}?cat=${catId}&page=${pageNum}`
-        : `${API_BASE}?page=${pageNum}`;
-
-      const response = await fetch(endpoint);
-      const data = await response.json();
-
-      // Set one-time metadata
-      if (pageNum === 1) {
-        if (data?.videomix?.data?.[0]) setLatestVideo(data.videomix.data[0]);
-        if (data?.subscribercount) setSubscriberCount(data.subscribercount);
-        if (data?.category && Array.isArray(data.category)) {
-          setCategories(data.category);
-        }
-      }
-
-      const videoData = data?.videomix?.data || [];
-
-      if (videoData.length === 0) {
-        setHasMore(false);
-      } else {
-        setVideos(prev => pageNum === 1 ? videoData : [...prev, ...videoData]);
-        setPage(pageNum);
-        setHasMore(!!data?.videomix?.next_page_url);
-      }
-    } catch (error) {
-      console.error('DinamalarTV fetch error:', error.message);
-      setVideos([]);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-      setLoadingMore(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchVideos(1, false, activeCategory);
-  }, [fetchVideos, activeCategory]);
-
-  const onRefresh = () => {
-    setHasMore(true);
-    fetchVideos(1, true, activeCategory);
-  };
-
-  const onEndReached = () => {
-    if (!loadingMore && hasMore && !loading) {
-      fetchVideos(page + 1, false, activeCategory);
-    }
-  };
-
-  const handleCategoryChange = (catId) => {
-    setActiveCategory(catId);
-    setVideos([]);
-    setPage(1);
-    setHasMore(true);
-  };
-
-  const goToVideo = (item) => {
-    navigation.navigate('VideoDetailsScreen', {
-      videoId: item.videoid || item.id,
-      videoItem: item,
-    });
-  };
-
-  const goToFeatured = () => {
-    if (latestVideo) {
-      navigation.navigate('VideoDetailsScreen', {
-        videoId: latestVideo.videoid || latestVideo.id,
-        videoItem: latestVideo,
-      });
-    }
-  };
-
-const tabs = (categories || []).map(tab =>
-  tab.title === 'ALL' ? { ...tab, title: 'All' } : tab
+// ─── Play Button ───────────────────────────────────────────────────────────────
+const PlayButton = () => (
+  <View style={styles.playBtn}>
+    <View style={styles.playTriangle} />
+  </View>
 );
 
-  const renderHeader = () => (
-    <>
-      {/* Featured latest video */}
-      <FeaturedVideo item={latestVideo} onPress={goToFeatured} />
+// ─── Video Card ────────────────────────────────────────────────────────────────
+const VideoCard = ({ video, onPress }) => (
+  <TouchableOpacity activeOpacity={0.92} onPress={() => onPress(video)} style={styles.card}>
+    <View style={styles.thumbnailContainer}>
+      <Image
+        source={{ uri: video.images }}
+        style={styles.thumbnail}
+        resizeMode="cover"
+      />
+      <View style={styles.thumbnailOverlay} />
 
-      {/* Subscriber count strip */}
-      {subscriberCount !== '' && (
-        <View style={styles.subCountStrip}>
-          <Ionicons name="logo-youtube" size={16} color="#ff0000" />
-          <Text style={styles.subCountText}>{subscriberCount} சந்தாதாரர்கள்</Text>
-        </View>
-      )}
-
-      <SectionHeader title="சமீபத்திய வீடியோக்கள்" />
-    </>
-  );
-
-  const renderFooter = () => {
-    if (loadingMore) {
-      return (
-        <View style={styles.footerLoader}>
-          <ActivityIndicator size="small" color="#COLORS.primary" />
-          <Text style={styles.footerText}>ஏற்றுகிறது...</Text>
-        </View>
-      );
-    }
-    return <View style={{ height: 24 }} />;
-  };
-
-  return (
-    <View style={styles.container}>
-      <StatusBar backgroundColor="#COLORS.primary" barStyle="light-content" />
-
-      {/* ── Header ── */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <Ionicons name="arrow-back" size={22} color={COLORS.text}/>
-        </TouchableOpacity>
-
-        <View style={styles.headerCenter}>
-          {/* TV Icon + Title */}
-          <View style={styles.headerTitleRow}>
-            {/* <Ionicons name="tv" size={18} color="#fff" style={{ marginRight: 6 }} /> */}
-            <Text style={styles.headerTitle}>தினமலர் TV</Text>
-          </View>
-          {/* <Text style={styles.headerSub}>Dinamalar Television</Text> */}
-        </View>
-
-        {/* YouTube subscribe button style */}
-        {/* <View style={styles.ytBadge}>
-          <Ionicons name="logo-youtube" size={14} color="#ff0000" />
-          <Text style={styles.ytBadgeText}>Subscribe</Text>
-        </View> */}
+      {/* Duration */}
+      <View style={styles.durationBadge}>
+        <Text style={styles.durationText}>{video.duration}</Text>
       </View>
 
-      {/* ── Category Tab Strip ── */}
-      <View style={styles.tabBar}>
+      {/* Play */}
+      <View style={styles.playBtnContainer}>
+        <PlayButton />
+      </View>
+
+      {/* Watermark */}
+      <View style={styles.watermark}>
+        <Text style={styles.watermarkRed}>தின</Text>
+        <Text style={styles.watermarkYellow}>மலர்</Text>
+      </View>
+    </View>
+
+    <View style={styles.cardBody}>
+      <Text style={styles.videoTitle} numberOfLines={2}>
+        {video.videotitle}
+      </Text>
+      <View style={styles.metaRow}>
+        <View style={styles.categoryBadge}>
+          <Text style={styles.categoryBadgeText}>{video.ctitle}</Text>
+        </View>
+        <Text style={styles.dateText}>{video.standarddate}</Text>
+      </View>
+    </View>
+  </TouchableOpacity>
+);
+
+// ─── Filter Bottom Sheet ───────────────────────────────────────────────────────
+const FilterSheet = ({ visible, onClose, durationFilter, setDurationFilter, sortFilter, setSortFilter, onApply }) => (
+  <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+    <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={onClose} />
+    <View style={styles.filterSheet}>
+      <View style={styles.sheetHandle} />
+
+      <View style={styles.sheetHeader}>
+        <Text style={styles.sheetTitle}>வடிகட்டு</Text>
+        <TouchableOpacity onPress={onClose} style={styles.sheetClose}>
+          <Text style={styles.sheetCloseText}>✕</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Sort */}
+      <View style={styles.filterSection}>
+        <Text style={styles.filterSectionLabel}>வரிசைப்படுத்து</Text>
+        <View style={styles.filterChipRow}>
+          {SORT_OPTIONS.map(opt => (
+            <TouchableOpacity
+              key={opt.value}
+              onPress={() => setSortFilter(opt.value)}
+              style={[styles.filterChip, sortFilter === opt.value && styles.filterChipActive]}
+            >
+              <Text style={[styles.filterChipText, sortFilter === opt.value && styles.filterChipTextActive]}>
+                {opt.title}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+
+      {/* Duration */}
+      <View style={styles.filterSection}>
+        <Text style={styles.filterSectionLabel}>காலம்</Text>
+        <View style={styles.filterChipRow}>
+          {DURATION_FILTERS.map(opt => (
+            <TouchableOpacity
+              key={opt.value}
+              onPress={() => setDurationFilter(opt.value)}
+              style={[styles.filterChip, durationFilter === opt.value && styles.filterChipActive]}
+            >
+              <Text style={[styles.filterChipText, durationFilter === opt.value && styles.filterChipTextActive]}>
+                {opt.title}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+
+      <TouchableOpacity style={styles.applyBtn} onPress={onApply}>
+        <Text style={styles.applyBtnText}>பயன்படுத்து</Text>
+      </TouchableOpacity>
+    </View>
+  </Modal>
+);
+
+// ─── Main Screen ───────────────────────────────────────────────────────────────
+const DinamalarTVScreen = () => {
+  const [videos, setVideos] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [activeCategory, setActiveCategory] = useState('');
+  const [filterVisible, setFilterVisible] = useState(false);
+  const [durationFilter, setDurationFilter] = useState('all');
+  const [sortFilter, setSortFilter] = useState('newest');
+
+  useEffect(() => {
+    fetchVideos('');
+  }, []);
+
+  const fetchVideos = async (categoryValue) => {
+    try {
+      setLoading(true);
+      const url = categoryValue ? `${API_URL}?cat=${categoryValue}` : API_URL;
+      const res = await fetch(url);
+      const data = await res.json();
+
+      // Videos come from videomix.data in the API response
+      setVideos(data?.videomix?.data || []);
+
+      // Categories come from category array in the API response
+      if (data?.category?.length) {
+        setCategories(data.category);
+      }
+    } catch (err) {
+      console.error('Fetch error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCategoryChange = (value) => {
+    setActiveCategory(value);
+    fetchVideos(value);
+  };
+
+  const hasActiveFilter = durationFilter !== 'all' || sortFilter !== 'newest';
+
+  // Duration filter
+  const filteredVideos = videos.filter(v => {
+    if (durationFilter === 'all') return true;
+    const parts = (v.duration || '00:00').split(':');
+    const totalMin = parseInt(parts[0] || 0) + parseInt(parts[1] || 0) / 60;
+    if (durationFilter === '0') return totalMin < 2;
+    if (durationFilter === '2') return totalMin >= 2 && totalMin < 4;
+    if (durationFilter === '4') return totalMin >= 4 && totalMin < 6;
+    if (durationFilter === '6') return totalMin >= 6;
+    return true;
+  });
+
+  // Sort
+  const sortedVideos = [...filteredVideos].sort((a, b) =>
+    sortFilter === 'oldest' ? a.videoid - b.videoid : b.videoid - a.videoid
+  );
+
+  const handleVideoPress = (video) => {
+    // Wire up your navigation here, e.g.:
+    // navigation.navigate('VideoDetail', { video });
+    console.log('Open video:', video.videoid);
+  };
+
+  const ListHeader = () => (
+    <>
+      {/* Breadcrumb */}
+      <View style={styles.breadcrumb}>
+        <Text style={styles.breadcrumbGray}>🏠 / </Text>
+        <Text style={styles.breadcrumbActive}>தினமலர் டிவி</Text>
+      </View>
+
+      {/* Filter + Category Row */}
+      <View style={styles.filterCategoryRow}>
+        <TouchableOpacity
+          style={[styles.filterIconBtn, hasActiveFilter && styles.filterIconBtnActive]}
+          onPress={() => setFilterVisible(true)}
+          activeOpacity={0.8}
+        >
+          <Text style={[styles.filterIconText, hasActiveFilter && styles.filterIconTextActive]}>⊟</Text>
+          {hasActiveFilter && <View style={styles.filterDot} />}
+        </TouchableOpacity>
+
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.tabContent}
+          contentContainerStyle={styles.categoryTabsContainer}
+          style={styles.categoryTabsScroll}
         >
-          {tabs.map((tab) => {
-            const isActive = activeCategory === tab.value;
+          {categories.map(cat => {
+            const isActive = activeCategory === cat.value;
             return (
               <TouchableOpacity
-                key={`tab_${tab.value || 'all'}`}
-                style={[styles.tabItem, isActive && styles.tabItemActive]}
-                onPress={() => handleCategoryChange(tab.value)}
+                key={cat.value}
+                onPress={() => handleCategoryChange(cat.value)}
+                style={[styles.categoryTab, isActive && styles.categoryTabActive]}
+                activeOpacity={0.8}
               >
-                <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]}>
-                  {tab.title}
+                {cat.value === '5050' && (
+                  <View style={[styles.liveDot, isActive && styles.liveDotActive]} />
+                )}
+                <Text style={[styles.categoryTabText, isActive && styles.categoryTabTextActive]}>
+                  {cat.title}
                 </Text>
               </TouchableOpacity>
             );
@@ -331,375 +253,299 @@ const tabs = (categories || []).map(tab =>
         </ScrollView>
       </View>
 
-      {/* ── Content ── */}
-      {loading ? (
-        <ScrollView contentContainerStyle={styles.gridContent} scrollEnabled={false}>
-          <View style={styles.skeletonFeatured} />
-          <View style={styles.gridRow}>
-            {[1, 2, 3, 4, 5, 6].map(i => <SkeletonCard key={`sk_${i}`} />)}
-          </View>
-        </ScrollView>
-      ) : (
-        <FlatList
-          data={videos}
-          keyExtractor={(item, index) => `video_${item.videoid || index}_${index}`}
-          numColumns={2}
-          renderItem={({ item }) => (
-            <VideoCard item={item} onPress={() => goToVideo(item)} />
-          )}
-          ListHeaderComponent={renderHeader}
-          ListFooterComponent={renderFooter}
-          ListEmptyComponent={
-            <View style={styles.emptyState}>
-              <Ionicons name="tv-outline" size={60} color="#ddd" />
-              <Text style={styles.emptyText}>வீடியோக்கள் இல்லை</Text>
-              <TouchableOpacity style={styles.retryBtn} onPress={onRefresh}>
-                <Text style={styles.retryText}>மீண்டும் முயற்சி</Text>
-              </TouchableOpacity>
+      {/* Share Bar */}
+      <View style={styles.shareBar}>
+        {[
+          { label: 'f', color: '#1877F2' },
+          { label: '𝕏', color: '#000' },
+          { label: 'W', color: '#25D366' },
+          { label: '✈', color: '#0088CC' },
+        ].map((s, i) => (
+          <TouchableOpacity key={i} style={[styles.shareBtn, { backgroundColor: s.color }]}>
+            <Text style={styles.shareBtnText}>{s.label}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {/* Active filter tags */}
+      {hasActiveFilter && (
+        <View style={styles.activeFilterRow}>
+          <Text style={styles.activeFilterLabel}>வடிகட்டல்: </Text>
+          {sortFilter !== 'newest' && (
+            <View style={styles.activeFilterTag}>
+              <Text style={styles.activeFilterTagText}>
+                {SORT_OPTIONS.find(s => s.value === sortFilter)?.title}
+              </Text>
             </View>
-          }
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              colors={[COLORS.primary]}
-            />
-          }
-          onEndReached={onEndReached}
-          onEndReachedThreshold={0.2}
-          contentContainerStyle={styles.gridContent}
-          columnWrapperStyle={styles.columnWrapper}
-        />
+          )}
+          {durationFilter !== 'all' && (
+            <View style={styles.activeFilterTag}>
+              <Text style={styles.activeFilterTagText}>
+                {DURATION_FILTERS.find(d => d.value === durationFilter)?.title}
+              </Text>
+            </View>
+          )}
+          <TouchableOpacity onPress={() => { setDurationFilter('all'); setSortFilter('newest'); }}>
+            <Text style={styles.clearFilterText}>அழி ✕</Text>
+          </TouchableOpacity>
+        </View>
       )}
+    </>
+  );
+
+  const ListEmpty = () => (
+    <View style={styles.emptyState}>
+      {loading
+        ? <ActivityIndicator size="large" color={RED} />
+        : <><Text style={styles.emptyIcon}>🎬</Text><Text style={styles.emptyText}>வீடியோக்கள் இல்லை</Text></>
+      }
     </View>
   );
-}
 
-// ─── Styles ────────────────────────────────────────────
+  return (
+    <SafeAreaView style={styles.safeArea}>
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.menuBtn}>
+          <Text style={styles.menuIcon}>☰</Text>
+        </TouchableOpacity>
+        <View style={styles.logoContainer}>
+          <Text>
+            <Text style={styles.logoRed}>தின</Text>
+            <Text style={styles.logoBlue}>மலர்</Text>
+            <Text style={styles.logoNum}> 45</Text>
+          </Text>
+          <Text style={styles.logoTagline}>தேசிய தமிழ் நாளிதழ்</Text>
+        </View>
+        <View style={styles.headerRight}>
+          <TouchableOpacity><Text style={styles.headerIcon}>🔍</Text></TouchableOpacity>
+          <TouchableOpacity style={styles.locationBtn}>
+            <Text style={styles.locationIcon}>📍</Text>
+            <Text style={styles.locationText}>உள்ளூர்</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      <FlatList
+        data={sortedVideos}
+        keyExtractor={item => String(item.videoid)}
+        renderItem={({ item }) => <VideoCard video={item} onPress={handleVideoPress} />}
+        ListHeaderComponent={ListHeader}
+        ListEmptyComponent={ListEmpty}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.listContent}
+        ItemSeparatorComponent={() => <View style={styles.separator} />}
+      />
+
+      <FilterSheet
+        visible={filterVisible}
+        onClose={() => setFilterVisible(false)}
+        durationFilter={durationFilter}
+        setDurationFilter={setDurationFilter}
+        sortFilter={sortFilter}
+        setSortFilter={setSortFilter}
+        onApply={() => setFilterVisible(false)}
+      />
+    </SafeAreaView>
+  );
+};
+
+// ─── Styles ────────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f8f9fa',
-  },
+  safeArea: { flex: 1, backgroundColor: '#FFFFFF' },
 
-  // ── Header - Modern Website Style
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingTop: Platform.OS === 'android' ? ms(50) : ms(54),
-    paddingBottom: ms(14),
-    paddingHorizontal: ms(16),
-    backgroundColor: '#ffffff',
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 12, paddingVertical: 10,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 2, borderBottomColor: RED,
     elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: ms(2) },
-    shadowOpacity: 0.1,
-    shadowRadius: ms(8),
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08, shadowRadius: 4,
   },
-  headerCenter: { 
-    flex: 1,
-    marginHorizontal: ms(16),
+  menuBtn: { padding: 4, marginRight: 8 },
+  menuIcon: { fontSize: 20, color: DARK },
+  logoContainer: { flex: 1, alignItems: 'center' },
+  logoRed: { fontSize: 18, color: RED, fontWeight: '900' },
+  logoBlue: { fontSize: 18, color: '#003580', fontWeight: '900' },
+  logoNum: { fontSize: 12, color: RED, fontWeight: '700' },
+  logoTagline: { fontSize: 9, color: GRAY, marginTop: -2 },
+  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  headerIcon: { fontSize: 18 },
+  locationBtn: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: '#FFF5F5', borderRadius: 12,
+    paddingHorizontal: 8, paddingVertical: 4,
+    borderWidth: 1, borderColor: '#FFD0D0', gap: 2,
   },
-  headerTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTitle: { 
-    color: '#1a1a1a',
-    fontSize: ms(20),
-    fontWeight: '700',
-    letterSpacing: -0.5,
-  },
+  locationIcon: { fontSize: 12 },
+  locationText: { fontSize: 11, color: RED, fontWeight: '700' },
 
-  // ── Tab Strip - Modern Design
-  tabBar: {
-    backgroundColor: '#ffffff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e9ecef',
-    elevation: 2,
+  breadcrumb: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 12, paddingTop: 8, paddingBottom: 4,
   },
-  tabContent: { 
-    paddingHorizontal: ms(16), 
-    paddingVertical: ms(12), 
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  tabItem: {
-    paddingHorizontal: ms(16),
-    paddingVertical: ms(8),
-    borderRadius: ms(24),
-    marginRight: ms(8),
-    backgroundColor: '#f8f9fa',
-  },
-  tabItemActive: { 
-    backgroundColor: '#dc2626',
-  },
-  tabLabel: { 
-    fontSize: ms(14), 
-    color: '#6c757d', 
-    fontWeight: '500',
-  },
-  tabLabelActive: { 
-    color: '#ffffff', 
-    fontWeight: '600',
-  },
+  breadcrumbGray: { fontSize: 12, color: GRAY },
+  breadcrumbActive: { fontSize: 12, color: RED, fontWeight: '600' },
 
-  // ── Featured Banner - Website Style
-  featured: {
-    width: '100%',
-    height: width * 0.5,
-    backgroundColor: '#000000',
-    borderRadius: ms(12),
-    overflow: 'hidden',
-    marginBottom: ms(16),
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: ms(4) },
-    shadowOpacity: 0.15,
-    shadowRadius: ms(8),
+  filterCategoryRow: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1, borderBottomColor: BORDER,
+    paddingVertical: 6,
   },
-  featuredImage: { 
-    width: '100%', 
-    height: '100%' 
+  filterIconBtn: {
+    marginLeft: 10, marginRight: 4,
+    width: 36, height: 36, borderRadius: 8,
+    backgroundColor: LIGHT_GRAY,
+    justifyContent: 'center', alignItems: 'center',
+    position: 'relative',
   },
-  featuredPlaceholder: {
-    backgroundColor: '#1a1a1a',
-    justifyContent: 'center',
-    alignItems: 'center',
+  filterIconBtnActive: { backgroundColor: '#FFF0F0' },
+  filterIconText: { fontSize: 18, color: '#555' },
+  filterIconTextActive: { color: RED },
+  filterDot: {
+    position: 'absolute', top: 5, right: 5,
+    width: 7, height: 7, borderRadius: 4,
+    backgroundColor: RED, borderWidth: 1.5, borderColor: '#FFF',
   },
-  featuredOverlay: {
-    position: 'absolute',
-    left: 0, right: 0, bottom: 0,
-    height: '100%',
-    backgroundColor: 'linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 100%)',
+  categoryTabsScroll: { flex: 1 },
+  categoryTabsContainer: {
+    flexDirection: 'row', paddingHorizontal: 6, gap: 6, alignItems: 'center',
   },
-  featuredPlayBtn: {
-    position: 'absolute',
-    top: '50%', 
-    left: '50%',
-    marginTop: ms(-32), 
-    marginLeft: ms(-32),
-    width: ms(64), 
-    height: ms(64), 
-    borderRadius: ms(32),
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 4,
+  categoryTab: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 14, paddingVertical: 6,
+    borderRadius: 20, borderWidth: 1.5, borderColor: '#DDD',
+    backgroundColor: '#FFF', gap: 4,
   },
-  featuredInfo: {
-    backgroundColor: '#ffffff',
-    padding: ms(16),
-  },
-  featuredCatBadge: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: ms(8),
-    paddingVertical: ms(4),
-    borderRadius: ms(4),
-    marginBottom: ms(8),
-    backgroundColor: '#dc2626',
-  },
-  featuredCatText: {
-    color: '#ffffff',
-    fontSize: ms(11),
-    fontWeight: '600',
-  },
-  featuredTitle: {
-    color: '#1a1a1a',
-    fontSize: ms(16),
-    fontWeight: '700',
-    lineHeight: ms(22),
-    marginBottom: ms(8),
-  },
-  featuredMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  featuredMetaText: {
-    color: '#6c757d',
-    fontSize: ms(12),
-  },
+  categoryTabActive: { backgroundColor: RED, borderColor: RED },
+  categoryTabText: { fontSize: 12.5, color: '#444', fontWeight: '500' },
+  categoryTabTextActive: { color: '#FFF', fontWeight: '700' },
+  liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: RED },
+  liveDotActive: { backgroundColor: '#FFF' },
 
-  // ── Subscriber Strip - Modern
-  subCountStrip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#ffffff',
-    paddingHorizontal: ms(16),
-    paddingVertical: ms(12),
-    borderBottomWidth: 1,
-    borderBottomColor: '#e9ecef',
+  shareBar: {
+    flexDirection: 'row', paddingHorizontal: 12, paddingVertical: 8,
+    gap: 10, backgroundColor: '#FFF',
+    borderBottomWidth: 1, borderBottomColor: BORDER,
   },
-  subCountText: { 
-    fontSize: ms(14), 
-    color: '#1a1a1a', 
-    fontWeight: '600',
-    marginLeft: ms(8),
-  },
+  shareBtn: { width: 34, height: 34, borderRadius: 17, justifyContent: 'center', alignItems: 'center' },
+  shareBtnText: { color: '#FFF', fontWeight: '700', fontSize: 14 },
 
-  // ── Section Header
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: ms(16),
-    paddingTop: ms(16),
-    paddingBottom: ms(8),
-    backgroundColor: '#ffffff',
+  activeFilterRow: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 12, paddingVertical: 6, flexWrap: 'wrap', gap: 6,
   },
-  sectionAccent: {
-    width: ms(4), 
-    height: ms(20), 
-    borderRadius: ms(2),
-    backgroundColor: '#dc2626', 
-    marginRight: ms(8),
+  activeFilterLabel: { fontSize: 12, color: GRAY },
+  activeFilterTag: {
+    backgroundColor: '#FFF0F0', borderRadius: 10,
+    paddingHorizontal: 10, paddingVertical: 3,
+    borderWidth: 1, borderColor: '#FFD0D0',
   },
-  sectionTitle: {
-    fontSize: ms(18),
-    fontWeight: '700',
-    color: '#1a1a1a',
-  },
+  activeFilterTagText: { fontSize: 11, color: RED, fontWeight: '700' },
+  clearFilterText: { fontSize: 11, color: RED, fontWeight: '700' },
 
-  // ── Grid
-  gridContent: { 
-    paddingHorizontal: ms(12), 
-    paddingBottom: ms(24),
-    backgroundColor: '#f8f9fa',
-  },
-  columnWrapper: { 
-    paddingHorizontal: ms(4), 
-    gap: ms(8), 
-    marginBottom: ms(8) 
-  },
+  listContent: { backgroundColor: '#F7F7F8', paddingBottom: 80 },
+  separator: { height: 8, backgroundColor: '#F7F7F8' },
 
-  // ── Video Card - Modern Design
-  card: {
-    flex: 1,
-    backgroundColor: '#ffffff',
-    borderRadius: ms(12),
-    overflow: 'hidden',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: ms(2) },
-    shadowOpacity: 0.08,
-    shadowRadius: ms(6),
-    marginBottom: ms(8),
+  card: { backgroundColor: '#FFF', overflow: 'hidden' },
+  thumbnailContainer: {
+    width: '100%', aspectRatio: 16 / 9,
+    backgroundColor: '#111', position: 'relative',
   },
-  thumbWrapper: { 
-    position: 'relative' 
-  },
-  thumb: {
-    width: '100%',
-    height: GRID_THUMB_HEIGHT,
-    backgroundColor: '#f8f9fa',
-  },
-  thumbPlaceholder: { 
-    justifyContent: 'center', 
-    alignItems: 'center',
-    backgroundColor: '#e9ecef',
-  },
-  thumbOverlay: {
-    position: 'absolute', 
-    top: 0, 
-    left: 0, 
-    right: 0, 
-    bottom: 0,
-    justifyContent: 'center', 
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.3)',
-  },
-  playCircle: {
-    width: ms(40), 
-    height: ms(40), 
-    borderRadius: ms(20),
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    justifyContent: 'center', 
-    alignItems: 'center',
+  thumbnail: { width: '100%', height: '100%' },
+  thumbnailOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.08)',
   },
   durationBadge: {
-    position: 'absolute', 
-    bottom: ms(8), 
-    right: ms(8),
-    backgroundColor: 'rgba(0,0,0,0.8)',
-    paddingHorizontal: ms(6),
-    paddingVertical: ms(2),
-    borderRadius: ms(4),
+    position: 'absolute', bottom: 8, right: 8,
+    backgroundColor: 'rgba(0,0,0,0.75)',
+    borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2,
   },
-  durationText: { 
-    color: '#ffffff', 
-    fontSize: ms(10), 
-    fontWeight: '600',
+  durationText: { color: '#FFF', fontSize: 11, fontWeight: '700' },
+  playBtnContainer: { position: 'absolute', bottom: 8, left: 8 },
+  playBtn: {
+    width: 32, height: 32, borderRadius: 16,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center', alignItems: 'center',
   },
-  cardInfo: { 
-    padding: ms(12) 
+  playTriangle: {
+    width: 0, height: 0, borderStyle: 'solid',
+    borderTopWidth: 7, borderBottomWidth: 7, borderLeftWidth: 12,
+    borderTopColor: 'transparent', borderBottomColor: 'transparent',
+    borderLeftColor: '#FFF', marginLeft: 2,
   },
-  cardTitle: {
-    fontSize: ms(13),
-    fontWeight: '600',
-    color: '#1a1a1a', 
-    lineHeight: ms(18),
-    marginBottom: ms(6),
+  watermark: {
+    position: 'absolute', bottom: 8, left: 48, flexDirection: 'row',
   },
-  cardMeta: { 
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  cardMetaText: {
-    fontSize: ms(11),
-    color: '#6c757d',
-  },
+  watermarkRed: { fontSize: 9, color: '#FF4444', fontWeight: '800', opacity: 0.8 },
+  watermarkYellow: { fontSize: 9, color: '#FFD700', fontWeight: '800', opacity: 0.8 },
 
-  // ── Skeleton
-  skeletonFeatured: {
-    width: '100%', 
-    height: width * 0.5,
-    backgroundColor: '#e9ecef',
-    borderRadius: ms(12),
-    marginBottom: ms(16),
+  cardBody: { paddingHorizontal: 12, paddingVertical: 10, paddingBottom: 12 },
+  videoTitle: { fontSize: 14, fontWeight: '600', color: DARK, lineHeight: 20, marginBottom: 8 },
+  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  categoryBadge: {
+    backgroundColor: '#F5F5F5', borderRadius: 4,
+    paddingHorizontal: 8, paddingVertical: 2,
   },
-  gridRow: {
-    flexDirection: 'row', 
-    flexWrap: 'wrap',
-    paddingHorizontal: ms(12),
-    gap: ms(8),
-  },
+  categoryBadgeText: { fontSize: 11, color: '#555', fontWeight: '600' },
+  dateText: { fontSize: 11, color: GRAY },
 
-  // ── Footer & Empty
-  footerLoader: {
-    flexDirection: 'row', 
-    justifyContent: 'center',
-    alignItems: 'center', 
-    paddingVertical: ms(20), 
-    gap: ms(8),
+  emptyState: { alignItems: 'center', paddingTop: 80, paddingBottom: 40 },
+  emptyIcon: { fontSize: 48, marginBottom: 12 },
+  emptyText: { fontSize: 14, color: GRAY },
+
+  modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)' },
+  filterSheet: {
+    backgroundColor: '#FFF',
+    borderTopLeftRadius: 20, borderTopRightRadius: 20,
+    paddingBottom: Platform.OS === 'ios' ? 34 : 24,
+    elevation: 20,
+    shadowColor: '#000', shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.15, shadowRadius: 12,
   },
-  footerText: { 
-    fontSize: ms(14), 
-    color: '#6c757d',
-    fontWeight: '500',
+  sheetHandle: {
+    width: 36, height: 4, borderRadius: 2,
+    backgroundColor: '#DDD', alignSelf: 'center',
+    marginTop: 10, marginBottom: 4,
   },
-  emptyState: {
-    flex: 1, 
-    justifyContent: 'center',
-    alignItems: 'center', 
-    paddingVertical: ms(60),
-    backgroundColor: '#f8f9fa',
+  sheetHeader: {
+    flexDirection: 'row', alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20, paddingVertical: 14,
+    borderBottomWidth: 1, borderBottomColor: BORDER,
   },
-  emptyText: { 
-    fontSize: ms(16), 
-    color: '#6c757d',
-    fontWeight: '500',
-    textAlign: 'center',
-    marginBottom: ms(16),
+  sheetTitle: { fontSize: 17, fontWeight: '700', color: DARK },
+  sheetClose: {
+    width: 32, height: 32, borderRadius: 16,
+    backgroundColor: LIGHT_GRAY,
+    justifyContent: 'center', alignItems: 'center',
   },
-  retryBtn: {
-    backgroundColor: '#dc2626',
-    paddingHorizontal: ms(24),
-    paddingVertical: ms(12),
-    borderRadius: ms(8),
+  sheetCloseText: { fontSize: 14, color: '#333', fontWeight: '700' },
+  filterSection: { paddingHorizontal: 20, paddingTop: 16 },
+  filterSectionLabel: {
+    fontSize: 11, fontWeight: '700', color: GRAY,
+    letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 10,
   },
-  retryText: { 
-    color: '#ffffff', 
-    fontSize: ms(14), 
-    fontWeight: '600',
+  filterChipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  filterChip: {
+    paddingHorizontal: 16, paddingVertical: 8,
+    borderRadius: 20, borderWidth: 1.5,
+    borderColor: '#DDD', backgroundColor: '#FFF',
   },
+  filterChipActive: { borderColor: RED, backgroundColor: '#FFF0F0' },
+  filterChipText: { fontSize: 13, color: '#555', fontWeight: '600' },
+  filterChipTextActive: { color: RED, fontWeight: '700' },
+  applyBtn: {
+    marginHorizontal: 20, marginTop: 20,
+    backgroundColor: RED, borderRadius: 10,
+    paddingVertical: 14, alignItems: 'center',
+  },
+  applyBtnText: { color: '#FFF', fontSize: 15, fontWeight: '700' },
 });
+
+export default DinamalarTVScreen;

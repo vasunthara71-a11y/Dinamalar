@@ -14,6 +14,7 @@ import { mainApi, API_ENDPOINTS } from '../config/api';
 import { COLORS } from '../utils/constants';
 import { scaledSizes } from '../utils/scaling';
 import { useFontSize } from '../context/FontSizeContext';
+import { ms } from 'react-native-size-matters';
 
 // ─── Module-level cache — persists across screen mounts/remounts ──────────────
 let _cachedMenuItems = null;
@@ -154,7 +155,7 @@ export default function TopMenuStrip({ onMenuPress, onNotification, notifCount =
               activeOpacity={0.7}
             >
               <MenuIcon uri={item.Icon || item.icon} />
-              <Text style={[styles.menuLabel, { fontSize: sf(12) }, isActive && styles.menuLabelActive]}>
+              <Text style={[styles.menuLabel, { fontSize: ms(10) }, isActive && styles.menuLabelActive]}>
                 {item.Title || item.title}
               </Text>
             </TouchableOpacity>

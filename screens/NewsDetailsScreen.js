@@ -528,7 +528,7 @@ export default function NewsDetailsScreen() {
                   <Image
                     source={{ uri: image }}
                     style={styles.heroImage}
-                    resizeMode="cover"
+                    resizeMode="contain"
                   />
                   {!!d.imagecaption && (
                     <Text style={[styles.caption, { fontSize: sf(12) }]}>
@@ -839,7 +839,7 @@ const styles = StyleSheet.create({
   iconBadge: { color: COLORS.subtext, fontWeight: '600' },
 
   heroWrap: { marginHorizontal: s(16), marginBottom: vs(12) },
-  heroImage: { width: '100%', height: ms(210), backgroundColor: '#f0f0f0' },
+  heroImage: { width: '100%', height:ms(230), backgroundColor: '#f0f0f0' },
   caption: { color: COLORS.subtext, fontStyle: 'italic', marginTop: vs(4), textAlign: 'center' },
 
   videoWrap: {
@@ -847,7 +847,7 @@ const styles = StyleSheet.create({
     borderRadius: s(10), justifyContent: 'center', alignItems: 'center',
     marginBottom: vs(12), overflow: 'hidden',
   },
-  ytThumb: { position: 'absolute', width: '100%', height: '100%' },
+  ytThumb: { position: 'absolute', width: '100%', height: "100%" },
   ytPlayOverlay: {
     position: 'absolute', justifyContent: 'center', alignItems: 'center',
     backgroundColor: 'rgba(0,0,0,0.35)', width: '100%', height: '100%',
