@@ -307,8 +307,7 @@ const VideosScreen = ({ navigation }) => {
     }
   }, []);
 
-  useEffect(() => { fetchVideos(); }, [fetchVideos]);
-
+ 
   // Refresh data when screen comes into focus
   useFocusEffect(
     useCallback(() => {

@@ -136,7 +136,7 @@ const gc = StyleSheet.create({
   title: {
     fontSize: ms(13),
     color: COLORS.text,
-    fontFamily: FONTS.muktaMalar.semiBold,
+    fontFamily: FONTS.muktaMalar.semibold,
   },
 
   date: {

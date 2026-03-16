@@ -1,5 +1,5 @@
 ﻿// HomeScreen.js
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -34,7 +34,7 @@ import AppHeaderComponent from '../components/AppHeaderComponent';
  
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-// ─── Palette ──────────────────────────────────────────────────────────────────
+// --- Palette ------------------------------------------------------------------
 const PALETTE = {
   primary: '#096dd2',
   grey100: '#F9FAFB',
@@ -48,7 +48,7 @@ const PALETTE = {
   white: '#FFFFFF',
 };
 
-// ─── Menu Icon ────────────────────────────────────────────────────────────────
+// --- Menu Icon ----------------------------------------------------------------
 function MenuIcon({ uri }) {
   if (uri && uri.startsWith('http') && !uri.endsWith('.svg'))
     return <Image source={{ uri }} style={{ width: s(16), height: s(16), marginRight: s(4) }} resizeMode="contain" />;
@@ -57,7 +57,7 @@ function MenuIcon({ uri }) {
   return null;
 }
 
-// ─── Breaking News Ticker ─────────────────────────────────────────────────────
+// --- Breaking News Ticker -----------------------------------------------------
 function BreakingNewsTicker({ text }) {
   const scrollX = useRef(new Animated.Value(SCREEN_WIDTH)).current;
   const textWidth = useRef(SCREEN_WIDTH * 3);
@@ -93,7 +93,7 @@ function BreakingNewsTicker({ text }) {
   );
 }
 
-// ─── Route Map ────────────────────────────────────────────────────────────────
+// --- Route Map ----------------------------------------------------------------
 const LINK_ROUTE_MAP = [
   { match: ['dinamalartv', 'videodata'], screen: 'VideoScreen' },
   { match: ['podcast'], screen: 'PodcastScreen' },
@@ -126,8 +126,8 @@ const resolveScreenFromLink = (link = '') => {
   return null;
 };
 
-// ─── App Header Component ────────────────────────────────────────────────────────
-function AppHeader({ onSearch, onMenu, onLocation, selectedDistrict = 'உள்ளூர்' }) {
+// --- App Header Component --------------------------------------------------------
+function AppHeader({ onSearch, onMenu, onLocation, selectedDistrict = '???????' }) {
   const { sf } = useFontSize();
 
   return (
@@ -200,7 +200,7 @@ const menuSt = StyleSheet.create({
   },
 });
 
-// ─── Section Header ───────────────────────────────────────────────────────────
+// --- Section Header -----------------------------------------------------------
 function SectionHeader({ title }) {
   const { sf } = useFontSize();
 
@@ -212,7 +212,7 @@ function SectionHeader({ title }) {
   );
 }
 
-// ─── Shorts Section ────────────────────────────────────────────────────────────
+// --- Shorts Section ------------------------------------------------------------
 function ShortsSection({ title, data, onPress }) {
   if (!data || data.length === 0) return null;
 
@@ -247,7 +247,7 @@ const shortsSectionSt = StyleSheet.create({
   },
 });
 
-// ─── Shorts Card ────────────────────────────────────────────────────────────────
+// --- Shorts Card ----------------------------------------------------------------
 function ShortsCard({ item, onPress }) {
   const { sf } = useFontSize();
 
@@ -345,7 +345,7 @@ const shortsSt = StyleSheet.create({
   },
 });
 
-// ─── News Card ────────────────────────────────────────────────────────────────
+// --- News Card ----------------------------------------------------------------
 function NewsCard({ item, onPress, isSocialMedia = false }) {
   const { sf } = useFontSize();
 
@@ -356,8 +356,7 @@ function NewsCard({ item, onPress, isSocialMedia = false }) {
   const title = item.newstitle || item.title || item.videotitle || item.name || '';
   const category = item.maincat || item.categrorytitle || item.ctitle || item.maincategory || '';
   const ago = item.ago || item.time_ago || '';
-  const newscomment = item.newscomment || item.commentcount || '';
-  const hasAudio = item.audio === 1 || item.audio === '1' || item.audio === true ||
+const newscomment = item.newscomment || item.commentcount || item.nmcomment || item.comments?.total || '';  const hasAudio = item.audio === 1 || item.audio === '1' || item.audio === true ||
     (typeof item.audio === 'string' && item.audio.length > 1 && item.audio !== '0');
 
   return (
@@ -411,8 +410,8 @@ function NewsCard({ item, onPress, isSocialMedia = false }) {
   );
 }
 
-// ─── Dinamalar TV Card ────────────────────────────────────────────────────────
-// NewsCard-style layout with play button overlay — tapping opens VideoPlayerModal
+// --- Dinamalar TV Card --------------------------------------------------------
+// NewsCard-style layout with play button overlay   tapping opens VideoPlayerModal
 function DinaMalarTVCard({ item, onVideoPress }) {
   const { sf } = useFontSize();
 
@@ -423,8 +422,7 @@ function DinaMalarTVCard({ item, onVideoPress }) {
   const title = item.newstitle || item.title || item.videotitle || item.name || '';
   const category = item.maincat || item.categrorytitle || item.ctitle || item.maincategory || '';
   const ago = item.ago || item.time_ago || '';
-  const newscomment = item.newscomment || item.commentcount || '';
-
+const newscomment = item.newscomment || item.commentcount || item.nmcomment || item.comments?.total || '';
   return (
     <View style={NewsCardStyles.wrap}>
       <TouchableOpacity onPress={onVideoPress} activeOpacity={0.88}>
@@ -440,14 +438,14 @@ function DinaMalarTVCard({ item, onVideoPress }) {
             </View>
           </View>
 
-          {/* "TV" badge — top-left corner */}
+          {/* "TV" badge   top-left corner */}
           {/* <View style={tvCardSt.badge}>
             <Ionicons name="videocam" size={s(10)} color="#fff" style={{ marginRight: s(3) }} />
             <Text style={tvCardSt.badgeText}>TV</Text>
           </View> */}
         </View>
 
-        {/* Text content — identical structure to NewsCard */}
+        {/* Text content   identical structure to NewsCard */}
         <View style={NewsCardStyles.contentContainer}>
           {!!title && (
             <Text
@@ -484,14 +482,14 @@ function DinaMalarTVCard({ item, onVideoPress }) {
   );
 }
 
-// ─── Dinamalar TV Section (with Live / Sports / Cinema tabs) ─────────────────
+// --- Dinamalar TV Section (with Live / Sports / Cinema tabs) -----------------
 const TV_TABS = [
   { key: 'live', label: 'Live', ta: 'Live', vCategory: '5050', slug: '/videos/live-and-recorded' },
-  { key: 'sports', label: 'விளையாட்டு', ta: 'விளையாட்டு', vCategory: '594', slug: '/videos/sports-tamil-videos' },
-  { key: 'cinema', label: 'சினிமா', ta: 'சினிமா', vCategory: '594', slug: '/videos/tamil-cinema-videos' },
+  { key: 'sports', label: '??????????', ta: '??????????', vCategory: '594', slug: '/videos/sports-tamil-videos' },
+  { key: 'cinema', label: '??????', ta: '??????', vCategory: '594', slug: '/videos/tamil-cinema-videos' },
 ];
 
-// Map API maincat values → tab key
+// Map API maincat values ? tab key
 function getTabKey(item) {
   // First check by VCategory (actual field from API)
   const vCategory = String(item.VCategory || item.maincatid || '');
@@ -502,8 +500,8 @@ function getTabKey(item) {
   
   // For VCategory 594, differentiate by category name
   if (vCategory === '594') {
-    if (ctitle.includes('சினிமா') || maincat.includes('cinema')) return 'cinema';
-    if (ctitle.includes('விளையாட்டு') || maincat.includes('sport')) return 'sports';
+    if (ctitle.includes('??????') || maincat.includes('cinema')) return 'cinema';
+    if (ctitle.includes('??????????') || maincat.includes('sport')) return 'sports';
     // Default to sports if unclear
     return 'sports';
   }
@@ -511,9 +509,9 @@ function getTabKey(item) {
   // Fallback to category name matching
   const cat = (item.maincat || item.categrorytitle || item.maincategory || '').toLowerCase();
   
-  if (cat.includes('live') || cat.includes('நேரலை') || cat.includes('நேரட')) return 'live';
-  if (cat.includes('sport') || cat.includes('விளையாட்') || cat.includes('cricket') || cat.includes('football')) return 'sports';
-  if (cat.includes('cinema') || cat.includes('சினிமா') || cat.includes('movie') || cat.includes('film')) return 'cinema';
+  if (cat.includes('live') || cat.includes('?????') || cat.includes('????')) return 'live';
+  if (cat.includes('sport') || cat.includes('????????') || cat.includes('cricket') || cat.includes('football')) return 'sports';
+  if (cat.includes('cinema') || cat.includes('??????') || cat.includes('movie') || cat.includes('film')) return 'cinema';
   
   return 'live'; // default
 }
@@ -522,36 +520,30 @@ function DinaMalarTVSection({ data, onVideoPress }) {
   const { sf } = useFontSize();
   const [activeTab, setActiveTab] = useState('live');
 
-  // Group items by tab
-  const grouped = {};
-  TV_TABS.forEach(t => { grouped[t.key] = []; });
-  (data || []).forEach(item => {
-    const key = getTabKey(item);
-    grouped[key].push(item);
-  });
+  const grouped = useMemo(() => {
+    const g = { live: [], sports: [], cinema: [] };
+    (data || []).forEach(item => { g[getTabKey(item)].push(item); });
+    return g;
+  }, [data]);
 
-  // If active tab is empty, fall back to first tab that has items
-  const displayTab = grouped[activeTab]?.length > 0
-    ? activeTab
-    : TV_TABS.find(t => grouped[t.key]?.length > 0)?.key || 'live';
+  const defaultTab = useMemo(() => {
+    return TV_TABS.find(t => grouped[t.key]?.length > 0)?.key || 'live';
+  }, [grouped]);
 
-  const displayItems = grouped[displayTab] || [];
-  
+  const safeTab = grouped[activeTab]?.length > 0 ? activeTab : defaultTab;
+  const displayItems = grouped[safeTab] || [];
+
   return (
     <View>
-      {/* Section header row with tabs */}
       <View style={tvSecSt.headerRow}>
         <View style={tvSecSt.titleWrap}>
           <Text style={[tvSecSt.sectionTitle, { fontSize: sf(16) }]}>தினமலர் டிவி</Text>
           <View style={tvSecSt.titleUnderline} />
         </View>
       </View>
-
-      {/* Tab bar */}
       <View style={tvSecSt.tabBar}>
         {TV_TABS.map(tab => {
-          const isActive = activeTab === tab.key;
-          const hasItems = grouped[tab.key]?.length > 0;
+          const isActive = safeTab === tab.key;
           return (
             <TouchableOpacity
               key={tab.key}
@@ -559,9 +551,7 @@ function DinaMalarTVSection({ data, onVideoPress }) {
               onPress={() => setActiveTab(tab.key)}
               activeOpacity={0.7}
             >
-              {tab.key === 'live' && isActive && (
-                <View style={tvSecSt.liveDot} />
-              )}
+              {tab.key === 'live' && isActive && <View style={tvSecSt.liveDot} />}
               <Text style={[tvSecSt.tabText, { fontSize: sf(13) }, isActive && tvSecSt.tabTextActive]}>
                 {tab.ta}
               </Text>
@@ -569,21 +559,17 @@ function DinaMalarTVSection({ data, onVideoPress }) {
           );
         })}
       </View>
-
-      {/* Cards for active tab */}
       {displayItems.length > 0
         ? displayItems.map((item, i) => (
           <DinaMalarTVCard
-            key={`tv-${displayTab}-${i}-${item.newsid || i}`}
+            key={`tv-${safeTab}-${i}-${item.newsid || item.videoid || i}`}
             item={item}
             onVideoPress={() => onVideoPress(item)}
           />
         ))
-        : (
-          <View style={{ paddingVertical: s(24), alignItems: 'center' }}>
+        : <View style={{ paddingVertical: s(24), alignItems: 'center' }}>
             <Text style={{ color: PALETTE.grey500, fontSize: sf(13) }}>தகவல் இல்லை</Text>
           </View>
-        )
       }
     </View>
   );
@@ -687,7 +673,7 @@ const tvCardSt = StyleSheet.create({
   },
 });
 
-// ─── District News Section ────────────────────────────────────────────────────────
+// --- District News Section --------------------------------------------------------
 function DistrictNewsSection({ districts, onPress }) {
   const { sf } = useFontSize();
 
@@ -713,13 +699,13 @@ function DistrictNewsSection({ districts, onPress }) {
                       style={styles.districtIcon}
                       resizeMode="contain"
                       onError={(error) => {
-                        console.warn('❌ Failed to load icon:', item.title);
+                        console.warn('? Failed to load icon:', item.title);
                         console.warn('URL:', item.icon);
                         console.warn('Original URL:', item.originalIcon);
                         console.warn('Error:', error.nativeEvent?.error);
                       }}
                       onLoad={() => {
-                        console.log('✅ Successfully loaded icon:', item.title);
+                        console.log('? Successfully loaded icon:', item.title);
                       }}
                     />
                   ) : (
@@ -778,7 +764,7 @@ function DistrictNewsSection({ districts, onPress }) {
   );
 }
 
-// ─── Skeleton Card ────────────────────────────────────────────────────────────
+// --- Skeleton Card ------------------------------------------------------------
 function SkeletonCard() {
   return (
     <View style={{ backgroundColor: PALETTE.white, marginBottom: vs(2) }}>
@@ -824,7 +810,7 @@ function SkeletonLoader() {
   );
 }
 
-// ─── HomeScreen ───────────────────────────────────────────────────────────────
+// --- HomeScreen ---------------------------------------------------------------
 export default function HomeScreen() {
   const navigation = useNavigation();
 
@@ -836,7 +822,7 @@ export default function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [isDrawerVisible, setIsDrawerVisible] = useState(false);
   const [isLocationDrawerVisible, setIsLocationDrawerVisible] = useState(false);
-  const [selectedDistrict, setSelectedDistrict] = useState('உள்ளூர்');
+  const [selectedDistrict, setSelectedDistrict] = useState('???????');
   const [showScrollTop, setShowScrollTop] = useState(false);
  
   const flatListRef = useRef(null);
@@ -859,7 +845,7 @@ export default function HomeScreen() {
     }
   };
 
-  // ── Rasi Icon Mapping ───────────────────────────────────────────────────────
+  // -- Rasi Icon Mapping -------------------------------------------------------
   const getRasiIconUrl = (rasiId, title) => {
     const rasiIconMap = {
       'mesham': 'https://images.dinamalar.com/2024/josiyam/rasi/mesham.png',
@@ -878,7 +864,7 @@ export default function HomeScreen() {
     return rasiIconMap[rasiId] || `https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_default.jpg?im=Resize,width=100`;
   };
 
-  // ─── Load Data ─────────────────────────────────────────────────────────────
+  // --- Load Data -------------------------------------------------------------
   const loadAll = useCallback(async () => {
     try {
       const [homeRes, shortRes, shortsRes, varthagamRes, varavaramRes, joshiyamRes, districtRes, premiumRes] = await Promise.allSettled([
@@ -903,7 +889,7 @@ export default function HomeScreen() {
         const tharpothaiyaData = d?.tharpothaiya_seithigal?.[0]?.data || [];
 
         if (tharpothaiyaData.length > 0)
-          sections.push({ title: d.tharpothaiya_seithigal[0].title || 'தற்போதைய செய்தி', data: tharpothaiyaData });
+          sections.push({ title: d.tharpothaiya_seithigal[0].title || '???????? ??????', data: tharpothaiyaData });
 
         if (d?.editorchoice?.data?.length > 0)
           sections.push({ title: d.editorchoice.title, data: d.editorchoice.data });
@@ -914,24 +900,24 @@ export default function HomeScreen() {
         }
 
         if (d?.bannernews?.[0]?.data?.length > 0)
-          sections.push({ title: d.bannernews[0].title || 'தலைப்பு செய்தி', data: d.bannernews[0].data });
+          sections.push({ title: d.bannernews[0].title || '??????? ??????', data: d.bannernews[0].data });
 
         if (d?.catroons?.[0]?.data?.length > 0)
-          sections.push({ title: d.catroons[0].title || 'கார்ட்டூன்ஸ்', data: d.catroons[0].data });
+          sections.push({ title: d.catroons[0].title || '????????????', data: d.catroons[0].data });
 
         if (d?.premium_stories?.data?.length > 0)
-          sections.push({ title: d.premium_stories.title || 'பிரீமியம் ஸ்டோரி', data: d.premium_stories.data });
+          sections.push({ title: d.premium_stories.title || '????????? ??????', data: d.premium_stories.data });
 
         if (d?.reels?.data?.length > 0)
           sections.push({ title: d.reels.title, data: d.reels.data, type: 'shorts' });
 
-        // ── Dinamalar TV — type: 'video' → renders DinaMalarTVSection ──
+        // -- Dinamalar TV   type: 'video' ? renders DinaMalarTVSection --
         if (d?.dinamalartv?.length > 0) {
           // Tag live items so getTabKey can identify them
           const liveItems = (d?.live || []).map(item => ({ ...item, maincat: 'live' }));
           const tvItems = d.dinamalartv;
           sections.push({
-            title: 'தினமலர் டிவி',
+            title: '??????? ????',
             data: [...liveItems, ...tvItems],
             type: 'video',
           });
@@ -946,18 +932,18 @@ export default function HomeScreen() {
 
 
         if (d?.dinamdinam) {
-          const combined = []; let dynTitle = 'தினம் தினம்';
+          const combined = []; let dynTitle = '????? ?????';
           d.dinamdinam.forEach((sec) => {
             if (sec?.data) {
               combined.push(...sec.data);
-              if (sec.title && dynTitle === 'தினம் தினம்') dynTitle = sec.title;
+              if (sec.title && dynTitle === '????? ?????') dynTitle = sec.title;
             }
           });
           if (combined.length > 0) sections.push({ title: dynTitle, data: combined });
 
         }
         if (d?.sports?.data?.length > 0)
-          sections.push({ title: d.sports.title || 'விளையாட்டு', data: d.sports.data.slice(0, 3) });
+          sections.push({ title: d.sports.title || '??????????', data: d.sports.data.slice(0, 3) });
 
         if (d?.varthagam?.varthagam1?.data?.length > 0) {
           const flattenedData = [];
@@ -967,33 +953,33 @@ export default function HomeScreen() {
             }
           });
           if (flattenedData.length > 0) {
-            sections.push({ title: d.varthagam.varthagam1.title || 'வர்த்தகம்', data: flattenedData.slice(0, 3) });
+            sections.push({ title: d.varthagam.varthagam1.title || '?????????', data: flattenedData.slice(0, 3) });
           }
         }
 
 
 
         if (Array.isArray(d?.webstories) && d.webstories[0]?.data?.length > 0)
-          sections.push({ title: d.webstories[0].title || 'வெப் ஸ்டோரிஸ்', data: d.webstories[0].data, type: 'shorts' });
+          sections.push({ title: d.webstories[0].title || '???? ????????', data: d.webstories[0].data, type: 'shorts' });
         else if (d?.webstories?.data?.length > 0)
-          sections.push({ title: d.webstories.title || 'வெப் ஸ்டோரிஸ்', data: d.webstories.data, type: 'shorts' });
+          sections.push({ title: d.webstories.title || '???? ????????', data: d.webstories.data, type: 'shorts' });
 
         // if (d?.kalvimalar?.data?.length > 0)
-        //   sections.push({ title: d.kalvimalar.title || 'கல்வி மலர்', data: d.kalvimalar.data });
+        //   sections.push({ title: d.kalvimalar.title || '????? ????', data: d.kalvimalar.data });
 
         // if (d?.special?.data?.length > 0)
-        //   sections.push({ title: d.special.title || 'ஸ்பெஷல்', data: d.special.data });
+        //   sections.push({ title: d.special.title || '???????', data: d.special.data });
 
         // if (d?.audio?.[0]?.data?.length > 0)
-        //   sections.push({ title: d.audio[0].title || 'பாட்காஸ்ட்', data: d.audio[0].data });
+        //   sections.push({ title: d.audio[0].title || '??????????', data: d.audio[0].data });
 
-        // ── Live — merged into Dinamalar TV section above ──
+        // -- Live   merged into Dinamalar TV section above --
 
 
 
         if (shortsRes.status === 'fulfilled' && shortsRes.value?.data?.length > 0) {
           sections.push({
-            title: 'ஷார்ட்ஸ்',
+            title: '????????',
             data: shortsRes.value.data,
             type: 'shorts'
           });
@@ -1006,7 +992,7 @@ export default function HomeScreen() {
             if (Array.isArray(item?.data)) varthagamData.push(...item.data);
           });
           if (varthagamData.length > 0) {
-            sections.push({ title: 'வர்த்தகம்', data: varthagamData });
+            sections.push({ title: '?????????', data: varthagamData });
           }
         }
 
@@ -1024,7 +1010,7 @@ export default function HomeScreen() {
             }
           });
           if (joshiyamData.length > 0) {
-            sections.push({ title: 'ஜோசியம்', data: joshiyamData });
+            sections.push({ title: '???????', data: joshiyamData });
           }
         }
 
@@ -1034,10 +1020,10 @@ export default function HomeScreen() {
 
           if (districtsList.length > 0) {
             const filteredDistricts = districtsList
-              .filter(district => district.title && !district.title.toLowerCase().includes('அரியலூர்') && !district.title.toLowerCase().includes('ariyalur'))
+              .filter(district => district.title && !district.title.toLowerCase().includes('????????') && !district.title.toLowerCase().includes('ariyalur'))
               .sort((a, b) => {
-                const aIsMadurai = a.title && (a.title.toLowerCase().includes('மதுரை') || a.title.toLowerCase().includes('madurai'));
-                const bIsMadurai = b.title && (b.title.toLowerCase().includes('மதுரை') || b.title.toLowerCase().includes('madurai'));
+                const aIsMadurai = a.title && (a.title.toLowerCase().includes('?????') || a.title.toLowerCase().includes('madurai'));
+                const bIsMadurai = b.title && (b.title.toLowerCase().includes('?????') || b.title.toLowerCase().includes('madurai'));
                 if (aIsMadurai && !bIsMadurai) return -1;
                 if (!aIsMadurai && bIsMadurai) return 1;
                 return 0;
@@ -1054,7 +1040,7 @@ export default function HomeScreen() {
             }));
 
             sections.push({
-              title: 'மாவட்ட செய்திகள்',
+              title: '?????? ?????????',
               data: districtsData,
               type: 'district'
             });
@@ -1063,10 +1049,10 @@ export default function HomeScreen() {
             const newlist = responseData?.newlist || [];
             if (newlist.length > 0) {
               const filteredDistricts = newlist
-                .filter(district => district.title && !district.title.toLowerCase().includes('அரியலூர்') && !district.title.toLowerCase().includes('ariyalur'))
+                .filter(district => district.title && !district.title.toLowerCase().includes('????????') && !district.title.toLowerCase().includes('ariyalur'))
                 .sort((a, b) => {
-                  const aIsMadurai = a.title && (a.title.toLowerCase().includes('மதுரை') || a.title.toLowerCase().includes('madurai'));
-                  const bIsMadurai = b.title && (b.title.toLowerCase().includes('மதுரை') || b.title.toLowerCase().includes('madurai'));
+                  const aIsMadurai = a.title && (a.title.toLowerCase().includes('?????') || a.title.toLowerCase().includes('madurai'));
+                  const bIsMadurai = b.title && (b.title.toLowerCase().includes('?????') || b.title.toLowerCase().includes('madurai'));
                   if (aIsMadurai && !bIsMadurai) return -1;
                   if (!aIsMadurai && bIsMadurai) return 1;
                   return 0;
@@ -1084,7 +1070,7 @@ export default function HomeScreen() {
 
               if (districtsData.length > 0) {
                 sections.push({
-                  title: 'மாவட்ட செய்திகள்',
+                  title: '?????? ?????????',
                   data: districtsData,
                   type: 'district'
                 });
@@ -1109,45 +1095,45 @@ export default function HomeScreen() {
     }
   }, []);
 
-  useEffect(() => { loadAll(); }, [loadAll]);
+  useEffect(() => { loadAll(); }, []);
 
   const onRefresh = useCallback(() => { setRefreshing(true); loadAll(); }, [loadAll]);
 
-  // ─── Navigation ────────────────────────────────────────────────────────────
+  // --- Navigation ------------------------------------------------------------
   const goToArticle = (item) => {
     const category = item.maincat || item.categrorytitle || item.ctitle || item.maincategory || '';
     const districtId = item.districtid || item.district_id;
     const districtTitle = item.districttitle || item.district_title;
     const categoryLower = category.toLowerCase().trim();
 
-    if (categoryLower.includes('தர்போதைய') || categoryLower.includes('tharpothaiya') ||
-      categoryLower.includes('தர்போதைய செய்திகள்') || categoryLower.includes('தர்போதையா') ||
-      categoryLower.includes('தற்போதைய') || categoryLower.includes('தற்போதைய செய்தி') ||
-      categoryLower.includes('தர்போதையா') || categoryLower.includes('தர்போதையா செய்தி')) {
+    if (categoryLower.includes('????????') || categoryLower.includes('tharpothaiya') ||
+      categoryLower.includes('???????? ?????????') || categoryLower.includes('?????????') ||
+      categoryLower.includes('????????') || categoryLower.includes('???????? ??????') ||
+      categoryLower.includes('?????????') || categoryLower.includes('????????? ??????')) {
       navigation?.navigate('TharpothaiyaSeithigalScreen');
       return;
     }
 
-    if (categoryLower.includes('வர்த்தகம்') || categoryLower.includes('varthagam') ||
-      categoryLower.includes('business') || categoryLower.includes('வணிகம்') ||
+    if (categoryLower.includes('?????????') || categoryLower.includes('varthagam') ||
+      categoryLower.includes('business') || categoryLower.includes('??????') ||
       (item.maincategory === 'varthagam' || item.maincat === 'varthagam')) {
       navigation?.navigate('VarthagamScreen');
       return;
     }
 
-    if (categoryLower.includes('தினம் தினம்') || categoryLower.includes('dinamdinam') ||
-      categoryLower.includes('தினம்தினம்')) {
+    if (categoryLower.includes('????? ?????') || categoryLower.includes('dinamdinam') ||
+      categoryLower.includes('??????????')) {
       navigation?.navigate('DinamDinamScreen');
       return;
     }
 
-    if (categoryLower.includes('விளையாட்டு') || categoryLower.includes('sports') ||
-      categoryLower.includes('விளையாட்டுகள்') || categoryLower.includes('sport')) {
+    if (categoryLower.includes('??????????') || categoryLower.includes('sports') ||
+      categoryLower.includes('?????????????') || categoryLower.includes('sport')) {
       navigation?.navigate('SportsScreen');
       return;
     }
 
-    if (categoryLower.includes('தமிழ்நாடு') || categoryLower.includes('tamil nadu') ||
+    if (categoryLower.includes('?????????') || categoryLower.includes('tamil nadu') ||
       categoryLower.includes('tamilnadu')) {
       navigation?.navigate('TamilNaduScreen');
       return;
@@ -1158,11 +1144,11 @@ export default function HomeScreen() {
       return;
     }
 
-    if (categoryLower.includes('ஜோசியம்') || categoryLower.includes('joshiyam') ||
-      categoryLower.includes('ஜோஷியம்') || categoryLower.includes('ராசி') ||
+    if (categoryLower.includes('???????') || categoryLower.includes('joshiyam') ||
+      categoryLower.includes('???????') || categoryLower.includes('????') ||
       categoryLower.includes('rasi') || categoryLower.includes('astrology')) {
       navigation?.navigate('CommonSectionScreen', {
-        screenTitle: 'ஜோசியம்',
+        screenTitle: '???????',
         apiEndpoint: '/joshiyam',
         allTabLink: '/joshiyam'
       });
@@ -1172,7 +1158,6 @@ export default function HomeScreen() {
     navigation?.navigate('NewsDetailsScreen', {
       newsId: item.id || item.newsid,
       newsItem: item,
-      newsList: section.data,
     });
   };
 
@@ -1200,7 +1185,7 @@ export default function HomeScreen() {
     );
   };
 
-  // ─── List Header ───────────────────────────────────────────────────────────
+  // --- List Header -----------------------------------------------------------
   const ListHeader = (
     <>
       {loading ? (
@@ -1221,7 +1206,7 @@ export default function HomeScreen() {
 
           {/* News sections */}
           {allNewsSections.map((section, si) => (
-            // ── Shorts (horizontal scroll) ──────────────────────────────────
+            // -- Shorts (horizontal scroll) ----------------------------------
             section.type === 'shorts' ? (
               <ShortsSection
                 key={`sec-${si}`}
@@ -1230,7 +1215,7 @@ export default function HomeScreen() {
                 onPress={goToShort}
               />
 
-              // ── Video (Dinamalar TV) → tabbed DinaMalarTVSection ───────────
+              // -- Video (Dinamalar TV) ? tabbed DinaMalarTVSection -----------
             ) : section.type === 'video' ? (
               <DinaMalarTVSection
                 key={`sec-${si}`}
@@ -1243,11 +1228,11 @@ export default function HomeScreen() {
                 }}
               />
 
-              // ── District (hidden) ───────────────────────────────────────────
+              // -- District (hidden) -------------------------------------------
             ) : section.type === 'district' ? (
               null
 
-              // ── Regular news ────────────────────────────────────────────────
+              // -- Regular news ------------------------------------------------
             ) : (
               <View key={`sec-${si}`}>
                 <SectionHeader title={section.title} />
@@ -1256,12 +1241,12 @@ export default function HomeScreen() {
                     key={`${si}-${i}-${item.newsid || item.id || i}`}
                     item={item}
                     isSocialMedia={section.isSocialMedia || false}
-                    isPremium={section.title?.toLowerCase().includes('பிரீமியம்') || section.title?.toLowerCase().includes('premium')}
+                    isPremium={section.title?.toLowerCase().includes('?????????') || section.title?.toLowerCase().includes('premium')}
                     onPress={() => {
                       const sectionTitle = section.title?.toLowerCase() || '';
 
-                      if (sectionTitle.includes('தர்போதைய') || sectionTitle.includes('tharpothaiya') ||
-                        sectionTitle.includes('தற்போதைய') || sectionTitle.includes('தர்போதையா')) {
+                      if (sectionTitle.includes('????????') || sectionTitle.includes('tharpothaiya') ||
+                        sectionTitle.includes('????????') || sectionTitle.includes('?????????')) {
                         navigation?.navigate('NewsDetailsScreen', {
                           newsId: item.newsid || item.id,
                           newsItem: item,
@@ -1271,52 +1256,52 @@ export default function HomeScreen() {
                         return;
                       }
 
-                      if (sectionTitle.includes('வாராவாரம்') || sectionTitle.includes('varavaram')) {
+                      if (sectionTitle.includes('?????????') || sectionTitle.includes('varavaram')) {
                         navigation?.navigate('CommonSectionScreen', {
-                          screenTitle: 'வாராவாரம்',
+                          screenTitle: '?????????',
                           apiEndpoint: 'https://api-st-cdn.dinamalar.com/varavaram',
                           allTabLink: 'https://api-st-cdn.dinamalar.com/varavaram'
                         });
                         return;
                       }
 
-                      if (sectionTitle.includes('வர்த்தகம்') || sectionTitle.includes('varthagam') ||
-                        sectionTitle.includes('business') || sectionTitle.includes('வணிகம்')) {
+                      if (sectionTitle.includes('?????????') || sectionTitle.includes('varthagam') ||
+                        sectionTitle.includes('business') || sectionTitle.includes('??????')) {
                         navigation?.navigate('VarthagamScreen');
                         return;
                       }
 
-                      if (sectionTitle.includes('தினம் தினம்') || sectionTitle.includes('dinamdinam') ||
-                        sectionTitle.includes('தினம்தினம்')) {
+                      if (sectionTitle.includes('????? ?????') || sectionTitle.includes('dinamdinam') ||
+                        sectionTitle.includes('??????????')) {
                         navigation?.navigate('DinamDinamScreen');
                         return;
                       }
 
-                      if (sectionTitle.includes('விளையாட்டு') || sectionTitle.includes('sports') ||
-                        sectionTitle.includes('விளையாட்டுகள்')) {
+                      if (sectionTitle.includes('??????????') || sectionTitle.includes('sports') ||
+                        sectionTitle.includes('?????????????')) {
                         navigation?.navigate('SportsScreen');
                         return;
                       }
 
-                      if (sectionTitle.includes('தமிழ்நாடு') || sectionTitle.includes('tamil nadu') ||
+                      if (sectionTitle.includes('?????????') || sectionTitle.includes('tamil nadu') ||
                         sectionTitle.includes('tamilnadu')) {
                         navigation?.navigate('TamilNaduScreen');
                         return;
                       }
 
-                      if (sectionTitle.includes('ஜோசியம்') || sectionTitle.includes('joshiyam') ||
-                        sectionTitle.includes('ஜோஷியம்')) {
+                      if (sectionTitle.includes('???????') || sectionTitle.includes('joshiyam') ||
+                        sectionTitle.includes('???????')) {
                         navigation?.navigate('CommonSectionScreen', {
-                          screenTitle: 'ஜோசியம்',
+                          screenTitle: '???????',
                           apiEndpoint: '/joshiyam',
                           allTabLink: '/joshiyam'
                         });
                         return;
                       }
 
-                      if (sectionTitle.includes('பிரீமியம்') || sectionTitle.includes('premium')) {
+                      if (sectionTitle.includes('?????????') || sectionTitle.includes('premium')) {
                         navigation?.navigate('CommonSectionScreen', {
-                          screenTitle: 'பிரீமியம்',
+                          screenTitle: '?????????',
                           apiEndpoint: 'https://api-st-cdn.dinamalar.com/newsdata?cat=651',
                           allTabLink: 'https://api-st-cdn.dinamalar.com/newsdata?cat=651',
                         });
@@ -1335,7 +1320,7 @@ export default function HomeScreen() {
     </>
   );
 
-  // ─── Render ────────────────────────────────────────────────────────────────
+  // --- Render ----------------------------------------------------------------
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor={PALETTE.white} />
@@ -1399,7 +1384,7 @@ export default function HomeScreen() {
   );
 }
 
-// ─── Main Styles ──────────────────────────────────────────────────────────────
+// --- Main Styles --------------------------------------------------------------
 const styles = StyleSheet.create({
   container: {
     flex: 1,

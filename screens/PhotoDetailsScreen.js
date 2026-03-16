@@ -234,7 +234,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     flex: 1,
     fontSize: ms(18),
-    fontFamily: FONTS.semiBold || FONTS.bold,
+    fontFamily: FONTS.muktaMalar.semibold || FONTS.bold,
     color: COLORS.text,
     fontWeight: '700',
     textAlign: 'center',
@@ -282,7 +282,7 @@ const styles = StyleSheet.create({
   retryText: {
     color: '#fff',
     fontSize: ms(14),
-    fontFamily: FONTS.semiBold,
+    fontFamily: FONTS.muktaMalar.semibold,
     fontWeight: '600',
   },
   emptyContainer: {
@@ -340,7 +340,7 @@ const styles = StyleSheet.create({
   },
   photoTitle: {
     fontSize: ms(14),
-    fontFamily: FONTS.semiBold,
+    fontFamily: FONTS.muktaMalar.semibold,
     color: COLORS.text,
     fontWeight: '600',
     marginBottom: vs(4),
