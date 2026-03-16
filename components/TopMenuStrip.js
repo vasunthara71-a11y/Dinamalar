@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   StyleSheet,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SvgUri, SvgXml } from 'react-native-svg';
@@ -13,85 +14,125 @@ import { mainApi, API_ENDPOINTS } from '../config/api';
 import { COLORS } from '../utils/constants';
 import { scaledSizes } from '../utils/scaling';
 import { useFontSize } from '../context/FontSizeContext';
+import { ms } from 'react-native-size-matters';
 
-// ─── Menu Icon Component ───────────────────────────────────────────────────────
-function MenuIcon({ uri }) {
-  if (uri && uri.includes('<svg') && uri.includes('</svg>')) {
-    return (
-      <SvgXml
-        xml={uri}
-        width={scaledSizes.icon.md}
-        height={scaledSizes.icon.md}
-        style={{ tintColor: COLORS.text }}
-      />
-    );
-  }
+// ─── Module-level cache — persists across screen mounts/remounts ──────────────
+let _cachedMenuItems = null;
+let _isFetching      = false;
+const _listeners     = [];
 
-  if (uri && (uri.endsWith('.svg') || uri.includes('svg'))) {
-    return (
-      <SvgUri
-        uri={uri}
-        width={scaledSizes.icon.md}
-        height={scaledSizes.icon.md}
-        style={{ tintColor: COLORS.text }}
-      />
-    );
-  }
-
-  return (
-    <Ionicons
-      name="radio-outline"
-      size={scaledSizes.icon.md}
-      color={COLORS.text}
-    />
-  );
+function subscribeToCacheUpdate(cb) {
+  _listeners.push(cb);
+  return () => {
+    const idx = _listeners.indexOf(cb);
+    if (idx > -1) _listeners.splice(idx, 1);
+  };
 }
 
-// ─── Top Menu Strip Component ───────────────────────────────────────────────────
+async function fetchMenuOnce() {
+  // Already cached — return immediately
+  if (_cachedMenuItems !== null) return _cachedMenuItems;
+
+  // Already in flight — wait for it
+  if (_isFetching) {
+    return new Promise((resolve) => {
+      const unsub = subscribeToCacheUpdate((items) => { unsub(); resolve(items); });
+    });
+  }
+
+  _isFetching = true;
+  try {
+    const res  = await mainApi.get(API_ENDPOINTS.MENU);
+    const data = res?.data?.headermenu || [];
+    _cachedMenuItems = data;
+    _listeners.forEach(cb => cb(data));
+    return data;
+  } catch (err) {
+    console.error('TopMenuStrip: Failed to load menu:', err);
+    _cachedMenuItems = [];
+    _listeners.forEach(cb => cb([]));
+    return [];
+  } finally {
+    _isFetching = false;
+  }
+}
+
+// ─── Menu Icon ────────────────────────────────────────────────────────────────
+function MenuIcon({ uri }) {
+  if (!uri) {
+    return <Ionicons name="radio-outline" size={scaledSizes.icon.md} color={COLORS.primary} />;
+  }
+
+  if (uri.includes('<svg') && uri.includes('</svg>')) {
+    return (
+      <SvgXml xml={uri} width={scaledSizes.icon.md} height={scaledSizes.icon.md} />
+    );
+  }
+
+  if (uri.endsWith('.svg') || uri.includes('.svg?')) {
+    return (
+      <SvgUri uri={uri} width={scaledSizes.icon.md} height={scaledSizes.icon.md} />
+    );
+  }
+
+  if (uri.startsWith('http')) {
+    return (
+      <Image
+        source={{ uri }}
+        style={{ width: scaledSizes.icon.md, height: scaledSizes.icon.md }}
+        resizeMode="contain"
+        fadeDuration={0}
+      />
+    );
+  }
+
+  return <Ionicons name="radio-outline" size={scaledSizes.icon.md} color={COLORS.text} />;
+}
+
+// ─── Top Menu Strip ───────────────────────────────────────────────────────────
 export default function TopMenuStrip({ onMenuPress, onNotification, notifCount = 0 }) {
   const { sf } = useFontSize();
-  const [menuItems, setMenuItems] = useState([]);
-  const [activeMenu, setActiveMenu] = useState(null);
-  const [loadingMenu, setLoadingMenu] = useState(true);
+
+  // Use cached data immediately if available — no loading flash
+  const [menuItems,   setMenuItems]   = useState(_cachedMenuItems || []);
+  const [loading,     setLoading]     = useState(_cachedMenuItems === null);
+  const [activeMenu,  setActiveMenu]  = useState(null);
 
   useEffect(() => {
-    const fetchMenu = async () => {
-      console.log('TopMenuStrip: Fetching menu...');
-      try {
-        const res = await mainApi.get(API_ENDPOINTS.MENU);
-        const menuData = res?.data?.headermenu || [];
-        console.log('TopMenuStrip: Menu data received:', menuData.length, 'items');
-        setMenuItems(menuData);
-        
-        // Don't set any active menu initially - let user click to highlight
-        setActiveMenu(null);
-        console.log('TopMenuStrip: No active menu set initially');
-      } catch (err) {
-        console.error('TopMenuStrip: Failed to load top menu:', err);
-      } finally {
-        setLoadingMenu(false);
-      }
-    };
-    fetchMenu();
+    // If already cached, nothing to do
+    if (_cachedMenuItems !== null) {
+      setMenuItems(_cachedMenuItems);
+      setLoading(false);
+      return;
+    }
+
+    // Subscribe in case another instance is already fetching
+    const unsub = subscribeToCacheUpdate((items) => {
+      setMenuItems(items);
+      setLoading(false);
+    });
+
+    fetchMenuOnce().then((items) => {
+      setMenuItems(items);
+      setLoading(false);
+    });
+
+    return unsub;
   }, []);
 
-  // ─── Handle Menu Press ───────────────────────────────────────────────────────
   const handlePress = (item) => {
-    console.log('TopMenuStrip: Menu item pressed:', item);
-    console.log('TopMenuStrip: Item title:', item.Title);
-    console.log('TopMenuStrip: Item link:', item.Link || item.link);
     setActiveMenu(item.Title || item.title);
     onMenuPress && onMenuPress(item);
   };
 
-  if (loadingMenu) {
+  if (loading) {
     return (
       <View style={styles.container}>
-        <ActivityIndicator
-          size="small"
-          color={COLORS.primary}
-          style={{ marginVertical: 10 }}
-        />
+        <View style={styles.skeletonRow}>
+          {[1, 2, 3, 4, 5].map(i => (
+            <View key={i} style={styles.skeletonChip} />
+          ))}
+        </View>
       </View>
     );
   }
@@ -105,7 +146,7 @@ export default function TopMenuStrip({ onMenuPress, onNotification, notifCount =
         style={{ flex: 1 }}
       >
         {menuItems.map((item, index) => {
-          const isActive = activeMenu === item.Title;
+          const isActive = activeMenu === (item.Title || item.title);
           return (
             <TouchableOpacity
               key={index}
@@ -113,35 +154,20 @@ export default function TopMenuStrip({ onMenuPress, onNotification, notifCount =
               onPress={() => handlePress(item)}
               activeOpacity={0.7}
             >
-              <MenuIcon uri={item.Icon} />
-              <Text
-                style={[
-                  styles.menuLabel,
-                  isActive && styles.menuLabelActive,
-                ]}
-              >
-                {item.Title}
+              <MenuIcon uri={item.Icon || item.icon} />
+              <Text style={[styles.menuLabel, { fontSize: ms(10) }, isActive && styles.menuLabelActive]}>
+                {item.Title || item.title}
               </Text>
             </TouchableOpacity>
           );
         })}
       </ScrollView>
 
-      <TouchableOpacity
-        style={styles.notifButton}
-        onPress={onNotification}
-        activeOpacity={0.7}
-      >
-        <Ionicons
-          name="notifications-outline"
-          size={scaledSizes.icon.lg}
-          color={COLORS.text}
-        />
+      <TouchableOpacity style={styles.notifButton} onPress={onNotification} activeOpacity={0.7}>
+        <Ionicons name="notifications-outline" size={scaledSizes.icon.lg} color={COLORS.text} />
         {notifCount > 0 && (
           <View style={styles.notifBadge}>
-            <Text style={styles.notifBadgeText}>
-              {notifCount > 99 ? '99+' : notifCount}
-            </Text>
+            <Text style={styles.notifBadgeText}>{notifCount > 99 ? '99+' : notifCount}</Text>
           </View>
         )}
       </TouchableOpacity>
@@ -149,14 +175,13 @@ export default function TopMenuStrip({ onMenuPress, onNotification, notifCount =
   );
 }
 
-// ─── Styles ─────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e8e8e8',
+    // borderBottomWidth: 1,
+    // borderBottomColor: '#e8e8e8',
     paddingHorizontal: 12,
     paddingVertical: 8,
     elevation: 2,
@@ -176,15 +201,15 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 20,
     marginHorizontal: 4,
-    backgroundColor: '#f8f8f8',
-    borderWidth: 1,
+    // backgroundColor: '#f8f8f8',
+    // borderWidth: 1,
     borderColor: 'transparent',
   },
   menuItemActive: {
-    // Remove background color, keep default
+    borderColor: COLORS.primary + '40',
+    backgroundColor: COLORS.primary + '10',
   },
   menuLabel: {
-    fontSize: 12,
     color: COLORS.text,
     fontWeight: '500',
     marginLeft: 6,
@@ -215,5 +240,18 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
   },
-});
 
+  // Skeleton while loading first time only
+  skeletonRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    gap: 8,
+  },
+  skeletonChip: {
+    width: 80,
+    height: 30,
+    borderRadius: 20,
+    backgroundColor: '#f0f0f0',
+  },
+});

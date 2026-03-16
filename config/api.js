@@ -312,15 +312,15 @@ export const CDNApi = axios.create({
 // Add request interceptor for debugging
 CDNApi.interceptors.request.use(
    (config) => {
-    console.log('=== API REQUEST DEBUG ===');
-    console.log('URL:', config.baseURL + config.url);
-    console.log('Method:', config.method);
-    console.log('Headers:', config.headers);
-    console.log('========================');
+    // console.log('=== API REQUEST DEBUG ===');
+    // console.log('URL:', config.baseURL + config.url);
+    // console.log('Method:', config.method);
+    // console.log('Headers:', config.headers);
+    // console.log('========================');
     return config;
   },
   (error) => {
-    console.error('API Request Error:', error);
+    // console.error('API Request Error:', error);
     return Promise.reject(error);
   }
 )
@@ -328,11 +328,11 @@ CDNApi.interceptors.request.use(
 
 u38Api.interceptors.request.use(
   (config) => {
-    console.log('=== API REQUEST DEBUG ===');
-    console.log('URL:', config.baseURL + config.url);
-    console.log('Method:', config.method);
-    console.log('Headers:', config.headers);
-    console.log('========================');
+    // console.log('=== API REQUEST DEBUG ===');
+    // console.log('URL:', config.baseURL + config.url);
+    // console.log('Method:', config.method);
+    // console.log('Headers:', config.headers);
+    // console.log('========================');
     return config;
   },
   (error) => {
@@ -379,11 +379,11 @@ export const api = {
   // Core APIs
   getHome: () => mainApi.get(API_ENDPOINTS.HOME),
   getMenu: () => mainApi.get(API_ENDPOINTS.MENU),
-  getMenuU38: () => u38Api.get(API_ENDPOINTS.MENU), // u38 server menu
-  getLatestMain: (page = 1) => dmrApi.get(`${API_ENDPOINTS.LATEST_MAIN}?page=${page}`),
+  getMenuU38: () => mainApi.get(API_ENDPOINTS.MENU), // u38 server menu
+  getLatestMain: (page = 1) => mainApi.get(`${API_ENDPOINTS.LATEST_MAIN}?page=${page}`),
   getFlash: () => mainApi.get(API_ENDPOINTS.FLASH),
   getDetail: (newsId) => mainApi.get(`${API_ENDPOINTS.DETAIL}?newsid=${newsId}`),
-  getLatestNotify: () => u38Api.get(API_ENDPOINTS.LATEST_NOTIFY),
+  getLatestNotify: () => mainApi.get(API_ENDPOINTS.LATEST_NOTIFY),
 
   // Content APIs
   getNewsData: (cat, scat) => mainApi.get(`${API_ENDPOINTS.NEWS_DATA}?cat=${cat}${scat ? `&scat=${scat}` : ''}`),
@@ -428,7 +428,7 @@ export const api = {
   getTempleMain: () => mainApi.get(API_ENDPOINTS.TEMPLE_MAIN),
   getTempleListing: (id) => mainApi.get(`${API_ENDPOINTS.TEMPLE_LISTING}?id=${id}`),
   getTempleMainEng: () => mainApi.get(API_ENDPOINTS.TEMPLEMAINENG),
-  getJoshiyam: () => u38Api.get(API_ENDPOINTS.JOSHIYAM),
+  getJoshiyam: () => mainApi.get(API_ENDPOINTS.JOSHIYAM),
   getKadalthamarai: () => mainApi.get(API_ENDPOINTS.KADAL_THAMARAI),
   getAnmegam: () => mainApi.get(API_ENDPOINTS.ANMEGAM),
   getAnmegamain: () => mainApi.get(API_ENDPOINTS.ANMEGAMAIN),
@@ -596,18 +596,18 @@ export const api = {
 // ─── Network Connectivity Test ───────────────────────────────────────────────────────
 export const testNetworkConnectivity = async () => {
   try {
-    console.log('=== NETWORK CONNECTIVITY TEST ===');
-    console.log('Testing: https://dmrapi.dinamalar.com/home');
+    // console.log('=== NETWORK CONNECTIVITY TEST ===');
+    // console.log('Testing: https://dmrapi.dinamalar.com/home');
 
     const response = await axios.get('https://dmrapi.dinamalar.com/home', {
       timeout: 5000,
       headers: { 'Content-Type': 'application/json' }
     });
 
-    console.log('✅ Network connectivity OK');
-    console.log('Response status:', response.status);
-    console.log('Response data type:', typeof response.data);
-    console.log('==============================');
+    // console.log('✅ Network connectivity OK');
+    // console.log('Response status:', response.status);
+    // console.log('Response data type:', typeof response.data);
+    // console.log('==============================');
     return true;
   } catch (error) {
     console.error('❌ Network connectivity FAILED');
@@ -618,7 +618,7 @@ export const testNetworkConnectivity = async () => {
 
     // Try alternative test
     try {
-      console.log('Trying alternative test: https://httpbin.org/get');
+      // console.log('Trying alternative test: https://httpbin.org/get');
       const altResponse = await axios.get('https://httpbin.org/get', { timeout: 3000 });
       console.log('✅ Internet connectivity OK, but API server might be down');
       return false;

@@ -2,12 +2,17 @@
 import React from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { s, vs } from '../utils/scaling';
+import { s, vs, ms } from '../utils/scaling';
 import { FONTS } from '../utils/constants';
 import useAppStyles from '../hooks/useAppStyles';
 
-const NewsCard = ({ item, onPress }) => {
+const NewsCard = ({ item, onPress, isPremium = false }) => {
   const { styles: appSt } = useAppStyles(); // ← font styles, always fresh
+
+  // Debug premium detection
+  if (isPremium) {
+    console.log(' PREMIUM CARD DETECTED:', item.newstitle || item.title);
+  }
 
   const imageUri =
     item.largeimages || item.images || item.image || item.thumbnail || item.thumb ||
@@ -35,11 +40,18 @@ const NewsCard = ({ item, onPress }) => {
             </Text>
           )}
 
-          {!!category && (
-            <View style={st.catPill}>
-              <Text style={[st.catBase, appSt.cardCategory]}>{category}</Text>
-            </View>
-          )}
+          <View style={st.categoryRow}>
+            {!!category && (
+              <View style={st.catPill}>
+                <Text style={[st.catBase, appSt.cardCategory]}>{category}</Text>
+              </View>
+            )}
+            {isPremium && (
+              <View style={st.premiumPill}>
+                <Text style={[st.premiumBase, appSt.cardCategory]}>பிரீமியம்</Text>
+              </View>
+            )}
+          </View>
 
           <View style={st.metaRow}>
             <Text style={appSt.cardTime}>{ago}</Text>
@@ -96,6 +108,25 @@ const st = StyleSheet.create({
   },
   catBase: {
     fontFamily: FONTS.muktaMalar.regular,
+  },
+  categoryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: vs(8),
+    flexWrap: 'wrap',
+  },
+  premiumPill: {
+    backgroundColor: '#FFD700',
+    borderWidth: 1,
+    borderColor: '#FFB300',
+    borderRadius: ms(4),
+    paddingHorizontal: ms(8),
+    paddingVertical: vs(3),
+    marginLeft: ms(6),
+  },
+  premiumBase: {
+    fontFamily: FONTS.muktaMalar.bold,
+    color: '#8B4513',
   },
   metaRow: {
     flexDirection:  'row',

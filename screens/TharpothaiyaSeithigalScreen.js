@@ -334,6 +334,7 @@ export default function TharpothaiyaSeithigalScreen({ route }) {
       newsId:   item.newsid || item.id,
       newsItem: item, 
       slug:     item.slug || '',
+      newsList: news,
     });
   };
 
