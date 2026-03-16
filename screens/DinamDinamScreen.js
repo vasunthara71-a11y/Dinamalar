@@ -553,7 +553,7 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
     paddingVertical: vs(80), gap: vs(12),
   },
-  emptyText: { fontSize: ms(15), fontFamily: FONTS.semiBold, color: '#aaa' },
+  emptyText: { fontSize: ms(15), fontFamily: FONTS.muktaMalar.semibold, color: '#aaa' },
   footerLoader: { paddingVertical: vs(20), alignItems: 'center' },
 
   scrollTopBtn: {

@@ -343,23 +343,100 @@ export default function NewsDetailsScreen() {
         (Array.isArray(data) ? data[0] : null) ||
         null;
       
-      // Extract comments from the API response
+      // Extract comments from the API response (but fetch all separately)
+      let extractedComments = [];
       if (data?.comments?.data) {
-        setNewsComments(data.comments.data);
+        extractedComments = data.comments.data;
         console.log('[NewsDetails] extracted comments from data.comments.data:', data.comments.data.length);
       } else if (data?.comments) {
-        setNewsComments(data.comments);
+        extractedComments = data.comments;
         console.log('[NewsDetails] extracted comments from data.comments:', data.comments.length);
       } else if (article?.comments?.data) {
-        setNewsComments(article.comments.data);
+        extractedComments = article.comments.data;
         console.log('[NewsDetails] extracted comments from article.comments.data:', article.comments.data.length);
       } else if (article?.comments) {
-        setNewsComments(article.comments);
+        extractedComments = article.comments;
         console.log('[NewsDetails] extracted comments from article.comments:', article.comments.length);
       } else {
-        setNewsComments([]);
-        console.log('[NewsDetails] no comments found in any path');
+        console.log('[NewsDetails] no comments found in detaildata, fetching separately');
       }
+      
+      // Always fetch all comments separately using parallel API calls
+      try {
+        console.log('[NewsDetails] fetching all comments in parallel');
+        let allComments = [];
+        
+        // Start with the first page from detaildata
+        if (data?.comments?.data && Array.isArray(data.comments.data)) {
+          allComments = [...data.comments.data];
+          console.log('[NewsDetails] initial comments from page 1:', allComments.length);
+          
+          // Fetch remaining pages in parallel
+          const totalPages = data.comments.last_page || 1;
+          console.log('[NewsDetails] total pages to fetch:', totalPages);
+          
+          if (totalPages > 1) {
+            // Create array of page numbers (2 to totalPages)
+            const pageNumbers = Array.from({ length: totalPages - 1 }, (_, i) => i + 2);
+            
+            // Fetch all pages in parallel
+            const pagePromises = pageNumbers.map(async (page) => {
+              try {
+                console.log(`[NewsDetails] fetching page ${page} of ${totalPages}`);
+                const pageRes = await mainApi.get(`/detaildata?newsid=${id}&page=${page}`);
+                const pageData = pageRes.data;
+                
+                if (pageData?.comments?.data && Array.isArray(pageData.comments.data)) {
+                  console.log(`[NewsDetails] fetched page ${page}, ${pageData.comments.data.length} comments`);
+                  return pageData.comments.data;
+                } else {
+                  console.log(`[NewsDetails] no comments found on page ${page}`);
+                  return [];
+                }
+              } catch (pageErr) {
+                console.log(`[NewsDetails] failed to fetch page ${page}:`, pageErr?.message);
+                return [];
+              }
+            });
+            
+            // Wait for all pages to complete
+            const pageResults = await Promise.all(pagePromises);
+            
+            // Combine all results
+            pageResults.forEach((pageComments, index) => {
+              if (pageComments.length > 0) {
+                allComments = [...allComments, ...pageComments];
+                console.log(`[NewsDetails] added page ${index + 2} comments, total: ${allComments.length}`);
+              }
+            });
+          }
+          
+          extractedComments = allComments;
+          console.log('[NewsDetails] fetched all comments in parallel:', extractedComments.length);
+          console.log('[NewsDetails] comment count from API:', data?.comments?.total);
+          console.log('[NewsDetails] comment count from article:', article?.newscomment || article?.commentcount || article?.nmcomment || 0);
+          console.log('[NewsDetails] actual comments array length:', extractedComments.length);
+          
+          // Debug: Check if any comments are being filtered out
+          if (extractedComments.length !== (data?.comments?.total || 0)) {
+            console.log('[NewsDetails] COMMENT COUNT MISMATCH DETECTED!');
+            console.log('[NewsDetails] Expected total:', data?.comments?.total);
+            console.log('[NewsDetails] Actual loaded:', extractedComments.length);
+            console.log('[NewsDetails] Difference:', (data?.comments?.total || 0) - extractedComments.length);
+            
+            // Check for any undefined/null comments
+            const validComments = extractedComments.filter(c => c && c.id);
+            console.log('[NewsDetails] Valid comments (with id):', validComments.length);
+            console.log('[NewsDetails] Invalid comments (without id):', extractedComments.length - validComments.length);
+          }
+        }
+      } catch (commentsErr) {
+        console.log('[NewsDetails] failed to fetch comments in parallel:', commentsErr?.message);
+        // Keep the comments from detaildata as fallback
+        console.log('[NewsDetails] using detaildata comments as fallback:', extractedComments.length);
+      }
+      
+      setNewsComments(extractedComments);
       
       setDetail(article || newsItem || null);
     } catch (err) {
@@ -406,7 +483,8 @@ export default function NewsDetailsScreen() {
   const isVideo = catKey === 'video' || videoPath?.includes('youtube');
   const isPodcast = catKey === 'podcast' || d.audio === '1' || d.audio === 1;
 
-  const comments = parseInt(d.newscomment || d.nmcomment || 0);
+  const comments = newsComments.length || parseInt(d.newscomment || d.commentcount || d.nmcomment || 0);
+  
   const relatedNews = Array.isArray(d.relateddata) ? d.relateddata
     : Array.isArray(d.related) ? d.related
       : Array.isArray(d.relatedNews) ? d.relatedNews : [];
