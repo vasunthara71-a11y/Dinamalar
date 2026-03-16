@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // ─── API Base URLs ────────────────────────────────────────────────────────
 export const API_BASE_URLS = {
-  MAIN: 'https://dmrapi.dinamalar.com',
+  MAIN: 'https://api-st-cdn.dinamalar.com',
   // DMR_API: 'https://dmrapi.dinamalar.com',
   U38: 'https://u38.dinamalar.com',
   OPEN_API: 'https://openapi-st-cdn.dinamalar.com',
@@ -306,7 +306,12 @@ export const u38Api = axios.create({
 export const CDNApi = axios.create({
   baseURL:API_BASE_URLS.CDN,
   timeout:12000,
-  headers:{'Content-Type':'application/json'},
+  headers:{
+    'Content-Type':'application/json',
+    'Cache-Control': 'no-cache, no-store, must-revalidate',
+    'Pragma': 'no-cache',
+    'Expires': '0'
+  },
 });
 
 // Add request interceptor for debugging

@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
-import { u38Api } from '../config/api';
+import { CDNApi } from '../config/api';
 import { s, vs, ms, scaledSizes } from '../utils/scaling';
 import { COLORS, FONTS } from '../utils/constants';
 import { mvs } from 'react-native-size-matters';
@@ -175,7 +175,7 @@ export default function DinamDinamScreen() {
     const currentTabId = route.params?.initialTabId;
     const currentTabLink = route.params?.initialTabLink;
     try {
-      const res = await u38Api.get('/dinamdinam');
+      const res = await CDNApi.get('/dinamdinam');
       const d = res?.data;
 
       const tabs = d?.subcatlist || [];
@@ -235,7 +235,7 @@ export default function DinamDinamScreen() {
     try {
       const sep = tab.link.includes('?') ? '&' : '?';
       const url = `${tab.link}${sep}page=${pg}`;
-      const res = await u38Api.get(url);
+      const res = await CDNApi.get(url);
       const d = res?.data;
 
         // /newsdata returns: { newlist: { data:[...], last_page:N } }

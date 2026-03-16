@@ -33,7 +33,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { u38Api } from '../config/api';
+import { CDNApi } from '../config/api';
 import { ms, s, vs } from '../utils/scaling';
 import { COLORS, FONTS } from '../utils/constants';
 
@@ -376,7 +376,7 @@ export default function RasiDetailScreen() {
 
       const url = `${resolvedEndpoint}?jcat=${targetJcat}`;
       console.log('[RasiDetailScreen] fetching:', url);
-      const res = await u38Api.get(url);
+      const res = await CDNApi.get(url);
       const d   = res?.data;
       console.log('[RasiDetailScreen] keys:', Object.keys(d || {}));
 

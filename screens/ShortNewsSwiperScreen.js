@@ -36,7 +36,7 @@ const PALETTE = {
     white: '#FFFFFF',
 };
 
-const API_URL = 'https://u38.dinamalar.com/shortnews';
+const API_URL = 'https://api-st-cdn.dinamalar.com/shortnews';
 
 // Use full SCREEN_HEIGHT for each page — FlatList fills remaining space after header
 // snapToInterval handles the snapping, pagingEnabled removed to avoid conflict

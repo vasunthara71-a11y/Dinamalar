@@ -8,7 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { WebView } from 'react-native-webview';
 import RenderHtml from 'react-native-render-html';
 import axios from 'axios';
-import { u38Api, API_ENDPOINTS, API_BASE_URLS } from '../config/api';
+import { CDNApi, API_ENDPOINTS, API_BASE_URLS } from '../config/api';
 import { COLORS, FONTS, NewsCard } from '../utils/constants';
 import { s, vs, scaledSizes } from '../utils/scaling';
 import { useNavigation } from '@react-navigation/native';
@@ -789,14 +789,14 @@ export default function TimelineScreen() {
       }
 
       const requests = [
-        u38Api.get('/latestmain')
+        CDNApi.get('/latestmain')
       ];
       if (pageNum === 1) requests.push(
-        u38Api.get('/latestnotify')
+        CDNApi.get('/latestnotify')
       );
 
       console.log('=== Timeline API Attempt ===');
-      console.log('Trying u38Api:', `${API_BASE_URLS.U38}/latestmain?page=${pageNum}`);
+      console.log('Trying u38Api:', `${API_BASE_URLS.CDN}/latestmain?page=${pageNum}`);
 
       let results;
       try {

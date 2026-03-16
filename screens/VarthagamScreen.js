@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { u38Api } from '../config/api';
+import { CDNApi } from '../config/api';
 import { s, vs, ms, scaledSizes } from '../utils/scaling';
 import { COLORS, FONTS } from '../utils/constants';
 import { TEXT_STYLES } from '../utils/textStyles';
@@ -432,7 +432,7 @@ export default function VarthagamScreen() {
   // ── Fetch /varthagam ──────────────────────────────────────────────────────
   const fetchAll = useCallback(async () => {
     try {
-      const res = await u38Api.get('/varthagam');
+      const res = await CDNApi.get('/varthagam');
       const d = res?.data;
       const tabs = (d?.subcatlist || []).filter(t => t.id !== 'commodity');
       setSubTabs(tabs);
@@ -455,7 +455,7 @@ export default function VarthagamScreen() {
     try {
       const sep = tab.link.includes('?') ? '&' : '?';
       const url = `${tab.link}${sep}page=${pg}`;
-      const res = await u38Api.get(url);
+      const res = await CDNApi.get(url);
       const d = res?.data;
       const list = (
         d?.newlist?.data ||

@@ -15,7 +15,7 @@ import {
   Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { mainApi, u38Api } from '../config/api';
+import { mainApi, CDNApi, API_ENDPOINTS } from '../config/api';
 import { COLORS, FONTS } from '../utils/constants';
 import { s, vs, ms, scaledSizes } from '../utils/scaling';
 import FontSizeControl from './FontSizeControl';
@@ -140,9 +140,28 @@ const em = StyleSheet.create({
 // Each comment: { id, name, city, images, comments, com_like, com_dislike, ago, standarddate, reply: [] }
 function extractComments(d) {
   if (!d) return [];
-  // ✅ CONFIRMED path: top-level comments.data
-  const raw = d?.comments?.data || [];
-  return Array.isArray(raw) ? raw.filter(Boolean) : [];
+  
+  // Try multiple possible paths for comments data
+  const possiblePaths = [
+    d?.comments?.data,      // Standard path
+    d?.comments,            // Direct comments array
+    d?.data,                // Top-level data
+    d?.result,              // Result field
+    d?.items,               // Items field
+  ];
+  
+  for (const path of possiblePaths) {
+    if (Array.isArray(path)) {
+      const filtered = path.filter(Boolean);
+      if (filtered.length > 0) {
+        console.log('[CommentsModal] found comments in path:', path);
+        return filtered;
+      }
+    }
+  }
+  
+  console.log('[CommentsModal] no comments found in any path');
+  return [];
 }
 
 function extractLastPage(d) {
@@ -150,14 +169,14 @@ function extractLastPage(d) {
 }
 
 // ─── Main CommentsModal ───────────────────────────────────────────────────────
-export default function CommentsModal({ visible, onClose, newsId, newsTitle, commentCount = 0 }) {
+export default function CommentsModal({ visible, onClose, newsId, newsTitle, commentCount = 0, preloadedComments = [] }) {
   const { sf } = useFontSize();
-  const [comments,    setComments]    = useState([]);
-  const [loading,     setLoading]     = useState(false);
-  const [page,        setPage]        = useState(1);
-  const [lastPage,    setLastPage]    = useState(1);
+  const [comments, setComments] = useState(preloadedComments);
+  const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(1);
+  const [lastPage, setLastPage] = useState(1);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [inputText,   setInputText]   = useState('');
+  const [inputText, setInputText] = useState('');
 
   const slideAnim = useRef(new Animated.Value(300)).current;
 
@@ -174,15 +193,92 @@ export default function CommentsModal({ visible, onClose, newsId, newsTitle, com
   // ── Fetch — u38Api /detaildata?newsid=ID (CONFIRMED: comments at d.comments.data)
   const fetchComments = useCallback(async (id, pg = 1, append = false) => {
     if (!id) return;
+    
+    console.log('[CommentsModal] fetchComments called with ID:', id);
+    console.log('[CommentsModal] fetchComments called with page:', pg);
+    console.log('[CommentsModal] fetchComments called with append:', append);
+    
     pg === 1 ? setLoading(true) : setLoadingMore(true);
 
     try {
-      const url = `/detaildata?newsid=${id}&page=${pg}`;
-      const res = await mainApi.get(url);
-      const d   = res?.data;
+      // Try different APIs and endpoints for video comments
+      const urls = [
+        // First try the dedicated comments helper function
+        () => mainApi.get(`${API_ENDPOINTS.COMMENTS}?newsid=${id}&page=${pg}`),
+        () => mainApi.get(`${API_ENDPOINTS.COMMENTS}?videoid=${id}&page=${pg}`),
+        // Then try CDNApi with different endpoints
+        () => CDNApi.get(`/comments?newsid=${id}&page=${pg}`),
+        () => CDNApi.get(`/comments?videoid=${id}&page=${pg}`),
+        // Finally try detail data endpoints
+        () => CDNApi.get(`${API_ENDPOINTS.DETAIL}?newsid=${id}&page=${pg}`),
+        () => CDNApi.get(`${API_ENDPOINTS.DETAIL}?videoid=${id}&page=${pg}`),
+        () => CDNApi.get(`${API_ENDPOINTS.DETAIL}?id=${id}&page=${pg}`),
+      ];
+      
+      let res = null;
+      let d = null;
+      let usedUrl = null;
+      let usedApi = null;
+      
+      // Try each URL/API until one works
+      for (const urlFn of urls) {
+        try {
+          const url = typeof urlFn === 'function' ? '[function]' : urlFn;
+          console.log('[CommentsModal] trying API call:', url);
+          
+          if (typeof urlFn === 'function') {
+            res = await urlFn();
+            usedApi = 'mainApi';
+          } else {
+            res = await CDNApi.get(urlFn);
+            usedApi = 'CDNApi';
+          }
+          
+          d = res?.data;
+          
+          if (d && (d?.comments?.data || d?.comments || d?.data || d?.result || d?.items)) {
+            usedUrl = typeof urlFn === 'function' ? '[function]' : urlFn;
+            console.log('[CommentsModal] SUCCESS with API:', usedApi, 'URL:', usedUrl);
+            break;
+          }
+        } catch (e) {
+          console.log('[CommentsModal] FAILED API call:', e?.message);
+          continue;
+        }
+      }
+      
+      if (!usedUrl) {
+        console.log('[CommentsModal] all API calls failed, showing error response');
+        // Try one more time to show what the actual error is
+        try {
+          res = await mainApi.get(`${API_ENDPOINTS.COMMENTS}?newsid=${id}&page=${pg}`);
+          d = res?.data;
+          usedApi = 'mainApi';
+          usedUrl = `${API_ENDPOINTS.COMMENTS}?newsid=${id}&page=${pg}`;
+        } catch (e) {
+          console.log('[CommentsModal] Final error:', e?.response?.status, e?.response?.data);
+          throw e;
+        }
+      }
+      
+      console.log('[CommentsModal] final API used:', usedApi);
+      console.log('[CommentsModal] final URL used:', usedUrl);
+      console.log('[CommentsModal] full API response:', JSON.stringify(d, null, 2));
+      console.log('[CommentsModal] response keys:', Object.keys(d || {}));
+      console.log('[CommentsModal] comments structure:', d?.comments);
+      console.log('[CommentsModal] comments data:', d?.comments?.data);
+      console.log('[CommentsModal] alternative paths:', {
+        'd.comments': d?.comments,
+        'd.data': d?.data,
+        'd.result': d?.result,
+        'd.items': d?.items,
+      });
 
       const list = extractComments(d);
       const lp   = extractLastPage(d);
+      
+      console.log('[CommentsModal] extracted comments:', list);
+      console.log('[CommentsModal] last page:', lp);
 
       setLastPage(lp);
       setPage(pg);
@@ -194,13 +290,23 @@ export default function CommentsModal({ visible, onClose, newsId, newsTitle, com
       setLoading(false);
       setLoadingMore(false);
     }
-  }, []);
+  }, [newsId]);
+
   useEffect(() => {
-    if (visible && newsId) {
-      setComments([]);
-      setPage(1);
-      setLastPage(1);
-      fetchComments(newsId, 1, false);
+    if (visible) {
+      if (preloadedComments && preloadedComments.length > 0) {
+        console.log('[CommentsModal] using preloaded comments:', preloadedComments.length);
+        setComments(preloadedComments);
+        setPage(1);
+        setLastPage(1);
+        setLoading(false);
+      } else {
+        console.log('[CommentsModal] no preloaded comments, showing empty state');
+        setComments([]);
+        setPage(1);
+        setLastPage(1);
+        setLoading(false);
+      }
     }
     if (!visible) {
       setComments([]);
@@ -208,7 +314,7 @@ export default function CommentsModal({ visible, onClose, newsId, newsTitle, com
       setLastPage(1);
       setInputText('');
     }
-  }, [visible, newsId]);
+  }, [visible]);
 
   const handleLoadMore = () => {
     if (loadingMore || page >= lastPage) return;

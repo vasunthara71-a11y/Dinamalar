@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { u38Api, API_ENDPOINTS } from '../config/api';
+import { CDNApi, API_ENDPOINTS } from '../config/api';
 import { COLORS } from '../utils/constants';
 import { s, vs, scaledSizes } from '../utils/scaling';
 import { ms } from 'react-native-size-matters';
@@ -76,7 +76,7 @@ export default function TimelineDetailsScreen() {
       setLoading(true);
       
       // Fetch article details using the correct API endpoint
-      const detailResponse = await u38Api.get(`${API_ENDPOINTS.DETAIL}?newsid=${newsId}`);
+      const detailResponse = await CDNApi.get(`${API_ENDPOINTS.DETAIL}?newsid=${newsId}`);
       const articleData = detailResponse.data;
       
       console.log('Article details API response:', articleData);
@@ -86,7 +86,7 @@ export default function TimelineDetailsScreen() {
       
       // Fetch related news (same category)
       if (newsItem.maincat) {
-        const relatedResponse = await u38Api.get(`${API_ENDPOINTS.LATEST_MAIN}?page=1`);
+        const relatedResponse = await CDNApi.get(`${API_ENDPOINTS.LATEST_MAIN}?page=1`);
         const relatedItems = relatedResponse.data?.detail || [];
         const filtered = relatedItems.filter(item => 
           item.maincat === newsItem.maincat && 

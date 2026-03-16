@@ -173,6 +173,7 @@ export default function NewsDetailsScreen() {
   const [contentWidth, setContentWidth] = useState(SCREEN_W - s(32));
   const [scrollLocked, setScrollLocked] = useState(false);
   const [hintDir, setHintDir] = useState(null);
+  const [newsComments, setNewsComments] = useState([]);
 
   const translateX = useRef(new Animated.Value(0)).current;
   const isAnimating = useRef(false);
@@ -317,8 +318,23 @@ export default function NewsDetailsScreen() {
     }
     try {
       setLoading(true); setError(null);
+      console.log('[NewsDetails] fetching news with ID:', id);
       const res = await mainApi.get(`/detaildata?newsid=${id}`);
       const data = res.data;
+      console.log('[NewsDetails] full API response:', JSON.stringify(data, null, 2));
+      console.log('[NewsDetails] comments structure:', data?.comments);
+      console.log('[NewsDetails] comments data:', data?.comments?.data);
+      console.log('[NewsDetails] alternative comment paths:', {
+        'data.comments': data?.comments,
+        'data.comments.data': data?.comments?.data,
+        'data.detailnews.comments': data?.detailnews?.comments,
+        'data.detailnews.comments.data': data?.detailnews?.comments?.data,
+        'data.detailpage.comments': data?.detailpage?.[0]?.comments,
+        'data.detailpage[0].comments': data?.detailpage?.[0]?.comments,
+        'data.newsdetail.comments': data?.newsdetail?.[0]?.comments,
+        'data.detail.comments': data?.detail?.[0]?.comments,
+      });
+      
       const article =
         data?.detailnews?.detailpage?.[0] ||
         data?.detailpage?.[0] ||
@@ -326,6 +342,25 @@ export default function NewsDetailsScreen() {
         data?.detail?.[0] ||
         (Array.isArray(data) ? data[0] : null) ||
         null;
+      
+      // Extract comments from the API response
+      if (data?.comments?.data) {
+        setNewsComments(data.comments.data);
+        console.log('[NewsDetails] extracted comments from data.comments.data:', data.comments.data.length);
+      } else if (data?.comments) {
+        setNewsComments(data.comments);
+        console.log('[NewsDetails] extracted comments from data.comments:', data.comments.length);
+      } else if (article?.comments?.data) {
+        setNewsComments(article.comments.data);
+        console.log('[NewsDetails] extracted comments from article.comments.data:', article.comments.data.length);
+      } else if (article?.comments) {
+        setNewsComments(article.comments);
+        console.log('[NewsDetails] extracted comments from article.comments:', article.comments.length);
+      } else {
+        setNewsComments([]);
+        console.log('[NewsDetails] no comments found in any path');
+      }
+      
       setDetail(article || newsItem || null);
     } catch (err) {
       console.error('Detail fetch error:', err?.message);
@@ -734,6 +769,7 @@ export default function NewsDetailsScreen() {
           newsId={currentNewsId}
           newsTitle={title}
           commentCount={comments}
+          preloadedComments={newsComments}
         />
       )}
     </View>
