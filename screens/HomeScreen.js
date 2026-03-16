@@ -486,17 +486,35 @@ function DinaMalarTVCard({ item, onVideoPress }) {
 
 // ─── Dinamalar TV Section (with Live / Sports / Cinema tabs) ─────────────────
 const TV_TABS = [
-  { key: 'live', label: 'Live', ta: 'Live' },
-  { key: 'sports', label: 'விளையாட்டு', ta: 'விளையாட்டு' },
-  { key: 'cinema', label: 'சினிமா', ta: 'சினிமா' },
+  { key: 'live', label: 'Live', ta: 'Live', vCategory: '5050', slug: '/videos/live-and-recorded' },
+  { key: 'sports', label: 'விளையாட்டு', ta: 'விளையாட்டு', vCategory: '594', slug: '/videos/sports-tamil-videos' },
+  { key: 'cinema', label: 'சினிமா', ta: 'சினிமா', vCategory: '594', slug: '/videos/tamil-cinema-videos' },
 ];
 
 // Map API maincat values → tab key
 function getTabKey(item) {
+  // First check by VCategory (actual field from API)
+  const vCategory = String(item.VCategory || item.maincatid || '');
+  const maincat = (item.maincat || '').toLowerCase();
+  const ctitle = (item.ctitle || '').toLowerCase();
+  
+  if (vCategory === '5050') return 'live';
+  
+  // For VCategory 594, differentiate by category name
+  if (vCategory === '594') {
+    if (ctitle.includes('சினிமா') || maincat.includes('cinema')) return 'cinema';
+    if (ctitle.includes('விளையாட்டு') || maincat.includes('sport')) return 'sports';
+    // Default to sports if unclear
+    return 'sports';
+  }
+  
+  // Fallback to category name matching
   const cat = (item.maincat || item.categrorytitle || item.maincategory || '').toLowerCase();
+  
   if (cat.includes('live') || cat.includes('நேரலை') || cat.includes('நேரட')) return 'live';
   if (cat.includes('sport') || cat.includes('விளையாட்') || cat.includes('cricket') || cat.includes('football')) return 'sports';
   if (cat.includes('cinema') || cat.includes('சினிமா') || cat.includes('movie') || cat.includes('film')) return 'cinema';
+  
   return 'live'; // default
 }
 
@@ -518,7 +536,7 @@ function DinaMalarTVSection({ data, onVideoPress }) {
     : TV_TABS.find(t => grouped[t.key]?.length > 0)?.key || 'live';
 
   const displayItems = grouped[displayTab] || [];
-
+  
   return (
     <View>
       {/* Section header row with tabs */}
@@ -681,11 +699,6 @@ function DistrictNewsSection({ districts, onPress }) {
         keyExtractor={(item) => item.id?.toString() || item.title}
         scrollEnabled={false}
         renderItem={({ item, index }) => {
-          console.log(`Item ${index}:`, item.title, 'Icon URL:', item.icon);
-          if (item.originalIcon) {
-            console.log('Original icon URL:', item.originalIcon);
-          }
-
           return (
             <TouchableOpacity
               style={styles.districtCard}
@@ -897,8 +910,6 @@ export default function HomeScreen() {
 
         if (d?.socialmedia?.data?.length > 0) {
           const socialTitle = d.socialmedia.title || 'Social Media';
-          console.log('Social media section title:', socialTitle);
-          console.log('Social media data source:', d.socialmedia.source);
           sections.push({ title: socialTitle, data: d.socialmedia.data, isSocialMedia: true });
         }
 
@@ -924,6 +935,7 @@ export default function HomeScreen() {
             data: [...liveItems, ...tvItems],
             type: 'video',
           });
+        } else {
         }
 
         if (d?.mixedcontent)

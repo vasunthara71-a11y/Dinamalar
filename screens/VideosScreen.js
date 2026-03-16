@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
   Text,
@@ -17,6 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import RenderHtml from 'react-native-render-html';
 import AppHeaderComponent from '../components/AppHeaderComponent';
 import TopMenuStrip from '../components/TopMenuStrip';
+import CommentsModal from '../components/CommentsModal';
 import { ms, s, vs } from '../utils/scaling';
 import { CDNApi, API_ENDPOINTS } from '../config/api';
 import { FONTS } from '../utils/constants';
@@ -65,15 +67,14 @@ const PlayIcon = ({ size = 28 }) => (
 );
 
 // ─── Video Card ─────────────────────────────────────────────────────────────────
-const VideoCard = ({ video, onPress }) => {
+const VideoCard = ({ video, onPress, onCommentsPress }) => {
   const { sf } = useFontSize();
   
   // Skip reels and ads mixed into videomix.data
   if (video.type === 'reels' || video.type === 'googlead') return null;
 
   const timeAgo = getTimeAgo(video.videodate);
-  const commentCount = parseInt(video?.nmcomment || 0);
-  const hasComments = commentCount > 0;
+  const commentCount = parseInt(video.nmcomment || 0);
 
   return (
     <TouchableOpacity activeOpacity={0.88} onPress={() => onPress?.(video)} style={styles.card}>
@@ -92,27 +93,27 @@ const VideoCard = ({ video, onPress }) => {
             <Text style={[styles.durationText, { fontSize: sf(11) }]}>{video.duration}</Text>
           </View>
         )}
-
-        {/* Comment indicator in top-right corner */}
-        {hasComments && (
-          <View style={styles.commentIndicator}>
-            <Ionicons name="chatbox" size={ms(14)} color={PALETTE.white} />
-            <Text style={[styles.commentCount, { fontSize: sf(10) }]}>{commentCount}</Text>
-          </View>
-        )}
-
       </View>
 
       <View style={styles.cardBody}>
         <Text style={[styles.videoTitle, { fontSize: sf(16), lineHeight: sf(20) }]} numberOfLines={2}>{video.videotitle}</Text>
+        <Text style={[styles.metaDate, { fontSize: sf(14) }]}>{timeAgo || video.standarddate}</Text>
         <View style={styles.cardMeta}>
-          {!!video.ctitle && (
-            <View style={styles.categoryPill}>
-              <Text style={[styles.categoryPillText, { fontSize: sf(12) }]}>{video.ctitle}</Text>
-            </View>
-          )}
-          <Text style={[styles.metaDate, { fontSize: sf(14) }]}>{timeAgo || video.standarddate}</Text>
-
+          <View style={styles.cardMetaLeft}>
+            {!!video.ctitle && (
+              <View style={styles.categoryPill}>
+                <Text style={[styles.categoryPillText, { fontSize: sf(12) }]}>{video.ctitle}</Text>
+              </View>
+            )}
+          </View>
+          <View style={styles.cardMetaRight}>
+            <TouchableOpacity style={styles.commentBtn} onPress={() => onCommentsPress?.(video)} activeOpacity={0.8}>
+              <Ionicons name="chatbox" size={ms(20)} color={PALETTE.grey600} />
+              {commentCount > 0 && (
+                <Text style={[styles.commentCount, { fontSize: sf(10) }]}>{commentCount}</Text>
+              )}
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     </TouchableOpacity>
@@ -226,6 +227,8 @@ const VideosScreen = ({ navigation }) => {
   const [selectedDistrictLabel, setSelectedDistrictLabel] = useState('உள்ளூர்');
   const [isDrawerVisible, setIsDrawerVisible] = useState(false);
   const [isLocationDrawerVisible, setIsLocationDrawerVisible] = useState(false);
+  const [commentsVisible, setCommentsVisible] = useState(false);
+  const [selectedVideo, setSelectedVideo] = useState(null);
 
   // ── Fetch: CDNApi + API_ENDPOINTS.VIDEO_MAIN (/videomain) ────────────────────
   const fetchVideos = useCallback(async ({ cat = '', date = '', district = '', page = 1, append = false } = {}) => {
@@ -302,9 +305,16 @@ const VideosScreen = ({ navigation }) => {
         setLoading(false);
       }
     }
-  }, [categories.length, filterOptions.length, districtOptions.length]);
+  }, []);
 
-  useEffect(() => { fetchVideos(); }, []);
+  useEffect(() => { fetchVideos(); }, [fetchVideos]);
+
+  // Refresh data when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      fetchVideos();
+    }, [fetchVideos])
+  );
 
   // ── Category tab press ────────────────────────────────────────────────────────
   const handleCategoryPress = (value) => {
@@ -337,6 +347,12 @@ const VideosScreen = ({ navigation }) => {
   const handleMenuPress = () => navigation?.openDrawer?.();
   const handleSearch = () => navigation?.navigate?.('Search');
   const handleNotification = () => console.log('Notifications');
+
+  // ── Comment press handler ─────────────────────────────────────────────────────
+  const handleCommentsPress = (video) => {
+    setSelectedVideo(video);
+    setCommentsVisible(true);
+  };
 
   const hasActiveFilter = !!selectedFilter || !!selectedDistrict;
 
@@ -459,6 +475,7 @@ const VideosScreen = ({ navigation }) => {
           <VideoCard
             video={item}
             onPress={(v) => navigation?.navigate?.('VideoDetailScreen', { video: v })}
+            onCommentsPress={handleCommentsPress}
           />
         )}
         ListHeaderComponent={ListHeader}
@@ -480,6 +497,15 @@ const VideosScreen = ({ navigation }) => {
         districtOptions={districtOptions}
         selectedDistrict={selectedDistrict}
         onSelectDistrict={handleSelectDistrict}
+      />
+
+      {/* Comments Modal */}
+      <CommentsModal
+        visible={commentsVisible}
+        onClose={() => setCommentsVisible(false)}
+        newsId={selectedVideo?.videoid}
+        newsTitle={selectedVideo?.videotitle}
+        commentCount={parseInt(selectedVideo?.nmcomment || 0)}
       />
     </SafeAreaView>
   );
@@ -603,19 +629,44 @@ const styles = StyleSheet.create({
   watermarkWrap: { position: 'absolute', bottom: vs(10), left: s(46), flexDirection: 'row' },
   watermarkRed: { fontSize: ms(9), color: '#FF4444', fontWeight: '800', opacity: 0.85 },
   watermarkYellow: { fontSize: ms(9), color: '#FFD700', fontWeight: '800', opacity: 0.85 },
-  cardBody: { paddingVertical: vs(10) },
+  cardBody: { gap:ms(5),marginVertical:ms(10) },
   videoTitle: {
     fontFamily: FONTS.muktaMalar.bold,
     color: PALETTE.grey800,
-    marginBottom: vs(12)
+    marginTop: vs(10)
   }
   ,
   cardMeta: {
     flexDirection: 'row',
     // alignItems: 'center',
-    marginBottom: vs(10),
+    // marginBottom: vs(10),
     // gap: s(10),
     justifyContent: "space-between"
+  },
+  cardMetaLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: s(8),
+    flex: 1,
+  },
+  cardMetaRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: s(8),
+  },
+  commentBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: s(3),
+    paddingHorizontal: s(6),
+    paddingVertical: vs(2),
+    borderRadius: s(4),
+    backgroundColor: PALETTE.grey200,
+  },
+  commentCount: {
+    color: PALETTE.grey600,
+    fontWeight: '600',
+    fontSize: ms(10),
   },
   categoryPill: {
     // borderRadius: s(4),
@@ -628,7 +679,7 @@ const styles = StyleSheet.create({
   metaDate: {
     fontFamily: FONTS.muktaMalar.regular,
     color: PALETTE.grey600,
-  },
+   },
 
   // Empty / error
   centeredState: { alignItems: 'center', paddingTop: vs(80), paddingBottom: vs(40), backgroundColor: PALETTE.grey200 },
