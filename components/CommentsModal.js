@@ -341,49 +341,116 @@ export default function CommentsModal({
 
   const initialisedForNewsId = useRef(null);
   const slideAnim = useRef(new Animated.Value(300)).current;
-  const flatListRef = useRef(null);
+  const initialisedForNewsId = useRef(null);
 
-  // Slide animation
-  useEffect(() => {
-    if (visible) {
-      slideAnim.setValue(300);
-      Animated.spring(slideAnim, { toValue: 0, tension: 65, friction: 11, useNativeDriver: true }).start();
-    }
-  }, [visible]);
+  // ── Animate open ────────────────────────────────────────────────────────────
+// FIND AND REPLACE the entire useEffect block:
+useEffect(() => {
+  if (!visible) {
+    setComments([]);
+    setPage(1);
+    setLastPage(1);
+    setInputText('');
+    initialisedForNewsId.current = null;
+    return;
+  }
+  if (initialisedForNewsId.current === newsId) return;
+  initialisedForNewsId.current = newsId;
 
-  // ── Fetch a single page ───────────────────────────────────────────────────
-  const fetchPage = useCallback(async (id, pg) => {
-    const urls = [
-      () => mainApi.get(`${API_ENDPOINTS.COMMENTS}?newsid=${id}&page=${pg}`),
-      () => mainApi.get(`${API_ENDPOINTS.COMMENTS}?videoid=${id}&page=${pg}`),
-      () => CDNApi.get(`/comments?newsid=${id}&page=${pg}`),
-      () => CDNApi.get(`/comments?videoid=${id}&page=${pg}`),
-      () => CDNApi.get(`${API_ENDPOINTS.DETAIL}?newsid=${id}&page=${pg}`),
-    ];
-    let d = null;
-    for (const urlFn of urls) {
-      try {
-        const res = await urlFn();
-        d = res?.data;
-        if (d && (d?.comments?.data || d?.comments || d?.data || d?.result || d?.items)) break;
-      } catch { continue; }
-    }
-    return d;
-  }, []);
+  if (Array.isArray(preloadedComments) && preloadedComments.length > 0) {
+    setComments(preloadedComments);
+    setPage(1);
+    setLastPage(1);
+    setLoading(false);
+  } else {
+    fetchComments(newsId, 1, false);
+  }
+}, [visible, newsId]); // ← only visible and newsId, NOT preloadedComments
+
+  // ── Fetch — u38Api /detaildata?newsid=ID (CONFIRMED: comments at d.comments.data)
+  const fetchComments = useCallback(async (id, pg = 1, append = false) => {
+    if (!id) return;
+    
+    console.log('[CommentsModal] fetchComments called with ID:', id);
+    
+    setLoading(true);
 
   // ── Fetch first page ──────────────────────────────────────────────────────
   const fetchComments = useCallback(async (id) => {
     if (!id) return;
     setLoading(true);
     try {
-      const d    = await fetchPage(id, 1);
+      // Try different APIs and endpoints for video comments
+      const urls = [
+        // First try the dedicated comments helper function with higher limit
+        () => mainApi.get(`${API_ENDPOINTS.COMMENTS}?newsid=${id}&limit=1000`),
+        () => mainApi.get(`${API_ENDPOINTS.COMMENTS}?videoid=${id}&limit=1000`),
+        // Then try CDNApi with different endpoints and higher limit
+        () => CDNApi.get(`/comments?newsid=${id}&limit=1000`),
+        () => CDNApi.get(`/comments?videoid=${id}&limit=1000`),
+        // Finally try detail data endpoints
+        () => CDNApi.get(`${API_ENDPOINTS.DETAIL}?newsid=${id}`),
+        () => CDNApi.get(`${API_ENDPOINTS.DETAIL}?videoid=${id}`),
+        () => CDNApi.get(`${API_ENDPOINTS.DETAIL}?id=${id}`),
+      ];
+      
+      let res = null;
+      let d = null;
+      let usedUrl = null;
+      let usedApi = null;
+      
+      // Try each URL/API until one works
+      for (const urlFn of urls) {
+        try {
+          const url = typeof urlFn === 'function' ? '[function]' : urlFn;
+          console.log('[CommentsModal] trying API call:', url);
+          
+          if (typeof urlFn === 'function') {
+            res = await urlFn();
+            usedApi = 'mainApi';
+          } else {
+            res = await CDNApi.get(urlFn);
+            usedApi = 'CDNApi';
+          }
+          
+          d = res?.data;
+          
+          if (d && (d?.comments?.data || d?.comments || d?.data || d?.result || d?.items)) {
+            usedUrl = typeof urlFn === 'function' ? '[function]' : urlFn;
+            console.log('[CommentsModal] SUCCESS with API:', usedApi, 'URL:', usedUrl);
+            break;
+          }
+        } catch (e) {
+          console.log('[CommentsModal] FAILED API call:', e?.message);
+          continue;
+        }
+      }
+      
+      if (!usedUrl) {
+        console.log('[CommentsModal] all API calls failed, showing error response');
+        // Try one more time to show what the actual error is
+        try {
+          res = await mainApi.get(`${API_ENDPOINTS.COMMENTS}?newsid=${id}&limit=1000`);
+          d = res?.data;
+          usedApi = 'mainApi';
+          usedUrl = `${API_ENDPOINTS.COMMENTS}?newsid=${id}&limit=1000`;
+        } catch (e) {
+          console.log('[CommentsModal] Final error:', e?.response?.status, e?.response?.data);
+          throw e;
+        }
+      }
+      
+      console.log('[CommentsModal] final API used:', usedApi);
+      console.log('[CommentsModal] final URL used:', usedUrl);
+      console.log('[CommentsModal] full API response:', JSON.stringify(d, null, 2));
+
       const list = extractComments(d);
-      const lp   = extractLastPage(d);
-      const tot  = extractTotal(d);
+      
+      console.log('[CommentsModal] extracted comments:', list);
+
       setComments(list);
       setPage(1);
-      setLastPage(lp);
-      if (tot > 0) setTotalCount(tot);
+      setLastPage(1); // Set to 1 since we're loading all at once
     } catch (e) {
       console.error('[CommentsModal] fetch error:', e?.message);
       setComments([]);
@@ -407,10 +474,23 @@ export default function CommentsModal({
     } finally {
       setLoadingMore(false);
     }
-  }, [loadingMore, page, lastPage, newsId, fetchPage]);
+  }, []);
 
   // ── Open/close ────────────────────────────────────────────────────────────
   useEffect(() => {
+    if (visible) {
+      if (preloadedComments && preloadedComments.length > 0) {
+        console.log('[CommentsModal] using preloaded comments:', preloadedComments.length);
+        setComments(preloadedComments);
+        setPage(1);
+        setLastPage(1);
+        setLoading(false);
+      } else {
+        console.log('[CommentsModal] no preloaded comments, fetching from API');
+        // Only fetch from API if no preloaded comments
+        fetchComments(newsId, 1, false);
+      }
+    }
     if (!visible) {
       setComments([]);
       setPage(1);
@@ -421,55 +501,7 @@ export default function CommentsModal({
       initialisedForNewsId.current = null;
       return;
     }
-    if (initialisedForNewsId.current === newsId) return;
-    initialisedForNewsId.current = newsId;
-    if (Array.isArray(preloadedComments) && preloadedComments.length > 0) {
-      setComments(preloadedComments);
-    }
-    fetchComments(newsId);
-  }, [visible, newsId]);
-
-  // ── Post new top-level comment ────────────────────────────────────────────
-  const handlePostComment = async () => {
-    if (!inputText.trim()) return;
-    setSubmitting(true);
-    try {
-      await mainApi.post('/comments', {
-        newsid:   newsId,
-        name:     inputName.trim() || 'பயனர்',
-        comments: inputText.trim(),
-        type:     'comment',
-      });
-      // Optimistically prepend
-      const newComment = {
-        id:       Date.now(),
-        name:     inputName.trim() || 'பயனர்',
-        comments: inputText.trim(),
-        ago:      'இப்போது',
-        reply:    [],
-      };
-      setComments(prev => [newComment, ...prev]);
-      setTotalCount(prev => prev + 1);
-      setInputText('');
-      setInputName('');
-      flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
-    } catch (e) {
-      // Still show optimistically
-      const newComment = {
-        id:       Date.now(),
-        name:     inputName.trim() || 'பயனர்',
-        comments: inputText.trim(),
-        ago:      'இப்போது',
-        reply:    [],
-      };
-      setComments(prev => [newComment, ...prev]);
-      setTotalCount(prev => prev + 1);
-      setInputText('');
-      setInputName('');
-    } finally {
-      setSubmitting(false);
-    }
-  };
+  }, [visible, preloadedComments, newsId, fetchComments]);
 
   const displayCount = totalCount || commentCount || comments.length;
 
@@ -526,8 +558,6 @@ export default function CommentsModal({
                   />
                 )}
                 ListEmptyComponent={<EmptyComments />}
-                onEndReached={handleLoadMore}
-                onEndReachedThreshold={0.4}
                 style={{ flex: 1 }}
                 showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"
