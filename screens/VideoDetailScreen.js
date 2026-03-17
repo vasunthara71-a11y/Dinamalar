@@ -568,7 +568,7 @@ const VideoDetailScreen = ({ navigation, route }) => {
       </View>
 
       <ScrollView ref={scrollRef} showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: vs(80), paddingHorizontal: ms(12) }}
+        contentContainerStyle={{ paddingBottom: vs(80), paddingHorizontal: ms(12) ,paddingTop:ms(20)}}
         onScroll={onScroll} scrollEventThrottle={100}>
 
         {/* ── Video slot ─────────────────────────────────────────────────── */}
