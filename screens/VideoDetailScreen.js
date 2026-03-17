@@ -574,7 +574,7 @@ const VideoDetailScreen = ({ navigation, route }) => {
         {/* ── Video slot ─────────────────────────────────────────────────── */}
         <View style={S.slot} onLayout={e => { slotY.current = e.nativeEvent.layout.y; }}>
           {video?.images
-            ? <Image source={{ uri: video.images }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+            ? <Image source={{ uri: video.images }} style={S.image} resizeMode="contain" />
             : <View style={[StyleSheet.absoluteFill, S.thumbPh]} />}
           <View style={S.grad} />
           {!isPlayerActive && (
@@ -801,7 +801,7 @@ const S = StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: vs(12) },
   retryBtn: { marginTop: vs(16), backgroundColor: PALETTE.primary, borderRadius: s(8), paddingHorizontal: s(20), paddingVertical: vs(10) },
 
-  slot: { width: SW, height: VH, backgroundColor: '#000', overflow: 'hidden' },
+  slot: { width: '100%', height: VH, backgroundColor: '#000', overflow: 'hidden' },
   grad: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,.28)' },
   thumbPh: { flex: 1, backgroundColor: '#2A2A2A', justifyContent: 'center', alignItems: 'center' },
   centerPlay: { position: 'absolute', top: '50%', left: '50%', transform: [{ translateX: -s(31) }, { translateY: -s(31) }] },
