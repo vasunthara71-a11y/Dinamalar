@@ -1,20 +1,22 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
   ScrollView,
   TouchableOpacity,
-  ActivityIndicator,
   StyleSheet,
   Image,
+  Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SvgUri, SvgXml } from 'react-native-svg';
-import { mainApi, API_ENDPOINTS } from '../config/api';
 import { COLORS } from '../utils/constants';
 import { scaledSizes } from '../utils/scaling';
 import { useFontSize } from '../context/FontSizeContext';
 import { ms } from 'react-native-size-matters';
+import axios from 'axios';
+
+const MENU_API_URL = 'https://api-st-cdn.dinamalar.com/menuindex1';
 
 // ─── Module-level cache — persists across screen mounts/remounts ──────────────
 let _cachedMenuItems = null;
@@ -30,19 +32,16 @@ function subscribeToCacheUpdate(cb) {
 }
 
 async function fetchMenuOnce() {
-  // Already cached — return immediately
   if (_cachedMenuItems !== null) return _cachedMenuItems;
-
-  // Already in flight — wait for it
   if (_isFetching) {
     return new Promise((resolve) => {
       const unsub = subscribeToCacheUpdate((items) => { unsub(); resolve(items); });
     });
   }
-
   _isFetching = true;
   try {
-    const res  = await mainApi.get(API_ENDPOINTS.MENU);
+    const res  = await axios.get(MENU_API_URL);
+    // API: { headermenu: [ { Title, Link, Icon, ... } ] }
     const data = res?.data?.headermenu || [];
     _cachedMenuItems = data;
     _listeners.forEach(cb => cb(data));
@@ -62,19 +61,12 @@ function MenuIcon({ uri }) {
   if (!uri) {
     return <Ionicons name="radio-outline" size={scaledSizes.icon.md} color={COLORS.primary} />;
   }
-
   if (uri.includes('<svg') && uri.includes('</svg>')) {
-    return (
-      <SvgXml xml={uri} width={scaledSizes.icon.md} height={scaledSizes.icon.md} />
-    );
+    return <SvgXml xml={uri} width={scaledSizes.icon.md} height={scaledSizes.icon.md} />;
   }
-
   if (uri.endsWith('.svg') || uri.includes('.svg?')) {
-    return (
-      <SvgUri uri={uri} width={scaledSizes.icon.md} height={scaledSizes.icon.md} />
-    );
+    return <SvgUri uri={uri} width={scaledSizes.icon.md} height={scaledSizes.icon.md} />;
   }
-
   if (uri.startsWith('http')) {
     return (
       <Image
@@ -85,44 +77,70 @@ function MenuIcon({ uri }) {
       />
     );
   }
-
   return <Ionicons name="radio-outline" size={scaledSizes.icon.md} color={COLORS.text} />;
 }
 
 // ─── Top Menu Strip ───────────────────────────────────────────────────────────
-export default function TopMenuStrip({ onMenuPress, onNotification, notifCount = 0 }) {
+export default function TopMenuStrip({ onMenuPress, onNotification, notifCount = 0, navigation }) {
   const { sf } = useFontSize();
 
-  // Use cached data immediately if available — no loading flash
-  const [menuItems,   setMenuItems]   = useState(_cachedMenuItems || []);
-  const [loading,     setLoading]     = useState(_cachedMenuItems === null);
-  const [activeMenu,  setActiveMenu]  = useState(null);
+  const [menuItems,  setMenuItems]  = useState(_cachedMenuItems || []);
+  const [loading,    setLoading]    = useState(_cachedMenuItems === null);
+  const [activeMenu, setActiveMenu] = useState(null);
 
   useEffect(() => {
-    // If already cached, nothing to do
     if (_cachedMenuItems !== null) {
       setMenuItems(_cachedMenuItems);
       setLoading(false);
       return;
     }
-
-    // Subscribe in case another instance is already fetching
     const unsub = subscribeToCacheUpdate((items) => {
       setMenuItems(items);
       setLoading(false);
     });
-
     fetchMenuOnce().then((items) => {
       setMenuItems(items);
       setLoading(false);
     });
-
     return unsub;
   }, []);
 
   const handlePress = (item) => {
-    setActiveMenu(item.Title || item.title);
-    onMenuPress && onMenuPress(item);
+    const title = item.Title || item.title || '';
+    const link  = item.Link  || item.link  || '';
+    const lower = link.toLowerCase();
+
+    setActiveMenu(title);
+
+    // ── Only dinamalartv / videos navigates in-app ────────────────────────
+    const isDinamalartv =
+      lower.includes('dinamalartv') ||
+      lower.includes('videodata')   ||
+      lower.includes('/videos');
+
+    if (isDinamalartv) {
+      if (onMenuPress) {
+        // HomeScreen handles its own navigation via onMenuPress
+        onMenuPress(item);
+      } else if (navigation) {
+        navigation.navigate('VideoScreen', { catName: title });
+      }
+      return;
+    }
+
+    // ── Everything else → open in device browser (Chrome on Android) ──────
+    let url = link;
+
+    // Relative path → prepend base domain
+    if (url && !url.startsWith('http')) {
+      url = `https://www.dinamalar.com${url.startsWith('/') ? '' : '/'}${url}`;
+    }
+
+    if (url) {
+      Linking.openURL(url).catch(err =>
+        console.warn('TopMenuStrip: Could not open URL:', url, err)
+      );
+    }
   };
 
   if (loading) {
@@ -146,17 +164,24 @@ export default function TopMenuStrip({ onMenuPress, onNotification, notifCount =
         style={{ flex: 1 }}
       >
         {menuItems.map((item, index) => {
-          const isActive = activeMenu === (item.Title || item.title);
+          const title   = item.Title || item.title || '';
+          const iconUri = item.Icon  || item.icon  || '';
+          const isActive = activeMenu === title;
+
           return (
             <TouchableOpacity
-              key={index}
+              key={`menu_${index}`}
               style={[styles.menuItem, isActive && styles.menuItemActive]}
               onPress={() => handlePress(item)}
               activeOpacity={0.7}
             >
-              <MenuIcon uri={item.Icon || item.icon} />
-              <Text style={[styles.menuLabel, { fontSize: ms(10) }, isActive && styles.menuLabelActive]}>
-                {item.Title || item.title}
+              <MenuIcon uri={iconUri} />
+              <Text style={[
+                styles.menuLabel,
+                { fontSize: ms(10) },
+                isActive && styles.menuLabelActive,
+              ]}>
+                {title}
               </Text>
             </TouchableOpacity>
           );
@@ -180,8 +205,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#fff',
-    // borderBottomWidth: 1,
-    // borderBottomColor: '#e8e8e8',
     paddingHorizontal: 12,
     paddingVertical: 8,
     elevation: 2,
@@ -201,8 +224,6 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 20,
     marginHorizontal: 4,
-    // backgroundColor: '#f8f8f8',
-    // borderWidth: 1,
     borderColor: 'transparent',
   },
   menuItemActive: {
@@ -240,8 +261,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
   },
-
-  // Skeleton while loading first time only
   skeletonRow: {
     flexDirection: 'row',
     alignItems: 'center',

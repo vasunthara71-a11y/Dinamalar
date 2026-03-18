@@ -222,7 +222,7 @@ const DrawerMenu = ({ isVisible, onClose, onMenuPress, navigation }) => {
 
     const fetchDinamDinamSubcats = async () => {
       try {
-        const res = await u38Api.get('/dinamdinam');
+        const res = await CDNApi.get('/dinamdinam');
         setDinamDinamSubcats(res?.data?.subcatlist || []);
       } catch (e) {
         console.error('DinamDinam subcats fetch error:', e?.message);

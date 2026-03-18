@@ -14,11 +14,13 @@ import {
   Platform,
   ActivityIndicator,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import RenderHtml from 'react-native-render-html';
 import AppHeaderComponent from '../components/AppHeaderComponent';
 import TopMenuStrip from '../components/TopMenuStrip';
 import CommentsModal from '../components/CommentsModal';
+import DrawerMenu from '../components/DrawerMenu';
+import LocationDrawer from '../components/LocationDrawer';
 import { ms, s, vs } from '../utils/scaling';
 import { CDNApi, API_ENDPOINTS } from '../config/api';
 import { FONTS } from '../utils/constants';
@@ -40,8 +42,10 @@ const PALETTE = {
   dark: '#1A1A1A',
   blue: '#003580',
   primary: '#096dd2',
-
 };
+
+// ─── Constants ────────────────────────────────────────────────────────────────────
+const AD_INTERVAL = 4; // Insert ad after every 4 videos
 
 // ─── Helpers ────────────────────────────────────────────────────────────────────
 const getTimeAgo = (dateStr) => {
@@ -67,15 +71,99 @@ const PlayIcon = ({ size = 28 }) => (
   </View>
 );
 
+// ─── Short Card (HomeScreen ShortsCard style) ───────────────────────────────────
+const ShortCard = ({ video, onPress }) => {
+  const { sf } = useFontSize();
+  const title = video.title || video.videotitle || '';
+  const hasImage = !!video.images;
+
+  return (
+    <TouchableOpacity
+      activeOpacity={0.85}
+      onPress={() => onPress?.(video)}
+      style={styles.shortCard}
+    >
+      <View style={styles.shortCardImageContainer}>
+        <Image
+          source={{
+            uri: hasImage
+              ? video.images
+              : 'https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_default.jpg?im=Resize,width=400',
+          }}
+          style={styles.shortCardImage}
+          resizeMode="cover"
+        />
+        {/* Play overlay */}
+        <View style={styles.shortCardPlayOverlay}>
+          <View style={styles.shortCardPlayButton}>
+            <Ionicons name="play" size={s(12)} color="#fff" />
+          </View>
+        </View>
+        {/* Title at bottom */}
+        {!!title && (
+          <View style={styles.shortCardTitleOverlay}>
+            <Text style={[styles.shortCardBottomTitle, { fontSize: sf(10) }]} numberOfLines={2}>
+              {title}
+            </Text>
+          </View>
+        )}
+      </View>
+    </TouchableOpacity>
+  );
+};
+
+// ─── Shorts Section Row (horizontal scroll strip) ───────────────────────────────
+// Now receives `items` (the grouped reels for this strip) instead of all shorts
+const ShortsSectionRow = ({ items, onPress }) => {
+  const { sf } = useFontSize();
+  if (!items || items.length === 0) return null;
+
+  return (
+    <View style={styles.shortsSectionContainer}>
+      <View style={styles.shortsSectionHeader}>
+        <View style={styles.shortsSectionTitleWrap}>
+          <Text style={[styles.shortsSectionTitle, { fontSize: sf(14) }]}>Shorts</Text>
+          <View style={styles.shortsSectionUnderline} />
+        </View>
+      </View>
+      <ScrollView
+        horizontal={true}
+        showsHorizontalScrollIndicator={false}
+        showsVerticalScrollIndicator={false}
+        nestedScrollEnabled={true}
+        contentContainerStyle={styles.shortsSectionScroll}
+        style={styles.shortsSectionScrollView}
+      >
+        {items.map((video, index) => (
+          <ShortCard
+            key={`short-${index}-${video.videoid || video.id || index}`}
+            video={video}
+            onPress={onPress}
+          />
+        ))}
+      </ScrollView>
+    </View>
+  );
+};
+
 // ─── Video Card ─────────────────────────────────────────────────────────────────
-const VideoCard = ({ video, onPress, onCommentsPress }) => {
+const VideoCard = ({ video, onPress, onCommentsPress, districtLabel }) => {
   const { sf } = useFontSize();
 
   // Skip reels and ads mixed into videomix.data
   if (video.type === 'reels' || video.type === 'googlead') return null;
+  // Skip reels — they render in the shorts strip
+  if (video.type === 'reels') return null;
+
+  // Skip ads mixed into videomix.data
+  if (video.type === 'googlead') return null;
 
   const timeAgo = getTimeAgo(video.videodate);
   const commentCount = parseInt(video.nmcomment || 0);
+
+  // If a district is selected, show the district name as the pill label
+  // Otherwise show the video's own category title
+  const pillLabel = districtLabel || video.ctitle || video.maincat || '';
 
   return (
     <TouchableOpacity activeOpacity={0.88} onPress={() => onPress?.(video)} style={styles.card}>
@@ -98,12 +186,18 @@ const VideoCard = ({ video, onPress, onCommentsPress }) => {
 
       <View style={styles.cardBody}>
         <Text style={[styles.videoTitle, { fontSize: sf(16), lineHeight: sf(20) }]}  >{video.videotitle}</Text>
+        <Text style={[styles.videoTitle, { fontSize: sf(16), lineHeight: sf(20) }]}>{video.videotitle}</Text>
         <Text style={[styles.metaDate, { fontSize: sf(14) }]}>{timeAgo || video.standarddate}</Text>
         <View style={styles.cardMeta}>
           <View style={styles.cardMetaLeft}>
-            {!!video.ctitle && (
-              <View style={styles.categoryPill}>
-                <Text style={[styles.categoryPillText, { fontSize: sf(12) }]}>{video.ctitle}</Text>
+            {!!pillLabel && (
+              <View style={[styles.categoryPill ]}>
+                {/* {districtLabel && (
+                  <Ionicons name="location" size={s(10)} color={PALETTE.primary} style={{ marginRight: s(3) }} />
+                )} */}
+                <Text style={[styles.categoryPillText, { fontSize: sf(12) } ]}>
+                  {pillLabel}
+                </Text>
               </View>
             )}
           </View>
@@ -138,69 +232,167 @@ const Chip = ({ label, active, onPress }) => {
 };
 
 // ─── Filter Sheet ────────────────────────────────────────────────────────────────
-// பதிவேற்றம் → api.filter   (name, ename: weekly/monthly/yearly)
-// மாவட்டம்   → api.districtlist.data (id, title)
 const FilterSheet = ({
   visible, onClose,
-  filterOptions, selectedFilter, onSelectFilter,      // api.filter
-  districtOptions, selectedDistrict, onSelectDistrict, // api.districtlist.data
-}) => (
-  <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-    <View style={styles.modalContainer}>
-      <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={onClose} />
-      <View style={styles.filterSheet}>
-        <View style={styles.sheetHandle} />
+  filterOptions, selectedFilter, onSelectFilter,
+  districtOptions, selectedDistrict, onSelectDistrict,
+  onClearAll,
+}) => {
+  const { sf } = useFontSize();
+  const hasActive = !!selectedFilter || !!selectedDistrict;
 
-        {/* Header */}
-        <View style={styles.sheetHeader}>
-          <Text style={styles.sheetTitle}>Video Filters</Text>
-          <TouchableOpacity onPress={onClose} style={styles.sheetCloseBtn}>
-            <Ionicons name="close" size={20} color={PALETTE.grey700} />
-          </TouchableOpacity>
-        </View>
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      onRequestClose={onClose}
+      statusBarTranslucent={true}
+    >
+      <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
+        <TouchableOpacity
+          style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+          activeOpacity={1}
+          onPress={onClose}
+        />
+        <View style={styles.filterSheet}>
+          {/* Drag handle */}
+          <View style={styles.sheetHandle} />
 
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24 }}>
-
-          {/* பதிவேற்றம் — from api.filter */}
-          {filterOptions.length > 0 && (
-            <View style={styles.filterSection}>
-              <Text style={styles.filterSectionLabel}>பதிவேற்றம் :</Text>
-              <View style={styles.chipRow}>
-                {filterOptions.map((item) => (
-                  <Chip
-                    key={`filter_${item.id}`}
-                    label={item.name}
-                    active={selectedFilter === item.ename}
-                    onPress={() => onSelectFilter(item.ename)}
-                  />
-                ))}
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            nestedScrollEnabled={true}
+            contentContainerStyle={{ paddingBottom: vs(20) }}
+          >
+            {/* Header */}
+            <View style={styles.sheetHeader}>
+              <Text style={[styles.sheetTitle, { fontSize: sf(16) }]}>வடிகட்டி</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: s(8) }}>
+                {/* {hasActive && (
+                  <TouchableOpacity onPress={onClearAll} style={styles.clearBtn} activeOpacity={0.8}>
+                    <Text style={[styles.clearBtnTxt, { fontSize: sf(12) }]}>நீக்கு</Text>
+                  </TouchableOpacity>
+                )} */}
+                <TouchableOpacity onPress={onClose} style={styles.sheetCloseBtn}>
+                  <Ionicons name="close" size={s(18)} color={PALETTE.grey700} />
+                </TouchableOpacity>
               </View>
             </View>
-          )}
 
-          {/* மாவட்ட வீடியோக்கள் — from api.districtlist.data */}
-          {districtOptions.length > 0 && (
-            <View style={styles.filterSection}>
-              <Text style={styles.filterSectionLabel}>மாவட்ட வீடியோக்கள் :</Text>
-              <View style={styles.chipRow}>
-                {districtOptions
-                  .filter((d) => !!d.id)
-                  .map((item) => (
+            {/* Active selection summary */}
+            {/* {hasActive && (
+              <View style={styles.activeSummary}>
+                <Ionicons name="funnel" size={s(13)} color={PALETTE.primary} />
+                <Text style={[styles.activeSummaryTxt, { fontSize: sf(12) }]} numberOfLines={1}>
+                  {[
+                    filterOptions.find(f => f.ename === selectedFilter)?.name,
+                    districtOptions.find(d => String(d.id) === selectedDistrict)?.title,
+                  ].filter(Boolean).join('  •  ')}
+                </Text>
+              </View>
+            )} */}
+
+            {/* ── Date filter section ── */}
+            {filterOptions.length > 0 && (
+              <View style={[styles.filterSection, { paddingBottom: vs(12) }]}>
+                <View style={styles.filterSectionRow}>
+                  <Text style={[styles.filterSectionLabel, { fontSize: sf(13) }]}>பதிவேற்றம்</Text>
+                  {/* {!!selectedFilter && (
+                    <TouchableOpacity onPress={() => onSelectFilter(selectedFilter)}>
+                      <Text style={[styles.sectionClearTxt, { fontSize: sf(11) }]}>நீக்கு</Text>
+                    </TouchableOpacity>
+                  )} */}
+                </View>
+                <View style={styles.chipRow}>
+                  {filterOptions.map((item) => (
                     <Chip
-                      key={`district_${item.id}`}
-                      label={item.title}
-                      active={selectedDistrict === String(item.id)}
-                      onPress={() => onSelectDistrict(String(item.id))}
+                      key={`filter_${item.id}`}
+                      label={item.name}
+                      active={selectedFilter === item.ename}
+                      onPress={() => onSelectFilter(item.ename)}
                     />
                   ))}
+                </View>
               </View>
-            </View>
-          )}
-        </ScrollView>
+            )}
+
+            {/* ── District section — horizontally scrollable, no wrap ── */}
+            {districtOptions.length > 0 && (
+              <>
+                <View style={styles.sheetDivider} />
+                <View style={[styles.filterSection, { paddingBottom: vs(12) }]}>
+                  <View style={styles.filterSectionRow}>
+                    <Text style={[styles.filterSectionLabel, { fontSize: sf(13) }]}>மாவட்டம்</Text>
+                    {/* {!!selectedDistrict && (
+                      <TouchableOpacity onPress={() => onSelectDistrict(selectedDistrict)}>
+                        <Text style={[styles.sectionClearTxt, { fontSize: sf(11) }]}>நீக்கு</Text>
+                      </TouchableOpacity>
+                    )} */}
+                  </View>
+                  <ScrollView
+                    showsVerticalScrollIndicator={false}
+                    nestedScrollEnabled={true}
+                    style={{ maxHeight: vs(200) }}
+                    contentContainerStyle={{ flexDirection: 'row', flexWrap: 'wrap', gap: s(8), paddingBottom: vs(4) }}
+                  >
+                    {districtOptions
+                      .filter((d) => !!d.id)
+                      .map((item) => (
+                        <Chip
+                          key={`district_${item.id}`}
+                          label={item.title}
+                          active={selectedDistrict === String(item.id)}
+                          onPress={() => onSelectDistrict(String(item.id))}
+                        />
+                      ))}
+                  </ScrollView>
+                </View>
+              </>
+            )}
+
+            {/* Apply button */}
+            {/* <View style={styles.sheetFooter}>
+              <TouchableOpacity style={styles.applyBtn} onPress={onClose} activeOpacity={0.88}>
+                <Text style={[styles.applyBtnTxt, { fontSize: sf(14) }]}>முடிந்தது</Text>
+              </TouchableOpacity>
+            </View> */}
+          </ScrollView>
+        </View>
       </View>
+    </Modal>
+  );
+};
+
+// ─── Taboola Widget ───────────────────────────────────────────────────────────
+const TABOOLA_PUBLISHER_ID = 'mdinamalarcom';
+
+function TaboolaWidget({ pageUrl, mode, container, placement, pageType = 'homepage', targetType = 'mix' }) {
+  const [height, setHeight] = useState(1);
+  if (!mode || !container || !placement || !pageUrl) return null;
+  const safe = (str) => String(str || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"><style>*{margin:0;padding:0;box-sizing:border-box}html,body{background:#fff;overflow-x:hidden;width:100%}#${safe(container)}{width:100%;min-height:1px}img{max-width:100%!important;width:100%!important;height:auto!important;display:block!important;object-fit:cover!important;object-position:center center!important}</style></head><body><div id="${safe(container)}"></div><script>window._taboola=window._taboola||[];_taboola.push({${safe(pageType)}:'auto'});_taboola.push({mode:'${safe(mode)}',container:'${safe(container)}',placement:'${safe(placement)}',target_type:'${safe(targetType)}'});</script><script>(function(){var s=document.createElement('script');s.type='text/javascript';s.async=true;s.src='https://cdn.taboola.com/libtrc/${TABOOLA_PUBLISHER_ID}/loader.js';s.id='tb_loader_script';s.onload=function(){_taboola.push({flush:true});};if(!document.getElementById('tb_loader_script')){document.head.appendChild(s);}else{_taboola.push({flush:true});}})();</script><script>var lH=0;function gH(){return Math.max(document.body.scrollHeight,document.body.offsetHeight,document.documentElement.scrollHeight);}function sH(){setTimeout(function(){var h=gH();if(h>50&&h>lH){lH=h;window.ReactNativeWebView.postMessage(JSON.stringify({type:'height',value:h}));}},200);}function wI(){var imgs=document.querySelectorAll('img');if(!imgs.length){sH();return;}var p=0;imgs.forEach(function(img){if(!img.complete){p++;img.addEventListener('load',function(){if(!--p)sH();});img.addEventListener('error',function(){if(!--p)sH();});}});if(!p)sH();}var pc=0;function poll(){wI();if(pc++<75)setTimeout(poll,400);}setTimeout(poll,500);if(typeof MutationObserver!=='undefined'){new MutationObserver(function(){wI();}).observe(document.body,{childList:true,subtree:true,attributes:false});}</script></body></html>`;
+  return (
+    <View style={{ width: '100%', height, backgroundColor: '#fff', overflow: 'hidden', borderTopWidth: 1, borderBottomWidth: 1, borderColor: '#F4F6F8' }}>
+      <WebView
+        source={{ html, baseUrl: 'https://www.dinamalar.com' }}
+        style={{ width: '100%', height }}
+        scrollEnabled={false} javaScriptEnabled domStorageEnabled
+        thirdPartyCookiesEnabled mixedContentMode="always"
+        originWhitelist={['*']} allowsInlineMediaPlayback
+        onMessage={(e) => {
+          try {
+            const m = JSON.parse(e.nativeEvent.data);
+            if (m.type === 'height' && m.value > 50) setHeight(p => Math.max(p, m.value));
+          } catch {
+            const h = parseInt(e.nativeEvent.data, 10);
+            if (!isNaN(h) && h > 50) setHeight(p => Math.max(p, h));
+          }
+        }}
+        nestedScrollEnabled={false}
+      />
     </View>
-  </Modal>
-);
+  );
+}
 
 // ─── Taboola Widget ───────────────────────────────────────────────────────────
 const TABOOLA_PUBLISHER_ID = 'mdinamalarcom';
@@ -260,7 +452,7 @@ const VideosScreen = ({ navigation }) => {
   const [selectedDistrict, setSelectedDistrict] = useState('');   // district id string
   const [selectedDistrictLabel, setSelectedDistrictLabel] = useState('உள்ளூர்');
   const [isDrawerVisible, setIsDrawerVisible] = useState(false);
-  const [isLocationDrawerVisible, setIsLocationDrawerVisible] = useState(false);
+  const [isLocDrawerOpen, setIsLocDrawerOpen] = useState(false);
   const [commentsVisible, setCommentsVisible] = useState(false);
   const [selectedVideo, setSelectedVideo] = useState(null);
   const flatListRef = useRef(null);
@@ -268,6 +460,8 @@ const VideosScreen = ({ navigation }) => {
 
   // ── Fetch: CDNApi + API_ENDPOINTS.VIDEO_MAIN (/videomain) ────────────────────
   const fetchVideos = useCallback(async ({ cat = '', date = '', district = '', page = 1, append = false } = {}) => {
+    console.log('[VideosScreen] fetchVideos called with params:', { cat, date, district, page, append }); // Debug all params
+
     if (!append) {
       setLoading(true);
       setCurrentPage(1);
@@ -277,18 +471,40 @@ const VideosScreen = ({ navigation }) => {
     }
     setError(null);
 
-    try {
-      // Build query params
-      const params = new URLSearchParams();
-      if (cat) params.append('cat', cat);
-      if (date) params.append('date', date);
-      if (district) params.append('district', district);
-      if (page > 1) params.append('page', page.toString());
+    let endpoint = '';
 
-      const query = params.toString();
-      const endpoint = query
-        ? `${API_ENDPOINTS.VIDEO_MAIN}?${query}`
-        : API_ENDPOINTS.VIDEO_MAIN;
+    try {
+      const params = new URLSearchParams();
+
+      if (district) {
+        // District filter — use VIDEO_MAIN with cat=1585&districtid=xxx
+        params.append('cat', '1585');
+        params.append('districtid', district);
+        if (date) params.append('date', date);
+        if (page > 1) params.append('page', String(page));
+
+        const query = params.toString();
+        endpoint = `${API_ENDPOINTS.VIDEO_MAIN}?${query}`;
+      } else {
+        if (cat === 'shorts') {
+          endpoint = API_ENDPOINTS.SHORTS;
+          if (page > 1) {
+            setHasMore(false);
+            return;
+          }
+        } else {
+          if (cat) params.append('cat', cat);
+          if (date) params.append('date', date);
+          if (page > 1) params.append('page', String(page));
+
+          const query = params.toString();
+          endpoint = query
+            ? `${API_ENDPOINTS.VIDEO_MAIN}?${query}`
+            : API_ENDPOINTS.VIDEO_MAIN;
+        }
+      }
+
+      console.log('[VideosScreen] fetching:', endpoint); // ← helps debug
 
       const response = await CDNApi.get(endpoint);
       const data = response.data;
@@ -296,11 +512,54 @@ const VideosScreen = ({ navigation }) => {
       // ── Videos — filter out reels / ads ──────────────────────────────────────
       const raw = data?.videomix?.data ?? [];
       const filteredVideos = raw.filter((v) => v.type === 'news');
+      console.log('[VideosScreen] API response received, data keys:', Object.keys(data || {}));
+      console.log('[VideosScreen] Current category:', cat || 'All');
+      console.log('[VideosScreen] Endpoint used:', endpoint.includes('videomain') ? 'VIDEO_MAIN' : 'VIDEO_DATA');
+
+      if (cat === '5050') {
+        console.log('[VideosScreen] LIVE TAB API response structure:', JSON.stringify(data, null, 2));
+      } else if (cat === '') {
+        console.log('[VideosScreen] ALL TAB API response structure:', JSON.stringify(data, null, 2));
+      } else if (cat) {
+        console.log('[VideosScreen] CATEGORY TAB API response for cat=' + cat + ':', JSON.stringify(data, null, 2));
+      }
+
+      let raw = [];
+      let pagination = {};
+
+      if (cat === 'shorts') {
+        raw = Array.isArray(data) ? data : [];
+        pagination = {};
+      } else {
+        // Both regular and district filtered requests use videomix.data
+        raw = data?.videomix?.data ?? [];
+        pagination = data?.videomix || {};
+      }
+
+      let newsVideos;
+      if (cat === 'shorts') {
+        newsVideos = raw;
+      } else {
+        // For district filter (cat=1585) and all others, use all items as-is
+        // API already filters by district server-side via districtid param
+        newsVideos = raw;
+      }
+
+      console.log('[VideosScreen] Total videos received:', raw.length);
+      console.log('[VideosScreen] Videos after type filter:', newsVideos.length);
+      console.log('[VideosScreen] Raw data sample:', raw.slice(0, 2));
+
+      // API handles district filtering server-side — no client-side filtering needed
+      let finalVideos = newsVideos;
 
       if (append) {
-        setAllVideos(prev => [...prev, ...filteredVideos]);
+        setAllVideos(prev => [...prev, ...finalVideos]);
       } else {
-        setAllVideos(filteredVideos);
+        setAllVideos(finalVideos);
+      }
+
+      if (data?.taboola_ads?.mobile) {
+        setTaboolaAds(prev => prev ?? data.taboola_ads.mobile);
       }
 
       // ── Taboola ads from API ──────────────────────────────────────────────
@@ -314,37 +573,42 @@ const VideosScreen = ({ navigation }) => {
       setLastPage(pagination.last_page || 1);
       setHasMore((pagination.current_page || page) < (pagination.last_page || 1));
 
-      // ── Category tabs (first load only) ──────────────────────────────────────
-      if (data?.category?.length && categories.length === 0) {
-        const seen = new Set();
-        setCategories(
-          data.category.filter((c) => {
+      if (data?.category?.length) {
+        setCategories(prev => {
+          if (prev.length > 0) return prev;
+          const seen = new Set();
+          return data.category.filter((c) => {
             const k = String(c.value ?? '');
             if (seen.has(k)) return false;
             seen.add(k);
             return true;
-          })
-        );
+          });
+        });
       }
 
-      // ── api.filter — பதிவேற்றம் (week/month/year) ────────────────────────────
-      if (data?.filter?.length && filterOptions.length === 0) {
-        setFilterOptions(data.filter); // [{name, id, ename, slug, reacturl}]
+      if (data?.filter?.length) {
+        setFilterOptions(prev => prev.length > 0 ? prev : data.filter);
       }
 
-      // ── api.districtlist.data — district chips ────────────────────────────────
-      if (data?.districtlist?.data?.length && districtOptions.length === 0) {
-        setDistrictOptions(data.districtlist.data); // [{id, title, slug, reacturl}]
+      if (data?.districtlist?.data?.length) {
+        setDistrictOptions(prev => prev.length > 0 ? prev : data.districtlist.data);
       }
+
     } catch (err) {
       console.error('VideosScreen fetch error:', err?.message);
-      setError(err?.message || 'பிழை ஏற்பட்டது');
-    } finally {
-      if (append) {
-        setLoadingMore(false);
+      console.error('VideosScreen fetch error details:', err);
+      console.error('VideosScreen fetch error code:', err?.code);
+      console.error('VideosScreen fetch error status:', err?.response?.status);
+      console.error('VideosScreen endpoint:', endpoint);
+
+      if (err?.code === 'ERR_NETWORK' || err?.message?.includes('Network Error')) {
+        setError('இணைப்பு பிழை. இணைய இணைப்பை சரிபார்க்கவும்.');
       } else {
-        setLoading(false);
+        setError(err?.message || 'பிழை ஏற்பட்டது');
       }
+    } finally {
+      if (append) setLoadingMore(false);
+      else setLoading(false);
     }
   }, []);
 
@@ -366,30 +630,102 @@ const VideosScreen = ({ navigation }) => {
     setActiveCategory(value);
     setSelectedFilter('');
     setSelectedDistrict('');
-    fetchVideos({ cat: value });
-  };
 
-  // ── Immediate redirect on filter chip press ───────────────────────────────────
-  const handleSelectFilter = (ename) => {
-    const nextFilter = selectedFilter === ename ? '' : ename;
-    setSelectedFilter(nextFilter);
-    if (nextFilter && selectedDistrict) {
-      fetchVideos({ cat: '1585', date: nextFilter, district: selectedDistrict });
-      setFilterVisible(false);
+    if (value === '1585' || value?.toString() === '1585') {
+      fetchVideos({ cat: value, date: '', district: selectedDistrict || '' });
+    } else {
+      fetchVideos({ cat: value, date: '', district: '' });
     }
   };
 
+  // ── Date filter press — keeps district selection ──────────────────────────────
+  const handleSelectFilter = (ename) => {
+    const nextFilter = selectedFilter === ename ? '' : ename;
+    setSelectedFilter(nextFilter);
+    setActiveCategory('');
+    // Keep selectedDistrict — if district is also selected, filter by both
+    fetchVideos({
+      cat: '',
+      date: nextFilter,
+      district: selectedDistrict, // keep current district
+    });
+    setFilterVisible(false);
+  };
+
+  // ── District press — keeps date filter selection ──────────────────────────────
   const handleSelectDistrict = (id) => {
     const nextDistrict = selectedDistrict === id ? '' : id;
     setSelectedDistrict(nextDistrict);
-    if (selectedFilter && nextDistrict) {
-      fetchVideos({ cat: '1585', date: selectedFilter, district: nextDistrict });
-      setFilterVisible(false);
+    setActiveCategory('');
+    // Keep selectedFilter — if date is also selected, filter by both
+    fetchVideos({
+      cat: '',
+      date: selectedFilter, // keep current date filter
+      district: nextDistrict,
+    });
+    setFilterVisible(false);
+  };
+
+  // ── District selection for LocationDrawer (matches VideoDetailScreen) ──────
+  const handleLocationSelectDistrict = (district) => {
+    setSelectedDistrictLabel(district.title);
+    setIsLocDrawerOpen(false);
+    if (district.id) {
+      setSelectedDistrict(String(district.id));
+      // Fetch videos for selected district
+      fetchVideos({ cat: '1585', date: '', district: String(district.id) });
     }
   };
 
   // ── Nav ───────────────────────────────────────────────────────────────────────
-  const handleMenuPress = () => navigation?.openDrawer?.();
+  const handleMenuPress = (menuItem) => {
+    // Debug: Log the menu item structure
+    console.log('TopMenuStrip menu item clicked:', menuItem);
+    
+    // Handle menu item navigation based on menu item properties
+    if (menuItem?.screen_name) {
+      console.log('Navigating to screen:', menuItem.screen_name);
+      navigation?.navigate?.(menuItem.screen_name);
+    } else if (menuItem?.url) {
+      // Handle URL navigation if needed
+      console.log('Navigate to URL:', menuItem.url);
+    } else if (menuItem?.Title || menuItem?.title) {
+      // Try to navigate based on title
+      const title = menuItem.Title || menuItem.title;
+      console.log('Menu title:', title);
+      
+      // Map common titles to screen names
+      const screenMapping = {
+        'Home': 'HomeScreen',
+        'Videos': 'VideosScreen', 
+        'News': 'NewsScreen',
+        'Cinema': 'CinemaScreen',
+        'Sports': 'SportsScreen',
+        'Business': 'BusinessScreen',
+        'Technology': 'TechnologyScreen',
+        'Health': 'HealthScreen',
+        'Education': 'EducationScreen',
+        'வீடியோ': 'VideosScreen',
+        'செய்திகள்': 'NewsScreen',
+        'சினிமா': 'CinemaScreen',
+        'விளையாடம்': 'SportsScreen',
+      };
+      
+      const targetScreen = screenMapping[title];
+      if (targetScreen) {
+        console.log('Mapped title to screen:', targetScreen);
+        navigation?.navigate?.(targetScreen);
+      } else {
+        console.log('No screen mapping found for title:', title);
+        // Fallback to opening drawer
+        navigation?.openDrawer?.();
+      }
+    } else {
+      console.log('No navigation info found, opening drawer');
+      // Fallback to opening drawer if no specific navigation is defined
+      navigation?.openDrawer?.();
+    }
+  };
   const handleSearch = () => navigation?.navigate?.('Search');
   const handleNotification = () => console.log('Notifications');
 
@@ -406,23 +742,64 @@ const VideosScreen = ({ navigation }) => {
   const activeDistrictLabel =
     districtOptions.find((d) => String(d.id) === selectedDistrict)?.title;
 
+  // ── Build listData preserving API order ───────────────────────────────────────
+  // Walks allVideos in original order.
+  // Consecutive reels get buffered and flushed as a single shorts_strip item.
+  // Result: [video, video, shorts_strip([r,r,r]), video, shorts_strip([r]), video...]
+  const listData = useMemo(() => {
+    if (allVideos.length === 0) return [];
+
+    const result = [];
+    let reelsBuffer = [];
+    let adCounter = 0;
+    let stripIndex = 0;
+
+    const flushReels = () => {
+      if (reelsBuffer.length === 0) return;
+      result.push({
+        _type: 'shorts_strip',
+        _key: `shorts_strip_${stripIndex++}`,
+        items: [...reelsBuffer],
+      });
+      reelsBuffer = [];
+    };
+
+    allVideos.forEach((video) => {
+      if (video.type === 'reels') {
+        // Accumulate consecutive reels together
+        reelsBuffer.push(video);
+      } else if (video.type === 'googlead') {
+        // Skip googleads
+        flushReels();
+      } else {
+        // Regular video — flush any buffered reels first
+        flushReels();
+
+        result.push({ ...video, _type: 'video' });
+        adCounter++;
+
+        // Insert taboola ad every AD_INTERVAL regular videos
+        if (taboolaAds?.midmain && adCounter % AD_INTERVAL === 0) {
+          result.push({
+            _type: 'taboola_ad',
+            _key: `taboola_${adCounter}`,
+            ...taboolaAds.midmain,
+          });
+        }
+      }
+    });
+
+    // Flush any remaining reels at the end
+    flushReels();
+
+    return result;
+  }, [allVideos, taboolaAds]);
+
   // ── List header ───────────────────────────────────────────────────────────────
-  const ListHeader = () => (
-    <View>
-      {/* Category tabs + Filter icon */}
-      <View style={styles.catRow}>
-        <TouchableOpacity
-          style={[styles.filterIconBtn]}
-          onPress={() => setFilterVisible(true)}
-          activeOpacity={0.8}
-        >
-          <Ionicons
-            name="filter"
-            size={20}
-            color={hasActiveFilter ? PALETTE.grey600 : PALETTE.grey600}
-          />
-          {/* {hasActiveFilter && <View style={styles.filterDot} />} */}
-        </TouchableOpacity>
+  const ListHeader = () => {
+    if (loading) {
+      return <VideoSkeletonLoader />;
+    }
 
         <ScrollView
           horizontal
@@ -450,10 +827,72 @@ const VideosScreen = ({ navigation }) => {
           })}
         </ScrollView>
       </View>
+    return (
+      <View>
+        {/* Category tabs + Filter icon */}
+        <View style={styles.catRow}>
+          <TouchableOpacity
+            style={[styles.filterIconBtn, hasActiveFilter && styles.filterIconBtnActive]}
+            onPress={() => setFilterVisible(true)}
+            activeOpacity={0.8}
+          >
+            <Ionicons
+              name="filter"
+              size={20}
+              color={hasActiveFilter ? PALETTE.primary : PALETTE.grey600}
+            />
+            {hasActiveFilter && <View style={styles.filterDot} />}
+          </TouchableOpacity>
 
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.catTabsContent}
+            style={{ flex: 1 }}
+          >
+            {categories.map((cat, idx) => {
+              const isActive = activeCategory === String(cat.value ?? '') && !selectedFilter;
+              return (
+                <TouchableOpacity
+                  key={`cat_${cat.value ?? idx}`}
+                  onPress={() => handleCategoryPress(String(cat.value ?? ''))}
+                  style={[styles.catTab, isActive && styles.catTabActive]}
+                  activeOpacity={0.8}
+                >
+                  {String(cat.value) === '5050' && (
+                    <View style={[styles.liveDot, isActive && { backgroundColor: PALETTE.white }]} />
+                  )}
+                  <Text style={[styles.catTabText, isActive && styles.catTabTextActive, { fontSize: sf(12) }]}>
+                    {cat.title}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        </View>
 
-    </View>
-  );
+        {/* Active filter bar — shown when a date filter is selected */}
+        {/* {!!selectedFilter && (
+          <View style={styles.activeFilterBar}>
+            <Ionicons name="calendar-outline" size={s(14)} color={PALETTE.primary} />
+            <Text style={[styles.activeFilterBarText, { fontSize: sf(12) }]}>
+              {filterOptions.find(f => f.ename === selectedFilter)?.name || selectedFilter}
+            </Text>
+            <TouchableOpacity
+              onPress={() => {
+                setSelectedFilter('');
+                fetchVideos({ cat: activeCategory, date: '', district: selectedDistrict });
+              }}
+              style={styles.activeFilterClearBtn}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="close-circle" size={s(16)} color={PALETTE.primary} />
+            </TouchableOpacity>
+          </View>
+        )} */}
+      </View>
+    );
+  };
 
   // ── Load more handler ───────────────────────────────────────────────────────────
   const handleLoadMore = () => {
@@ -467,6 +906,21 @@ const VideosScreen = ({ navigation }) => {
     if (selectedDistrict) params.district = selectedDistrict;
 
     fetchVideos(params);
+    // Disable pagination for shorts tab only
+    if (activeCategory === 'shorts') {
+      console.log('[VideosScreen] Pagination disabled for shorts tab');
+      setHasMore(false);
+      return;
+    }
+
+    // Allow pagination for all other cases including date filters and category tabs
+    fetchVideos({
+      cat: activeCategory,
+      date: selectedFilter,
+      district: selectedDistrict,
+      page: currentPage + 1,
+      append: true,
+    });
   };
 
   // ── Footer component ───────────────────────────────────────────────────────────
@@ -476,19 +930,24 @@ const VideosScreen = ({ navigation }) => {
     return (
       <View style={styles.loadingFooter}>
         <ActivityIndicator size="small" color={PALETTE.primary} />
-        <Text style={[styles.loadingText, { fontSize: sf(12) }]}>மேலும் ஏற்றுகிறது...</Text>
       </View>
     );
   };
 
-  // ── Empty / error / loading ───────────────────────────────────────────────────
+  // ── Empty state component ───────────────────────────────────────────────────────
   const ListEmpty = () => {
-    if (loading) return (
+    if (loading) return null;
+
+    return (
       <View style={styles.centeredState}>
-        <ActivityIndicator size="large" color={PALETTE.red} />
-        <Text style={[styles.stateText, { fontSize: sf(14) }]}>ஏற்றுகிறது...</Text>
-        <Text style={styles.stateIcon}>🎬</Text>
-        <Text style={styles.stateText}>வீடியோக்கள் இல்லை</Text>
+        <Text style={styles.stateIcon}>📭</Text>
+        <Text style={[styles.stateText, { fontSize: sf(14) }]}>தகவல் இல்லை</Text>
+        <Text style={[styles.stateSubText, { fontSize: sf(12) }]}>
+          {selectedDistrict
+            ? `${districtOptions.find(d => String(d.id) === selectedDistrict)?.title || ''} மாவட்டத்தில் இல்லை`
+            : 'தகவல் இல்லை'
+          }
+        </Text>
       </View>
     );
   };
@@ -524,9 +983,9 @@ const VideosScreen = ({ navigation }) => {
       />
 
       <AppHeaderComponent
-        onSearch={handleSearch}
+        onSearch={() => navigation?.navigate('Search')}
         onMenu={() => setIsDrawerVisible(true)}
-        onLocation={() => setIsLocationDrawerVisible(true)}
+        onLocation={() => setIsLocDrawerOpen(true)}
         selectedDistrict={selectedDistrictLabel}
       />
 
@@ -536,10 +995,22 @@ const VideosScreen = ({ navigation }) => {
         scrollEventThrottle={16}
         data={loading ? [] : feedItems}
         keyExtractor={(item, idx) => {
+        data={loading ? [] : listData}
+        keyExtractor={(item, idx) => {
+          if (item._type === 'shorts_strip') return item._key || `shorts_strip_${idx}`;
           if (item._type === 'taboola_ad') return item._key || `taboola_${idx}`;
           return item?.videoid != null ? `video_${item.videoid}` : `item_${idx}`;
         }}
         renderItem={({ item }) => {
+          // ── Shorts strip — pass item.items (only this strip's reels) ────
+          if (item._type === 'shorts_strip') {
+            return (
+              <ShortsSectionRow
+                items={item.items}
+                onPress={(v) => navigation?.navigate?.('VideoDetailScreen', { video: v })}
+              />
+            );
+          }
           // ── Taboola ad slot ──────────────────────────────────────────────
           if (item._type === 'taboola_ad') {
             return (
@@ -559,6 +1030,10 @@ const VideosScreen = ({ navigation }) => {
               video={item}
               onPress={(v) => navigation?.navigate?.('VideoDetailScreen', { video: v })}
               onCommentsPress={handleCommentsPress}
+              districtLabel={selectedDistrict
+                ? districtOptions.find(d => String(d.id) === selectedDistrict)?.title || ''
+                : ''
+              }
             />
           );
         }}
@@ -581,8 +1056,14 @@ const VideosScreen = ({ navigation }) => {
         districtOptions={districtOptions}
         selectedDistrict={selectedDistrict}
         onSelectDistrict={handleSelectDistrict}
+        onClearAll={() => {
+          setSelectedFilter('');
+          setSelectedDistrict('');
+          setActiveCategory('');
+          fetchVideos({ cat: '', date: '', district: '' });
+          setFilterVisible(false);
+        }}
       />
-
       {/* Comments Modal */}
       <CommentsModal
         visible={commentsVisible}
@@ -591,6 +1072,51 @@ const VideosScreen = ({ navigation }) => {
         newsTitle={selectedVideo?.videotitle}
         commentCount={parseInt(selectedVideo?.nmcomment || 0)}
       />
+      
+      {/* Drawer Menu */}
+      <DrawerMenu
+        isVisible={isDrawerVisible}
+        onClose={() => setIsDrawerVisible(false)}
+        onMenuPress={(menuItem) => {
+          console.log('Drawer menu item clicked:', menuItem);
+          // Handle drawer menu navigation
+          if (menuItem?.screen_name) {
+            navigation?.navigate?.(menuItem.screen_name);
+          } else if (menuItem?.Title || menuItem?.title) {
+            const title = menuItem.Title || menuItem.title;
+            const screenMapping = {
+              'Home': 'HomeScreen',
+              'Videos': 'VideosScreen', 
+              'News': 'NewsScreen',
+              'Cinema': 'CinemaScreen',
+              'Sports': 'SportsScreen',
+              'Business': 'BusinessScreen',
+              'Technology': 'TechnologyScreen',
+              'Health': 'HealthScreen',
+              'Education': 'EducationScreen',
+              'வீடியோ': 'VideosScreen',
+              'செய்திகள்': 'NewsScreen',
+              'சினிமா': 'CinemaScreen',
+              'விளையாடம்': 'SportsScreen',
+            };
+            const targetScreen = screenMapping[title];
+            if (targetScreen) {
+              navigation?.navigate?.(targetScreen);
+            }
+          }
+          setIsDrawerVisible(false);
+        }}
+        navigation={navigation}
+      />
+      
+      {/* Location Drawer - matches VideoDetailScreen exactly */}
+      <LocationDrawer
+        isVisible={isLocDrawerOpen}
+        onClose={() => setIsLocDrawerOpen(false)}
+        onSelectDistrict={handleLocationSelectDistrict}
+        selectedDistrict={selectedDistrictLabel}
+      />
+      
       {showScrollTop && (
         <TouchableOpacity
           style={styles.scrollTopBtn}
@@ -626,11 +1152,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center', alignItems: 'center',
     position: 'relative',
   },
-  filterIconBtnActive: { backgroundColor: '#FFF0F0' },
+  filterIconBtnActive: { backgroundColor: '#EBF5FF', borderWidth: 1, borderColor: PALETTE.primary },
   filterDot: {
     position: 'absolute', top: s(5), right: s(5),
     width: s(7), height: s(7), borderRadius: s(4),
-    backgroundColor: PALETTE.red,
+    backgroundColor: PALETTE.primary,
     borderWidth: 1.5, borderColor: PALETTE.white,
   },
   catTabsContent: {
@@ -669,6 +1195,27 @@ const styles = StyleSheet.create({
   listContent: { backgroundColor: PALETTE.grey200, paddingBottom: vs(80) },
   divider: { height: vs(6), backgroundColor: PALETTE.grey200 },
 
+  // Active filter bar
+  activeFilterBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: s(6),
+    paddingHorizontal: s(14),
+    paddingVertical: vs(8),
+    backgroundColor: '#EBF5FF',
+    borderBottomWidth: 1,
+    borderBottomColor: PALETTE.primary + '30',
+  },
+  activeFilterBarText: {
+    flex: 1,
+    color: PALETTE.primary,
+    fontFamily: FONTS.muktaMalar.semibold,
+    fontWeight: '600',
+  },
+  activeFilterClearBtn: {
+    padding: s(2),
+  },
+
   // Card
   card: { backgroundColor: PALETTE.white, paddingHorizontal: ms(14) },
   thumbWrap: { width: '100%', aspectRatio: 16 / 9, backgroundColor: PALETTE.dark, position: 'relative' },
@@ -677,7 +1224,6 @@ const styles = StyleSheet.create({
   thumbPlaceholderIcon: { fontSize: ms(40) },
   thumbOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.28)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -715,9 +1261,9 @@ const styles = StyleSheet.create({
     gap: s(3),
   },
   commentCount: {
-    color: PALETTE.white,
-    fontWeight: '700',
-    fontFamily: FONTS.muktaMalar.bold,
+    color: PALETTE.grey600,
+    fontWeight: '600',
+    fontSize: ms(10),
   },
   watermarkWrap: { position: 'absolute', bottom: vs(10), left: s(46), flexDirection: 'row' },
   watermarkRed: { fontSize: ms(9), color: '#FF4444', fontWeight: '800', opacity: 0.85 },
@@ -726,15 +1272,11 @@ const styles = StyleSheet.create({
   videoTitle: {
     fontFamily: FONTS.muktaMalar.bold,
     color: PALETTE.grey800,
-    marginTop: vs(10)
-  }
-  ,
+    marginTop: vs(10),
+  },
   cardMeta: {
     flexDirection: 'row',
-    // alignItems: 'center',
-    // marginBottom: vs(10),
-    // gap: s(10),
-    justifyContent: "space-between"
+    justifyContent: 'space-between',
   },
   cardMetaLeft: {
     flexDirection: 'row',
@@ -756,19 +1298,20 @@ const styles = StyleSheet.create({
     borderRadius: s(4),
     backgroundColor: PALETTE.grey200,
   },
-  commentCount: {
-    color: PALETTE.grey600,
-    fontWeight: '600',
-    fontSize: ms(10),
-  },
   categoryPill: {
-    // borderRadius: s(4),
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: s(10),
     paddingVertical: vs(2),
     borderWidth: 1,
-    borderColor: PALETTE.grey400
+    borderColor: PALETTE.grey400,
+  },
+  categoryPillDistrict: {
+    borderColor: PALETTE.primary,
+    backgroundColor: '#EBF5FF',
   },
   categoryPillText: { fontSize: ms(11), color: PALETTE.grey600, fontWeight: '600', fontFamily: FONTS.muktaMalar.semibold },
+  categoryPillTextDistrict: { color: PALETTE.primary },
   metaDate: {
     fontFamily: FONTS.muktaMalar.regular,
     color: PALETTE.grey600,
@@ -778,21 +1321,18 @@ const styles = StyleSheet.create({
   centeredState: { alignItems: 'center', paddingTop: vs(80), paddingBottom: vs(40), backgroundColor: PALETTE.grey200 },
   stateIcon: { fontSize: ms(48), marginBottom: vs(12) },
   stateText: { fontSize: ms(14), color: PALETTE.grey500, marginTop: vs(8), fontFamily: FONTS.muktaMalar.regular },
+  stateSubText: { fontSize: ms(12), color: PALETTE.grey400, marginTop: vs(4), fontFamily: FONTS.muktaMalar.regular },
   retryBtn: { marginTop: vs(16), backgroundColor: PALETTE.red, borderRadius: s(8), paddingHorizontal: s(20), paddingVertical: vs(10) },
   retryBtnText: { color: PALETTE.white, fontWeight: '700', fontSize: ms(14), fontFamily: FONTS.muktaMalar.bold },
 
   // Filter sheet
   modalContainer: { flex: 1, position: 'relative' },
-  modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)' },
+  modalBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.45)' },
   filterSheet: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
     backgroundColor: PALETTE.white,
     borderTopLeftRadius: s(22), borderTopRightRadius: s(22),
     paddingBottom: Platform.OS === 'ios' ? vs(36) : vs(24),
-    maxHeight: '85%',
+    maxHeight: '80%',
     elevation: 24,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -4 },
@@ -831,11 +1371,56 @@ const styles = StyleSheet.create({
   shadowRadius: s(4),
   zIndex: 100,
 },
+    position: 'absolute',
+    bottom: vs(24), right: s(16),
+    width: s(48), height: s(48), borderRadius: s(24),
+    backgroundColor: PALETTE.primary,
+    justifyContent: 'center', alignItems: 'center',
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: vs(2) },
+    shadowOpacity: 0.22, shadowRadius: s(4),
+    zIndex: 100,
+  },
+  clearBtn: {
+    paddingHorizontal: s(12), paddingVertical: vs(5),
+    borderRadius: s(14), borderWidth: 1, borderColor: PALETTE.red,
+  },
+  clearBtnTxt: { color: PALETTE.red, fontWeight: '700', fontFamily: FONTS.muktaMalar.bold },
+  activeSummary: {
+    flexDirection: 'row', alignItems: 'center', gap: s(6),
+    paddingHorizontal: s(20), paddingVertical: vs(10),
+    backgroundColor: PALETTE.primary + '12',
+    borderBottomWidth: 1, borderBottomColor: PALETTE.primary + '30',
+  },
+  activeSummaryTxt: {
+    color: PALETTE.primary, fontWeight: '600',
+    fontFamily: FONTS.muktaMalar.semibold, flex: 1,
+  },
+  filterSectionRow: {
+    flexDirection: 'row', alignItems: 'center',
+    justifyContent: 'space-between', marginBottom: vs(12),
+  },
+  sectionClearTxt: { color: PALETTE.red, fontWeight: '600' },
+  sheetDivider: {
+    height: 1, backgroundColor: PALETTE.grey200,
+    marginHorizontal: s(20), marginVertical: vs(4),
+  },
+  sheetFooter: {
+    paddingHorizontal: s(20), paddingVertical: vs(12),
+    borderTopWidth: 1, borderTopColor: PALETTE.grey200,
+  },
+  applyBtn: {
+    backgroundColor: PALETTE.primary, borderRadius: s(10),
+    paddingVertical: vs(13), alignItems: 'center',
+  },
+  applyBtnTxt: { color: PALETTE.white, fontWeight: '700', fontFamily: FONTS.muktaMalar.bold },
 
   // Filter sections
   filterSection: { paddingHorizontal: s(20), paddingTop: vs(18), paddingBottom: vs(4) },
   filterSectionLabel: {
-    fontSize: ms(14), fontWeight: '700', color: PALETTE.grey800, marginBottom: vs(12), fontFamily: FONTS.muktaMalar.bold,
+    fontSize: ms(14), fontWeight: '700', color: PALETTE.grey800,
+    marginBottom: vs(12), fontFamily: FONTS.muktaMalar.bold,
   },
 
   // Chips
@@ -857,12 +1442,169 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: vs(20),
     backgroundColor: PALETTE.grey200,
+    flexDirection: 'row', justifyContent: 'center', alignItems: 'center',
+    paddingVertical: vs(20), backgroundColor: PALETTE.grey200,
   },
   loadingText: {
-    marginLeft: s(8),
-    color: PALETTE.grey600,
-    fontFamily: FONTS.muktaMalar.regular,
+    marginLeft: s(8), color: PALETTE.grey600, fontFamily: FONTS.muktaMalar.regular,
+  },
+
+  // ─── Short Card (HomeScreen ShortsCard style) ────────────────────────────────
+  shortCard: {
+    width: s(120),
+    marginRight: s(12),
+    flexShrink: 0,
+  },
+  shortCardImageContainer: {
+    width: s(120),
+    height: vs(200),
+    borderRadius: s(8),
+    overflow: 'hidden',
+    backgroundColor: PALETTE.grey200,
+  },
+  shortCardImage: {
+    width: s(120),
+    height: vs(200),
+  },
+  shortCardPlayOverlay: {
+    position: 'absolute',
+    top: 0, left: 0,
+    width: s(120),
+    height: vs(200),
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.3)',
+  },
+  shortCardPlayButton: {
+    width: s(32),
+    height: s(32),
+    borderRadius: s(16),
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingLeft: s(2),
+  },
+  shortCardTitleOverlay: {
+    position: 'absolute',
+    bottom: 0, left: 0, right: 0,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    paddingVertical: vs(6),
+    paddingHorizontal: s(8),
+  },
+  shortCardBottomTitle: {
+    fontFamily: FONTS.muktaMalar.bold,
+    color: '#FFFFFF',
+    textAlign: 'center',
+    textShadowColor: 'rgba(0,0,0,0.8)',
+    textShadowOffset: { width: 1, height: 1 },
+  },
+
+  // ─── Shorts Section Row ──────────────────────────────────────────────────────
+  shortsSectionContainer: {
+    backgroundColor: PALETTE.white,
+    paddingTop: vs(12),
+    paddingBottom: vs(14),
+    borderBottomWidth: 1,
+    borderBottomColor: PALETTE.grey300,
+  },
+  shortsSectionHeader: {
+    paddingHorizontal: s(14),
+    marginBottom: vs(10),
+  },
+  shortsSectionTitleWrap: {
+    gap: vs(3),
+  },
+  shortsSectionTitle: {
+    fontFamily: FONTS.muktaMalar.bold,
+    color: PALETTE.grey800,
+    fontWeight: '700',
+  },
+  shortsSectionUnderline: {
+    height: vs(3),
+    width: s(36),
+    backgroundColor: PALETTE.primary,
+    borderRadius: s(2),
+  },
+  shortsSectionScrollView: {
+    height: vs(200),
+    flexGrow: 0,
+    flexShrink: 0,
+  },
+  shortsSectionScroll: {
+    paddingHorizontal: s(14),
+    flexDirection: 'row',
+    alignItems: 'flex-start',
   },
 });
+
+// ─── Video Skeleton Card ─────────────────────────────────────────────────────────
+const VideoSkeletonCard = () => (
+  <View style={styles.card}>
+    <View style={styles.thumbWrap}>
+      <View style={[styles.thumbnail, { backgroundColor: PALETTE.grey200 }]} />
+      <View style={styles.thumbOverlay} />
+      <View style={[styles.thumbPlayBtn, { backgroundColor: PALETTE.grey300 }]} />
+      <View style={[styles.durationBadge, { backgroundColor: PALETTE.grey300 }]}>
+        <View style={{ width: s(30), height: vs(10), backgroundColor: PALETTE.grey400, borderRadius: s(2) }} />
+      </View>
+    </View>
+    <View style={styles.cardBody}>
+      <View style={[styles.videoTitle, { height: vs(20), backgroundColor: PALETTE.grey200, borderRadius: s(4), marginBottom: vs(5) }]} />
+      <View style={[styles.metaDate, { height: vs(14), backgroundColor: PALETTE.grey200, borderRadius: s(4), width: s(80), marginBottom: vs(8) }]} />
+      <View style={styles.cardMeta}>
+        <View style={styles.cardMetaLeft}>
+          <View style={[styles.categoryPill, { backgroundColor: PALETTE.grey200, borderColor: PALETTE.grey300 }]}>
+            <View style={{ width: s(40), height: vs(12), backgroundColor: PALETTE.grey300, borderRadius: s(2) }} />
+          </View>
+        </View>
+        <View style={styles.cardMetaRight}>
+          <View style={[styles.commentBtn, { backgroundColor: PALETTE.grey200 }]}>
+            <View style={{ width: s(20), height: s(20), backgroundColor: PALETTE.grey300, borderRadius: s(10) }} />
+          </View>
+        </View>
+      </View>
+    </View>
+  </View>
+);
+
+// ─── Enhanced Video Skeleton Loader ─────────────────────────────────────────────────
+const VideoSkeletonLoader = () => (
+  <View style={{ backgroundColor: PALETTE.white }}>
+    {/* Category tabs skeleton */}
+    <View style={styles.catRow}>
+      <View style={[styles.filterIconBtn, { backgroundColor: PALETTE.grey200 }]} />
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.catTabsContent}
+        style={{ flex: 1 }}
+      >
+        {[1, 2, 3, 4, 5].map((i) => (
+          <View
+            key={i}
+            style={[styles.catTab, { backgroundColor: PALETTE.grey200, borderColor: PALETTE.grey300, width: s(80) }]}
+          />
+        ))}
+      </ScrollView>
+    </View>
+    
+    {/* Loading indicator */}
+    <View style={{ alignItems: 'center', paddingVertical: vs(20), backgroundColor: PALETTE.grey100 }}>
+      <ActivityIndicator size="small" color={PALETTE.primary} />
+      <Text style={[{ fontSize: sf(12), color: PALETTE.grey600, marginTop: vs(8) }]}>
+        Loading videos...
+      </Text>
+    </View>
+    
+    {/* Video cards skeleton with better spacing */}
+    <View style={{ paddingHorizontal: s(12) }}>
+      {[1, 2, 3].map((i) => (
+        <View key={i} style={{ marginBottom: vs(12) }}>
+          <VideoSkeletonCard />
+        </View>
+      ))}
+    </View>
+  </View>
+);
 
 export default VideosScreen;

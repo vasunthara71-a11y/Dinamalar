@@ -810,7 +810,7 @@ export default function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [isDrawerVisible, setIsDrawerVisible] = useState(false);
   const [isLocationDrawerVisible, setIsLocationDrawerVisible] = useState(false);
-  const [selectedDistrict, setSelectedDistrict] = useState('???????');
+  const [selectedDistrict, setSelectedDistrict] = useState('உள்ளூர்');
   const [showScrollTop, setShowScrollTop] = useState(false);
   // ── taboolaAds: stores only the mobile object, e.g. { midmain: {...} }
   const [taboolaAds, setTaboolaAds] = useState(null);
