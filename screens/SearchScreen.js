@@ -18,11 +18,91 @@ import { useNavigation } from '@react-navigation/native';
 import { s, vs } from '../utils/scaling';
 import { ms } from 'react-native-size-matters';
 import { FONTS, getFontFamily } from '../utils/fonts';
+import { COLORS, NewsCard as NewsCardStyles } from '../utils/constants';
+import { useFontSize } from '../context/FontSizeContext';
 import UniversalHeaderComponent from '../components/UniversalHeaderComponent';
 import AppHeaderComponent from '../components/AppHeaderComponent';
 import axios from 'axios';
 
 const SEARCH_API_BASE = 'https://api-st-cdn.dinamalar.com/searchfilter?search=';
+
+// News Card (same as CommonSectionScreen)
+// ─────────────────────────────────────────────────────────────────────────────
+function NewsCard({ item, onPress, sectionTitle = '' }) {
+  const { sf } = useFontSize();
+
+  const imageUri =
+    item.largeimages || item.images || item.image || item.thumbnail || item.thumb ||
+    'https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_default.jpg?im=Resize,width=400';
+
+  const title = item.newstitle || item.title || item.videotitle || item.name || '';
+  const category = item.maincat || item.categrorytitle || item.ctitle || item.maincategory || sectionTitle || '';
+  const ago = item.ago || item.time_ago || item.standarddate || item.date || '';
+  const newscomment = item.newscomment || item.commentcount || item.nmcomment || item.comments?.total || '';
+  const hasAudio = item.audio === 1 || item.audio === '1' || item.audio === true ||
+    (typeof item.audio === 'string' && item.audio.length > 1 && item.audio !== '0');
+
+  return (
+    <View style={NewsCardStyles.wrap}>
+      <TouchableOpacity onPress={onPress} activeOpacity={0.88}>
+        <View style={NewsCardStyles.imageWrap}>
+          <Image
+            source={{ uri: imageUri }}
+            style={NewsCardStyles.image}
+            resizeMode="contain"
+          />
+        </View>
+
+        <View style={NewsCardStyles.contentContainer}>
+          {!!title && (
+            <Text style={[NewsCardStyles.title, { fontSize: sf(14), lineHeight: sf(22) }]} numberOfLines={3}>{title}</Text>
+          )}
+
+          {!!category && (
+            <View style={NewsCardStyles.catPill}>
+              <Text style={[NewsCardStyles.catText, { fontSize: sf(12) }]}>{category}</Text>
+            </View>
+          )}
+
+          <View style={NewsCardStyles.metaRow}>
+            <Text style={[NewsCardStyles.timeText, { fontSize: sf(12) }]}>{ago}</Text>
+            <View style={NewsCardStyles.metaRight}>
+              {hasAudio && (
+                <View style={NewsCardStyles.audioIcon}>
+                  <Ionicons name="volume-high" size={s(14)} color={COLORS.text} />
+                </View>
+              )}
+
+              {!!newscomment && newscomment !== '0' && (
+                <View style={NewsCardStyles.commentRow}>
+                  <Ionicons name="chatbox" size={s(14)} color={COLORS.text} />
+                  <Text style={[NewsCardStyles.commentText, { fontSize: sf(12) }]}> {newscomment}</Text>
+                </View>
+              )}
+            </View>
+          </View>
+        </View>
+      </TouchableOpacity>
+
+      <View style={NewsCardStyles.divider} />
+    </View>
+  );
+}
+
+// Section Title (same as CommonSectionScreen)
+// ─────────────────────────────────────────────────────────────────────────────
+function SectionTitle({ title }) {
+  const { sf } = useFontSize();
+
+  return (
+    <View style={styles.sectionHeader}>
+      <View style={styles.titleContainer}>
+        <Text style={[styles.sectionTitle, { fontSize: sf(16) }]}>{title || ''}</Text>
+        <View style={styles.sectionUnderline} />
+      </View>
+    </View>
+  );
+}
 
 // ─── Short Card (Dinamalar mobile website style - landscape like video cards) ──
 const ShortCard = ({ video, onPress }) => {
@@ -94,7 +174,7 @@ const ShortsSectionRow = ({ items, onPress }) => {
     <View style={styles.shortsSectionContainer}>
       <View style={styles.shortsSectionHeader}>
         <View style={styles.shortsSectionTitleWrap}>
-          <Text style={styles.shortsSectionTitle}>Shorts</Text>
+          <Text style={styles.sectionTitle}>Shorts</Text>
           <View style={styles.shortsSectionUnderline} />
         </View>
       </View>
@@ -226,6 +306,8 @@ var SearchScreen = function() {
   var ac = useState('all');      var activeCategory = ac[0]; var setActiveCategory = ac[1];
   var cf = useState([]);         var categoryFilter = cf[0]; var setCategoryFilter = cf[1];
   var tk = useState([]);         var trendingTopics = tk[0]; var setTrendingTopics = tk[1];
+  var mc = useState([]);         var mostCommented   = mc[0]; var setMostCommented   = mc[1];
+  var ml = useState(false);      var mostCommentedLoading = ml[0]; var setMostCommentedLoading = ml[1];
   var cp = useState(1);          var currentPage    = cp[0]; var setCurrentPage    = cp[1];
   var lp = useState(1);          var lastPage       = lp[0]; var setLastPage       = lp[1];
   var cq = useRef('');           // track current query for load more
@@ -248,6 +330,26 @@ var SearchScreen = function() {
         }
       })
       .catch(function() {});
+
+    // Fetch most commented data
+    setMostCommentedLoading(true);
+    axios.get('https://api-st-cdn.dinamalar.com/photodata')
+      .then(function(response) {
+        var data = response && response.data;
+        console.log('[SearchScreen] Most commented API response:', data);
+        if (data && data.mostcommented && Array.isArray(data.mostcommented.data)) {
+          console.log('[SearchScreen] Found most commented data:', data.mostcommented.data.length, 'items');
+          setMostCommented(data.mostcommented.data.slice(0, 10)); // Limit to 10 items
+        } else {
+          console.log('[SearchScreen] No most commented data found');
+        }
+      })
+      .catch(function(err) {
+        console.error('Most commented fetch error:', err);
+      })
+      .finally(function() {
+        setMostCommentedLoading(false);
+      });
   }, []);
 
   var handleMenuPress = function(menuItem) {};
@@ -566,6 +668,25 @@ var SearchScreen = function() {
               </View>
             </View>
           )}
+
+          {/* Most Commented */}
+          {mostCommented.length > 0 && (
+            <SectionTitle title="அதிகம் விமர்ச்சிக்கப்பட்டவை" />
+          )}
+          {mostCommented.length > 0 && (
+            <View style={styles.mostCommentedList}>
+              {mostCommented.map(function(item, idx) {
+                return (
+                  <NewsCard
+                    key={`most-commented-${idx}`}
+                    item={item}
+                    onPress={handleItemPress}
+                    sectionTitle="Most Commented"
+                  />
+                );
+              })}
+            </View>
+          )}
         </ScrollView>
       ) : null}
 
@@ -781,6 +902,32 @@ var styles = StyleSheet.create({
     fontSize: ms(13),
     color: '#333',
     fontFamily: 'MuktaMalar',
+  },
+
+  // ── Section Title (same as CommonSectionScreen) ───────────────────────────────
+  sectionHeader: {
+    // paddingBottom: vs(10),
+    paddingVertical:ms(15)
+  },
+  titleContainer: {
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+  },
+  sectionTitle: {
+    fontFamily: 'MuktaMalar',
+    fontWeight: '700',
+    color: '#111',
+    marginBottom: vs(2),
+   },
+  sectionUnderline: {
+    height: vs(5),
+    width: '30%',
+    backgroundColor: '#1565C0',
+  },
+
+  // ── Most Commented ───────────────────────────────────────────────────────────
+  mostCommentedList: {
+    backgroundColor: '#f2f2f2',
   },
 
   // ── Category tabs ────────────────────────────────────────────────────────────

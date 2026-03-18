@@ -137,7 +137,7 @@ export const FONTS = {
         position: 'relative',
       },
       imageWrap: {
-        marginHorizontal: s(12),
+        // marginHorizontal: s(12),
         marginTop: vs(8),
         // borderRadius: s(6),
         overflow: 'hidden',
@@ -155,8 +155,8 @@ export const FONTS = {
         alignItems: 'center',
       },
       contentContainer: {
-        paddingHorizontal: s(12),
-        paddingTop: vs(15),
+        paddingHorizontal: s(10),
+        paddingTop: vs(10),
         paddingBottom: vs(15),
       },
       title: {

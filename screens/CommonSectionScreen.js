@@ -20,6 +20,101 @@ import { ms, s, vs } from '../utils/scaling';
 import { COLORS, FONTS, NewsCard as NewsCardStyles } from '../utils/constants';
 import TEXT_STYLES from '../utils/textStyles';
 import { useFontSize } from '../context/FontSizeContext';
+import { WebView } from 'react-native-webview';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import VideoPlayerModal from '../components/VideoPlayerModal';
+
+// ── Taboola publisher ID for mobile (from your website TaboolaScript.js) ──────
+const TABOOLA_PUBLISHER_ID = 'mdinamalarcom';
+
+// ─── Taboola Widget ───────────────────────────────────────────────────────────
+function TaboolaWidget({ pageUrl, mode, container, placement, pageType = 'homepage', targetType = 'mix' }) {
+  const [height, setHeight] = useState(1);
+  if (!mode || !container || !placement || !pageUrl) return null;
+  const safe = (str) => String(str || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+
+  const html = `<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+      body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+      #${safe(container)} { width: 100%; }
+      img { max-width: 100%; height: auto; }
+    </style>
+  </head>
+  <body>
+    <div id="${safe(container)}"></div>
+    <script type="text/javascript">
+      window._taboola = window._taboola || [];
+      _taboola.push({ article: 'auto' });
+      _taboola.push({
+        mode:        '${safe(mode)}',
+        container:   '${safe(container)}',
+        placement:   '${safe(placement)}',
+        target_type: '${safe(targetType)}'
+      });
+      (function() {
+        var script   = document.createElement('script');
+        script.type  = 'text/javascript';
+        script.async = true;
+        script.src   = 'https://cdn.taboola.com/libtrc/${TABOOLA_PUBLISHER_ID}/loader.js';
+        script.id    = 'tb_loader_script';
+        script.onload = function() {
+          _taboola.push({ flush: true });
+        };
+        if (!document.getElementById('tb_loader_script')) {
+          document.head.appendChild(script);
+        } else {
+          _taboola.push({ flush: true });
+        }
+      })();
+    </script>
+    <script type="text/javascript">
+      window.addEventListener('message', function(event) {
+        if (event.data && event.data.type === 'taboola_height') {
+          var height = parseInt(event.data.height, 10);
+          if (height && height > 50) {
+            window.ReactNativeWebView.postMessage(JSON.stringify({ height: height }));
+          }
+        }
+      });
+      setTimeout(function() {
+        var container = document.getElementById('${safe(container)}');
+        if (container) {
+          var height = container.offsetHeight || 0;
+          if (height > 50) {
+            window.ReactNativeWebView.postMessage(JSON.stringify({ height: height }));
+          }
+        }
+      }, 2000);
+    </script>
+  </body>
+</html>`;
+
+  return (
+    <View style={{ width: '100%', height, backgroundColor: '#fff', overflow: 'hidden' }}>
+      <WebView
+        source={{ html, baseUrl: 'https://www.dinamalar.com' }}
+        style={{ width: '100%', height }}
+        scrollEnabled={false}
+        onMessage={(event) => {
+          try {
+            const data = JSON.parse(event.nativeEvent.data);
+            if (data.height && !isNaN(data.height) && data.height > 50) {
+              setHeight(prev => Math.max(prev, data.height));
+            }
+          } catch (e) {
+            // Ignore parsing errors
+          }
+        }}
+        onError={(e) => console.warn('[Taboola WebView error]', e.nativeEvent)}
+        nestedScrollEnabled={false}
+      />
+    </View>
+  );
+}
 
 // --- Palette ------------------------------------------------------------------
 const PALETTE = {
@@ -38,9 +133,6 @@ const PALETTE = {
 
 import UniversalHeaderComponent from '../components/UniversalHeaderComponent';
 import AppHeaderComponent from '../components/AppHeaderComponent';
-import { WebView } from 'react-native-webview';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import VideoPlayerModal from '../components/VideoPlayerModal';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Constants
@@ -588,7 +680,7 @@ const st = StyleSheet.create({
     marginBottom: vs(2),
   },
   sectionUnderline: {
-    height: vs(4),
+    height: vs(5),
     width: '20%',
     backgroundColor: PALETTE.primary,
   },
@@ -764,6 +856,7 @@ export default function CommonSectionScreen() {
   const [initLoading, setInitLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
+  const [taboolaAds, setTaboolaAds] = useState(null);
 
   // ── Inline rasi detail state ──────────────────────────────────────────────
   // When not null: shows RasiDetailView instead of the rasi card list
@@ -853,6 +946,9 @@ export default function CommonSectionScreen() {
       }
 
       setAllSections(finalSections);
+
+      // Store mobile Taboola placements from the API
+      setTaboolaAds(d?.taboola_ads?.mobile || null);
 
       if (initialTabId || initialTabLink) {
         const preselected = tabs.find(t =>
@@ -1154,6 +1250,17 @@ export default function CommonSectionScreen() {
             <RefreshControl refreshing={refreshing} onRefresh={handleRefresh}
               colors={[COLORS.primary]} tintColor={COLORS.primary} />
           }
+          ListHeaderComponent={
+            taboolaAds?.midmain ? (
+              <TaboolaWidget
+                pageUrl={`https://www.dinamalar.com${apiEndpoint}`}
+                mode={taboolaAds.midmain.mode}
+                container={taboolaAds.midmain.container}
+                placement={taboolaAds.midmain.placement}
+                targetType="mix"
+              />
+            ) : null
+          }
           ListEmptyComponent={
             <View style={styles.emptyWrap}>
               <Ionicons name="newspaper-outline" size={s(48)} color="#ccc" />
@@ -1161,9 +1268,20 @@ export default function CommonSectionScreen() {
             </View>
           }
           ListFooterComponent={
-            tabLoadMore
-              ? <View style={styles.footerLoader}><ActivityIndicator size="small" color={COLORS.primary} /></View>
-              : <View style={{ height: vs(40) }} />
+            <>
+              {taboolaAds?.midmain && (
+                <TaboolaWidget
+                  pageUrl={`https://www.dinamalar.com${apiEndpoint}`}
+                  mode={taboolaAds.midmain.mode}
+                  container={`${taboolaAds.midmain.container}_footer`}
+                  placement={taboolaAds.midmain.placement}
+                  targetType="mix"
+                />
+              )}
+              {tabLoadMore
+                ? <View style={styles.footerLoader}><ActivityIndicator size="small" color={COLORS.primary} /></View>
+                : <View style={{ height: vs(40) }} />}
+            </>
           }
         />
       )}
