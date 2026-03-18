@@ -19,6 +19,8 @@ import RenderHtml from 'react-native-render-html';
 import AppHeaderComponent from '../components/AppHeaderComponent';
 import TopMenuStrip from '../components/TopMenuStrip';
 import CommentsModal from '../components/CommentsModal';
+import DrawerMenu from '../components/DrawerMenu';
+import LocationDrawer from '../components/LocationDrawer';
 import { ms, s, vs } from '../utils/scaling';
 import { CDNApi, API_ENDPOINTS } from '../config/api';
 import { FONTS } from '../utils/constants';
@@ -145,7 +147,7 @@ const ShortsSectionRow = ({ items, onPress }) => {
 };
 
 // ─── Video Card ─────────────────────────────────────────────────────────────────
-const VideoCard = ({ video, onPress, onCommentsPress }) => {
+const VideoCard = ({ video, onPress, onCommentsPress, districtLabel }) => {
   const { sf } = useFontSize();
 
   // Skip reels — they render in the shorts strip
@@ -156,6 +158,10 @@ const VideoCard = ({ video, onPress, onCommentsPress }) => {
 
   const timeAgo = getTimeAgo(video.videodate);
   const commentCount = parseInt(video.nmcomment || 0);
+
+  // If a district is selected, show the district name as the pill label
+  // Otherwise show the video's own category title
+  const pillLabel = districtLabel || video.ctitle || video.maincat || '';
 
   return (
     <TouchableOpacity activeOpacity={0.88} onPress={() => onPress?.(video)} style={styles.card}>
@@ -181,9 +187,14 @@ const VideoCard = ({ video, onPress, onCommentsPress }) => {
         <Text style={[styles.metaDate, { fontSize: sf(14) }]}>{timeAgo || video.standarddate}</Text>
         <View style={styles.cardMeta}>
           <View style={styles.cardMetaLeft}>
-            {!!video.ctitle && (
-              <View style={styles.categoryPill}>
-                <Text style={[styles.categoryPillText, { fontSize: sf(12) }]}>{video.ctitle}</Text>
+            {!!pillLabel && (
+              <View style={[styles.categoryPill ]}>
+                {/* {districtLabel && (
+                  <Ionicons name="location" size={s(10)} color={PALETTE.primary} style={{ marginRight: s(3) }} />
+                )} */}
+                <Text style={[styles.categoryPillText, { fontSize: sf(12) } ]}>
+                  {pillLabel}
+                </Text>
               </View>
             )}
           </View>
@@ -235,11 +246,7 @@ const FilterSheet = ({
       onRequestClose={onClose}
       statusBarTranslucent={true}
     >
-      <View style={{
-        flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        justifyContent: 'flex-end',
-      }}>
+      <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
         <TouchableOpacity
           style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
           activeOpacity={1}
@@ -249,42 +256,42 @@ const FilterSheet = ({
           {/* Drag handle */}
           <View style={styles.sheetHandle} />
 
-          {/* Header */}
-          <View style={styles.sheetHeader}>
-            <Text style={[styles.sheetTitle, { fontSize: sf(16) }]}>வடிகட்டி</Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: s(8) }}>
-              {/* {hasActive && (
-                <TouchableOpacity onPress={onClearAll} style={styles.clearBtn} activeOpacity={0.8}>
-                  <Text style={[styles.clearBtnTxt, { fontSize: sf(12) }]}>நீக்கு</Text>
-                </TouchableOpacity>
-              )} */}
-              <TouchableOpacity onPress={onClose} style={styles.sheetCloseBtn}>
-                <Ionicons name="close" size={s(18)} color={PALETTE.grey700} />
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* Active filter summary bar */}
-          {/* {hasActive && (
-            <View style={styles.activeSummary}>
-              <Ionicons name="funnel" size={s(13)} color={PALETTE.primary} />
-              <Text style={[styles.activeSummaryTxt, { fontSize: sf(12) }]}>
-                {[
-                  filterOptions.find(f => f.ename === selectedFilter)?.name,
-                  districtOptions.find(d => String(d.id) === selectedDistrict)?.title,
-                ].filter(Boolean).join('  •  ')}
-              </Text>
-            </View>
-          )} */}
-
           <ScrollView
             showsVerticalScrollIndicator={false}
-            bounces={false}
-            contentContainerStyle={{ paddingBottom: vs(8) }}
+            nestedScrollEnabled={true}
+            contentContainerStyle={{ paddingBottom: vs(20) }}
           >
-            {/* பதிவேற்றம் */}
+            {/* Header */}
+            <View style={styles.sheetHeader}>
+              <Text style={[styles.sheetTitle, { fontSize: sf(16) }]}>வடிகட்டி</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: s(8) }}>
+                {/* {hasActive && (
+                  <TouchableOpacity onPress={onClearAll} style={styles.clearBtn} activeOpacity={0.8}>
+                    <Text style={[styles.clearBtnTxt, { fontSize: sf(12) }]}>நீக்கு</Text>
+                  </TouchableOpacity>
+                )} */}
+                <TouchableOpacity onPress={onClose} style={styles.sheetCloseBtn}>
+                  <Ionicons name="close" size={s(18)} color={PALETTE.grey700} />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Active selection summary */}
+            {/* {hasActive && (
+              <View style={styles.activeSummary}>
+                <Ionicons name="funnel" size={s(13)} color={PALETTE.primary} />
+                <Text style={[styles.activeSummaryTxt, { fontSize: sf(12) }]} numberOfLines={1}>
+                  {[
+                    filterOptions.find(f => f.ename === selectedFilter)?.name,
+                    districtOptions.find(d => String(d.id) === selectedDistrict)?.title,
+                  ].filter(Boolean).join('  •  ')}
+                </Text>
+              </View>
+            )} */}
+
+            {/* ── Date filter section ── */}
             {filterOptions.length > 0 && (
-              <View style={styles.filterSection}>
+              <View style={[styles.filterSection, { paddingBottom: vs(12) }]}>
                 <View style={styles.filterSectionRow}>
                   <Text style={[styles.filterSectionLabel, { fontSize: sf(13) }]}>பதிவேற்றம்</Text>
                   {/* {!!selectedFilter && (
@@ -306,43 +313,47 @@ const FilterSheet = ({
               </View>
             )}
 
-            {filterOptions.length > 0 && districtOptions.length > 0 && (
-              <View style={styles.sheetDivider} />
-            )}
-
-            {/* மாவட்ட வீடியோக்கள் */}
+            {/* ── District section — horizontally scrollable, no wrap ── */}
             {districtOptions.length > 0 && (
-              <View style={styles.filterSection}>
-                <View style={styles.filterSectionRow}>
-                  <Text style={[styles.filterSectionLabel, { fontSize: sf(13) }]}>மாவட்ட வீடியோக்கள்</Text>
-                  {/* {!!selectedDistrict && (
-                    <TouchableOpacity onPress={() => onSelectDistrict(selectedDistrict)}>
-                      <Text style={[styles.sectionClearTxt, { fontSize: sf(11) }]}>நீக்கு</Text>
-                    </TouchableOpacity>
-                  )} */}
+              <>
+                <View style={styles.sheetDivider} />
+                <View style={[styles.filterSection, { paddingBottom: vs(12) }]}>
+                  <View style={styles.filterSectionRow}>
+                    <Text style={[styles.filterSectionLabel, { fontSize: sf(13) }]}>மாவட்டம்</Text>
+                    {/* {!!selectedDistrict && (
+                      <TouchableOpacity onPress={() => onSelectDistrict(selectedDistrict)}>
+                        <Text style={[styles.sectionClearTxt, { fontSize: sf(11) }]}>நீக்கு</Text>
+                      </TouchableOpacity>
+                    )} */}
+                  </View>
+                  <ScrollView
+                    showsVerticalScrollIndicator={false}
+                    nestedScrollEnabled={true}
+                    style={{ maxHeight: vs(200) }}
+                    contentContainerStyle={{ flexDirection: 'row', flexWrap: 'wrap', gap: s(8), paddingBottom: vs(4) }}
+                  >
+                    {districtOptions
+                      .filter((d) => !!d.id)
+                      .map((item) => (
+                        <Chip
+                          key={`district_${item.id}`}
+                          label={item.title}
+                          active={selectedDistrict === String(item.id)}
+                          onPress={() => onSelectDistrict(String(item.id))}
+                        />
+                      ))}
+                  </ScrollView>
                 </View>
-                <View style={styles.chipRow}>
-                  {districtOptions
-                    .filter((d) => !!d.id)
-                    .map((item) => (
-                      <Chip
-                        key={`district_${item.id}`}
-                        label={item.title}
-                        active={selectedDistrict === String(item.id)}
-                        onPress={() => onSelectDistrict(String(item.id))}
-                      />
-                    ))}
-                </View>
-              </View>
+              </>
             )}
-          </ScrollView>
 
-          {/* Apply button */}
-          {/* <View style={styles.sheetFooter}>
-            <TouchableOpacity style={styles.applyBtn} onPress={onClose} activeOpacity={0.88}>
-              <Text style={[styles.applyBtnTxt, { fontSize: sf(14) }]}>முடிந்தது</Text>
-            </TouchableOpacity>
-          </View> */}
+            {/* Apply button */}
+            {/* <View style={styles.sheetFooter}>
+              <TouchableOpacity style={styles.applyBtn} onPress={onClose} activeOpacity={0.88}>
+                <Text style={[styles.applyBtnTxt, { fontSize: sf(14) }]}>முடிந்தது</Text>
+              </TouchableOpacity>
+            </View> */}
+          </ScrollView>
         </View>
       </View>
     </Modal>
@@ -407,7 +418,7 @@ const VideosScreen = ({ navigation }) => {
   const [selectedDistrict, setSelectedDistrict] = useState('');   // district id string
   const [selectedDistrictLabel, setSelectedDistrictLabel] = useState('உள்ளூர்');
   const [isDrawerVisible, setIsDrawerVisible] = useState(false);
-  const [isLocationDrawerVisible, setIsLocationDrawerVisible] = useState(false);
+  const [isLocDrawerOpen, setIsLocDrawerOpen] = useState(false);
   const [commentsVisible, setCommentsVisible] = useState(false);
   const [selectedVideo, setSelectedVideo] = useState(null);
   const flatListRef = useRef(null);
@@ -432,12 +443,14 @@ const VideosScreen = ({ navigation }) => {
       const params = new URLSearchParams();
 
       if (district) {
+        // District filter — use VIDEO_MAIN with cat=1585&districtid=xxx
+        params.append('cat', '1585');
+        params.append('districtid', district);
+        if (date) params.append('date', date);
         if (page > 1) params.append('page', String(page));
 
         const query = params.toString();
-        endpoint = query
-          ? `${API_ENDPOINTS.DIST_VIDEO}&${query}`
-          : API_ENDPOINTS.DIST_VIDEO;
+        endpoint = `${API_ENDPOINTS.VIDEO_MAIN}?${query}`;
       } else {
         if (cat === 'shorts') {
           endpoint = API_ENDPOINTS.SHORTS;
@@ -477,13 +490,11 @@ const VideosScreen = ({ navigation }) => {
       let raw = [];
       let pagination = {};
 
-      if (district) {
-        raw = data?.videomix?.data ?? [];
-        pagination = data?.videomix || {};
-      } else if (cat === 'shorts') {
+      if (cat === 'shorts') {
         raw = Array.isArray(data) ? data : [];
         pagination = {};
       } else {
+        // Both regular and district filtered requests use videomix.data
         raw = data?.videomix?.data ?? [];
         pagination = data?.videomix || {};
       }
@@ -491,31 +502,18 @@ const VideosScreen = ({ navigation }) => {
       let newsVideos;
       if (cat === 'shorts') {
         newsVideos = raw;
-      } else if (cat === '' || cat === 'All') {
-        newsVideos = raw; // keep original order including reels
       } else {
-        newsVideos = raw.filter((v) => v.type === 'news');
+        // For district filter (cat=1585) and all others, use all items as-is
+        // API already filters by district server-side via districtid param
+        newsVideos = raw;
       }
 
       console.log('[VideosScreen] Total videos received:', raw.length);
       console.log('[VideosScreen] Videos after type filter:', newsVideos.length);
       console.log('[VideosScreen] Raw data sample:', raw.slice(0, 2));
-      console.log('[VideosScreen] Filtered data sample:', newsVideos.slice(0, 2));
 
+      // API handles district filtering server-side — no client-side filtering needed
       let finalVideos = newsVideos;
-
-      if (district && cat !== 'shorts') {
-        const districtInfo = districtOptions.find(d => String(d.id) === district);
-        const selectedDistrictTamilName = districtInfo?.title?.toLowerCase() || '';
-        const selectedDistrictEngName = districtInfo?.etitle?.toLowerCase() || selectedDistrictTamilName;
-
-        finalVideos = newsVideos.filter(v => {
-          const vgroupidMatch = v.vgroupid?.toString() === district;
-          const engTagMatch = v.districtengtag?.toLowerCase() === selectedDistrictEngName;
-          const tamilTagMatch = v.districttag?.toLowerCase().includes(selectedDistrictTamilName);
-          return vgroupidMatch || engTagMatch || tamilTagMatch;
-        });
-      }
 
       if (append) {
         setAllVideos(prev => [...prev, ...finalVideos]);
@@ -596,36 +594,94 @@ const VideosScreen = ({ navigation }) => {
     }
   };
 
-  // ── Immediate redirect on filter chip press ───────────────────────────────────
+  // ── Date filter press — keeps district selection ──────────────────────────────
   const handleSelectFilter = (ename) => {
     const nextFilter = selectedFilter === ename ? '' : ename;
     setSelectedFilter(nextFilter);
-    setSelectedDistrict('');
-    // Always reset category to '' when filtering by date
-    // so all categories are shown filtered by the selected date range
     setActiveCategory('');
+    // Keep selectedDistrict — if district is also selected, filter by both
     fetchVideos({
       cat: '',
       date: nextFilter,
-      district: '',
+      district: selectedDistrict, // keep current district
     });
     setFilterVisible(false);
   };
 
+  // ── District press — keeps date filter selection ──────────────────────────────
   const handleSelectDistrict = (id) => {
     const nextDistrict = selectedDistrict === id ? '' : id;
     setSelectedDistrict(nextDistrict);
-    setSelectedFilter('');
+    setActiveCategory('');
+    // Keep selectedFilter — if date is also selected, filter by both
     fetchVideos({
-      cat: activeCategory,
-      date: '',
+      cat: '',
+      date: selectedFilter, // keep current date filter
       district: nextDistrict,
     });
     setFilterVisible(false);
   };
 
+  // ── District selection for LocationDrawer (matches VideoDetailScreen) ──────
+  const handleLocationSelectDistrict = (district) => {
+    setSelectedDistrictLabel(district.title);
+    setIsLocDrawerOpen(false);
+    if (district.id) {
+      setSelectedDistrict(String(district.id));
+      // Fetch videos for selected district
+      fetchVideos({ cat: '1585', date: '', district: String(district.id) });
+    }
+  };
+
   // ── Nav ───────────────────────────────────────────────────────────────────────
-  const handleMenuPress = () => navigation?.openDrawer?.();
+  const handleMenuPress = (menuItem) => {
+    // Debug: Log the menu item structure
+    console.log('TopMenuStrip menu item clicked:', menuItem);
+    
+    // Handle menu item navigation based on menu item properties
+    if (menuItem?.screen_name) {
+      console.log('Navigating to screen:', menuItem.screen_name);
+      navigation?.navigate?.(menuItem.screen_name);
+    } else if (menuItem?.url) {
+      // Handle URL navigation if needed
+      console.log('Navigate to URL:', menuItem.url);
+    } else if (menuItem?.Title || menuItem?.title) {
+      // Try to navigate based on title
+      const title = menuItem.Title || menuItem.title;
+      console.log('Menu title:', title);
+      
+      // Map common titles to screen names
+      const screenMapping = {
+        'Home': 'HomeScreen',
+        'Videos': 'VideosScreen', 
+        'News': 'NewsScreen',
+        'Cinema': 'CinemaScreen',
+        'Sports': 'SportsScreen',
+        'Business': 'BusinessScreen',
+        'Technology': 'TechnologyScreen',
+        'Health': 'HealthScreen',
+        'Education': 'EducationScreen',
+        'வீடியோ': 'VideosScreen',
+        'செய்திகள்': 'NewsScreen',
+        'சினிமா': 'CinemaScreen',
+        'விளையாடம்': 'SportsScreen',
+      };
+      
+      const targetScreen = screenMapping[title];
+      if (targetScreen) {
+        console.log('Mapped title to screen:', targetScreen);
+        navigation?.navigate?.(targetScreen);
+      } else {
+        console.log('No screen mapping found for title:', title);
+        // Fallback to opening drawer
+        navigation?.openDrawer?.();
+      }
+    } else {
+      console.log('No navigation info found, opening drawer');
+      // Fallback to opening drawer if no specific navigation is defined
+      navigation?.openDrawer?.();
+    }
+  };
   const handleSearch = () => navigation?.navigate?.('Search');
   const handleNotification = () => console.log('Notifications');
 
@@ -696,71 +752,77 @@ const VideosScreen = ({ navigation }) => {
   }, [allVideos, taboolaAds]);
 
   // ── List header ───────────────────────────────────────────────────────────────
-  const ListHeader = () => (
-    <View>
-      {/* Category tabs + Filter icon */}
-      <View style={styles.catRow}>
-        <TouchableOpacity
-          style={[styles.filterIconBtn, hasActiveFilter && styles.filterIconBtnActive]}
-          onPress={() => setFilterVisible(true)}
-          activeOpacity={0.8}
-        >
-          <Ionicons
-            name="filter"
-            size={20}
-            color={hasActiveFilter ? PALETTE.primary : PALETTE.grey600}
-          />
-          {hasActiveFilter && <View style={styles.filterDot} />}
-        </TouchableOpacity>
+  const ListHeader = () => {
+    if (loading) {
+      return <VideoSkeletonLoader />;
+    }
 
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.catTabsContent}
-          style={{ flex: 1 }}
-        >
-          {categories.map((cat, idx) => {
-            const isActive = activeCategory === String(cat.value ?? '') && !selectedFilter;
-            return (
-              <TouchableOpacity
-                key={`cat_${cat.value ?? idx}`}
-                onPress={() => handleCategoryPress(String(cat.value ?? ''))}
-                style={[styles.catTab, isActive && styles.catTabActive]}
-                activeOpacity={0.8}
-              >
-                {String(cat.value) === '5050' && (
-                  <View style={[styles.liveDot, isActive && { backgroundColor: PALETTE.white }]} />
-                )}
-                <Text style={[styles.catTabText, isActive && styles.catTabTextActive, { fontSize: sf(12) }]}>
-                  {cat.title}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-      </View>
-
-      {/* Active filter bar — shown when a date filter is selected */}
-      {/* {!!selectedFilter && (
-        <View style={styles.activeFilterBar}>
-          <Ionicons name="calendar-outline" size={s(14)} color={PALETTE.primary} />
-          <Text style={[styles.activeFilterBarText, { fontSize: sf(12) }]}>
-            {filterOptions.find(f => f.ename === selectedFilter)?.name || selectedFilter}
-          </Text>
+    return (
+      <View>
+        {/* Category tabs + Filter icon */}
+        <View style={styles.catRow}>
           <TouchableOpacity
-            onPress={() => {
-              setSelectedFilter('');
-              fetchVideos({ cat: activeCategory, date: '', district: selectedDistrict });
-            }}
-            style={styles.activeFilterClearBtn}
+            style={[styles.filterIconBtn, hasActiveFilter && styles.filterIconBtnActive]}
+            onPress={() => setFilterVisible(true)}
             activeOpacity={0.8}
           >
-            <Ionicons name="close-circle" size={s(16)} color={PALETTE.primary} />
+            <Ionicons
+              name="filter"
+              size={20}
+              color={hasActiveFilter ? PALETTE.primary : PALETTE.grey600}
+            />
+            {hasActiveFilter && <View style={styles.filterDot} />}
           </TouchableOpacity>
+
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.catTabsContent}
+            style={{ flex: 1 }}
+          >
+            {categories.map((cat, idx) => {
+              const isActive = activeCategory === String(cat.value ?? '') && !selectedFilter;
+              return (
+                <TouchableOpacity
+                  key={`cat_${cat.value ?? idx}`}
+                  onPress={() => handleCategoryPress(String(cat.value ?? ''))}
+                  style={[styles.catTab, isActive && styles.catTabActive]}
+                  activeOpacity={0.8}
+                >
+                  {String(cat.value) === '5050' && (
+                    <View style={[styles.liveDot, isActive && { backgroundColor: PALETTE.white }]} />
+                  )}
+                  <Text style={[styles.catTabText, isActive && styles.catTabTextActive, { fontSize: sf(12) }]}>
+                    {cat.title}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
         </View>
-      )} */}
-    </View>
-  );
+
+        {/* Active filter bar — shown when a date filter is selected */}
+        {/* {!!selectedFilter && (
+          <View style={styles.activeFilterBar}>
+            <Ionicons name="calendar-outline" size={s(14)} color={PALETTE.primary} />
+            <Text style={[styles.activeFilterBarText, { fontSize: sf(12) }]}>
+              {filterOptions.find(f => f.ename === selectedFilter)?.name || selectedFilter}
+            </Text>
+            <TouchableOpacity
+              onPress={() => {
+                setSelectedFilter('');
+                fetchVideos({ cat: activeCategory, date: '', district: selectedDistrict });
+              }}
+              style={styles.activeFilterClearBtn}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="close-circle" size={s(16)} color={PALETTE.primary} />
+            </TouchableOpacity>
+          </View>
+        )} */}
+      </View>
+    );
+  };
 
   // ── Load more handler ───────────────────────────────────────────────────────────
   const handleLoadMore = () => {
@@ -824,9 +886,9 @@ const VideosScreen = ({ navigation }) => {
       />
 
       <AppHeaderComponent
-        onSearch={handleSearch}
+        onSearch={() => navigation?.navigate('Search')}
         onMenu={() => setIsDrawerVisible(true)}
-        onLocation={() => setIsLocationDrawerVisible(true)}
+        onLocation={() => setIsLocDrawerOpen(true)}
         selectedDistrict={selectedDistrictLabel}
       />
 
@@ -869,6 +931,10 @@ const VideosScreen = ({ navigation }) => {
               video={item}
               onPress={(v) => navigation?.navigate?.('VideoDetailScreen', { video: v })}
               onCommentsPress={handleCommentsPress}
+              districtLabel={selectedDistrict
+                ? districtOptions.find(d => String(d.id) === selectedDistrict)?.title || ''
+                : ''
+              }
             />
           );
         }}
@@ -894,7 +960,8 @@ const VideosScreen = ({ navigation }) => {
         onClearAll={() => {
           setSelectedFilter('');
           setSelectedDistrict('');
-          fetchVideos({ cat: activeCategory, date: '', district: '' });
+          setActiveCategory('');
+          fetchVideos({ cat: '', date: '', district: '' });
           setFilterVisible(false);
         }}
       />
@@ -906,6 +973,51 @@ const VideosScreen = ({ navigation }) => {
         newsTitle={selectedVideo?.videotitle}
         commentCount={parseInt(selectedVideo?.nmcomment || 0)}
       />
+      
+      {/* Drawer Menu */}
+      <DrawerMenu
+        isVisible={isDrawerVisible}
+        onClose={() => setIsDrawerVisible(false)}
+        onMenuPress={(menuItem) => {
+          console.log('Drawer menu item clicked:', menuItem);
+          // Handle drawer menu navigation
+          if (menuItem?.screen_name) {
+            navigation?.navigate?.(menuItem.screen_name);
+          } else if (menuItem?.Title || menuItem?.title) {
+            const title = menuItem.Title || menuItem.title;
+            const screenMapping = {
+              'Home': 'HomeScreen',
+              'Videos': 'VideosScreen', 
+              'News': 'NewsScreen',
+              'Cinema': 'CinemaScreen',
+              'Sports': 'SportsScreen',
+              'Business': 'BusinessScreen',
+              'Technology': 'TechnologyScreen',
+              'Health': 'HealthScreen',
+              'Education': 'EducationScreen',
+              'வீடியோ': 'VideosScreen',
+              'செய்திகள்': 'NewsScreen',
+              'சினிமா': 'CinemaScreen',
+              'விளையாடம்': 'SportsScreen',
+            };
+            const targetScreen = screenMapping[title];
+            if (targetScreen) {
+              navigation?.navigate?.(targetScreen);
+            }
+          }
+          setIsDrawerVisible(false);
+        }}
+        navigation={navigation}
+      />
+      
+      {/* Location Drawer - matches VideoDetailScreen exactly */}
+      <LocationDrawer
+        isVisible={isLocDrawerOpen}
+        onClose={() => setIsLocDrawerOpen(false)}
+        onSelectDistrict={handleLocationSelectDistrict}
+        selectedDistrict={selectedDistrictLabel}
+      />
+      
       {showScrollTop && (
         <TouchableOpacity
           style={styles.scrollTopBtn}
@@ -1088,12 +1200,19 @@ const styles = StyleSheet.create({
     backgroundColor: PALETTE.grey200,
   },
   categoryPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: s(10),
     paddingVertical: vs(2),
     borderWidth: 1,
     borderColor: PALETTE.grey400,
   },
+  categoryPillDistrict: {
+    borderColor: PALETTE.primary,
+    backgroundColor: '#EBF5FF',
+  },
   categoryPillText: { fontSize: ms(11), color: PALETTE.grey600, fontWeight: '600', fontFamily: FONTS.muktaMalar.semibold },
+  categoryPillTextDistrict: { color: PALETTE.primary },
   metaDate: {
     fontFamily: FONTS.muktaMalar.regular,
     color: PALETTE.grey600,
@@ -1297,5 +1416,75 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
 });
+
+// ─── Video Skeleton Card ─────────────────────────────────────────────────────────
+const VideoSkeletonCard = () => (
+  <View style={styles.card}>
+    <View style={styles.thumbWrap}>
+      <View style={[styles.thumbnail, { backgroundColor: PALETTE.grey200 }]} />
+      <View style={styles.thumbOverlay} />
+      <View style={[styles.thumbPlayBtn, { backgroundColor: PALETTE.grey300 }]} />
+      <View style={[styles.durationBadge, { backgroundColor: PALETTE.grey300 }]}>
+        <View style={{ width: s(30), height: vs(10), backgroundColor: PALETTE.grey400, borderRadius: s(2) }} />
+      </View>
+    </View>
+    <View style={styles.cardBody}>
+      <View style={[styles.videoTitle, { height: vs(20), backgroundColor: PALETTE.grey200, borderRadius: s(4), marginBottom: vs(5) }]} />
+      <View style={[styles.metaDate, { height: vs(14), backgroundColor: PALETTE.grey200, borderRadius: s(4), width: s(80), marginBottom: vs(8) }]} />
+      <View style={styles.cardMeta}>
+        <View style={styles.cardMetaLeft}>
+          <View style={[styles.categoryPill, { backgroundColor: PALETTE.grey200, borderColor: PALETTE.grey300 }]}>
+            <View style={{ width: s(40), height: vs(12), backgroundColor: PALETTE.grey300, borderRadius: s(2) }} />
+          </View>
+        </View>
+        <View style={styles.cardMetaRight}>
+          <View style={[styles.commentBtn, { backgroundColor: PALETTE.grey200 }]}>
+            <View style={{ width: s(20), height: s(20), backgroundColor: PALETTE.grey300, borderRadius: s(10) }} />
+          </View>
+        </View>
+      </View>
+    </View>
+  </View>
+);
+
+// ─── Enhanced Video Skeleton Loader ─────────────────────────────────────────────────
+const VideoSkeletonLoader = () => (
+  <View style={{ backgroundColor: PALETTE.white }}>
+    {/* Category tabs skeleton */}
+    <View style={styles.catRow}>
+      <View style={[styles.filterIconBtn, { backgroundColor: PALETTE.grey200 }]} />
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.catTabsContent}
+        style={{ flex: 1 }}
+      >
+        {[1, 2, 3, 4, 5].map((i) => (
+          <View
+            key={i}
+            style={[styles.catTab, { backgroundColor: PALETTE.grey200, borderColor: PALETTE.grey300, width: s(80) }]}
+          />
+        ))}
+      </ScrollView>
+    </View>
+    
+    {/* Loading indicator */}
+    <View style={{ alignItems: 'center', paddingVertical: vs(20), backgroundColor: PALETTE.grey100 }}>
+      <ActivityIndicator size="small" color={PALETTE.primary} />
+      <Text style={[{ fontSize: sf(12), color: PALETTE.grey600, marginTop: vs(8) }]}>
+        Loading videos...
+      </Text>
+    </View>
+    
+    {/* Video cards skeleton with better spacing */}
+    <View style={{ paddingHorizontal: s(12) }}>
+      {[1, 2, 3].map((i) => (
+        <View key={i} style={{ marginBottom: vs(12) }}>
+          <VideoSkeletonCard />
+        </View>
+      ))}
+    </View>
+  </View>
+);
 
 export default VideosScreen;
