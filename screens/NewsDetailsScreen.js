@@ -404,7 +404,17 @@ export default function NewsDetailsScreen() {
   const [relatedNewsData, setRelatedNewsData] = useState([]);
   const [commentTotal, setCommentTotal] = useState(0);
 
-  // Taboola mobile placements — populated from data.taboola_ads.mobile
+  // Scroll-to-top functionality
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  const flatListRef = useRef(null);
+
+  const handleScroll = useCallback((e) => {
+    setShowScrollTop(e.nativeEvent.contentOffset.y > 300);
+  }, []);
+
+  const scrollToTop = () =>
+    scrollRef.current?.scrollToOffset({ offset: 0, animated: true });
+
   const [taboolaAds, setTaboolaAds] = useState(null);
 
   const translateX = useRef(new Animated.Value(0)).current;
@@ -656,6 +666,7 @@ export default function NewsDetailsScreen() {
               showsVerticalScrollIndicator={false}
               contentContainerStyle={styles.scrollContent}
               scrollEventThrottle={16}
+              onScroll={handleScroll}
             >
               {/* Title */}
               <Text style={[styles.title, { fontSize: sf(16), lineHeight: sf(26) }]}>{title}</Text>
@@ -882,8 +893,18 @@ export default function NewsDetailsScreen() {
             </ScrollView>
           )}
 
-        </Animated.View>
-      </View>
+        {/* Scroll to top button */}
+        {showScrollTop && (
+          <TouchableOpacity
+            style={styles.scrollTopBtn}
+            onPress={scrollToTop}
+            activeOpacity={0.85}
+          >
+            <Ionicons name="arrow-up" size={s(20)} color="#fff" />
+          </TouchableOpacity>
+        )}
+      </Animated.View>
+    </View>
 
       {!disableComments && (
         <CommentsModal
@@ -893,6 +914,7 @@ export default function NewsDetailsScreen() {
           newsTitle={title}
           commentCount={comments}
           preloadedComments={newsComments}
+          idType="newsid"
         />
       )}
     </View>
@@ -911,7 +933,7 @@ const styles = StyleSheet.create({
     borderRadius: ms(10),
      justifyContent: 'center',
       alignItems: 'center',
-    backgroundColor:"#cbcbcb" 
+    backgroundColor:"#dfdfdf" 
   },
   edgeBtnRight: { position: 'absolute', right: 0, top: '45%', 
     zIndex: 5,
@@ -919,7 +941,7 @@ const styles = StyleSheet.create({
      height: ms(60), 
      borderRadius: ms(10),
       justifyContent: 'center', alignItems: 'center',
-    backgroundColor:"#cbcbcb" 
+    backgroundColor:"#dfdfdf"
    },
   scrollContent: { paddingBottom: vs(20)
     
@@ -1007,4 +1029,23 @@ const styles = StyleSheet.create({
   skeletonTags: { flexDirection: 'row', gap: s(8), marginBottom: vs(16) },
   skeletonTag: { height: vs(24), backgroundColor: '#f0f0f0', borderRadius: s(12), width: s(60) },
   skeletonShare: { height: vs(44), backgroundColor: '#f0f0f0', borderRadius: s(8), marginBottom: vs(20) },
+
+  // Scroll to top button
+  scrollTopBtn: {
+    position: 'absolute',
+    bottom: vs(50),
+    right: s(16),
+    width: s(42),
+    height: s(42),
+    borderRadius: s(21),
+    backgroundColor: '#096dd2',
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: vs(2) },
+    shadowOpacity: 0.22,
+    shadowRadius: s(4),
+    zIndex: 100,
+  },
 });

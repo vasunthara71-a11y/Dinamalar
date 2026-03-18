@@ -96,7 +96,7 @@ const ShortCard = ({ video, onPress }) => {
         {/* Play overlay */}
         <View style={styles.shortCardPlayOverlay}>
           <View style={styles.shortCardPlayButton}>
-            <Ionicons name="play" size={s(12)} color="#fff" />
+            <Ionicons name="videocam" size={s(12)} color="#fff" />
           </View>
         </View>
         {/* Title at bottom */}
@@ -120,12 +120,12 @@ const ShortsSectionRow = ({ items, onPress }) => {
 
   return (
     <View style={styles.shortsSectionContainer}>
-      <View style={styles.shortsSectionHeader}>
+      {/* <View style={styles.shortsSectionHeader}>
         <View style={styles.shortsSectionTitleWrap}>
           <Text style={[styles.shortsSectionTitle, { fontSize: sf(14) }]}>Shorts</Text>
           <View style={styles.shortsSectionUnderline} />
         </View>
-      </View>
+      </View> */}
       <ScrollView
         horizontal={true}
         showsHorizontalScrollIndicator={false}
@@ -174,7 +174,9 @@ const VideoCard = ({ video, onPress, onCommentsPress, districtLabel }) => {
           </View>
         )}
         <View style={styles.thumbOverlay} />
-        <View style={styles.thumbPlayBtn}><PlayIcon size={28} /></View>
+        <View style={styles.thumbPlayBtn}>
+          <PlayIcon size={28} />
+        </View>
         {!!video.duration && (
           <View style={styles.durationBadge}>
             <Text style={[styles.durationText, { fontSize: sf(11) }]}>{video.duration}</Text>
@@ -188,11 +190,11 @@ const VideoCard = ({ video, onPress, onCommentsPress, districtLabel }) => {
         <View style={styles.cardMeta}>
           <View style={styles.cardMetaLeft}>
             {!!pillLabel && (
-              <View style={[styles.categoryPill ]}>
+              <View style={[styles.categoryPill]}>
                 {/* {districtLabel && (
                   <Ionicons name="location" size={s(10)} color={PALETTE.primary} style={{ marginRight: s(3) }} />
                 )} */}
-                <Text style={[styles.categoryPillText, { fontSize: sf(12) } ]}>
+                <Text style={[styles.categoryPillText, { fontSize: sf(12) }]}>
                   {pillLabel}
                 </Text>
               </View>
@@ -515,12 +517,15 @@ const VideosScreen = ({ navigation }) => {
       // API handles district filtering server-side — no client-side filtering needed
       let finalVideos = newsVideos;
 
-      if (append) {
-        setAllVideos(prev => [...prev, ...finalVideos]);
-      } else {
-        setAllVideos(finalVideos);
-      }
-
+     if (append) {
+  setAllVideos(prev => {
+    const existingIds = new Set(prev.map(v => v.videoid).filter(Boolean));
+    const newItems = finalVideos.filter(v => !v.videoid || !existingIds.has(v.videoid));
+    return [...prev, ...newItems];
+  });
+} else {
+  setAllVideos(finalVideos);
+}
       if (data?.taboola_ads?.mobile) {
         setTaboolaAds(prev => prev ?? data.taboola_ads.mobile);
       }
@@ -637,7 +642,7 @@ const VideosScreen = ({ navigation }) => {
   const handleMenuPress = (menuItem) => {
     // Debug: Log the menu item structure
     console.log('TopMenuStrip menu item clicked:', menuItem);
-    
+
     // Handle menu item navigation based on menu item properties
     if (menuItem?.screen_name) {
       console.log('Navigating to screen:', menuItem.screen_name);
@@ -649,11 +654,11 @@ const VideosScreen = ({ navigation }) => {
       // Try to navigate based on title
       const title = menuItem.Title || menuItem.title;
       console.log('Menu title:', title);
-      
+
       // Map common titles to screen names
       const screenMapping = {
         'Home': 'HomeScreen',
-        'Videos': 'VideosScreen', 
+        'Videos': 'VideosScreen',
         'News': 'NewsScreen',
         'Cinema': 'CinemaScreen',
         'Sports': 'SportsScreen',
@@ -666,7 +671,7 @@ const VideosScreen = ({ navigation }) => {
         'சினிமா': 'CinemaScreen',
         'விளையாடம்': 'SportsScreen',
       };
-      
+
       const targetScreen = screenMapping[title];
       if (targetScreen) {
         console.log('Mapped title to screen:', targetScreen);
@@ -897,11 +902,12 @@ const VideosScreen = ({ navigation }) => {
         onScroll={handleScroll}
         scrollEventThrottle={16}
         data={loading ? [] : listData}
-        keyExtractor={(item, idx) => {
-          if (item._type === 'shorts_strip') return item._key || `shorts_strip_${idx}`;
-          if (item._type === 'taboola_ad') return item._key || `taboola_${idx}`;
-          return item?.videoid != null ? `video_${item.videoid}` : `item_${idx}`;
-        }}
+      keyExtractor={(item, idx) => {
+  if (item._type === 'shorts_strip') return item._key || `shorts_strip_${idx}`;
+  if (item._type === 'taboola_ad') return item._key || `taboola_${idx}`;
+  // ← append idx to guarantee uniqueness even if videoid repeats
+  return item?.videoid != null ? `video_${item.videoid}_${idx}` : `item_${idx}`;
+}}
         renderItem={({ item }) => {
           // ── Shorts strip — pass item.items (only this strip's reels) ────
           if (item._type === 'shorts_strip') {
@@ -966,14 +972,14 @@ const VideosScreen = ({ navigation }) => {
         }}
       />
       {/* Comments Modal */}
-      <CommentsModal
-        visible={commentsVisible}
-        onClose={() => setCommentsVisible(false)}
-        newsId={selectedVideo?.videoid}
-        newsTitle={selectedVideo?.videotitle}
-        commentCount={parseInt(selectedVideo?.nmcomment || 0)}
-      />
-      
+    <CommentsModal
+  visible={commentsVisible}
+  onClose={() => setCommentsVisible(false)}
+  newsId={selectedVideo?.videoid}
+  newsTitle={selectedVideo?.videotitle}
+  commentCount={parseInt(selectedVideo?.nmcomment || 0)}
+/>
+
       {/* Drawer Menu */}
       <DrawerMenu
         isVisible={isDrawerVisible}
@@ -987,7 +993,7 @@ const VideosScreen = ({ navigation }) => {
             const title = menuItem.Title || menuItem.title;
             const screenMapping = {
               'Home': 'HomeScreen',
-              'Videos': 'VideosScreen', 
+              'Videos': 'VideosScreen',
               'News': 'NewsScreen',
               'Cinema': 'CinemaScreen',
               'Sports': 'SportsScreen',
@@ -1009,7 +1015,7 @@ const VideosScreen = ({ navigation }) => {
         }}
         navigation={navigation}
       />
-      
+
       {/* Location Drawer - matches VideoDetailScreen exactly */}
       <LocationDrawer
         isVisible={isLocDrawerOpen}
@@ -1017,7 +1023,7 @@ const VideosScreen = ({ navigation }) => {
         onSelectDistrict={handleLocationSelectDistrict}
         selectedDistrict={selectedDistrictLabel}
       />
-      
+
       {showScrollTop && (
         <TouchableOpacity
           style={styles.scrollTopBtn}
@@ -1353,9 +1359,12 @@ const styles = StyleSheet.create({
     height: vs(200),
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.3)',
+    // backgroundColor: 'rgba(0,0,0,0.3)',
   },
   shortCardPlayButton: {
+    position: 'absolute',
+    top: s(8),
+    right: s(8),
     width: s(32),
     height: s(32),
     borderRadius: s(16),
@@ -1467,7 +1476,7 @@ const VideoSkeletonLoader = () => (
         ))}
       </ScrollView>
     </View>
-    
+
     {/* Loading indicator */}
     <View style={{ alignItems: 'center', paddingVertical: vs(20), backgroundColor: PALETTE.grey100 }}>
       <ActivityIndicator size="small" color={PALETTE.primary} />
@@ -1475,7 +1484,7 @@ const VideoSkeletonLoader = () => (
         Loading videos...
       </Text>
     </View>
-    
+
     {/* Video cards skeleton with better spacing */}
     <View style={{ paddingHorizontal: s(12) }}>
       {[1, 2, 3].map((i) => (

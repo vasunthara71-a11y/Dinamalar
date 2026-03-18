@@ -15,7 +15,7 @@ import {
   Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { mainApi, CDNApi, API_ENDPOINTS } from '../config/api';
+import { CDNApi, mainApi, u38Api } from '../config/api';
 import { COLORS, FONTS } from '../utils/constants';
 import { s, vs, ms, scaledSizes } from '../utils/scaling';
 import FontSizeControl from './FontSizeControl';
@@ -24,14 +24,14 @@ import { useFontSize } from '../context/FontSizeContext';
 // ─── Single Comment Row ───────────────────────────────────────────────────────
 function CommentItem({ item, index }) {
   const { sf } = useFontSize();
-  const name     = item.name         || item.username || 'பயனர்';
-  const text     = item.comments     || item.comment  || item.text || '';
-  const ago      = item.ago          || item.standarddate || item.date || '';
-  const likes    = parseInt(item.com_like    || 0);
+  const name = item.name || item.username || 'பயனர்';
+  const text = item.comments || item.comment || item.text || '';
+  const ago = item.ago || item.standarddate || item.date || '';
+  const likes = parseInt(item.com_like || 0);
   const dislikes = parseInt(item.com_dislike || 0);
-  const avatar   = item.images       || item.avatar   || '';
+  const avatar = item.images || item.avatar || '';
 
-  const colors  = ['#e53935','#8e24aa','#1e88e5','#00897b','#f4511e','#6d4c41'];
+  const colors = ['#e53935', '#8e24aa', '#1e88e5', '#00897b', '#f4511e', '#6d4c41'];
   const bgColor = colors[(name.charCodeAt(0) || index) % colors.length];
   const initials = name.charAt(0).toUpperCase();
 
@@ -110,11 +110,11 @@ function CommentSkeleton() {
   );
 }
 const sk = StyleSheet.create({
-  row:    { flexDirection: 'row', padding: s(16), borderBottomWidth: 1, borderBottomColor: '#f5f5f5' },
+  row: { flexDirection: 'row', padding: s(16), borderBottomWidth: 1, borderBottomColor: '#f5f5f5' },
   avatar: { width: s(36), height: s(36), borderRadius: s(18), backgroundColor: '#eee', marginRight: s(10) },
-  body:   { flex: 1, gap: vs(6) },
-  name:   { width: s(80), height: vs(12), backgroundColor: '#eee', borderRadius: s(4) },
-  line:   { width: '90%', height: vs(10), backgroundColor: '#f2f2f2', borderRadius: s(4) },
+  body: { flex: 1, gap: vs(6) },
+  name: { width: s(80), height: vs(12), backgroundColor: '#eee', borderRadius: s(4) },
+  line: { width: '90%', height: vs(10), backgroundColor: '#f2f2f2', borderRadius: s(4) },
 });
 
 // ─── Empty State ──────────────────────────────────────────────────────────────
@@ -129,9 +129,9 @@ function EmptyComments() {
   );
 }
 const em = StyleSheet.create({
-  wrap:  { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: vs(60) },
+  wrap: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: vs(60) },
   title: { fontSize: ms(16), fontFamily: FONTS.muktaMalar.bold, color: '#aaa', marginTop: vs(12) },
-  sub:   { fontSize: ms(13), fontFamily: FONTS.muktaMalar.regular, color: '#ccc', marginTop: vs(6) },
+  sub: { fontSize: ms(13), fontFamily: FONTS.muktaMalar.regular, color: '#ccc', marginTop: vs(6) },
 });
 
 // ─── Extract helpers ──────────────────────────────────────────────────────────
@@ -140,37 +140,25 @@ const em = StyleSheet.create({
 // Each comment: { id, name, city, images, comments, com_like, com_dislike, ago, standarddate, reply: [] }
 function extractComments(d) {
   if (!d) return [];
-  
-  // Try multiple possible paths for comments data
-  const possiblePaths = [
-    d?.comments?.data,      // Standard path
-    d?.comments,            // Direct comments array
-    d?.data,                // Top-level data
-    d?.result,              // Result field
-    d?.items,               // Items field
-  ];
-  
-  for (const path of possiblePaths) {
-    if (Array.isArray(path)) {
-      const filtered = path.filter(Boolean);
-      if (filtered.length > 0) {
-        console.log('[CommentsModal] found comments in path:', path);
-        return filtered;
-      }
-    }
-  }
-  
-  console.log('[CommentsModal] no comments found in any path');
+  // Shape 1: { comments: { data: [...] } }
+  if (Array.isArray(d?.comments?.data)) return d.comments.data.filter(Boolean);
+  // Shape 2: { data: [...] }
+  if (Array.isArray(d?.data)) return d.data.filter(Boolean);
+  // Shape 3: { comments: [...] }
+  if (Array.isArray(d?.comments)) return d.comments.filter(Boolean);
+  // Shape 4: top-level array
+  if (Array.isArray(d)) return d.filter(Boolean);
   return [];
 }
 
 function extractLastPage(d) {
-  return d?.comments?.last_page || 1;
+  return d?.comments?.last_page || d?.last_page || d?.meta?.last_page || 1;
 }
 
 // ─── Main CommentsModal ───────────────────────────────────────────────────────
-export default function CommentsModal({ visible, onClose, newsId, newsTitle, commentCount = 0, preloadedComments }) {  const { sf } = useFontSize();
-const [comments, setComments] = useState([]);
+export default function CommentsModal({ visible, onClose, newsId, newsTitle, commentCount = 0 }) {
+  const { sf } = useFontSize();
+  const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [lastPage, setLastPage] = useState(1);
@@ -178,134 +166,54 @@ const [comments, setComments] = useState([]);
   const [inputText, setInputText] = useState('');
 
   const slideAnim = useRef(new Animated.Value(300)).current;
-  const initialisedForNewsId = useRef(null);
 
   // ── Animate open ────────────────────────────────────────────────────────────
-// FIND AND REPLACE the entire useEffect block:
-useEffect(() => {
-  if (!visible) {
-    setComments([]);
-    setPage(1);
-    setLastPage(1);
-    setInputText('');
-    initialisedForNewsId.current = null;
-    return;
-  }
-  if (initialisedForNewsId.current === newsId) return;
-  initialisedForNewsId.current = newsId;
+  useEffect(() => {
+    if (visible) {
+      slideAnim.setValue(300);
+      Animated.spring(slideAnim, {
+        toValue: 0, tension: 65, friction: 11, useNativeDriver: true,
+      }).start();
+    }
+  }, [visible]);
 
-  if (Array.isArray(preloadedComments) && preloadedComments.length > 0) {
-    setComments(preloadedComments);
-    setPage(1);
-    setLastPage(1);
-    setLoading(false);
-  } else {
-    fetchComments(newsId, 1, false);
-  }
-}, [visible, newsId]); // ← only visible and newsId, NOT preloadedComments
+  // ── Fetch — Use dedicated /comments endpoint
 
-  // ── Fetch — u38Api /detaildata?newsid=ID (CONFIRMED: comments at d.comments.data)
   const fetchComments = useCallback(async (id, pg = 1, append = false) => {
     if (!id) return;
-    
-    console.log('[CommentsModal] fetchComments called with ID:', id);
-    
-    setLoading(true);
+    pg === 1 ? setLoading(true) : setLoadingMore(true);
 
     try {
-      // Try different APIs and endpoints for video comments
-      const urls = [
-        // First try the dedicated comments helper function with higher limit
-        () => mainApi.get(`${API_ENDPOINTS.COMMENTS}?newsid=${id}&limit=1000`),
-        () => mainApi.get(`${API_ENDPOINTS.COMMENTS}?videoid=${id}&limit=1000`),
-        // Then try CDNApi with different endpoints and higher limit
-        () => CDNApi.get(`/comments?newsid=${id}&limit=1000`),
-        () => CDNApi.get(`/comments?videoid=${id}&limit=1000`),
-        // Finally try detail data endpoints
-        () => CDNApi.get(`${API_ENDPOINTS.DETAIL}?newsid=${id}`),
-        () => CDNApi.get(`${API_ENDPOINTS.DETAIL}?videoid=${id}`),
-        () => CDNApi.get(`${API_ENDPOINTS.DETAIL}?id=${id}`),
-      ];
-      
-      let res = null;
-      let d = null;
-      let usedUrl = null;
-      let usedApi = null;
-      
-      // Try each URL/API until one works
-      for (const urlFn of urls) {
-        try {
-          const url = typeof urlFn === 'function' ? '[function]' : urlFn;
-          console.log('[CommentsModal] trying API call:', url);
-          
-          if (typeof urlFn === 'function') {
-            res = await urlFn();
-            usedApi = 'mainApi';
-          } else {
-            res = await CDNApi.get(urlFn);
-            usedApi = 'CDNApi';
-          }
-          
-          d = res?.data;
-          
-          if (d && (d?.comments?.data || d?.comments || d?.data || d?.result || d?.items)) {
-            usedUrl = typeof urlFn === 'function' ? '[function]' : urlFn;
-            console.log('[CommentsModal] SUCCESS with API:', usedApi, 'URL:', usedUrl);
-            break;
-          }
-        } catch (e) {
-          console.log('[CommentsModal] FAILED API call:', e?.message);
-          continue;
-        }
-      }
-      
-      if (!usedUrl) {
-        console.log('[CommentsModal] all API calls failed, showing error response');
-        // Try one more time to show what the actual error is
-        try {
-          res = await mainApi.get(`${API_ENDPOINTS.COMMENTS}?newsid=${id}&limit=1000`);
-          d = res?.data;
-          usedApi = 'mainApi';
-          usedUrl = `${API_ENDPOINTS.COMMENTS}?newsid=${id}&limit=1000`;
-        } catch (e) {
-          console.log('[CommentsModal] Final error:', e?.response?.status, e?.response?.data);
-          throw e;
-        }
-      }
-      
-      console.log('[CommentsModal] final API used:', usedApi);
-      console.log('[CommentsModal] final URL used:', usedUrl);
-      console.log('[CommentsModal] full API response:', JSON.stringify(d, null, 2));
+      // detaildata always uses newsid — videoid values ARE the newsid
+      const url = `/detaildata?newsid=${id}&page=${pg}`;
+      console.log('[CommentsModal] fetching:', url);
+      const res = await CDNApi.get(url);
+      console.log('[CommentsModal] base URL used:', CDNApi.defaults?.baseURL);
+      console.log('[CommentsModal] status:', res?.status);
+      console.log('[CommentsModal] comments data length:', res?.data?.comments?.data?.length); const d = res?.data;
 
       const list = extractComments(d);
-      
-      console.log('[CommentsModal] extracted comments:', list);
-
-      setComments(list);
-      setPage(1);
-      setLastPage(1); // Set to 1 since we're loading all at once
+      const lp = extractLastPage(d);
+      setLastPage(lp);
+      setPage(pg);
+      setComments(prev => append ? [...prev, ...list] : list);
     } catch (e) {
-      console.error('[CommentsModal] error:', e?.message, e?.response?.status);
+      console.error('[CommentsModal] error:', e?.message);
       setComments([]);
     } finally {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, []);
+  }, []); // no deps needed — URL is fixed
+
+
 
   useEffect(() => {
-    if (visible) {
-      if (preloadedComments && preloadedComments.length > 0) {
-        console.log('[CommentsModal] using preloaded comments:', preloadedComments.length);
-        setComments(preloadedComments);
-        setPage(1);
-        setLastPage(1);
-        setLoading(false);
-      } else {
-        console.log('[CommentsModal] no preloaded comments, fetching from API');
-        // Only fetch from API if no preloaded comments
-        fetchComments(newsId, 1, false);
-      }
+    if (visible && newsId) {
+      setComments([]);
+      setPage(1);
+      setLastPage(1);
+      fetchComments(newsId, 1, false);
     }
     if (!visible) {
       setComments([]);
@@ -313,7 +221,12 @@ useEffect(() => {
       setLastPage(1);
       setInputText('');
     }
-  }, [visible, preloadedComments, newsId, fetchComments]);
+  }, [visible, newsId, fetchComments]); // ← add idType here too
+
+  const handleLoadMore = () => {
+    if (loadingMore || page >= lastPage) return;
+    fetchComments(newsId, page + 1, true);
+  };
 
   const totalCount = commentCount || comments.length;
 
@@ -372,8 +285,15 @@ useEffect(() => {
                 keyExtractor={(item, i) => `comment-${item.id || item.commentid || i}`}
                 renderItem={({ item, index }) => <CommentItem item={item} index={index} />}
                 ListEmptyComponent={<EmptyComments />}
+                onEndReached={handleLoadMore}
+                onEndReachedThreshold={0.4}
                 style={{ flex: 1 }}
                 showsVerticalScrollIndicator={false}
+                ListFooterComponent={
+                  loadingMore
+                    ? <ActivityIndicator size="small" color={COLORS.primary} style={{ margin: vs(16) }} />
+                    : <View style={{ height: vs(20) }} />
+                }
               />
             )}
 
@@ -411,7 +331,7 @@ useEffect(() => {
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const modal = StyleSheet.create({
-  overlay:  { flex: 1, justifyContent: 'flex-end' },
+  overlay: { flex: 1, justifyContent: 'flex-end' },
   backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.5)' },
   sheet: {
     backgroundColor: '#fff',
@@ -430,7 +350,7 @@ const modal = StyleSheet.create({
   headerTitle: { fontSize: scaledSizes.font.xl, fontFamily: FONTS.muktaMalar.bold, color: '#1a1a1a' },
   headerCount: { fontSize: scaledSizes.font.xl, fontFamily: FONTS.muktaMalar.regular, color: '#888' },
   closeBtn: { padding: s(4) },
-  divider:  { height: 1, backgroundColor: '#f0f0f0' },
+  divider: { height: 1, backgroundColor: '#f0f0f0' },
   inputWrap: {
     borderTopWidth: 1, borderTopColor: '#f0f0f0',
     paddingHorizontal: s(12), paddingVertical: vs(10),

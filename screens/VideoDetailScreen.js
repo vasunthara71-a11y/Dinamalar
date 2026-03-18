@@ -324,6 +324,7 @@ const VideoDetailScreen = ({ navigation, route }) => {
   const [bookmarked, setBookmarked] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isLocDrawerOpen, setIsLocDrawerOpen] = useState(false);
+  const [showScrollTop, setShowScrollTop] = useState(false);
   const [district, setDistrict] = useState('உள்ளூர்');
   const [isCommentsOpen, setIsCommentsOpen] = useState(false);
   const [activeYtId, setActiveYtId] = useState(null);
@@ -485,6 +486,7 @@ const VideoDetailScreen = ({ navigation, route }) => {
   const handlePlayVideo = () => startVideo(ytId, rawUrl);
 
   const onScroll = useCallback((e) => {
+    setShowScrollTop(e.nativeEvent.contentOffset.y > 300);
     if (!isPlayerActive) return;
     const past = e.nativeEvent.contentOffset.y > slotY.current + VH - s(20);
     if (past && !pipRef.current) { setPip(true); goPip(); }
@@ -560,7 +562,7 @@ const VideoDetailScreen = ({ navigation, route }) => {
 
       <View onLayout={e => { headerH.current = e.nativeEvent.layout.y + e.nativeEvent.layout.height; }}>
         <AppHeaderComponent
-          onSearch={() => navigation?.navigate('Search')}
+          onSearch={() => navigation?.navigate('SearchScreen')}
           onMenu={() => setIsDrawerOpen(true)}
           onLocation={() => setIsLocDrawerOpen(true)}
           selectedDistrict={district}
@@ -752,9 +754,11 @@ const VideoDetailScreen = ({ navigation, route }) => {
 
       </ScrollView>
 
-      <TouchableOpacity style={S.fab} onPress={() => scrollRef.current?.scrollTo({ y: 0, animated: true })}>
-        <Ionicons name="arrow-up" size={22} color={PALETTE.white} />
+      {showScrollTop && (
+      <TouchableOpacity style={S.scrollTopBtn} onPress={() => scrollRef.current?.scrollTo({ y: 0, animated: true })}>
+        <Ionicons name="arrow-up" size={s(20)} color={PALETTE.white} />
       </TouchableOpacity>
+      )}
 
       {/* ── Floating Player ───────────────────────────────────────────────── */}
       {isPlayerActive && (
@@ -956,6 +960,23 @@ const S = StyleSheet.create({
   loadMoreTxt: { color: PALETTE.primary, fontWeight: '700' },
 
   fab: { position: 'absolute', bottom: vs(24), right: s(20), width: s(48), height: s(48), borderRadius: s(24), backgroundColor: PALETTE.primary, alignItems: 'center', justifyContent: 'center', elevation: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.25, shadowRadius: 6 },
+  scrollTopBtn: {
+    position: 'absolute',
+    bottom: vs(50),
+    right: s(16),
+    width: s(42),
+    height: s(42),
+    borderRadius: s(21),
+    backgroundColor: '#096dd2',
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: vs(2) },
+    shadowOpacity: 0.22,
+    shadowRadius: s(4),
+    zIndex: 100,
+  },
 });
 
 export default VideoDetailScreen;
