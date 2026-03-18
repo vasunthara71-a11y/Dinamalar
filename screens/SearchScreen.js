@@ -384,7 +384,23 @@ var SearchScreen = function() {
     var newsId   = item.id || item.Id || item.NewsId || item.newsid;
     var itemType = (item.type || '').toLowerCase();
     if (itemType === 'reels' || itemType === 'video') {
-      navigation && navigation.navigate('VideoDetailScreen', { video: item });
+      // Map search result fields to VideoDetailScreen expected fields based on actual API structure
+      var mappedVideo = {
+        videoid: item.id || item.Id || item.NewsId || item.newsid,
+        videotitle: item.newstitle || item.Title || item.title || '',
+        images: item.images || item.ImageUrl || item.imageurl || '',
+        videodescription: item.newsdescription || item.description || item.content || '',
+        videodate: item.newsdate || item.date || '',
+        standarddate: item.ago || item.standarddate || '',
+        maincat: item.maincat || item.CatName || item.catname || '',
+        ctitle: item.maincat || item.CatName || item.catname || '',
+        duration: item.duration || '',
+        nmcomment: item.newscomment || item.CommentCount || 0,
+        type: item.type || 'video',
+        slug: item.slug || '',
+        videopath: item.path || item.videopath || item.y_path || item.vidg_path || ''
+      };
+      navigation && navigation.navigate('VideoDetailScreen', { video: mappedVideo });
     } else {
       if (newsId) {
         navigation && navigation.navigate('NewsDetailsScreen', { newsId: newsId, newsItem: item });
@@ -672,7 +688,7 @@ var styles = StyleSheet.create({
     borderRadius: ms(6),
     backgroundColor: '#fff',
     paddingHorizontal: s(12),
-    height: vs(40),
+    height: vs(30),
   },
   input: {
     flex: 1,
@@ -690,11 +706,12 @@ var styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: ms(6),
+    height:vs(30)
   },
   searchBtnText: {
     color: '#fff',
     fontWeight: '700',
-    fontSize: ms(15),
+    fontSize: ms(14),
     fontFamily: 'MuktaMalar',
   },
 
@@ -702,7 +719,12 @@ var styles = StyleSheet.create({
   preSearchWrap: {
     flex: 1,
     backgroundColor: '#fff',
-    paddingHorizontal: s(16),
+    paddingHorizontal: s(14),
+  },
+  englishHint:{
+    paddingVertical:vs(15),
+    justifyContent:"center",
+    alignItems:"center"
   },
   englishHintText: {
     fontSize: ms(13),
