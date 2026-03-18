@@ -30,9 +30,8 @@ import { useNavigation } from '@react-navigation/native';
 import LocationDrawer from '../components/LocationDrawer';
 import TopMenuStrip from '../components/TopMenuStrip';
 import AppHeaderComponent from '../components/AppHeaderComponent';
-import { useFontSize } from '../context/FontSizeContext';
-import WebView from 'react-native-webview';
-
+ import { useFontSize } from '../context/FontSizeContext';
+ 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 // --- Palette ------------------------------------------------------------------
@@ -395,12 +394,12 @@ const newscomment = item.newscomment || item.commentcount || item.nmcomment || i
                 </View>
               )}
 
-              {/* {!!newscomment && newscomment !== '0' && ( */}
-              <View style={NewsCardStyles.commentRow}>
-                <Ionicons name="chatbox" size={s(18)} color={PALETTE.grey700} />
-                <Text style={[NewsCardStyles.commentText, { fontSize: sf(14) }]}> {newscomment}</Text>
-              </View>
-              {/* )} */}
+              {!!newscomment && newscomment !== '0' && (
+                <View style={NewsCardStyles.commentRow}>
+                  <Ionicons name="chatbox" size={s(14)} color={PALETTE.grey700} />
+                  <Text style={[NewsCardStyles.commentText, { fontSize: sf(11) }]}> {newscomment}</Text>
+                </View>
+              )}
             </View>
           </View>
         </View>
@@ -427,8 +426,12 @@ const newscomment = item.newscomment || item.commentcount || item.nmcomment || i
   return (
     <View style={NewsCardStyles.wrap}>
       <TouchableOpacity onPress={onVideoPress} activeOpacity={0.88}>
+
+        {/* Thumbnail with play-button overlay */}
         <View style={NewsCardStyles.imageWrap}>
           <Image source={{ uri: imageUri }} style={[NewsCardStyles.image, { height: ms(200) }]} resizeMode="contain" />
+
+          {/* Semi-transparent scrim + centred play circle */}
           <View style={tvCardSt.playOverlay}>
             <View style={tvCardSt.playCircle}>
               <Ionicons name="play" size={s(22)} color="#fff" />
@@ -462,15 +465,18 @@ const newscomment = item.newscomment || item.commentcount || item.nmcomment || i
           <View style={NewsCardStyles.metaRow}>
             <Text style={[NewsCardStyles.timeText, { fontSize: sf(11) }]}>{ago}</Text>
             <View style={NewsCardStyles.metaRight}>
-              <View style={NewsCardStyles.commentRow}>
-                <Ionicons name="chatbox" size={s(18)} color={PALETTE.grey700} />
-                <Text style={[NewsCardStyles.commentText, { fontSize: sf(14) }]}> {newscomment}</Text>
-              </View>
+              {!!newscomment && newscomment !== '0' && (
+                <View style={NewsCardStyles.commentRow}>
+                  <Ionicons name="chatbox" size={s(14)} color={PALETTE.grey700} />
+                  <Text style={[NewsCardStyles.commentText, { fontSize: sf(11) }]}> {newscomment}</Text>
+                </View>
+              )}
             </View>
           </View>
         </View>
       </TouchableOpacity>
 
+      {/* Divider */}
       <View style={NewsCardStyles.divider} />
     </View>
   );
@@ -485,19 +491,22 @@ const TV_TABS = [
 
 // Map API maincat values ? tab key
 function getTabKey(item) {
+  // First check by VCategory (actual field from API)
   const vCategory = String(item.VCategory || item.maincatid || '');
   const maincat = (item.maincat || '').toLowerCase();
   const ctitle = (item.ctitle || '').toLowerCase();
-
+  
   if (vCategory === '5050') return 'live';
-
+  
+  // For VCategory 594, differentiate by category name
   if (vCategory === '594') {
     if (ctitle.includes('??????') || maincat.includes('cinema')) return 'cinema';
     if (ctitle.includes('??????????') || maincat.includes('sport')) return 'sports';
     // Default to sports if unclear
     return 'sports';
   }
-
+  
+  // Fallback to category name matching
   const cat = (item.maincat || item.categrorytitle || item.maincategory || '').toLowerCase();
   
   if (cat.includes('live') || cat.includes('?????') || cat.includes('????')) return 'live';
@@ -608,6 +617,8 @@ const tvSecSt = StyleSheet.create({
   tabActive: {
     backgroundColor: PALETTE.grey300,
     borderBottomColor: PALETTE.grey800,
+
+
   },
   tabText: {
     fontFamily: FONTS.muktaMalar.regular,
@@ -731,6 +742,7 @@ function DistrictNewsSection({ districts, onPress }) {
                         resizeMode="cover"
                         onError={() => console.log('Failed to load news image')}
                       />
+
                       <View style={styles.newsItemInfo}>
                         <Text style={[styles.newsItemTitle, { fontSize: sf(10), lineHeight: sf(12) }]} numberOfLines={2}>
                           {newsItem.newstitle || newsItem.title}
@@ -812,9 +824,7 @@ export default function HomeScreen() {
   const [isLocationDrawerVisible, setIsLocationDrawerVisible] = useState(false);
   const [selectedDistrict, setSelectedDistrict] = useState('உள்ளூர்');
   const [showScrollTop, setShowScrollTop] = useState(false);
-  // ── taboolaAds: stores only the mobile object, e.g. { midmain: {...} }
-  const [taboolaAds, setTaboolaAds] = useState(null);
-
+ 
   const flatListRef = useRef(null);
 
   const handleScroll = useCallback((e) => {
@@ -875,11 +885,6 @@ export default function HomeScreen() {
           d?.breaking_news || d?.breakingnews || d?.ticker_text || d?.ticker || ''
         );
 
-        // ── Store only the mobile placements object ──────────────────────────
-        // API shape: d.taboola_ads.mobile = { midmain: { mode, container, placement, target_type } }
-        // We store the whole mobile object so ListHeader can access any key safely.
-        setTaboolaAds(d?.taboola_ads?.mobile ?? null);
-
         const sections = [];
         const tharpothaiyaData = d?.tharpothaiya_seithigal?.[0]?.data || [];
 
@@ -908,6 +913,7 @@ export default function HomeScreen() {
 
         // -- Dinamalar TV   type: 'video' ? renders DinaMalarTVSection --
         if (d?.dinamalartv?.length > 0) {
+          // Tag live items so getTabKey can identify them
           const liveItems = (d?.live || []).map(item => ({ ...item, maincat: 'live' }));
           const tvItems = d.dinamalartv;
           sections.push({
@@ -915,12 +921,15 @@ export default function HomeScreen() {
             data: [...liveItems, ...tvItems],
             type: 'video',
           });
+        } else {
         }
 
         if (d?.mixedcontent)
           d.mixedcontent.forEach((sec) => {
             if (sec?.data?.length > 0) sections.push({ title: sec.title, data: sec.data });
           });
+
+
 
         if (d?.dinamdinam) {
           const combined = []; let dynTitle = '????? ?????';
@@ -931,8 +940,8 @@ export default function HomeScreen() {
             }
           });
           if (combined.length > 0) sections.push({ title: dynTitle, data: combined });
-        }
 
+        }
         if (d?.sports?.data?.length > 0)
           sections.push({ title: d.sports.title || '??????????', data: d.sports.data.slice(0, 3) });
 
@@ -947,6 +956,8 @@ export default function HomeScreen() {
             sections.push({ title: d.varthagam.varthagam1.title || '?????????', data: flattenedData.slice(0, 3) });
           }
         }
+
+
 
         if (Array.isArray(d?.webstories) && d.webstories[0]?.data?.length > 0)
           sections.push({ title: d.webstories[0].title || '???? ????????', data: d.webstories[0].data, type: 'shorts' });
@@ -1155,7 +1166,7 @@ export default function HomeScreen() {
     if (link && (link.startsWith('http://') || link.startsWith('https://'))) {
       Linking.openURL(link).catch(() => goToArticle(item));
     } else {
-      goToArticle(item, section);
+      goToArticle(item);
     }
   };
 
@@ -1181,6 +1192,11 @@ export default function HomeScreen() {
         <SkeletonLoader />
       ) : (
         <>
+          {/* Advertisement placeholder */}
+          <View style={styles.adBanner}>
+            <Text style={styles.adLabel}>Advertisement</Text>
+          </View>
+
           {/* Two-row category tabs */}
           <CategoryTab
             selectedCategory={selectedCategory}
@@ -1291,80 +1307,13 @@ export default function HomeScreen() {
                         });
                         return;
                       }
-                      onPress={() => {
-                        const sectionTitle = section.title?.toLowerCase() || '';
 
-                        if (sectionTitle.includes('தர்போதைய') || sectionTitle.includes('tharpothaiya') ||
-                          sectionTitle.includes('தற்போதைய') || sectionTitle.includes('தர்போதையா')) {
-                          navigation?.navigate('NewsDetailsScreen', {
-                            newsId: item.newsid || item.id,
-                            newsItem: item,
-                            slug: item.slug || '',
-                            newsList: section.data,
-                          });
-                          return;
-                        }
-
-                        if (sectionTitle.includes('வாராவாரம்') || sectionTitle.includes('varavaram')) {
-                          navigation?.navigate('CommonSectionScreen', {
-                            screenTitle: 'வாராவாரம்',
-                            apiEndpoint: 'https://api-st-cdn.dinamalar.com/varavaram',
-                            allTabLink: 'https://api-st-cdn.dinamalar.com/varavaram',
-                          });
-                          return;
-                        }
-
-                        if (sectionTitle.includes('வர்த்தகம்') || sectionTitle.includes('varthagam') ||
-                          sectionTitle.includes('business') || sectionTitle.includes('வணிகம்')) {
-                          navigation?.navigate('VarthagamScreen');
-                          return;
-                        }
-
-                        if (sectionTitle.includes('தினம் தினம்') || sectionTitle.includes('dinamdinam') ||
-                          sectionTitle.includes('தினம்தினம்')) {
-                          navigation?.navigate('DinamDinamScreen');
-                          return;
-                        }
-
-                        if (sectionTitle.includes('விளையாட்டு') || sectionTitle.includes('sports') ||
-                          sectionTitle.includes('விளையாட்டுகள்')) {
-                          navigation?.navigate('SportsScreen');
-                          return;
-                        }
-
-                        if (sectionTitle.includes('தமிழ்நாடு') || sectionTitle.includes('tamil nadu') ||
-                          sectionTitle.includes('tamilnadu')) {
-                          navigation?.navigate('TamilNaduScreen');
-                          return;
-                        }
-
-                        if (sectionTitle.includes('ஜோசியம்') || sectionTitle.includes('joshiyam') ||
-                          sectionTitle.includes('ஜோஷியம்')) {
-                          navigation?.navigate('CommonSectionScreen', {
-                            screenTitle: 'ஜோசியம்',
-                            apiEndpoint: '/joshiyam',
-                            allTabLink: '/joshiyam',
-                          });
-                          return;
-                        }
-
-                        if (sectionTitle.includes('பிரீமியம்') || sectionTitle.includes('premium')) {
-                          navigation?.navigate('CommonSectionScreen', {
-                            screenTitle: 'பிரீமியம்',
-                            apiEndpoint: 'https://api-st-cdn.dinamalar.com/newsdata?cat=651',
-                            allTabLink: 'https://api-st-cdn.dinamalar.com/newsdata?cat=651',
-                          });
-                          return;
-                        }
-
-                        goToArticle(item, section);
-                      }}
-                    />
-                  ))}
-                </View>
-              )}
-
-            </React.Fragment>
+                      goToArticle(item);
+                    }}
+                  />
+                ))}
+              </View>
+            )
           ))}
         </>
       )}
@@ -1430,6 +1379,7 @@ export default function HomeScreen() {
         </TouchableOpacity>
       )}
 
+  
     </View>
   );
 }

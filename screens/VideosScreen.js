@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
@@ -150,8 +150,6 @@ const ShortsSectionRow = ({ items, onPress }) => {
 const VideoCard = ({ video, onPress, onCommentsPress, districtLabel }) => {
   const { sf } = useFontSize();
 
-  // Skip reels and ads mixed into videomix.data
-  if (video.type === 'reels' || video.type === 'googlead') return null;
   // Skip reels — they render in the shorts strip
   if (video.type === 'reels') return null;
 
@@ -185,7 +183,6 @@ const VideoCard = ({ video, onPress, onCommentsPress, districtLabel }) => {
       </View>
 
       <View style={styles.cardBody}>
-        <Text style={[styles.videoTitle, { fontSize: sf(16), lineHeight: sf(20) }]}  >{video.videotitle}</Text>
         <Text style={[styles.videoTitle, { fontSize: sf(16), lineHeight: sf(20) }]}>{video.videotitle}</Text>
         <Text style={[styles.metaDate, { fontSize: sf(14) }]}>{timeAgo || video.standarddate}</Text>
         <View style={styles.cardMeta}>
@@ -394,37 +391,6 @@ function TaboolaWidget({ pageUrl, mode, container, placement, pageType = 'homepa
   );
 }
 
-// ─── Taboola Widget ───────────────────────────────────────────────────────────
-const TABOOLA_PUBLISHER_ID = 'mdinamalarcom';
-
-function TaboolaWidget({ pageUrl, mode, container, placement, pageType = 'homepage', targetType = 'mix' }) {
-  const [height, setHeight] = useState(1);
-  if (!mode || !container || !placement || !pageUrl) return null;
-  const safe = (str) => String(str || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"><style>*{margin:0;padding:0;box-sizing:border-box}html,body{background:#fff;overflow-x:hidden;width:100%}#${safe(container)}{width:100%;min-height:1px}img{max-width:100%!important;width:100%!important;height:auto!important;display:block!important;object-fit:cover!important;object-position:center center!important}</style></head><body><div id="${safe(container)}"></div><script>window._taboola=window._taboola||[];_taboola.push({${safe(pageType)}:'auto'});_taboola.push({mode:'${safe(mode)}',container:'${safe(container)}',placement:'${safe(placement)}',target_type:'${safe(targetType)}'});</script><script>(function(){var s=document.createElement('script');s.type='text/javascript';s.async=true;s.src='https://cdn.taboola.com/libtrc/${TABOOLA_PUBLISHER_ID}/loader.js';s.id='tb_loader_script';s.onload=function(){_taboola.push({flush:true});};if(!document.getElementById('tb_loader_script')){document.head.appendChild(s);}else{_taboola.push({flush:true});}})();</script><script>var lH=0;function gH(){return Math.max(document.body.scrollHeight,document.body.offsetHeight,document.documentElement.scrollHeight);}function sH(){setTimeout(function(){var h=gH();if(h>50&&h>lH){lH=h;window.ReactNativeWebView.postMessage(JSON.stringify({type:'height',value:h}));}},200);}function wI(){var imgs=document.querySelectorAll('img');if(!imgs.length){sH();return;}var p=0;imgs.forEach(function(img){if(!img.complete){p++;img.addEventListener('load',function(){if(!--p)sH();});img.addEventListener('error',function(){if(!--p)sH();});}});if(!p)sH();}var pc=0;function poll(){wI();if(pc++<75)setTimeout(poll,400);}setTimeout(poll,500);if(typeof MutationObserver!=='undefined'){new MutationObserver(function(){wI();}).observe(document.body,{childList:true,subtree:true,attributes:false});}</script></body></html>`;
-  return (
-    <View style={{ width: '100%', height, backgroundColor: '#fff', overflow: 'hidden', borderTopWidth: 1, borderBottomWidth: 1, borderColor: '#F4F6F8' }}>
-      <WebView
-        source={{ html, baseUrl: 'https://www.dinamalar.com' }}
-        style={{ width: '100%', height }}
-        scrollEnabled={false} javaScriptEnabled domStorageEnabled
-        thirdPartyCookiesEnabled mixedContentMode="always"
-        originWhitelist={['*']} allowsInlineMediaPlayback
-        onMessage={(e) => {
-          try {
-            const m = JSON.parse(e.nativeEvent.data);
-            if (m.type === 'height' && m.value > 50) setHeight(p => Math.max(p, m.value));
-          } catch {
-            const h = parseInt(e.nativeEvent.data, 10);
-            if (!isNaN(h) && h > 50) setHeight(p => Math.max(p, h));
-          }
-        }}
-        nestedScrollEnabled={false}
-      />
-    </View>
-  );
-}
-
 // ─── Main Screen ─────────────────────────────────────────────────────────────────
 const VideosScreen = ({ navigation }) => {
   const { sf } = useFontSize();
@@ -509,9 +475,6 @@ const VideosScreen = ({ navigation }) => {
       const response = await CDNApi.get(endpoint);
       const data = response.data;
 
-      // ── Videos — filter out reels / ads ──────────────────────────────────────
-      const raw = data?.videomix?.data ?? [];
-      const filteredVideos = raw.filter((v) => v.type === 'news');
       console.log('[VideosScreen] API response received, data keys:', Object.keys(data || {}));
       console.log('[VideosScreen] Current category:', cat || 'All');
       console.log('[VideosScreen] Endpoint used:', endpoint.includes('videomain') ? 'VIDEO_MAIN' : 'VIDEO_DATA');
@@ -562,13 +525,6 @@ const VideosScreen = ({ navigation }) => {
         setTaboolaAds(prev => prev ?? data.taboola_ads.mobile);
       }
 
-      // ── Taboola ads from API ──────────────────────────────────────────────
-      if (data?.taboola_ads?.mobile && !taboolaAds) {
-        setTaboolaAds(data.taboola_ads.mobile);
-      }
-
-      // ── Pagination info ───────────────────────────────────────────────────────
-      const pagination = data?.videomix || {};
       setCurrentPage(pagination.current_page || page);
       setLastPage(pagination.last_page || 1);
       setHasMore((pagination.current_page || page) < (pagination.last_page || 1));
@@ -801,32 +757,6 @@ const VideosScreen = ({ navigation }) => {
       return <VideoSkeletonLoader />;
     }
 
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.catTabsContent}
-          style={{ flex: 1 }}
-        >
-          {categories.map((cat, idx) => {
-            const isActive = activeCategory === String(cat.value ?? '');
-            return (
-              <TouchableOpacity
-                key={`cat_${cat.value ?? idx}`}
-                onPress={() => handleCategoryPress(String(cat.value ?? ''))}
-                style={[styles.catTab, isActive && styles.catTabActive]}
-                activeOpacity={0.8}
-              >
-                {String(cat.value) === '5050' && (
-                  <View style={[styles.liveDot, isActive && { backgroundColor: PALETTE.white }]} />
-                )}
-                <Text style={[styles.catTabText, isActive && styles.catTabTextActive, { fontSize: sf(12) }]}>
-                  {cat.title}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-      </View>
     return (
       <View>
         {/* Category tabs + Filter icon */}
@@ -898,14 +828,6 @@ const VideosScreen = ({ navigation }) => {
   const handleLoadMore = () => {
     if (!hasMore || loadingMore || loading) return;
 
-    const nextPage = currentPage + 1;
-    const params = { page: nextPage, append: true };
-
-    if (activeCategory) params.cat = activeCategory;
-    if (selectedFilter) params.date = selectedFilter;
-    if (selectedDistrict) params.district = selectedDistrict;
-
-    fetchVideos(params);
     // Disable pagination for shorts tab only
     if (activeCategory === 'shorts') {
       console.log('[VideosScreen] Pagination disabled for shorts tab');
@@ -952,25 +874,6 @@ const VideosScreen = ({ navigation }) => {
     );
   };
 
-  // ── Inject Taboola ad slot after every 5 videos ──────────────────────
-  const AD_INTERVAL = 5;
-  const feedItems = React.useMemo(() => {
-    if (!taboolaAds?.midmain || allVideos.length === 0) return allVideos;
-    const result = [];
-    allVideos.forEach((video, i) => {
-      result.push({ ...video, _type: 'video' });
-      // Insert ad after every AD_INTERVAL items
-      if ((i + 1) % AD_INTERVAL === 0) {
-        result.push({
-          _type: 'taboola_ad',
-          _key: `taboola_${i}`,
-          ...taboolaAds.midmain,
-        });
-      }
-    });
-    return result;
-  }, [allVideos, taboolaAds]);
-
   // ─────────────────────────────────────────────────────────────────────────────
   return (
     <SafeAreaView style={styles.safe}>
@@ -993,8 +896,6 @@ const VideosScreen = ({ navigation }) => {
         ref={flatListRef}
         onScroll={handleScroll}
         scrollEventThrottle={16}
-        data={loading ? [] : feedItems}
-        keyExtractor={(item, idx) => {
         data={loading ? [] : listData}
         keyExtractor={(item, idx) => {
           if (item._type === 'shorts_strip') return item._key || `shorts_strip_${idx}`;
@@ -1355,22 +1256,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center', alignItems: 'center',
   },
   scrollTopBtn: {
-  position: 'absolute',
-  bottom: vs(24),
-  right: s(16),
-  width: s(48),
-  height: s(48),
-  borderRadius: s(24),
-  backgroundColor: PALETTE.primary,
-  justifyContent: 'center',
-  alignItems: 'center',
-  elevation: 10,
-  shadowColor: '#000',
-  shadowOffset: { width: 0, height: vs(2) },
-  shadowOpacity: 0.22,
-  shadowRadius: s(4),
-  zIndex: 100,
-},
     position: 'absolute',
     bottom: vs(24), right: s(16),
     width: s(48), height: s(48), borderRadius: s(24),
@@ -1437,11 +1322,6 @@ const styles = StyleSheet.create({
 
   // Loading footer
   loadingFooter: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: vs(20),
-    backgroundColor: PALETTE.grey200,
     flexDirection: 'row', justifyContent: 'center', alignItems: 'center',
     paddingVertical: vs(20), backgroundColor: PALETTE.grey200,
   },
