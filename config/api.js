@@ -31,6 +31,7 @@ export const API_ENDPOINTS = {
   AUDIO: '/audio',
   VIDEO_MAIN: '/videomain',
   VIDEO_DETAIL: '/videodetail',
+  SHORTS: '/shorts',
 
   // Category Specific
   VARthagam: '/varthagamdata',
@@ -305,7 +306,7 @@ export const u38Api = axios.create({
 
 export const CDNApi = axios.create({
   baseURL:API_BASE_URLS.CDN,
-  timeout:12000,
+  timeout:30000, // Increased from 12s to 30s for better mobile network handling
   headers:{
     'Content-Type':'application/json',
     'Cache-Control': 'no-cache, no-store, must-revalidate',
