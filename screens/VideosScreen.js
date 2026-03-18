@@ -228,9 +228,23 @@ const FilterSheet = ({
   const hasActive = !!selectedFilter || !!selectedDistrict;
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={styles.modalContainer}>
-        <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={onClose} />
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      onRequestClose={onClose}
+      statusBarTranslucent={true}
+    >
+      <View style={{
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'flex-end',
+      }}>
+        <TouchableOpacity
+          style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+          activeOpacity={1}
+          onPress={onClose}
+        />
         <View style={styles.filterSheet}>
           {/* Drag handle */}
           <View style={styles.sheetHandle} />
@@ -239,11 +253,11 @@ const FilterSheet = ({
           <View style={styles.sheetHeader}>
             <Text style={[styles.sheetTitle, { fontSize: sf(16) }]}>வடிகட்டி</Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: s(8) }}>
-              {hasActive && (
+              {/* {hasActive && (
                 <TouchableOpacity onPress={onClearAll} style={styles.clearBtn} activeOpacity={0.8}>
                   <Text style={[styles.clearBtnTxt, { fontSize: sf(12) }]}>நீக்கு</Text>
                 </TouchableOpacity>
-              )}
+              )} */}
               <TouchableOpacity onPress={onClose} style={styles.sheetCloseBtn}>
                 <Ionicons name="close" size={s(18)} color={PALETTE.grey700} />
               </TouchableOpacity>
@@ -251,7 +265,7 @@ const FilterSheet = ({
           </View>
 
           {/* Active filter summary bar */}
-          {hasActive && (
+          {/* {hasActive && (
             <View style={styles.activeSummary}>
               <Ionicons name="funnel" size={s(13)} color={PALETTE.primary} />
               <Text style={[styles.activeSummaryTxt, { fontSize: sf(12) }]}>
@@ -261,22 +275,23 @@ const FilterSheet = ({
                 ].filter(Boolean).join('  •  ')}
               </Text>
             </View>
-          )}
+          )} */}
 
           <ScrollView
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ paddingBottom: vs(32) }}
+            bounces={false}
+            contentContainerStyle={{ paddingBottom: vs(8) }}
           >
             {/* பதிவேற்றம் */}
             {filterOptions.length > 0 && (
               <View style={styles.filterSection}>
                 <View style={styles.filterSectionRow}>
                   <Text style={[styles.filterSectionLabel, { fontSize: sf(13) }]}>பதிவேற்றம்</Text>
-                  {!!selectedFilter && (
+                  {/* {!!selectedFilter && (
                     <TouchableOpacity onPress={() => onSelectFilter(selectedFilter)}>
                       <Text style={[styles.sectionClearTxt, { fontSize: sf(11) }]}>நீக்கு</Text>
                     </TouchableOpacity>
-                  )}
+                  )} */}
                 </View>
                 <View style={styles.chipRow}>
                   {filterOptions.map((item) => (
@@ -300,11 +315,11 @@ const FilterSheet = ({
               <View style={styles.filterSection}>
                 <View style={styles.filterSectionRow}>
                   <Text style={[styles.filterSectionLabel, { fontSize: sf(13) }]}>மாவட்ட வீடியோக்கள்</Text>
-                  {!!selectedDistrict && (
+                  {/* {!!selectedDistrict && (
                     <TouchableOpacity onPress={() => onSelectDistrict(selectedDistrict)}>
                       <Text style={[styles.sectionClearTxt, { fontSize: sf(11) }]}>நீக்கு</Text>
                     </TouchableOpacity>
-                  )}
+                  )} */}
                 </View>
                 <View style={styles.chipRow}>
                   {districtOptions
@@ -323,11 +338,11 @@ const FilterSheet = ({
           </ScrollView>
 
           {/* Apply button */}
-          <View style={styles.sheetFooter}>
+          {/* <View style={styles.sheetFooter}>
             <TouchableOpacity style={styles.applyBtn} onPress={onClose} activeOpacity={0.88}>
               <Text style={[styles.applyBtnTxt, { fontSize: sf(14) }]}>முடிந்தது</Text>
             </TouchableOpacity>
-          </View>
+          </View> */}
         </View>
       </View>
     </Modal>
@@ -586,8 +601,11 @@ const VideosScreen = ({ navigation }) => {
     const nextFilter = selectedFilter === ename ? '' : ename;
     setSelectedFilter(nextFilter);
     setSelectedDistrict('');
+    // Always reset category to '' when filtering by date
+    // so all categories are shown filtered by the selected date range
+    setActiveCategory('');
     fetchVideos({
-      cat: activeCategory,
+      cat: '',
       date: nextFilter,
       district: '',
     });
@@ -683,16 +701,16 @@ const VideosScreen = ({ navigation }) => {
       {/* Category tabs + Filter icon */}
       <View style={styles.catRow}>
         <TouchableOpacity
-          style={[styles.filterIconBtn]}
+          style={[styles.filterIconBtn, hasActiveFilter && styles.filterIconBtnActive]}
           onPress={() => setFilterVisible(true)}
           activeOpacity={0.8}
         >
           <Ionicons
             name="filter"
             size={20}
-            color={hasActiveFilter ? PALETTE.grey600 : PALETTE.grey600}
+            color={hasActiveFilter ? PALETTE.primary : PALETTE.grey600}
           />
-          {/* {hasActiveFilter && <View style={styles.filterDot} />} */}
+          {hasActiveFilter && <View style={styles.filterDot} />}
         </TouchableOpacity>
 
         <ScrollView
@@ -702,7 +720,7 @@ const VideosScreen = ({ navigation }) => {
           style={{ flex: 1 }}
         >
           {categories.map((cat, idx) => {
-            const isActive = activeCategory === String(cat.value ?? '');
+            const isActive = activeCategory === String(cat.value ?? '') && !selectedFilter;
             return (
               <TouchableOpacity
                 key={`cat_${cat.value ?? idx}`}
@@ -721,6 +739,26 @@ const VideosScreen = ({ navigation }) => {
           })}
         </ScrollView>
       </View>
+
+      {/* Active filter bar — shown when a date filter is selected */}
+      {/* {!!selectedFilter && (
+        <View style={styles.activeFilterBar}>
+          <Ionicons name="calendar-outline" size={s(14)} color={PALETTE.primary} />
+          <Text style={[styles.activeFilterBarText, { fontSize: sf(12) }]}>
+            {filterOptions.find(f => f.ename === selectedFilter)?.name || selectedFilter}
+          </Text>
+          <TouchableOpacity
+            onPress={() => {
+              setSelectedFilter('');
+              fetchVideos({ cat: activeCategory, date: '', district: selectedDistrict });
+            }}
+            style={styles.activeFilterClearBtn}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="close-circle" size={s(16)} color={PALETTE.primary} />
+          </TouchableOpacity>
+        </View>
+      )} */}
     </View>
   );
 
@@ -728,13 +766,14 @@ const VideosScreen = ({ navigation }) => {
   const handleLoadMore = () => {
     if (!hasMore || loadingMore || loading) return;
 
-    // Disable pagination for All tab and shorts to prevent repeated data
-    if (activeCategory === '' || activeCategory === 'All' || activeCategory === 'shorts') {
-      console.log('[VideosScreen] Pagination disabled for category:', activeCategory);
-      setHasMore(false); // Disable further load more attempts
+    // Disable pagination for shorts tab only
+    if (activeCategory === 'shorts') {
+      console.log('[VideosScreen] Pagination disabled for shorts tab');
+      setHasMore(false);
       return;
     }
 
+    // Allow pagination for all other cases including date filters and category tabs
     fetchVideos({
       cat: activeCategory,
       date: selectedFilter,
@@ -902,11 +941,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center', alignItems: 'center',
     position: 'relative',
   },
-  filterIconBtnActive: { backgroundColor: '#FFF0F0' },
+  filterIconBtnActive: { backgroundColor: '#EBF5FF', borderWidth: 1, borderColor: PALETTE.primary },
   filterDot: {
     position: 'absolute', top: s(5), right: s(5),
     width: s(7), height: s(7), borderRadius: s(4),
-    backgroundColor: PALETTE.red,
+    backgroundColor: PALETTE.primary,
     borderWidth: 1.5, borderColor: PALETTE.white,
   },
   catTabsContent: {
@@ -944,6 +983,27 @@ const styles = StyleSheet.create({
   // List
   listContent: { backgroundColor: PALETTE.grey200, paddingBottom: vs(80) },
   divider: { height: vs(6), backgroundColor: PALETTE.grey200 },
+
+  // Active filter bar
+  activeFilterBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: s(6),
+    paddingHorizontal: s(14),
+    paddingVertical: vs(8),
+    backgroundColor: '#EBF5FF',
+    borderBottomWidth: 1,
+    borderBottomColor: PALETTE.primary + '30',
+  },
+  activeFilterBarText: {
+    flex: 1,
+    color: PALETTE.primary,
+    fontFamily: FONTS.muktaMalar.semibold,
+    fontWeight: '600',
+  },
+  activeFilterClearBtn: {
+    padding: s(2),
+  },
 
   // Card
   card: { backgroundColor: PALETTE.white, paddingHorizontal: ms(14) },
@@ -1049,14 +1109,12 @@ const styles = StyleSheet.create({
 
   // Filter sheet
   modalContainer: { flex: 1, position: 'relative' },
-  modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)' },
+  modalBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.45)' },
   filterSheet: {
-    position: 'absolute',
-    bottom: 0, left: 0, right: 0,
     backgroundColor: PALETTE.white,
     borderTopLeftRadius: s(22), borderTopRightRadius: s(22),
     paddingBottom: Platform.OS === 'ios' ? vs(36) : vs(24),
-    maxHeight: '85%',
+    maxHeight: '80%',
     elevation: 24,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -4 },
