@@ -281,7 +281,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: COLORS.primary,
-    paddingHorizontal: s(16),
+    paddingHorizontal: s(12),
     paddingTop: vs(50), // Status bar space
     paddingBottom: vs(12),
     elevation: 4,

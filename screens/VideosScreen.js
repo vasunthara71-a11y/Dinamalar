@@ -185,8 +185,8 @@ const VideoCard = ({ video, onPress, onCommentsPress, districtLabel }) => {
       </View>
 
       <View style={styles.cardBody}>
-        <Text style={[styles.videoTitle, { fontSize: sf(16), lineHeight: sf(20) }]}>{video.videotitle}</Text>
-        <Text style={[styles.metaDate, { fontSize: sf(14) }]}>{timeAgo || video.standarddate}</Text>
+        <Text style={[styles.videoTitle, { fontSize: sf(14), lineHeight: sf(20) }]}>{video.videotitle}</Text>
+        <Text style={[styles.metaDate, { fontSize: sf(12) }]}>{timeAgo || video.standarddate}</Text>
         <View style={styles.cardMeta}>
           <View style={styles.cardMetaLeft}>
             {!!pillLabel && (
@@ -204,7 +204,7 @@ const VideoCard = ({ video, onPress, onCommentsPress, districtLabel }) => {
             <TouchableOpacity style={styles.commentBtn} onPress={() => onCommentsPress?.(video)} activeOpacity={0.8}>
               <Ionicons name="chatbox" size={ms(20)} color={PALETTE.grey600} />
               {commentCount > 0 && (
-                <Text style={[styles.commentCount, { fontSize: sf(10) }]}>{commentCount}</Text>
+                <Text style={[styles.commentCount, { fontSize: sf(12) }]}>{commentCount}</Text>
               )}
             </TouchableOpacity>
           </View>
@@ -224,7 +224,7 @@ const Chip = ({ label, active, onPress }) => {
       style={[styles.chip, active && styles.chipActive]}
       activeOpacity={0.8}
     >
-      {active && <Ionicons name="checkmark" size={13} color={PALETTE.white} style={{ marginRight: 4 }} />}
+      {active && <Ionicons name="checkmark" size={13} color={PALETTE.white} style={{ marginRight: 4 ,}} />}
       <Text style={[styles.chipText, active && styles.chipTextActive, { fontSize: sf(13) }]}>{label}</Text>
     </TouchableOpacity>
   );
@@ -265,7 +265,7 @@ const FilterSheet = ({
           >
             {/* Header */}
             <View style={styles.sheetHeader}>
-              <Text style={[styles.sheetTitle, { fontSize: sf(16) }]}>வடிகட்டி</Text>
+              <Text style={[styles.sheetTitle, { fontSize: sf(16) }]}>Video Filters</Text>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: s(8) }}>
                 {/* {hasActive && (
                   <TouchableOpacity onPress={onClearAll} style={styles.clearBtn} activeOpacity={0.8}>
@@ -273,7 +273,7 @@ const FilterSheet = ({
                   </TouchableOpacity>
                 )} */}
                 <TouchableOpacity onPress={onClose} style={styles.sheetCloseBtn}>
-                  <Ionicons name="close" size={s(18)} color={PALETTE.grey700} />
+                  <Ionicons name="close" size={s(22)} color={PALETTE.grey700} />
                 </TouchableOpacity>
               </View>
             </View>
@@ -295,7 +295,7 @@ const FilterSheet = ({
             {filterOptions.length > 0 && (
               <View style={[styles.filterSection, { paddingBottom: vs(12) }]}>
                 <View style={styles.filterSectionRow}>
-                  <Text style={[styles.filterSectionLabel, { fontSize: sf(13) }]}>பதிவேற்றம்</Text>
+                  <Text style={[styles.filterSectionLabel, { fontSize: sf(14) }]}>பதிவேற்றம் :  ( All )</Text>
                   {/* {!!selectedFilter && (
                     <TouchableOpacity onPress={() => onSelectFilter(selectedFilter)}>
                       <Text style={[styles.sectionClearTxt, { fontSize: sf(11) }]}>நீக்கு</Text>
@@ -321,7 +321,7 @@ const FilterSheet = ({
                 <View style={styles.sheetDivider} />
                 <View style={[styles.filterSection, { paddingBottom: vs(12) }]}>
                   <View style={styles.filterSectionRow}>
-                    <Text style={[styles.filterSectionLabel, { fontSize: sf(13) }]}>மாவட்டம்</Text>
+                    <Text style={[styles.filterSectionLabel, { fontSize: sf(14) }]}>மாவட்ட வீடியோக்கள் :</Text>
                     {/* {!!selectedDistrict && (
                       <TouchableOpacity onPress={() => onSelectDistrict(selectedDistrict)}>
                         <Text style={[styles.sectionClearTxt, { fontSize: sf(11) }]}>நீக்கு</Text>
@@ -329,9 +329,9 @@ const FilterSheet = ({
                     )} */}
                   </View>
                   <ScrollView
-                    showsVerticalScrollIndicator={false}
+                    showsVerticalScrollIndicator={true}
                     nestedScrollEnabled={true}
-                    style={{ maxHeight: vs(200) }}
+                    style={{ maxHeight: vs(250) }}
                     contentContainerStyle={{ flexDirection: 'row', flexWrap: 'wrap', gap: s(8), paddingBottom: vs(4) }}
                   >
                     {districtOptions
@@ -1058,6 +1058,8 @@ const styles = StyleSheet.create({
     backgroundColor: PALETTE.grey300,
     justifyContent: 'center', alignItems: 'center',
     position: 'relative',
+    borderWidth:1,
+    borderColor:PALETTE.grey700
   },
   filterIconBtnActive: { backgroundColor: '#EBF5FF', borderWidth: 1, borderColor: PALETTE.primary },
   filterDot: {
@@ -1252,13 +1254,13 @@ const styles = StyleSheet.create({
   },
   sheetHeader: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: s(20), paddingVertical: vs(14),
+    paddingHorizontal: s(20), paddingVertical: vs(8),
     borderBottomWidth: 1, borderBottomColor: PALETTE.grey300,
   },
-  sheetTitle: { fontSize: ms(17), fontWeight: '700', color: PALETTE.grey800, fontFamily: FONTS.muktaMalar.bold },
+  sheetTitle: { fontSize: ms(17), fontWeight: '700', color: PALETTE.grey600, fontFamily: FONTS.muktaMalar.bold },
   sheetCloseBtn: {
-    width: s(32), height: s(32), borderRadius: s(16),
-    backgroundColor: PALETTE.grey200,
+    // width: s(32), height: s(32), borderRadius: s(16),
+    // backgroundColor: PALETTE.grey200,
     justifyContent: 'center', alignItems: 'center',
   },
   scrollTopBtn: {
@@ -1294,8 +1296,8 @@ const styles = StyleSheet.create({
   },
   sectionClearTxt: { color: PALETTE.red, fontWeight: '600' },
   sheetDivider: {
-    height: 1, backgroundColor: PALETTE.grey200,
-    marginHorizontal: s(20), marginVertical: vs(4),
+    height: 1, backgroundColor: PALETTE.grey300,
+    marginVertical: vs(4),
   },
   sheetFooter: {
     paddingHorizontal: s(20), paddingVertical: vs(12),
@@ -1311,19 +1313,19 @@ const styles = StyleSheet.create({
   filterSection: { paddingHorizontal: s(20), paddingTop: vs(18), paddingBottom: vs(4) },
   filterSectionLabel: {
     fontSize: ms(14), fontWeight: '700', color: PALETTE.grey800,
-    marginBottom: vs(12), fontFamily: FONTS.muktaMalar.bold,
+      fontFamily: FONTS.muktaMalar.bold,
   },
 
   // Chips
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: s(10) },
   chip: {
     flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: s(16), paddingVertical: vs(9),
+    paddingHorizontal: s(12), paddingVertical: vs(4),
     borderRadius: s(22), borderWidth: 1.5,
     borderColor: PALETTE.grey300, backgroundColor: PALETTE.white,
   },
   chipActive: { borderColor: PALETTE.primary, backgroundColor: PALETTE.primary },
-  chipText: { fontSize: ms(13), color: PALETTE.grey700, fontWeight: '500', fontFamily: FONTS.muktaMalar.semibold },
+  chipText: { fontSize: ms(13), color: PALETTE.grey800, fontWeight: '500', fontFamily: FONTS.muktaMalar.semibold },
   chipTextActive: { color: PALETTE.white, fontWeight: '700', fontFamily: FONTS.muktaMalar.bold },
 
   // Loading footer

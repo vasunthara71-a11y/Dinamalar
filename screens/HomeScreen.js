@@ -16,6 +16,7 @@ import {
   Animated,
   Linking,
 } from 'react-native';
+import { WebView } from 'react-native-webview';
 import { CDNApi, API_ENDPOINTS } from '../config/api';
 import axios from 'axios';
 import { COLORS, FONTS, NewsCard as NewsCardStyles } from '../utils/constants';
@@ -33,6 +34,9 @@ import AppHeaderComponent from '../components/AppHeaderComponent';
  import { useFontSize } from '../context/FontSizeContext';
  
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
+// ── Taboola publisher ID for mobile (from your website TaboolaScript.js) ──────
+const TABOOLA_PUBLISHER_ID = 'mdinamalarcom';
 
 // --- Palette ------------------------------------------------------------------
 const PALETTE = {
@@ -55,6 +59,95 @@ function MenuIcon({ uri }) {
   if (uri && uri.endsWith('.svg'))
     return <SvgUri uri={uri} width={s(16)} height={s(16)} style={{ marginRight: s(4) }} />;
   return null;
+}
+
+// ─── Taboola Widget ───────────────────────────────────────────────────────────
+function TaboolaWidget({ pageUrl, mode, container, placement, pageType = 'homepage', targetType = 'mix' }) {
+  const [height, setHeight] = useState(1);
+  if (!mode || !container || !placement || !pageUrl) return null;
+  const safe = (str) => String(str || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+  
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    #${safe(container)} { width: 100%; }
+    img { max-width: 100%; height: auto; }
+  </style>
+</head>
+<body>
+  <div id="${safe(container)}"></div>
+  <script type="text/javascript">
+    window._taboola = window._taboola || [];
+    _taboola.push({ article: 'auto' });
+    _taboola.push({
+      mode:        '${safe(mode)}',
+      container:   '${safe(container)}',
+      placement:   '${safe(placement)}',
+      target_type: '${safe(targetType)}'
+    });
+    (function() {
+      var script   = document.createElement('script');
+      script.type  = 'text/javascript';
+      script.async = true;
+      script.src   = 'https://cdn.taboola.com/libtrc/${TABOOLA_PUBLISHER_ID}/loader.js';
+      script.id    = 'tb_loader_script';
+      script.onload = function() {
+        _taboola.push({ flush: true });
+      };
+      if (!document.getElementById('tb_loader_script')) {
+        document.head.appendChild(script);
+      } else {
+        _taboola.push({ flush: true });
+      }
+    })();
+  </script>
+  <script type="text/javascript">
+    window.addEventListener('message', function(event) {
+      if (event.data && event.data.type === 'taboola_height') {
+        var height = parseInt(event.data.height, 10);
+        if (height && height > 50) {
+          window.ReactNativeWebView.postMessage(JSON.stringify({ height: height }));
+        }
+      }
+    });
+    setTimeout(function() {
+      var container = document.getElementById('${safe(container)}');
+      if (container) {
+        var height = container.offsetHeight || 0;
+        if (height > 50) {
+          window.ReactNativeWebView.postMessage(JSON.stringify({ height: height }));
+        }
+      }
+    }, 2000);
+  </script>
+</body>
+</html>`;
+
+  return (
+    <View style={{ width: '100%', height, backgroundColor: '#fff', overflow: 'hidden' }}>
+      <WebView
+        source={{ html, baseUrl: 'https://www.dinamalar.com' }}
+        style={{ width: '100%', height }}
+        scrollEnabled={false}
+        onMessage={(event) => {
+          try {
+            const data = JSON.parse(event.nativeEvent.data);
+            if (data.height && !isNaN(data.height) && data.height > 50) {
+              setHeight(prev => Math.max(prev, data.height));
+            }
+          } catch (e) {
+            // Ignore parsing errors
+          }
+        }}
+        onError={(e) => console.warn('[Taboola WebView error]', e.nativeEvent)}
+        nestedScrollEnabled={false}
+      />
+    </View>
+  );
 }
 
 // --- Breaking News Ticker -----------------------------------------------------
@@ -376,17 +469,17 @@ const newscomment = item.newscomment || item.commentcount || item.nmcomment || i
 
         <View style={NewsCardStyles.contentContainer}>
           {!!title && (
-            <Text style={[NewsCardStyles.title, { fontSize: sf(15), lineHeight: sf(22) }]} numberOfLines={3}>{title}</Text>
+            <Text style={[NewsCardStyles.title, { fontSize: sf(14), lineHeight: sf(22) }]} numberOfLines={3}>{title}</Text>
           )}
 
           {!!category && (
             <View style={NewsCardStyles.catPill}>
-              <Text style={[NewsCardStyles.catText, { fontSize: sf(11) }]}>{category}</Text>
+              <Text style={[NewsCardStyles.catText, { fontSize: sf(12) }]}>{category}</Text>
             </View>
           )}
 
           <View style={NewsCardStyles.metaRow}>
-            <Text style={[NewsCardStyles.timeText, { fontSize: sf(11) }]}>{ago}</Text>
+            <Text style={[NewsCardStyles.timeText, { fontSize: sf(12) }]}>{ago}</Text>
             <View style={NewsCardStyles.metaRight}>
               {hasAudio && (
                 <View style={NewsCardStyles.audioIcon}>
@@ -397,7 +490,7 @@ const newscomment = item.newscomment || item.commentcount || item.nmcomment || i
               {!!newscomment && newscomment !== '0' && (
                 <View style={NewsCardStyles.commentRow}>
                   <Ionicons name="chatbox" size={s(14)} color={PALETTE.grey700} />
-                  <Text style={[NewsCardStyles.commentText, { fontSize: sf(11) }]}> {newscomment}</Text>
+                  <Text style={[NewsCardStyles.commentText, { fontSize: sf(12) }]}> {newscomment}</Text>
                 </View>
               )}
             </View>
@@ -818,6 +911,7 @@ export default function HomeScreen() {
   const [trendingTags, setTrendingTags] = useState([]);
   const [allNewsSections, setAllNewsSections] = useState([]);
   const [breakingNews, setBreakingNews] = useState('');
+  const [taboolaAds, setTaboolaAds] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [isDrawerVisible, setIsDrawerVisible] = useState(false);
@@ -884,6 +978,9 @@ export default function HomeScreen() {
         setBreakingNews(
           d?.breaking_news || d?.breakingnews || d?.ticker_text || d?.ticker || ''
         );
+
+        // Store mobile Taboola placements from the API
+        setTaboolaAds(d?.taboola_ads?.mobile || null);
 
         const sections = [];
         const tharpothaiyaData = d?.tharpothaiya_seithigal?.[0]?.data || [];
@@ -1192,10 +1289,16 @@ export default function HomeScreen() {
         <SkeletonLoader />
       ) : (
         <>
-          {/* Advertisement placeholder */}
-          <View style={styles.adBanner}>
-            <Text style={styles.adLabel}>Advertisement</Text>
-          </View>
+          {/* Taboola Ad */}
+          {taboolaAds?.midmain && (
+            <TaboolaWidget
+              pageUrl="https://www.dinamalar.com"
+              mode={taboolaAds.midmain.mode}
+              container={taboolaAds.midmain.container}
+              placement={taboolaAds.midmain.placement}
+              targetType="mix"
+            />
+          )}
 
           {/* Two-row category tabs */}
           <CategoryTab
@@ -1437,19 +1540,10 @@ const styles = StyleSheet.create({
 
   feedContent: { paddingBottom: vs(30) },
 
-  adBanner: {
+  // Taboola ads container (ready for implementation)
+  taboolaAdContainer: {
     height: vs(200),
-    backgroundColor: PALETTE.grey200,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: PALETTE.grey300,
-  },
-  adLabel: {
-    fontSize: ms(14),
-    color: PALETTE.grey400,
-    fontFamily: FONTS.muktaMalar.regular,
-    letterSpacing: 0.5,
+    marginVertical: vs(10),
   },
 
   sectionHeader: {

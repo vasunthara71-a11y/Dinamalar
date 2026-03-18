@@ -17,6 +17,7 @@ import UniversalHeaderComponent from '../components/UniversalHeaderComponent';
 import AppHeaderComponent from '../components/AppHeaderComponent';
 import TEXT_STYLES from '../utils/textStyles';
 import { useFontSize } from '../context/FontSizeContext';
+import { StatusBar } from 'expo-status-bar';
 
 const PALETTE = {
   primary: '#096dd2',
@@ -29,6 +30,7 @@ const PALETTE = {
   grey700: '#454F5B',
   grey800: '#212B36',
   white: '#FFFFFF',
+  black:'#0000'
 };
 
 const CAT_CONFIG = {
@@ -71,6 +73,23 @@ const getDinaVideoId = (item) => {
   const url = item.reacturl || item.slug || '';
   const m = url.match(/\/(\d+)$/);
   return m ? m[1] : null;
+};
+
+// ─── Play Icon ──────────────────────────────────────────────────────────────────
+const PlayIcon = ({ size = 28 }) => {
+  const { sf } = useFontSize();
+  const scaledSize = sf(size); // Scale the size based on font size settings
+  
+  return (
+    <View style={[vtStyles.playCircle, { width: scaledSize, height: scaledSize, borderRadius: scaledSize / 2 }]}>
+      <View style={[vtStyles.playTriangle, {
+        borderTopWidth: scaledSize * 0.12,
+        borderBottomWidth: scaledSize * 0.12,
+        borderLeftWidth: scaledSize * 0.30,
+        marginLeft: scaledSize * 0.06,
+      }]} />
+    </View>
+  );
 };
 
 // ─── VideoThumbnailCard ───────────────────────────────────────────────
@@ -129,13 +148,11 @@ function VideoThumbnailCard({ item, onPress }) {
       {/* Subtle dark overlay */}
       <View style={vtStyles.overlay} />
       {/* Centered play circle */}
-      <View style={vtStyles.playCircle}>
-        <Ionicons name="play" size={s(20)} color="#fff" style={{ marginLeft: s(2) }} />
-      </View>
+      <PlayIcon size={28} />
       {/* Duration badge bottom-right */}
       {!!duration && (
         <View style={vtStyles.durationBadge}>
-          <Text style={[vtStyles.durationText, { fontSize: sf(11) }]}>{String(duration)}</Text>
+          <Text style={[vtStyles.durationText, { fontSize: sf(12) }]}>{String(duration)}</Text>
         </View>
       )}
     </TouchableOpacity>
@@ -153,12 +170,16 @@ const vtStyles = StyleSheet.create({
   overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.25)' },
   playCircle: {
     position: 'absolute',
-    top: '50%', left: '50%',
-    marginTop: -s(22), marginLeft: -s(22),
-    width: s(44), height: s(44), borderRadius: s(22),
-    backgroundColor: 'rgba(0,0,0,0.60)',
+    top: s(8), left: s(6),
+    width: s(40), height: s(40), borderRadius: s(20),
+    backgroundColor: PALETTE.primary,
     borderWidth: 2, borderColor: 'rgba(255,255,255,0.9)',
     justifyContent: 'center', alignItems: 'center',
+  },
+  playTriangle: {
+    width: 0, height: 0, borderStyle: 'solid',
+    borderTopColor: 'transparent', borderBottomColor: 'transparent',
+    borderLeftColor: '#fff',
   },
   durationBadge: {
     position: 'absolute', bottom: s(6), right: s(6),
@@ -304,12 +325,12 @@ function NotificationCard({ item, onPress }) {
       {/* ── Text content (always tappable → article/video screen) ── */}
       <TouchableOpacity onPress={() => onPress(item)} activeOpacity={0.88}>
         <View style={ncStyles.contentContainer}>
-          <Text style={[ncStyles.title, { fontSize: sf(16), lineHeight: sf(22) }]} numberOfLines={3}>
+          <Text style={[ncStyles.title, { fontSize: sf(16), lineHeight: sf(26) }]}  >
             {String(item.newstitle || '')}
           </Text>
           {!!category && (
             <View style={ncStyles.catPill}>
-              <Text style={[ncStyles.catText, { fontSize: sf(11) }]}>{String(category)}</Text>
+              <Text style={[ncStyles.catText, { fontSize: sf(12) }]}>{String(category)}</Text>
             </View>
           )}
           <View style={ncStyles.metaRow}>
@@ -347,27 +368,27 @@ const ncStyles = StyleSheet.create({
   contentContainer: { paddingHorizontal: s(12), paddingTop: vs(10), paddingBottom: vs(14) },
   title: {
     fontFamily: FONTS.muktaMalar.bold,
-    fontSize: ms(15),
+    // fontSize: ms(15),
     color: PALETTE.grey800,
     lineHeight: ms(23),
     marginBottom: vs(8),
   },
   catPill: {
     alignSelf: 'flex-start',
-    backgroundColor: PALETTE.grey200,
+    // backgroundColor: PALETTE.grey200,
     borderWidth: 1,
-    borderColor: PALETTE.grey300,
+    borderColor: PALETTE.grey400,
     // borderRadius: s(4),
     paddingHorizontal: s(10),
     paddingVertical: s(3),
     marginBottom: vs(10),
   },
-  catText: { fontFamily: FONTS.muktaMalar.bold, fontSize: ms(11), color: PALETTE.grey700 },
+  catText: { fontFamily: FONTS.muktaMalar.bold,  color: PALETTE.grey700 },
   metaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  timeText: { fontFamily: FONTS.muktaMalar.regular, fontSize: ms(14), color: PALETTE.grey600 },
+  timeText: { fontFamily: FONTS.muktaMalar.regular,  color: PALETTE.black },
   metaRight: { flexDirection: 'row', alignItems: 'center', gap: s(8) },
   commentRow: { flexDirection: 'row', alignItems: 'center' },
-  commentText: { fontFamily: FONTS.muktaMalar.regular, fontSize: ms(14), color: PALETTE.grey700 },
+  commentText: { fontFamily: FONTS.muktaMalar.regular,  color: PALETTE.grey700 },
   divider: { height: vs(6), backgroundColor: PALETTE.grey200 },
 });
 
@@ -552,7 +573,7 @@ const tlStyles = StyleSheet.create({
   },
 
   dateText: {
-    fontSize: ms(10),
+    // fontSize: ms(10),
     color: PALETTE.grey600,
     lineHeight: ms(13),
     textAlign: 'center',
@@ -563,7 +584,7 @@ const tlStyles = StyleSheet.create({
   },
 
   timeText: {
-    fontSize: ms(9),
+    // fontSize: ms(9),
     color: PALETTE.grey500,
     textAlign: 'center',
     marginBottom: vs(5),
@@ -742,6 +763,14 @@ export default function TimelineScreen() {
   const navigation = useNavigation();
 
   const [notifications, setNotifications] = useState([]);
+
+  // Ensure component re-renders when font size changes
+  useEffect(() => {
+    // Force re-render when font size context changes
+  const forceUpdate = Math.random(); // Simple trigger for re-render
+  console.log('TimelineScreen font size updated:', sf(16));
+  }, [sf]); // Dependency on sf function
+
   const [notifTitle, setNotifTitle] = useState('');
   const [latestTitle, setLatestTitle] = useState('நேரடி செய்திகள்');
   const [news, setNews] = useState([]);
@@ -796,7 +825,7 @@ export default function TimelineScreen() {
       );
 
       console.log('=== Timeline API Attempt ===');
-      console.log('Trying u38Api:', `${API_BASE_URLS.CDN}/latestmain?page=${pageNum}`);
+      console.log('Trying CDNApi:', `${API_BASE_URLS.CDN}/latestmain?page=${pageNum}`);
 
       let results;
       try {
@@ -806,12 +835,12 @@ export default function TimelineScreen() {
         results = [{ status: 'rejected', reason: error }];
       }
 
-      // If u38Api fails, show error details
+      // If CDNApi fails, show error details
       if (results[0].status === 'rejected') {
-        console.log('❌ u38Api failed');
+        console.log('❌ CDNApi failed');
         console.log('Error Details:', results[0].reason);
       } else {
-        console.log('✅ u38Api SUCCESS');
+        console.log('✅ CDNApi SUCCESS');
       }
 
       // mainData.detail — the news items are in the detail array
@@ -933,8 +962,8 @@ export default function TimelineScreen() {
 
   return (
     <View style={styles.container}>
-      <UniversalHeaderComponent
-        statusBarStyle="light-content"
+       <UniversalHeaderComponent
+        statusBarStyle="dark-content"
         statusBarBackgroundColor={COLORS.white}
         onMenuPress={handleMenuPress}
         onNotification={goToNotifs}

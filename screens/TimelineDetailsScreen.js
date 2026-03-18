@@ -461,7 +461,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#f0f0f0',
     paddingTop: vs(16),
-    paddingHorizontal: s(16),
+    paddingHorizontal: s(12),
   },
   relatedTitle: {
     fontSize: scaledSizes.font.lg,

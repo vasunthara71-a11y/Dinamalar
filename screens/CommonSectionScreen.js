@@ -17,9 +17,25 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import { CDNApi } from '../config/api';
 import { ms, s, vs } from '../utils/scaling';
-import { COLORS, FONTS } from '../utils/constants';
+import { COLORS, FONTS, NewsCard as NewsCardStyles } from '../utils/constants';
 import TEXT_STYLES from '../utils/textStyles';
 import { useFontSize } from '../context/FontSizeContext';
+
+// --- Palette ------------------------------------------------------------------
+const PALETTE = {
+  primary: '#096dd2',
+  grey100: '#F9FAFB',
+  grey200: '#F4F6F8',
+  grey300: '#E5E7EB',
+  grey400: '#D1D5DB',
+  grey500: '#9CA3AF',
+  grey600: '#6B7280',
+  grey700: '#4B5563',
+  grey800: '#374151',
+  white: '#FFFFFF',
+  textDark: '#111111',
+};
+
 import UniversalHeaderComponent from '../components/UniversalHeaderComponent';
 import AppHeaderComponent from '../components/AppHeaderComponent';
 import { WebView } from 'react-native-webview';
@@ -152,7 +168,7 @@ const rc = StyleSheet.create({
   image: { width: '100%', height: '100%', resizeMode: 'cover' },
   playOverlay: { ...StyleSheet.absoluteFillObject, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.25)' },
   playBtn: { width: s(28), height: s(28), borderRadius: s(14), backgroundColor: 'rgba(0,0,0,0.65)', justifyContent: 'center', alignItems: 'center', paddingLeft: s(2) },
-  content: { flex: 1, paddingHorizontal: s(16) },
+  content: { flex: 1, paddingHorizontal: s(12) },
   title: { fontSize: ms(14), fontFamily: FONTS.muktaMalar.medium, color: '#1a1a1a', fontWeight: '700' },
 });
 
@@ -468,19 +484,19 @@ const rd = StyleSheet.create({
   loaderText: { fontSize: ms(14), color: '#888', fontFamily: FONTS.muktaMalar.regular },
 
   // Title / date
-  pageTitle: { fontSize: ms(18), fontFamily: FONTS.muktaMalar.medium || FONTS.muktaMalar.bold, color: '#111', fontWeight: '700', paddingHorizontal: s(14), paddingTop: vs(14), marginBottom: vs(4) },
+  pageTitle: { fontSize: ms(18), fontFamily: FONTS.anek.bold, color: '#111', fontWeight: '700', paddingHorizontal: s(12), paddingTop: vs(14), marginBottom: vs(4) },
   date: { fontSize: ms(13), color: '#888', fontFamily: FONTS.muktaMalar.regular },
-  dateRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: s(14), marginBottom: vs(10) },
+  dateRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: s(12), marginBottom: vs(10) },
   datePickerBtn: { padding: s(5) },
 
   // Prev date
-  prevDateRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: s(14), paddingVertical: vs(8), backgroundColor: '#f8f8f8', borderTopWidth: 1, borderBottomWidth: 1, borderColor: '#eee', marginBottom: vs(10) },
+  prevDateRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: s(12), paddingVertical: vs(8), backgroundColor: '#f8f8f8', borderTopWidth: 1, borderBottomWidth: 1, borderColor: '#eee', marginBottom: vs(10) },
   prevDateLabel: { fontSize: ms(13), fontFamily: FONTS.muktaMalar.regular, color: '#444' },
   prevDateBadge: { flexDirection: 'row', alignItems: 'center', gap: s(5), backgroundColor: '#fff', borderWidth: 1, borderColor: '#ddd', paddingHorizontal: s(8), paddingVertical: vs(4), borderRadius: s(4) },
   prevDateText: { fontSize: ms(12), fontFamily: FONTS.muktaMalar.regular, color: '#444' },
 
   // Rasi : Palan
-  rasiPalanRow: { flexDirection: 'row', alignItems: 'center', gap: s(8), paddingHorizontal: s(14), marginBottom: vs(10), justifyContent: 'flex-end' },
+  rasiPalanRow: { flexDirection: 'row', alignItems: 'center', gap: s(8), paddingHorizontal: s(12), marginBottom: vs(10), justifyContent: 'flex-end' },
   greyDot: { width: s(8), height: s(8), borderRadius: s(4), backgroundColor: '#888' },
   rasiPalanText: { fontSize: ms(13), fontFamily: FONTS.muktaMalar.bold, color: '#444', fontWeight: '600' },
 
@@ -500,11 +516,11 @@ const rd = StyleSheet.create({
   shareCircleBorder: { borderWidth: 1, borderColor: '#ddd' },
 
   // Rasi title underlined
-  rasiTitleWrap: { paddingHorizontal: s(14), paddingTop: vs(14), paddingBottom: vs(8) },
+  rasiTitleWrap: { paddingHorizontal: s(12), paddingTop: vs(14), paddingBottom: vs(8) },
   rasiTitleText: { fontSize: ms(16), fontFamily: FONTS.muktaMalar.medium || FONTS.muktaMalar.bold, color: '#111', fontWeight: '700', textDecorationLine: 'underline' },
 
   // Footnote
-  footnoteWrap: { paddingHorizontal: s(14), paddingTop: vs(4) },
+  footnoteWrap: { paddingHorizontal: s(12), paddingTop: vs(4) },
   paragraph: { fontSize: ms(15), fontFamily: FONTS.muktaMalar.regular, color: '#333', lineHeight: ms(24), marginBottom: vs(10) },
   emptyWrap: { alignItems: 'center', paddingVertical: vs(40), gap: vs(10) },
   emptyText: { fontSize: ms(14), color: '#aaa', fontFamily: FONTS.muktaMalar.regular },
@@ -516,7 +532,7 @@ const rd = StyleSheet.create({
   retryText: { color: '#fff', fontSize: ms(13), fontFamily: FONTS.muktaMalar.medium, fontWeight: '700' },
 
   // மேலும்
-  moreStrip: { paddingHorizontal: s(14), paddingVertical: vs(14), borderTopWidth: 1, borderTopColor: '#eee', marginTop: vs(16) },
+  moreStrip: { paddingHorizontal: s(12), paddingVertical: vs(14), borderTopWidth: 1, borderTopColor: '#eee', marginTop: vs(16) },
   moreText: { fontSize: ms(15), fontFamily: FONTS.muktaMalar.medium || FONTS.muktaMalar.bold, color: '#222', fontWeight: '700' },
 });
 
@@ -539,7 +555,7 @@ const sk = StyleSheet.create({
   card: { backgroundColor: '#fff', marginBottom: vs(8) },
   image: { width: '100%', height: vs(190), backgroundColor: '#e8e8e8' },
   body: { padding: s(12) },
-  line: { height: vs(12), backgroundColor: '#e8e8e8', borderRadius: s(4), marginBottom: vs(6), width: '90%' },
+  line: { height: vs(12), backgroundColor: '#e8e8e8', marginBottom: vs(6), width: '90%' },
 });
 // Section Title
 // ─────────────────────────────────────────────────────────────────────────────
@@ -547,16 +563,35 @@ function SectionTitle({ title }) {
   const { sf } = useFontSize();
 
   return (
-    <View style={st.wrap}>
-      <Text style={[st.title, { fontSize: sf(18) }]}>{title || ''}</Text>
-      <View style={st.underline} />
+    <View style={st.sectionHeader}>
+      <View style={st.titleContainer}>
+        <Text style={[st.sectionTitle, { fontSize: sf(16) }]}>{title || ''}</Text>
+        <View style={st.sectionUnderline} />
+      </View>
     </View>
   );
 }
 const st = StyleSheet.create({
-  wrap: { marginBottom: vs(10), marginTop: vs(4) },
-  title: { fontSize: 18, fontFamily: FONTS.muktaMalar.bold, color: COLORS.text }, // ← Will be scaled dynamically
-  underline: { height: vs(2), width: s(60), backgroundColor: COLORS.primary, marginTop: ms(2) },
+  sectionHeader: {
+    // backgroundColor: PALETTE.white,
+    // paddingHorizontal: s(12),
+    // paddingTop: vs(14),
+    paddingBottom: vs(10),
+  },
+  titleContainer: {
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+  },
+  sectionTitle: {
+    fontFamily: FONTS.muktaMalar.bold,
+    color: PALETTE.grey800,
+    marginBottom: vs(2),
+  },
+  sectionUnderline: {
+    height: vs(4),
+    width: '20%',
+    backgroundColor: PALETTE.primary,
+  },
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -603,72 +638,68 @@ function InlineVideoPlayer({ url, style }) {
   );
 }
 
-// News Card
+// News Card (same as HomeScreen)
 // ─────────────────────────────────────────────────────────────────────────────
 function NewsCard({ item, onPress, sectionTitle = '' }) {
   const { sf } = useFontSize();
 
   const imageUri =
-    item.images || item.largeimages || item.image || item.thumbnail ||
+    item.largeimages || item.images || item.image || item.thumbnail || item.thumb ||
     'https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_default.jpg?im=Resize,width=400';
-  const title = item.newstitle || item.title || item.maincat || item.heading || '';
-  const category = item.categorytitle || item.categrorytitle || item.maincat || item.ctitle || item.cattitle || sectionTitle;
-  const ago = item.ago || item.standarddate || item.time_ago || item.date || '';
-  const hasVideo = !!item.videopath || (item.video && item.video !== '0');
-  const videoUrl = item.videopath || item.videolink || item.videourl || '';
-  const comments = item.newscomment || item.commentcount || '';
-  const footnote = item.footnote ? stripHtml(item.footnote) : '';
 
-  const handlePress = () => {
-    onPress(); // Always navigate to article details
-  };
+  const title = item.newstitle || item.title || item.videotitle || item.name || '';
+  const category = item.maincat || item.categrorytitle || item.ctitle || item.maincategory || sectionTitle || '';
+  const ago = item.ago || item.time_ago || item.standarddate || item.date || '';
+  const newscomment = item.newscomment || item.commentcount || item.nmcomment || item.comments?.total || '';
+  const hasAudio = item.audio === 1 || item.audio === '1' || item.audio === true ||
+    (typeof item.audio === 'string' && item.audio.length > 1 && item.audio !== '0');
 
   return (
-    <TouchableOpacity style={nc.wrap} onPress={handlePress} activeOpacity={0.85}>
-      <View style={nc.imageWrap}>
-        {hasVideo && videoUrl ? (
-          <InlineVideoPlayer url={videoUrl} style={nc.videoPlayer} />
-        ) : (
-          <Image source={{ uri: imageUri }} style={nc.image} resizeMode="cover" />
-        )}
-      </View>
-      <View style={nc.content}>
-        <Text style={[nc.title, { fontSize: sf(14), lineHeight: sf(22) }]} numberOfLines={3}>{title}</Text>
-        {!!footnote && <Text style={[nc.footnote, { fontSize: sf(13), lineHeight: sf(20) }]} numberOfLines={4}>{footnote}</Text>}
-        {!!category && (
-          <View style={nc.catWrap}>
-            <Text style={[nc.catText, { fontSize: sf(12) }]}>{category}</Text>
-          </View>
-        )}
-        <View style={nc.meta}>
-          <Text style={[nc.metaText, { fontSize: sf(12) }]}>{ago}</Text>
-          {!!comments && comments !== '0' && (
-            <View style={nc.commentWrap}>
-              <Ionicons name="chatbox" size={s(12)} color="#888" />
-              <Text style={[nc.metaText, { fontSize: sf(12) }]}> {comments}</Text>
+    <View style={NewsCardStyles.wrap}>
+      <TouchableOpacity onPress={onPress} activeOpacity={0.88}>
+        <View style={NewsCardStyles.imageWrap}>
+          <Image
+            source={{ uri: imageUri }}
+            style={NewsCardStyles.image}
+            resizeMode="contain"
+          />
+        </View>
+
+        <View style={NewsCardStyles.contentContainer}>
+          {!!title && (
+            <Text style={[NewsCardStyles.title, { fontSize: sf(14), lineHeight: sf(22) }]} numberOfLines={3}>{title}</Text>
+          )}
+
+          {!!category && (
+            <View style={NewsCardStyles.catPill}>
+              <Text style={[NewsCardStyles.catText, { fontSize: sf(12) }]}>{category}</Text>
             </View>
           )}
+
+          <View style={NewsCardStyles.metaRow}>
+            <Text style={[NewsCardStyles.timeText, { fontSize: sf(12) }]}>{ago}</Text>
+            <View style={NewsCardStyles.metaRight}>
+              {hasAudio && (
+                <View style={NewsCardStyles.audioIcon}>
+                  <Ionicons name="volume-high" size={s(14)} color={PALETTE.grey700} />
+                </View>
+              )}
+
+              {!!newscomment && newscomment !== '0' && (
+                <View style={NewsCardStyles.commentRow}>
+                  <Ionicons name="chatbox" size={s(14)} color={PALETTE.grey700} />
+                  <Text style={[NewsCardStyles.commentText, { fontSize: sf(12) }]}> {newscomment}</Text>
+                </View>
+              )}
+            </View>
+          </View>
         </View>
-      </View>
-    </TouchableOpacity>
+      </TouchableOpacity>
+
+      <View style={NewsCardStyles.divider} />
+    </View>
   );
 }
-const nc = StyleSheet.create({
-  wrap: { backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#f0f0f0', marginBottom: vs(2) },
-  imageWrap: { width: '100%', height: vs(200), position: 'relative', padding: s(12) },
-  image: { width: '100%', height: '100%' },
-  videoPlayer: { width: '100%', height: '100%', borderRadius: s(6) },
-  playOverlay: { ...StyleSheet.absoluteFillObject, justifyContent: 'center', alignItems: 'center' },
-  playBtn: { width: s(44), height: s(44), borderRadius: s(22), backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'center', alignItems: 'center', paddingLeft: s(3) },
-  content: { paddingHorizontal: s(12), paddingTop: vs(6), paddingBottom: vs(12) },
-  title: { fontSize: 14, fontFamily: FONTS.muktaMalar.medium, color: '#111', lineHeight: 22 },
-  catWrap: { alignSelf: 'flex-start', backgroundColor: '#f0f0f0', borderWidth: 1, borderColor: 'transparent', borderRadius: s(4), paddingHorizontal: s(10), paddingVertical: s(3), marginBottom: vs(10) },
-  catText: { fontSize: 12, fontFamily: FONTS.muktaMalar.medium, color: '#666' },
-  meta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  metaText: { fontSize: 12, fontFamily: FONTS.muktaMalar.regular, color: '#888' },
-  commentWrap: { flexDirection: 'row', alignItems: 'center', marginLeft: 'auto' },
-  footnote: { fontSize: ms(13), fontFamily: FONTS.muktaMalar.regular, color: '#555', lineHeight: ms(20), marginTop: vs(4), marginBottom: vs(6) },
-});
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -1027,7 +1058,7 @@ export default function CommonSectionScreen() {
 
       {/* ── Page Title ── */}
       <View style={styles.pageTitleWrap}>
-        <Text style={[styles.pageTitle, { fontSize: sf(18) }]}>{screenTitle}</Text>
+        <Text style={[styles.pageTitle, { fontSize: sf(16) }]}>{screenTitle}</Text>
       </View>
 
       {/* ── Tabs ── */}
@@ -1152,14 +1183,14 @@ export default function CommonSectionScreen() {
 // ─────────────────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f2f2f2', paddingTop: Platform.OS === 'android' ? vs(28) : 0 },
-  pageTitleWrap: { paddingHorizontal: s(14), paddingTop: vs(14), paddingBottom: vs(6), backgroundColor: '#fff' },
-  pageTitle: { fontSize: 18, fontFamily: FONTS.muktaMalar.medium || FONTS.muktaMalar.bold, color: '#111', fontWeight: '700', paddingHorizontal: s(14), paddingTop: vs(14), marginBottom: vs(4) }, // ← Will be scaled dynamically
+  pageTitleWrap: {   paddingTop: vs(14), paddingBottom: vs(6), backgroundColor: '#fff' },
+  pageTitle: { fontSize: 18, fontFamily: FONTS.anek.bold, color: '#111', fontWeight: '700', paddingHorizontal: s(12), paddingTop: vs(14), marginBottom: vs(4) }, // ← Will be scaled dynamically
 
   tabsWrap: { backgroundColor: '#fff', elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: vs(1) }, shadowOpacity: 0.08, shadowRadius: s(2) },
   tabsContent: { paddingHorizontal: s(4), alignItems: 'center' },
-  tab: { paddingHorizontal: s(14), paddingVertical: vs(12), marginHorizontal: s(2), borderBottomWidth: vs(3), borderBottomColor: 'transparent' },
+  tab: { paddingHorizontal: s(12), paddingVertical: vs(12), marginHorizontal: s(2), borderBottomWidth: vs(3), borderBottomColor: 'transparent' },
   tabActive: { borderBottomColor: COLORS.primary },
-  tabText: { fontSize: 14, fontFamily: FONTS.muktaMalar.regular, color: '#666' }, // ← Will be scaled dynamically
+  tabText: { fontSize: 14, fontFamily: FONTS.muktaMalar.semibold, color: COLORS.text }, // ← Will be scaled dynamically
   tabTextActive: { fontSize: 14, fontFamily: FONTS.muktaMalar.medium, color: COLORS.primary }, // ← Will be scaled dynamically
   tabsBottomLine: { height: StyleSheet.hairlineWidth, backgroundColor: '#e0e0e0' },
 
@@ -1167,7 +1198,7 @@ const styles = StyleSheet.create({
   listContent: { paddingTop: vs(6), paddingBottom: vs(30) },
   rasiGridContent: { flexDirection: 'column', paddingBottom: vs(30) },
 
-  sectionWrap: { paddingHorizontal: s(14), paddingTop: vs(16), paddingBottom: vs(4), backgroundColor: '#f2f2f2' },
+  sectionWrap: { paddingHorizontal: s(12), paddingTop: vs(16), paddingBottom: vs(4), backgroundColor: '#f2f2f2' },
   emptyWrap: { alignItems: 'center', justifyContent: 'center', paddingVertical: vs(80), gap: vs(12) },
   emptyText: { fontSize: ms(15), fontFamily: FONTS.muktaMalar.medium, color: '#aaa' },
   footerLoader: { paddingVertical: vs(20), alignItems: 'center' },

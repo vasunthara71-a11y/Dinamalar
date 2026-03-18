@@ -147,10 +147,17 @@ export const FONTS = {
         width: '100%',
         height: vs(200),
       },
+      imageErrorContainer: {
+        width: '100%',
+        height: vs(200),
+        backgroundColor: PALETTE.grey200,
+        justifyContent: 'center',
+        alignItems: 'center',
+      },
       contentContainer: {
         paddingHorizontal: s(12),
-        paddingTop: vs(10),
-        paddingBottom: vs(14),
+        paddingTop: vs(15),
+        paddingBottom: vs(15),
       },
       title: {
         fontFamily: FONTS.muktaMalar.bold,
@@ -161,11 +168,10 @@ export const FONTS = {
       },
       catPill: {
         alignSelf: 'flex-start',
-        backgroundColor: PALETTE.grey200,
+        // backgroundColor: PALETTE.grey200,
         borderWidth: 1,
         borderColor: PALETTE.grey300,
-        borderRadius: s(4),
-        paddingHorizontal: s(10),
+         paddingHorizontal: s(10),
         paddingVertical: s(3),
         marginBottom: vs(10),
       },

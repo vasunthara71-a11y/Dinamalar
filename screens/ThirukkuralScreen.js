@@ -627,7 +627,7 @@ export default function ThirukkuralScreen() {
 const det = StyleSheet.create({
   root: {
     backgroundColor: '#fff',
-    paddingHorizontal: s(16),
+    paddingHorizontal: s(12),
     paddingBottom: vs(16),
     borderBottomWidth: 1,
     borderBottomColor: C.separator,
@@ -789,7 +789,7 @@ const ddm = StyleSheet.create({
   },
   dropdownHeader: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: s(16), paddingVertical: vs(12),
+    paddingHorizontal: s(12), paddingVertical: vs(12),
     borderBottomWidth: 1, borderBottomColor: '#eee',
   },
   dropdownTitle:    { fontSize: s(14), fontWeight: '700', color: '#111' },
@@ -797,7 +797,7 @@ const ddm = StyleSheet.create({
   dropdownScroll:   { maxHeight: vs(350) },
   option: {
     flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: s(16), paddingVertical: vs(10),
+    paddingHorizontal: s(12), paddingVertical: vs(10),
   },
   optionActive:     { backgroundColor: COLORS.primary },
   optionText:       { flex: 1, fontSize: s(12), color: '#222' },
@@ -869,7 +869,7 @@ const styles = StyleSheet.create({
   dropdownBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     backgroundColor: C.dropdown, marginHorizontal: s(12), borderRadius: s(4),
-    paddingHorizontal: s(16), paddingVertical: vs(14), marginBottom: vs(16),
+    paddingHorizontal: s(12), paddingVertical: vs(14), marginBottom: vs(16),
   },
   dropdownBtnText: {
     flex: 1, fontSize: s(14), color: '#fff', fontWeight: '600',

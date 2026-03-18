@@ -211,7 +211,7 @@ const st = StyleSheet.create({
   item: {
     flexDirection:     'row',
     alignItems:        'center',
-    paddingHorizontal: s(16),
+    paddingHorizontal: s(12),
     paddingVertical:   vs(7),        // tall rows — matches screenshot
     backgroundColor:   P.white,
   },

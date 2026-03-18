@@ -403,7 +403,7 @@ const DrawerMenu = ({ isVisible, onClose, onMenuPress, navigation }) => {
                 {/* Home row */}
                 <TouchableOpacity
                   style={ds.homeRow}
-                  onPress={() => { navigation?.navigate('HomeScreen'); onClose(); }}
+                  onPress={() => { navigation?.navigate('MainTabs', { screen: 'Home' }); onClose(); }}
                   activeOpacity={0.7}
                 >
                   <Ionicons name="home-outline" size={s(20)} color={P.grey800} style={{ marginRight: s(10) }} />
@@ -698,7 +698,7 @@ const ds = StyleSheet.create({
   menuRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: s(16),
+    paddingHorizontal: s(12),
     paddingVertical: vs(6),
     backgroundColor: P.white,
   },
@@ -740,7 +740,7 @@ const ds = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: P.border,
     paddingTop: vs(12),
-    paddingHorizontal: s(16),
+    paddingHorizontal: s(12),
     alignItems: 'center',
   },
   followRow: {

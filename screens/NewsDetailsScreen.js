@@ -413,7 +413,7 @@ export default function NewsDetailsScreen() {
   }, []);
 
   const scrollToTop = () =>
-    scrollRef.current?.scrollToOffset({ offset: 0, animated: true });
+    scrollRef.current?.scrollTo({ x: 0, y: 0, animated: true });
 
   const [taboolaAds, setTaboolaAds] = useState(null);
 
@@ -694,7 +694,7 @@ export default function NewsDetailsScreen() {
               {/* Hero image */}
               {!!image && !isVideo && !isPodcast && (
                 <View style={styles.heroWrap}>
-                  <Image source={{ uri: image }} style={styles.heroImage} resizeMode="contain" />
+                  <Image source={{ uri: image }} style={styles.heroImage} resizeMode="cover" />
                   {!!d.imagecaption && <Text style={[styles.caption, { fontSize: sf(12) }]}>{d.imagecaption}</Text>}
                 </View>
               )}
@@ -803,16 +803,16 @@ export default function NewsDetailsScreen() {
                           </View>
                           <View style={styles.relatedNewsContent}>
                             {!!relTitle && (
-                              <Text style={[styles.relatedNewsTitle, { fontSize: sf(12), lineHeight: sf(22) }]} numberOfLines={3}>
+                              <Text style={[styles.relatedNewsTitle, { fontSize: sf(14), lineHeight: sf(22) }]} numberOfLines={3}>
                                 {relTitle}
                               </Text>
                             )}
                             <View style={styles.relatedNewsMetaRow}>
-                              <Text style={[styles.relatedNewsTimeText, { fontSize: sf(10) }]}>{relDate}</Text>
+                              <Text style={[styles.relatedNewsTimeText, { fontSize: sf(12) }]}>{relDate}</Text>
                               {relCommentCount > 0 && (
                                 <View style={styles.relatedNewsCommentRow}>
                                   <Ionicons name="chatbox" size={s(14)} color="#637381" />
-                                  <Text style={[styles.relatedNewsCommentText, { fontSize: sf(11) }]}> {relCommentCount}</Text>
+                                  <Text style={[styles.relatedNewsCommentText, { fontSize: sf(12) }]}> {relCommentCount}</Text>
                                 </View>
                               )}
                             </View>
@@ -946,11 +946,11 @@ const styles = StyleSheet.create({
   scrollContent: { paddingBottom: vs(20)
     
    },
-  title: { fontWeight: '800', color: COLORS.text, paddingHorizontal: s(16), paddingTop: vs(12) },
-  metaRow: { flexDirection: 'row', alignItems: 'center', gap: s(8), paddingHorizontal: s(16), marginBottom: vs(12) },
+  title: { fontWeight: '800', color: COLORS.text, paddingHorizontal: s(12), paddingTop: vs(12) },
+  metaRow: { flexDirection: 'row', alignItems: 'center', gap: s(8), paddingHorizontal: s(12), marginBottom: vs(12) },
   iconAction: { flexDirection: 'row', alignItems: 'center', gap: s(3), padding: s(4) },
   iconBadge: { color: COLORS.subtext, fontWeight: '600' },
-  heroWrap: { marginHorizontal: s(16), marginBottom: vs(12) },
+  heroWrap: { marginHorizontal: s(12), marginBottom: vs(12) },
   heroImage: { width: '100%', height: ms(230), backgroundColor: '#f0f0f0' },
   caption: { color: COLORS.subtext, fontStyle: 'italic', marginTop: vs(4), textAlign: 'center' },
   videoWrap: { marginHorizontal: s(16), height: ms(200), backgroundColor: '#1a1a2e', borderRadius: s(10), justifyContent: 'center', alignItems: 'center', marginBottom: vs(12), overflow: 'hidden' },
@@ -967,7 +967,7 @@ const styles = StyleSheet.create({
   podcastBadgeTxt: { color: '#fff', fontSize: ms(8), fontWeight: '800', letterSpacing: 0.5 },
   podcastCardTitle: { fontSize: ms(13), fontWeight: '700', color: COLORS.text, lineHeight: ms(18), marginBottom: vs(4) },
   podcastCardDate: { fontSize: ms(10), color: COLORS.subtext },
-  contentSection: { paddingHorizontal: s(16), marginBottom: vs(16) },
+  contentSection: { paddingHorizontal: s(12), marginBottom: vs(16) },
 
   // Taboola WebView wrapper
   // paddingHorizontal is handled inside the WebView HTML (body padding: 0 12px)
@@ -986,7 +986,7 @@ const styles = StyleSheet.create({
     paddingBottom: vs(4),
   },
 
-  tagsSection: { paddingHorizontal: s(16), marginBottom: vs(16) },
+  tagsSection: { paddingHorizontal: s(12), marginBottom: vs(16) },
   tagsSectionTitle: { fontWeight: '700', color: COLORS.text, marginBottom: vs(8) },
   tagsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: s(6) },
   tagChip: { backgroundColor: COLORS.primary + '15', paddingHorizontal: s(10), paddingVertical: vs(4), borderRadius: s(14), borderWidth: 1, borderColor: COLORS.primary + '30' },
@@ -1000,10 +1000,10 @@ const styles = StyleSheet.create({
   swipeNavBtnDisabled: { opacity: 0.3 },
   swipeNavTxt: { fontSize: ms(13), fontWeight: '700', color: COLORS.primary },
   swipeNavTxtDisabled: { color: '#ccc' },
-  relatedSection: { marginBottom: vs(16) },
-  relatedHeader: { paddingHorizontal: s(16), marginBottom: vs(12) },
+  relatedSection: { marginBottom: vs(10) },
+  relatedHeader: { paddingHorizontal: s(12), marginBottom: vs(12) },
   relatedSectionTitle: { fontWeight: '800', color: COLORS.text, marginBottom: vs(6) },
-  relatedHeaderLine: { height: vs(4), width: s(90), backgroundColor: COLORS.primary },
+  relatedHeaderLine: { height: vs(5), width: s(90), backgroundColor: COLORS.primary },
   relatedNewsCardWrap: { backgroundColor: COLORS.white },
   relatedNewsImageWrap: { paddingHorizontal: s(12), paddingTop: vs(8) },
   relatedNewsImage: { width: '100%', height: vs(200), backgroundColor: '#f0f0f0' },
@@ -1018,7 +1018,7 @@ const styles = StyleSheet.create({
   errorTxt: { color: COLORS.subtext, textAlign: 'center', marginTop: vs(12), marginBottom: vs(20) },
   retryBtn: { backgroundColor: COLORS.primary, paddingHorizontal: s(24), paddingVertical: vs(10), borderRadius: s(8) },
   retryBtnTxt: { color: '#fff', fontWeight: '700' },
-  loaderContainer: { backgroundColor: COLORS.white, paddingHorizontal: s(16), paddingTop: vs(16) },
+  loaderContainer: { backgroundColor: COLORS.white, paddingHorizontal: s(12), paddingTop: vs(16) },
   skeletonTitle: { height: vs(28), backgroundColor: '#f0f0f0', borderRadius: s(6), marginBottom: vs(8), width: '92%' },
   skeletonTitleShort: { height: vs(28), backgroundColor: '#f0f0f0', borderRadius: s(6), marginBottom: vs(12), width: '75%' },
   skeletonMeta: { flexDirection: 'row', alignItems: 'center', gap: s(8), marginBottom: vs(16) },

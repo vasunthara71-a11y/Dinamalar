@@ -263,7 +263,7 @@ const st = StyleSheet.create({
   // ── Menu columns ────────────────────────────────────────────────────────────
   menuRow: {
     flexDirection: 'row',
-    paddingHorizontal: s(16),
+    paddingHorizontal: s(12),
     paddingVertical: vs(8),
   },
   col: {
@@ -290,7 +290,7 @@ const st = StyleSheet.create({
 
   // ── Generic section wrapper ──────────────────────────────────────────────────
   section: {
-    paddingHorizontal: s(16),
+    paddingHorizontal: s(12),
     paddingVertical: vs(14),
   },
   centerSection: {
@@ -380,7 +380,7 @@ const st = StyleSheet.create({
   copyright: {
     alignItems: 'center',
     paddingVertical: vs(14),
-    paddingHorizontal: s(16),
+    paddingHorizontal: s(12),
     backgroundColor: P.grey100,
     marginTop: vs(4),
   },

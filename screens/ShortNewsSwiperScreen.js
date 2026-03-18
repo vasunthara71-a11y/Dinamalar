@@ -387,7 +387,7 @@ const pageSt = StyleSheet.create({
     page: {
         height: SCREEN_HEIGHT,
         backgroundColor: PALETTE.grey200,
-        paddingHorizontal: s(16),
+        paddingHorizontal: s(12),
         // paddingTop:       vs(16),
         // paddingBottom:    vs(16),
         justifyContent: 'center',

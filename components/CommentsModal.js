@@ -71,7 +71,7 @@ function CommentItem({ item, index }) {
 const cs = StyleSheet.create({
   row: {
     flexDirection: 'row',
-    paddingHorizontal: s(16),
+    paddingHorizontal: s(12),
     paddingVertical: vs(12),
     borderBottomWidth: 1,
     borderBottomColor: '#f5f5f5',
@@ -345,7 +345,7 @@ const modal = StyleSheet.create({
   header: {
     flexDirection: 'row', alignItems: 'flex-start',
     justifyContent: 'space-between',
-    paddingHorizontal: s(16), paddingTop: vs(8), paddingBottom: vs(12),
+    paddingHorizontal: s(12), paddingTop: vs(8), paddingBottom: vs(12),
   },
   headerTitle: { fontSize: scaledSizes.font.xl, fontFamily: FONTS.muktaMalar.bold, color: '#1a1a1a' },
   headerCount: { fontSize: scaledSizes.font.xl, fontFamily: FONTS.muktaMalar.regular, color: '#888' },
