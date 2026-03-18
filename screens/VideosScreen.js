@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
@@ -14,7 +14,7 @@ import {
   Platform,
   ActivityIndicator,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import RenderHtml from 'react-native-render-html';
 import AppHeaderComponent from '../components/AppHeaderComponent';
 import TopMenuStrip from '../components/TopMenuStrip';
@@ -40,8 +40,10 @@ const PALETTE = {
   dark: '#1A1A1A',
   blue: '#003580',
   primary: '#096dd2',
-
 };
+
+// ─── Constants ────────────────────────────────────────────────────────────────────
+const AD_INTERVAL = 4; // Insert ad after every 4 videos
 
 // ─── Helpers ────────────────────────────────────────────────────────────────────
 const getTimeAgo = (dateStr) => {
@@ -67,12 +69,90 @@ const PlayIcon = ({ size = 28 }) => (
   </View>
 );
 
+// ─── Short Card (HomeScreen ShortsCard style) ───────────────────────────────────
+const ShortCard = ({ video, onPress }) => {
+  const { sf } = useFontSize();
+  const title = video.title || video.videotitle || '';
+  const hasImage = !!video.images;
+
+  return (
+    <TouchableOpacity
+      activeOpacity={0.85}
+      onPress={() => onPress?.(video)}
+      style={styles.shortCard}
+    >
+      <View style={styles.shortCardImageContainer}>
+        <Image
+          source={{
+            uri: hasImage
+              ? video.images
+              : 'https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_default.jpg?im=Resize,width=400',
+          }}
+          style={styles.shortCardImage}
+          resizeMode="cover"
+        />
+        {/* Play overlay */}
+        <View style={styles.shortCardPlayOverlay}>
+          <View style={styles.shortCardPlayButton}>
+            <Ionicons name="play" size={s(12)} color="#fff" />
+          </View>
+        </View>
+        {/* Title at bottom */}
+        {!!title && (
+          <View style={styles.shortCardTitleOverlay}>
+            <Text style={[styles.shortCardBottomTitle, { fontSize: sf(10) }]} numberOfLines={2}>
+              {title}
+            </Text>
+          </View>
+        )}
+      </View>
+    </TouchableOpacity>
+  );
+};
+
+// ─── Shorts Section Row (horizontal scroll strip) ───────────────────────────────
+// Now receives `items` (the grouped reels for this strip) instead of all shorts
+const ShortsSectionRow = ({ items, onPress }) => {
+  const { sf } = useFontSize();
+  if (!items || items.length === 0) return null;
+
+  return (
+    <View style={styles.shortsSectionContainer}>
+      <View style={styles.shortsSectionHeader}>
+        <View style={styles.shortsSectionTitleWrap}>
+          <Text style={[styles.shortsSectionTitle, { fontSize: sf(14) }]}>Shorts</Text>
+          <View style={styles.shortsSectionUnderline} />
+        </View>
+      </View>
+      <ScrollView
+        horizontal={true}
+        showsHorizontalScrollIndicator={false}
+        showsVerticalScrollIndicator={false}
+        nestedScrollEnabled={true}
+        contentContainerStyle={styles.shortsSectionScroll}
+        style={styles.shortsSectionScrollView}
+      >
+        {items.map((video, index) => (
+          <ShortCard
+            key={`short-${index}-${video.videoid || video.id || index}`}
+            video={video}
+            onPress={onPress}
+          />
+        ))}
+      </ScrollView>
+    </View>
+  );
+};
+
 // ─── Video Card ─────────────────────────────────────────────────────────────────
 const VideoCard = ({ video, onPress, onCommentsPress }) => {
   const { sf } = useFontSize();
 
-  // Skip reels and ads mixed into videomix.data
-  if (video.type === 'reels' || video.type === 'googlead') return null;
+  // Skip reels — they render in the shorts strip
+  if (video.type === 'reels') return null;
+
+  // Skip ads mixed into videomix.data
+  if (video.type === 'googlead') return null;
 
   const timeAgo = getTimeAgo(video.videodate);
   const commentCount = parseInt(video.nmcomment || 0);
@@ -97,7 +177,7 @@ const VideoCard = ({ video, onPress, onCommentsPress }) => {
       </View>
 
       <View style={styles.cardBody}>
-        <Text style={[styles.videoTitle, { fontSize: sf(16), lineHeight: sf(20) }]}  >{video.videotitle}</Text>
+        <Text style={[styles.videoTitle, { fontSize: sf(16), lineHeight: sf(20) }]}>{video.videotitle}</Text>
         <Text style={[styles.metaDate, { fontSize: sf(14) }]}>{timeAgo || video.standarddate}</Text>
         <View style={styles.cardMeta}>
           <View style={styles.cardMetaLeft}>
@@ -138,69 +218,121 @@ const Chip = ({ label, active, onPress }) => {
 };
 
 // ─── Filter Sheet ────────────────────────────────────────────────────────────────
-// பதிவேற்றம் → api.filter   (name, ename: weekly/monthly/yearly)
-// மாவட்டம்   → api.districtlist.data (id, title)
 const FilterSheet = ({
   visible, onClose,
-  filterOptions, selectedFilter, onSelectFilter,      // api.filter
-  districtOptions, selectedDistrict, onSelectDistrict, // api.districtlist.data
-}) => (
-  <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-    <View style={styles.modalContainer}>
-      <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={onClose} />
-      <View style={styles.filterSheet}>
-        <View style={styles.sheetHandle} />
+  filterOptions, selectedFilter, onSelectFilter,
+  districtOptions, selectedDistrict, onSelectDistrict,
+  onClearAll,
+}) => {
+  const { sf } = useFontSize();
+  const hasActive = !!selectedFilter || !!selectedDistrict;
 
-        {/* Header */}
-        <View style={styles.sheetHeader}>
-          <Text style={styles.sheetTitle}>Video Filters</Text>
-          <TouchableOpacity onPress={onClose} style={styles.sheetCloseBtn}>
-            <Ionicons name="close" size={20} color={PALETTE.grey700} />
-          </TouchableOpacity>
-        </View>
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <View style={styles.modalContainer}>
+        <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={onClose} />
+        <View style={styles.filterSheet}>
+          {/* Drag handle */}
+          <View style={styles.sheetHandle} />
 
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24 }}>
+          {/* Header */}
+          <View style={styles.sheetHeader}>
+            <Text style={[styles.sheetTitle, { fontSize: sf(16) }]}>வடிகட்டி</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: s(8) }}>
+              {hasActive && (
+                <TouchableOpacity onPress={onClearAll} style={styles.clearBtn} activeOpacity={0.8}>
+                  <Text style={[styles.clearBtnTxt, { fontSize: sf(12) }]}>நீக்கு</Text>
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity onPress={onClose} style={styles.sheetCloseBtn}>
+                <Ionicons name="close" size={s(18)} color={PALETTE.grey700} />
+              </TouchableOpacity>
+            </View>
+          </View>
 
-          {/* பதிவேற்றம் — from api.filter */}
-          {filterOptions.length > 0 && (
-            <View style={styles.filterSection}>
-              <Text style={styles.filterSectionLabel}>பதிவேற்றம் :</Text>
-              <View style={styles.chipRow}>
-                {filterOptions.map((item) => (
-                  <Chip
-                    key={`filter_${item.id}`}
-                    label={item.name}
-                    active={selectedFilter === item.ename}
-                    onPress={() => onSelectFilter(item.ename)}
-                  />
-                ))}
-              </View>
+          {/* Active filter summary bar */}
+          {hasActive && (
+            <View style={styles.activeSummary}>
+              <Ionicons name="funnel" size={s(13)} color={PALETTE.primary} />
+              <Text style={[styles.activeSummaryTxt, { fontSize: sf(12) }]}>
+                {[
+                  filterOptions.find(f => f.ename === selectedFilter)?.name,
+                  districtOptions.find(d => String(d.id) === selectedDistrict)?.title,
+                ].filter(Boolean).join('  •  ')}
+              </Text>
             </View>
           )}
 
-          {/* மாவட்ட வீடியோக்கள் — from api.districtlist.data */}
-          {districtOptions.length > 0 && (
-            <View style={styles.filterSection}>
-              <Text style={styles.filterSectionLabel}>மாவட்ட வீடியோக்கள் :</Text>
-              <View style={styles.chipRow}>
-                {districtOptions
-                  .filter((d) => !!d.id)
-                  .map((item) => (
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ paddingBottom: vs(32) }}
+          >
+            {/* பதிவேற்றம் */}
+            {filterOptions.length > 0 && (
+              <View style={styles.filterSection}>
+                <View style={styles.filterSectionRow}>
+                  <Text style={[styles.filterSectionLabel, { fontSize: sf(13) }]}>பதிவேற்றம்</Text>
+                  {!!selectedFilter && (
+                    <TouchableOpacity onPress={() => onSelectFilter(selectedFilter)}>
+                      <Text style={[styles.sectionClearTxt, { fontSize: sf(11) }]}>நீக்கு</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+                <View style={styles.chipRow}>
+                  {filterOptions.map((item) => (
                     <Chip
-                      key={`district_${item.id}`}
-                      label={item.title}
-                      active={selectedDistrict === String(item.id)}
-                      onPress={() => onSelectDistrict(String(item.id))}
+                      key={`filter_${item.id}`}
+                      label={item.name}
+                      active={selectedFilter === item.ename}
+                      onPress={() => onSelectFilter(item.ename)}
                     />
                   ))}
+                </View>
               </View>
-            </View>
-          )}
-        </ScrollView>
+            )}
+
+            {filterOptions.length > 0 && districtOptions.length > 0 && (
+              <View style={styles.sheetDivider} />
+            )}
+
+            {/* மாவட்ட வீடியோக்கள் */}
+            {districtOptions.length > 0 && (
+              <View style={styles.filterSection}>
+                <View style={styles.filterSectionRow}>
+                  <Text style={[styles.filterSectionLabel, { fontSize: sf(13) }]}>மாவட்ட வீடியோக்கள்</Text>
+                  {!!selectedDistrict && (
+                    <TouchableOpacity onPress={() => onSelectDistrict(selectedDistrict)}>
+                      <Text style={[styles.sectionClearTxt, { fontSize: sf(11) }]}>நீக்கு</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+                <View style={styles.chipRow}>
+                  {districtOptions
+                    .filter((d) => !!d.id)
+                    .map((item) => (
+                      <Chip
+                        key={`district_${item.id}`}
+                        label={item.title}
+                        active={selectedDistrict === String(item.id)}
+                        onPress={() => onSelectDistrict(String(item.id))}
+                      />
+                    ))}
+                </View>
+              </View>
+            )}
+          </ScrollView>
+
+          {/* Apply button */}
+          <View style={styles.sheetFooter}>
+            <TouchableOpacity style={styles.applyBtn} onPress={onClose} activeOpacity={0.88}>
+              <Text style={[styles.applyBtnTxt, { fontSize: sf(14) }]}>முடிந்தது</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       </View>
-    </View>
-  </Modal>
-);
+    </Modal>
+  );
+};
 
 // ─── Taboola Widget ───────────────────────────────────────────────────────────
 const TABOOLA_PUBLISHER_ID = 'mdinamalarcom';
@@ -268,6 +400,8 @@ const VideosScreen = ({ navigation }) => {
 
   // ── Fetch: CDNApi + API_ENDPOINTS.VIDEO_MAIN (/videomain) ────────────────────
   const fetchVideos = useCallback(async ({ cat = '', date = '', district = '', page = 1, append = false } = {}) => {
+    console.log('[VideosScreen] fetchVideos called with params:', { cat, date, district, page, append }); // Debug all params
+
     if (!append) {
       setLoading(true);
       setCurrentPage(1);
@@ -277,74 +411,147 @@ const VideosScreen = ({ navigation }) => {
     }
     setError(null);
 
-    try {
-      // Build query params
-      const params = new URLSearchParams();
-      if (cat) params.append('cat', cat);
-      if (date) params.append('date', date);
-      if (district) params.append('district', district);
-      if (page > 1) params.append('page', page.toString());
+    let endpoint = '';
 
-      const query = params.toString();
-      const endpoint = query
-        ? `${API_ENDPOINTS.VIDEO_MAIN}?${query}`
-        : API_ENDPOINTS.VIDEO_MAIN;
+    try {
+      const params = new URLSearchParams();
+
+      if (district) {
+        if (page > 1) params.append('page', String(page));
+
+        const query = params.toString();
+        endpoint = query
+          ? `${API_ENDPOINTS.DIST_VIDEO}&${query}`
+          : API_ENDPOINTS.DIST_VIDEO;
+      } else {
+        if (cat === 'shorts') {
+          endpoint = API_ENDPOINTS.SHORTS;
+          if (page > 1) {
+            setHasMore(false);
+            return;
+          }
+        } else {
+          if (cat) params.append('cat', cat);
+          if (date) params.append('date', date);
+          if (page > 1) params.append('page', String(page));
+
+          const query = params.toString();
+          endpoint = query
+            ? `${API_ENDPOINTS.VIDEO_MAIN}?${query}`
+            : API_ENDPOINTS.VIDEO_MAIN;
+        }
+      }
+
+      console.log('[VideosScreen] fetching:', endpoint); // ← helps debug
 
       const response = await CDNApi.get(endpoint);
       const data = response.data;
 
-      // ── Videos — filter out reels / ads ──────────────────────────────────────
-      const raw = data?.videomix?.data ?? [];
-      const filteredVideos = raw.filter((v) => v.type === 'news');
+      console.log('[VideosScreen] API response received, data keys:', Object.keys(data || {}));
+      console.log('[VideosScreen] Current category:', cat || 'All');
+      console.log('[VideosScreen] Endpoint used:', endpoint.includes('videomain') ? 'VIDEO_MAIN' : 'VIDEO_DATA');
+
+      if (cat === '5050') {
+        console.log('[VideosScreen] LIVE TAB API response structure:', JSON.stringify(data, null, 2));
+      } else if (cat === '') {
+        console.log('[VideosScreen] ALL TAB API response structure:', JSON.stringify(data, null, 2));
+      } else if (cat) {
+        console.log('[VideosScreen] CATEGORY TAB API response for cat=' + cat + ':', JSON.stringify(data, null, 2));
+      }
+
+      let raw = [];
+      let pagination = {};
+
+      if (district) {
+        raw = data?.videomix?.data ?? [];
+        pagination = data?.videomix || {};
+      } else if (cat === 'shorts') {
+        raw = Array.isArray(data) ? data : [];
+        pagination = {};
+      } else {
+        raw = data?.videomix?.data ?? [];
+        pagination = data?.videomix || {};
+      }
+
+      let newsVideos;
+      if (cat === 'shorts') {
+        newsVideos = raw;
+      } else if (cat === '' || cat === 'All') {
+        newsVideos = raw; // keep original order including reels
+      } else {
+        newsVideos = raw.filter((v) => v.type === 'news');
+      }
+
+      console.log('[VideosScreen] Total videos received:', raw.length);
+      console.log('[VideosScreen] Videos after type filter:', newsVideos.length);
+      console.log('[VideosScreen] Raw data sample:', raw.slice(0, 2));
+      console.log('[VideosScreen] Filtered data sample:', newsVideos.slice(0, 2));
+
+      let finalVideos = newsVideos;
+
+      if (district && cat !== 'shorts') {
+        const districtInfo = districtOptions.find(d => String(d.id) === district);
+        const selectedDistrictTamilName = districtInfo?.title?.toLowerCase() || '';
+        const selectedDistrictEngName = districtInfo?.etitle?.toLowerCase() || selectedDistrictTamilName;
+
+        finalVideos = newsVideos.filter(v => {
+          const vgroupidMatch = v.vgroupid?.toString() === district;
+          const engTagMatch = v.districtengtag?.toLowerCase() === selectedDistrictEngName;
+          const tamilTagMatch = v.districttag?.toLowerCase().includes(selectedDistrictTamilName);
+          return vgroupidMatch || engTagMatch || tamilTagMatch;
+        });
+      }
 
       if (append) {
-        setAllVideos(prev => [...prev, ...filteredVideos]);
+        setAllVideos(prev => [...prev, ...finalVideos]);
       } else {
-        setAllVideos(filteredVideos);
+        setAllVideos(finalVideos);
       }
 
-      // ── Taboola ads from API ──────────────────────────────────────────────
-      if (data?.taboola_ads?.mobile && !taboolaAds) {
-        setTaboolaAds(data.taboola_ads.mobile);
+      if (data?.taboola_ads?.mobile) {
+        setTaboolaAds(prev => prev ?? data.taboola_ads.mobile);
       }
 
-      // ── Pagination info ───────────────────────────────────────────────────────
-      const pagination = data?.videomix || {};
       setCurrentPage(pagination.current_page || page);
       setLastPage(pagination.last_page || 1);
       setHasMore((pagination.current_page || page) < (pagination.last_page || 1));
 
-      // ── Category tabs (first load only) ──────────────────────────────────────
-      if (data?.category?.length && categories.length === 0) {
-        const seen = new Set();
-        setCategories(
-          data.category.filter((c) => {
+      if (data?.category?.length) {
+        setCategories(prev => {
+          if (prev.length > 0) return prev;
+          const seen = new Set();
+          return data.category.filter((c) => {
             const k = String(c.value ?? '');
             if (seen.has(k)) return false;
             seen.add(k);
             return true;
-          })
-        );
+          });
+        });
       }
 
-      // ── api.filter — பதிவேற்றம் (week/month/year) ────────────────────────────
-      if (data?.filter?.length && filterOptions.length === 0) {
-        setFilterOptions(data.filter); // [{name, id, ename, slug, reacturl}]
+      if (data?.filter?.length) {
+        setFilterOptions(prev => prev.length > 0 ? prev : data.filter);
       }
 
-      // ── api.districtlist.data — district chips ────────────────────────────────
-      if (data?.districtlist?.data?.length && districtOptions.length === 0) {
-        setDistrictOptions(data.districtlist.data); // [{id, title, slug, reacturl}]
+      if (data?.districtlist?.data?.length) {
+        setDistrictOptions(prev => prev.length > 0 ? prev : data.districtlist.data);
       }
+
     } catch (err) {
       console.error('VideosScreen fetch error:', err?.message);
-      setError(err?.message || 'பிழை ஏற்பட்டது');
-    } finally {
-      if (append) {
-        setLoadingMore(false);
+      console.error('VideosScreen fetch error details:', err);
+      console.error('VideosScreen fetch error code:', err?.code);
+      console.error('VideosScreen fetch error status:', err?.response?.status);
+      console.error('VideosScreen endpoint:', endpoint);
+
+      if (err?.code === 'ERR_NETWORK' || err?.message?.includes('Network Error')) {
+        setError('இணைப்பு பிழை. இணைய இணைப்பை சரிபார்க்கவும்.');
       } else {
-        setLoading(false);
+        setError(err?.message || 'பிழை ஏற்பட்டது');
       }
+    } finally {
+      if (append) setLoadingMore(false);
+      else setLoading(false);
     }
   }, []);
 
@@ -366,26 +573,37 @@ const VideosScreen = ({ navigation }) => {
     setActiveCategory(value);
     setSelectedFilter('');
     setSelectedDistrict('');
-    fetchVideos({ cat: value });
+
+    if (value === '1585' || value?.toString() === '1585') {
+      fetchVideos({ cat: value, date: '', district: selectedDistrict || '' });
+    } else {
+      fetchVideos({ cat: value, date: '', district: '' });
+    }
   };
 
   // ── Immediate redirect on filter chip press ───────────────────────────────────
   const handleSelectFilter = (ename) => {
     const nextFilter = selectedFilter === ename ? '' : ename;
     setSelectedFilter(nextFilter);
-    if (nextFilter && selectedDistrict) {
-      fetchVideos({ cat: '1585', date: nextFilter, district: selectedDistrict });
-      setFilterVisible(false);
-    }
+    setSelectedDistrict('');
+    fetchVideos({
+      cat: activeCategory,
+      date: nextFilter,
+      district: '',
+    });
+    setFilterVisible(false);
   };
 
   const handleSelectDistrict = (id) => {
     const nextDistrict = selectedDistrict === id ? '' : id;
     setSelectedDistrict(nextDistrict);
-    if (selectedFilter && nextDistrict) {
-      fetchVideos({ cat: '1585', date: selectedFilter, district: nextDistrict });
-      setFilterVisible(false);
-    }
+    setSelectedFilter('');
+    fetchVideos({
+      cat: activeCategory,
+      date: '',
+      district: nextDistrict,
+    });
+    setFilterVisible(false);
   };
 
   // ── Nav ───────────────────────────────────────────────────────────────────────
@@ -405,6 +623,59 @@ const VideosScreen = ({ navigation }) => {
     filterOptions.find((f) => f.ename === selectedFilter)?.name;
   const activeDistrictLabel =
     districtOptions.find((d) => String(d.id) === selectedDistrict)?.title;
+
+  // ── Build listData preserving API order ───────────────────────────────────────
+  // Walks allVideos in original order.
+  // Consecutive reels get buffered and flushed as a single shorts_strip item.
+  // Result: [video, video, shorts_strip([r,r,r]), video, shorts_strip([r]), video...]
+  const listData = useMemo(() => {
+    if (allVideos.length === 0) return [];
+
+    const result = [];
+    let reelsBuffer = [];
+    let adCounter = 0;
+    let stripIndex = 0;
+
+    const flushReels = () => {
+      if (reelsBuffer.length === 0) return;
+      result.push({
+        _type: 'shorts_strip',
+        _key: `shorts_strip_${stripIndex++}`,
+        items: [...reelsBuffer],
+      });
+      reelsBuffer = [];
+    };
+
+    allVideos.forEach((video) => {
+      if (video.type === 'reels') {
+        // Accumulate consecutive reels together
+        reelsBuffer.push(video);
+      } else if (video.type === 'googlead') {
+        // Skip googleads
+        flushReels();
+      } else {
+        // Regular video — flush any buffered reels first
+        flushReels();
+
+        result.push({ ...video, _type: 'video' });
+        adCounter++;
+
+        // Insert taboola ad every AD_INTERVAL regular videos
+        if (taboolaAds?.midmain && adCounter % AD_INTERVAL === 0) {
+          result.push({
+            _type: 'taboola_ad',
+            _key: `taboola_${adCounter}`,
+            ...taboolaAds.midmain,
+          });
+        }
+      }
+    });
+
+    // Flush any remaining reels at the end
+    flushReels();
+
+    return result;
+  }, [allVideos, taboolaAds]);
 
   // ── List header ───────────────────────────────────────────────────────────────
   const ListHeader = () => (
@@ -450,8 +721,6 @@ const VideosScreen = ({ navigation }) => {
           })}
         </ScrollView>
       </View>
-
-
     </View>
   );
 
@@ -459,14 +728,20 @@ const VideosScreen = ({ navigation }) => {
   const handleLoadMore = () => {
     if (!hasMore || loadingMore || loading) return;
 
-    const nextPage = currentPage + 1;
-    const params = { page: nextPage, append: true };
+    // Disable pagination for All tab and shorts to prevent repeated data
+    if (activeCategory === '' || activeCategory === 'All' || activeCategory === 'shorts') {
+      console.log('[VideosScreen] Pagination disabled for category:', activeCategory);
+      setHasMore(false); // Disable further load more attempts
+      return;
+    }
 
-    if (activeCategory) params.cat = activeCategory;
-    if (selectedFilter) params.date = selectedFilter;
-    if (selectedDistrict) params.district = selectedDistrict;
-
-    fetchVideos(params);
+    fetchVideos({
+      cat: activeCategory,
+      date: selectedFilter,
+      district: selectedDistrict,
+      page: currentPage + 1,
+      append: true,
+    });
   };
 
   // ── Footer component ───────────────────────────────────────────────────────────
@@ -476,41 +751,27 @@ const VideosScreen = ({ navigation }) => {
     return (
       <View style={styles.loadingFooter}>
         <ActivityIndicator size="small" color={PALETTE.primary} />
-        <Text style={[styles.loadingText, { fontSize: sf(12) }]}>மேலும் ஏற்றுகிறது...</Text>
       </View>
     );
   };
 
-  // ── Empty / error / loading ───────────────────────────────────────────────────
+  // ── Empty state component ───────────────────────────────────────────────────────
   const ListEmpty = () => {
-    if (loading) return (
+    if (loading) return null;
+
+    return (
       <View style={styles.centeredState}>
-        <ActivityIndicator size="large" color={PALETTE.red} />
-        <Text style={[styles.stateText, { fontSize: sf(14) }]}>ஏற்றுகிறது...</Text>
-        <Text style={styles.stateIcon}>🎬</Text>
-        <Text style={styles.stateText}>வீடியோக்கள் இல்லை</Text>
+        <Text style={styles.stateIcon}>📭</Text>
+        <Text style={[styles.stateText, { fontSize: sf(14) }]}>தகவல் இல்லை</Text>
+        <Text style={[styles.stateSubText, { fontSize: sf(12) }]}>
+          {selectedDistrict
+            ? `${districtOptions.find(d => String(d.id) === selectedDistrict)?.title || ''} மாவட்டத்தில் இல்லை`
+            : 'தகவல் இல்லை'
+          }
+        </Text>
       </View>
     );
   };
-
-  // ── Inject Taboola ad slot after every 5 videos ──────────────────────
-  const AD_INTERVAL = 5;
-  const feedItems = React.useMemo(() => {
-    if (!taboolaAds?.midmain || allVideos.length === 0) return allVideos;
-    const result = [];
-    allVideos.forEach((video, i) => {
-      result.push({ ...video, _type: 'video' });
-      // Insert ad after every AD_INTERVAL items
-      if ((i + 1) % AD_INTERVAL === 0) {
-        result.push({
-          _type: 'taboola_ad',
-          _key: `taboola_${i}`,
-          ...taboolaAds.midmain,
-        });
-      }
-    });
-    return result;
-  }, [allVideos, taboolaAds]);
 
   // ─────────────────────────────────────────────────────────────────────────────
   return (
@@ -534,12 +795,22 @@ const VideosScreen = ({ navigation }) => {
         ref={flatListRef}
         onScroll={handleScroll}
         scrollEventThrottle={16}
-        data={loading ? [] : feedItems}
+        data={loading ? [] : listData}
         keyExtractor={(item, idx) => {
+          if (item._type === 'shorts_strip') return item._key || `shorts_strip_${idx}`;
           if (item._type === 'taboola_ad') return item._key || `taboola_${idx}`;
           return item?.videoid != null ? `video_${item.videoid}` : `item_${idx}`;
         }}
         renderItem={({ item }) => {
+          // ── Shorts strip — pass item.items (only this strip's reels) ────
+          if (item._type === 'shorts_strip') {
+            return (
+              <ShortsSectionRow
+                items={item.items}
+                onPress={(v) => navigation?.navigate?.('VideoDetailScreen', { video: v })}
+              />
+            );
+          }
           // ── Taboola ad slot ──────────────────────────────────────────────
           if (item._type === 'taboola_ad') {
             return (
@@ -581,8 +852,13 @@ const VideosScreen = ({ navigation }) => {
         districtOptions={districtOptions}
         selectedDistrict={selectedDistrict}
         onSelectDistrict={handleSelectDistrict}
+        onClearAll={() => {
+          setSelectedFilter('');
+          setSelectedDistrict('');
+          fetchVideos({ cat: activeCategory, date: '', district: '' });
+          setFilterVisible(false);
+        }}
       />
-
       {/* Comments Modal */}
       <CommentsModal
         visible={commentsVisible}
@@ -677,7 +953,6 @@ const styles = StyleSheet.create({
   thumbPlaceholderIcon: { fontSize: ms(40) },
   thumbOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.28)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -715,9 +990,9 @@ const styles = StyleSheet.create({
     gap: s(3),
   },
   commentCount: {
-    color: PALETTE.white,
-    fontWeight: '700',
-    fontFamily: FONTS.muktaMalar.bold,
+    color: PALETTE.grey600,
+    fontWeight: '600',
+    fontSize: ms(10),
   },
   watermarkWrap: { position: 'absolute', bottom: vs(10), left: s(46), flexDirection: 'row' },
   watermarkRed: { fontSize: ms(9), color: '#FF4444', fontWeight: '800', opacity: 0.85 },
@@ -726,15 +1001,11 @@ const styles = StyleSheet.create({
   videoTitle: {
     fontFamily: FONTS.muktaMalar.bold,
     color: PALETTE.grey800,
-    marginTop: vs(10)
-  }
-  ,
+    marginTop: vs(10),
+  },
   cardMeta: {
     flexDirection: 'row',
-    // alignItems: 'center',
-    // marginBottom: vs(10),
-    // gap: s(10),
-    justifyContent: "space-between"
+    justifyContent: 'space-between',
   },
   cardMetaLeft: {
     flexDirection: 'row',
@@ -756,17 +1027,11 @@ const styles = StyleSheet.create({
     borderRadius: s(4),
     backgroundColor: PALETTE.grey200,
   },
-  commentCount: {
-    color: PALETTE.grey600,
-    fontWeight: '600',
-    fontSize: ms(10),
-  },
   categoryPill: {
-    // borderRadius: s(4),
     paddingHorizontal: s(10),
     paddingVertical: vs(2),
     borderWidth: 1,
-    borderColor: PALETTE.grey400
+    borderColor: PALETTE.grey400,
   },
   categoryPillText: { fontSize: ms(11), color: PALETTE.grey600, fontWeight: '600', fontFamily: FONTS.muktaMalar.semibold },
   metaDate: {
@@ -778,6 +1043,7 @@ const styles = StyleSheet.create({
   centeredState: { alignItems: 'center', paddingTop: vs(80), paddingBottom: vs(40), backgroundColor: PALETTE.grey200 },
   stateIcon: { fontSize: ms(48), marginBottom: vs(12) },
   stateText: { fontSize: ms(14), color: PALETTE.grey500, marginTop: vs(8), fontFamily: FONTS.muktaMalar.regular },
+  stateSubText: { fontSize: ms(12), color: PALETTE.grey400, marginTop: vs(4), fontFamily: FONTS.muktaMalar.regular },
   retryBtn: { marginTop: vs(16), backgroundColor: PALETTE.red, borderRadius: s(8), paddingHorizontal: s(20), paddingVertical: vs(10) },
   retryBtnText: { color: PALETTE.white, fontWeight: '700', fontSize: ms(14), fontFamily: FONTS.muktaMalar.bold },
 
@@ -786,9 +1052,7 @@ const styles = StyleSheet.create({
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)' },
   filterSheet: {
     position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
+    bottom: 0, left: 0, right: 0,
     backgroundColor: PALETTE.white,
     borderTopLeftRadius: s(22), borderTopRightRadius: s(22),
     paddingBottom: Platform.OS === 'ios' ? vs(36) : vs(24),
@@ -815,27 +1079,56 @@ const styles = StyleSheet.create({
     justifyContent: 'center', alignItems: 'center',
   },
   scrollTopBtn: {
-  position: 'absolute',
-  bottom: vs(24),
-  right: s(16),
-  width: s(48),
-  height: s(48),
-  borderRadius: s(24),
-  backgroundColor: PALETTE.primary,
-  justifyContent: 'center',
-  alignItems: 'center',
-  elevation: 10,
-  shadowColor: '#000',
-  shadowOffset: { width: 0, height: vs(2) },
-  shadowOpacity: 0.22,
-  shadowRadius: s(4),
-  zIndex: 100,
-},
+    position: 'absolute',
+    bottom: vs(24), right: s(16),
+    width: s(48), height: s(48), borderRadius: s(24),
+    backgroundColor: PALETTE.primary,
+    justifyContent: 'center', alignItems: 'center',
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: vs(2) },
+    shadowOpacity: 0.22, shadowRadius: s(4),
+    zIndex: 100,
+  },
+  clearBtn: {
+    paddingHorizontal: s(12), paddingVertical: vs(5),
+    borderRadius: s(14), borderWidth: 1, borderColor: PALETTE.red,
+  },
+  clearBtnTxt: { color: PALETTE.red, fontWeight: '700', fontFamily: FONTS.muktaMalar.bold },
+  activeSummary: {
+    flexDirection: 'row', alignItems: 'center', gap: s(6),
+    paddingHorizontal: s(20), paddingVertical: vs(10),
+    backgroundColor: PALETTE.primary + '12',
+    borderBottomWidth: 1, borderBottomColor: PALETTE.primary + '30',
+  },
+  activeSummaryTxt: {
+    color: PALETTE.primary, fontWeight: '600',
+    fontFamily: FONTS.muktaMalar.semibold, flex: 1,
+  },
+  filterSectionRow: {
+    flexDirection: 'row', alignItems: 'center',
+    justifyContent: 'space-between', marginBottom: vs(12),
+  },
+  sectionClearTxt: { color: PALETTE.red, fontWeight: '600' },
+  sheetDivider: {
+    height: 1, backgroundColor: PALETTE.grey200,
+    marginHorizontal: s(20), marginVertical: vs(4),
+  },
+  sheetFooter: {
+    paddingHorizontal: s(20), paddingVertical: vs(12),
+    borderTopWidth: 1, borderTopColor: PALETTE.grey200,
+  },
+  applyBtn: {
+    backgroundColor: PALETTE.primary, borderRadius: s(10),
+    paddingVertical: vs(13), alignItems: 'center',
+  },
+  applyBtnTxt: { color: PALETTE.white, fontWeight: '700', fontFamily: FONTS.muktaMalar.bold },
 
   // Filter sections
   filterSection: { paddingHorizontal: s(20), paddingTop: vs(18), paddingBottom: vs(4) },
   filterSectionLabel: {
-    fontSize: ms(14), fontWeight: '700', color: PALETTE.grey800, marginBottom: vs(12), fontFamily: FONTS.muktaMalar.bold,
+    fontSize: ms(14), fontWeight: '700', color: PALETTE.grey800,
+    marginBottom: vs(12), fontFamily: FONTS.muktaMalar.bold,
   },
 
   // Chips
@@ -852,16 +1145,98 @@ const styles = StyleSheet.create({
 
   // Loading footer
   loadingFooter: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: vs(20),
-    backgroundColor: PALETTE.grey200,
+    flexDirection: 'row', justifyContent: 'center', alignItems: 'center',
+    paddingVertical: vs(20), backgroundColor: PALETTE.grey200,
   },
   loadingText: {
-    marginLeft: s(8),
-    color: PALETTE.grey600,
-    fontFamily: FONTS.muktaMalar.regular,
+    marginLeft: s(8), color: PALETTE.grey600, fontFamily: FONTS.muktaMalar.regular,
+  },
+
+  // ─── Short Card (HomeScreen ShortsCard style) ────────────────────────────────
+  shortCard: {
+    width: s(120),
+    marginRight: s(12),
+    flexShrink: 0,
+  },
+  shortCardImageContainer: {
+    width: s(120),
+    height: vs(200),
+    borderRadius: s(8),
+    overflow: 'hidden',
+    backgroundColor: PALETTE.grey200,
+  },
+  shortCardImage: {
+    width: s(120),
+    height: vs(200),
+  },
+  shortCardPlayOverlay: {
+    position: 'absolute',
+    top: 0, left: 0,
+    width: s(120),
+    height: vs(200),
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.3)',
+  },
+  shortCardPlayButton: {
+    width: s(32),
+    height: s(32),
+    borderRadius: s(16),
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingLeft: s(2),
+  },
+  shortCardTitleOverlay: {
+    position: 'absolute',
+    bottom: 0, left: 0, right: 0,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    paddingVertical: vs(6),
+    paddingHorizontal: s(8),
+  },
+  shortCardBottomTitle: {
+    fontFamily: FONTS.muktaMalar.bold,
+    color: '#FFFFFF',
+    textAlign: 'center',
+    textShadowColor: 'rgba(0,0,0,0.8)',
+    textShadowOffset: { width: 1, height: 1 },
+  },
+
+  // ─── Shorts Section Row ──────────────────────────────────────────────────────
+  shortsSectionContainer: {
+    backgroundColor: PALETTE.white,
+    paddingTop: vs(12),
+    paddingBottom: vs(14),
+    borderBottomWidth: 1,
+    borderBottomColor: PALETTE.grey300,
+  },
+  shortsSectionHeader: {
+    paddingHorizontal: s(14),
+    marginBottom: vs(10),
+  },
+  shortsSectionTitleWrap: {
+    gap: vs(3),
+  },
+  shortsSectionTitle: {
+    fontFamily: FONTS.muktaMalar.bold,
+    color: PALETTE.grey800,
+    fontWeight: '700',
+  },
+  shortsSectionUnderline: {
+    height: vs(3),
+    width: s(36),
+    backgroundColor: PALETTE.primary,
+    borderRadius: s(2),
+  },
+  shortsSectionScrollView: {
+    height: vs(200),
+    flexGrow: 0,
+    flexShrink: 0,
+  },
+  shortsSectionScroll: {
+    paddingHorizontal: s(14),
+    flexDirection: 'row',
+    alignItems: 'flex-start',
   },
 });
 
