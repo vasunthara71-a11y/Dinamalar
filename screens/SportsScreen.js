@@ -22,6 +22,7 @@ import AppHeaderComponent from '../components/AppHeaderComponent';
 import { mvs } from 'react-native-size-matters';
 import TEXT_STYLES from '../utils/textStyles';
 import { useFontSize } from '../context/FontSizeContext';
+import { useTheme } from '../context/ThemeContext';
 
 const PALETTE = {
   primary: '#096dd2',

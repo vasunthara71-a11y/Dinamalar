@@ -28,6 +28,7 @@ import CategoryTab from '../components/CategoryTab';
 import { SvgUri } from 'react-native-svg';
 import FooterMenu from '../components/FooterMenu';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../context/ThemeContext';
 import { useNavigation } from '@react-navigation/native';
 import { useFontSize } from '../context/FontSizeContext';
 import LocationDrawer from '../components/LocationDrawer';
@@ -77,7 +78,7 @@ function ShareMarketCard({ commodity }) {
 
 const shareMarketStyles = StyleSheet.create({
   wrap: {
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.cardBackground,
     borderWidth: 1,
     borderColor: COLORS.border,
     marginBottom: vs(10),
@@ -90,7 +91,7 @@ const shareMarketStyles = StyleSheet.create({
     gap: s(10),
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
-    backgroundColor: COLORS.background || '#f8f8f8',
+    backgroundColor: colors.background || '#f8f8f8',
   },
   icon: { fontSize: s(20) },
   title: { fontSize: ms(13), color: COLORS.text, fontWeight: '700' },
@@ -192,7 +193,7 @@ const TABOOLA_PUBLISHER_ID = 'mdinamalarcom';
 // ─── Styles for Gold/Silver and Fuel Cards ──────────────────────────────
 const gc = StyleSheet.create({
   wrap: {
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.cardBackground,
     borderWidth: 1,
     borderColor: COLORS.border,
     marginBottom: vs(10),
@@ -205,7 +206,7 @@ const gc = StyleSheet.create({
     gap: s(10),
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
-    backgroundColor: COLORS.background || '#f8f8f8',
+    backgroundColor: colors.background || '#f8f8f8',
     margin:ms(5)
   },
   icon: { fontSize: s(22) },
@@ -253,7 +254,7 @@ const gc = StyleSheet.create({
 
 const fc = StyleSheet.create({
   wrap: {
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.cardBackground,
     borderWidth: 1,
     borderColor: COLORS.border,
     marginBottom: vs(10),
@@ -263,7 +264,7 @@ const fc = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center',
     padding: s(12), gap: s(10),
     borderBottomWidth: 1, borderBottomColor: COLORS.border,
-    backgroundColor: COLORS.background || '#f8f8f8',
+    backgroundColor: colors.background || '#f8f8f8',
   },
   icon: { fontSize: s(22) },
   title: { fontSize: ms(13), color: COLORS.text, fontWeight: '700' },
@@ -492,7 +493,7 @@ const menuSt = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: PALETTE.white,
+    backgroundColor: colors.cardBackground,
     borderBottomWidth: 1,
     borderBottomColor: PALETTE.grey200,
   },
@@ -533,11 +534,12 @@ const menuSt = StyleSheet.create({
 // --- Section Header -----------------------------------------------------------
 function SectionHeader({ title }) {
   const { sf } = useFontSize();
+  const { colors } = useTheme();
 
   return (
-    <View style={styles.sectionHeader}>
-      <Text style={[styles.sectionTitle, { fontSize: sf(18) }]}>{title}</Text>
-      <View style={styles.sectionUnderline} />
+    <View style={[styles.sectionHeader, { backgroundColor: colors.cardBackground }]}>
+      <Text style={[styles.sectionTitle, { fontSize: sf(18), color: colors.text }]}>{title}</Text>
+      <View style={[styles.sectionUnderline, { backgroundColor: colors.primary }]} />
     </View>
   );
 }
@@ -568,7 +570,7 @@ function ShortsSection({ title, data, onPress }) {
 
 const shortsSectionSt = StyleSheet.create({
   container: {
-    backgroundColor: PALETTE.white,
+    backgroundColor: colors.cardBackground,
     marginBottom: vs(8),
   },
   scrollContent: {
@@ -580,6 +582,7 @@ const shortsSectionSt = StyleSheet.create({
 // --- Shorts Card ----------------------------------------------------------------
 function ShortsCard({ item, onPress }) {
   const { sf } = useFontSize();
+  const { colors } = useTheme();
 
   const imageUri =
     item.thumbnail || item.largeimages || item.images || item.image ||
@@ -588,23 +591,19 @@ function ShortsCard({ item, onPress }) {
   const hasVideo = item.video && item.video !== '0';
 
   return (
-    <TouchableOpacity style={shortsSt.card} onPress={onPress} activeOpacity={0.85}>
+    <TouchableOpacity style={[shortsSt.card, { backgroundColor: colors.cardBackground }]} onPress={onPress} activeOpacity={0.85}>
       <View style={shortsSt.imageContainer}>
         <Image source={{ uri: imageUri }} style={shortsSt.image} resizeMode="cover" />
-
-        {title && (
-          <View style={shortsSt.titleOverlay}>
-            <Text style={[shortsSt.bottomTitle, { fontSize: sf(10) }]}>{title}</Text>
-          </View>
-        )}
-
         {hasVideo && (
-          <View style={shortsSt.playOverlay}>
-            <View style={shortsSt.playButton}>
-              <Ionicons name="play" size={s(12)} color="#fff" />
-            </View>
+          <View style={shortsSt.playButton}>
+            <Ionicons name="play" size={s(16)} color="#fff" />
           </View>
         )}
+      </View>
+      <View style={shortsSt.content}>
+        <Text style={[shortsSt.title, { fontSize: sf(14), color: colors.text }]} numberOfLines={2}>
+          {title}
+        </Text>
       </View>
     </TouchableOpacity>
   );
@@ -678,6 +677,7 @@ const shortsSt = StyleSheet.create({
 // --- News Card ----------------------------------------------------------------
 function NewsCard({ item, onPress, isSocialMedia = false, isPremium = false }) {
   const { sf } = useFontSize();
+  const { colors } = useTheme();
   
   console.log('NewsCard isPremium:', isPremium, 'Title:', item.newstitle || item.title);
 
@@ -692,7 +692,7 @@ function NewsCard({ item, onPress, isSocialMedia = false, isPremium = false }) {
     (typeof item.audio === 'string' && item.audio.length > 1 && item.audio !== '0');
 
   return (
-    <View style={isSocialMedia ? NewsCardStyles.socialMediaWrap : NewsCardStyles.wrap}>
+    <View style={[isSocialMedia ? NewsCardStyles.socialMediaWrap : NewsCardStyles.wrap, { backgroundColor: colors.cardBackground }]}>
       <TouchableOpacity onPress={onPress} activeOpacity={0.88}>
         <View style={NewsCardStyles.imageWrap}>
           <Image
@@ -717,28 +717,28 @@ function NewsCard({ item, onPress, isSocialMedia = false, isPremium = false }) {
 
         <View style={NewsCardStyles.contentContainer}>
           {!!title && !isSocialMedia && (
-            <Text style={[NewsCardStyles.title, { fontSize: sf(14), lineHeight: sf(22) }]} numberOfLines={3}>{title}</Text>
+            <Text style={[NewsCardStyles.title, { fontSize: sf(14), lineHeight: sf(22), color: colors.text }]} numberOfLines={3}>{title}</Text>
           )}
 
           {!!category && !isSocialMedia && (
             <View style={NewsCardStyles.catPill}>
-              <Text style={[NewsCardStyles.catText, { fontSize: sf(12) }]}>{category}</Text>
+              <Text style={[NewsCardStyles.catText, { fontSize: sf(12), color: colors.textSecondary }]}>{category}</Text>
             </View>
           )}
 
           <View style={NewsCardStyles.metaRow}>
-            <Text style={[NewsCardStyles.timeText, { fontSize: sf(12) }]}>{ago}</Text>
+            <Text style={[NewsCardStyles.timeText, { fontSize: sf(12), color: colors.textSecondary }]}>{ago}</Text>
             <View style={NewsCardStyles.metaRight}>
               {hasAudio && (
                 <View style={NewsCardStyles.audioIcon}>
-                  <Ionicons name="volume-high" size={s(14)} color={PALETTE.grey700} />
+                  <Ionicons name="volume-high" size={s(14)} color={colors.textSecondary} />
                 </View>
               )}
 
               {!!newscomment && newscomment !== '0' && (
                 <View style={NewsCardStyles.commentRow}>
-                  <Ionicons name="chatbox" size={s(15)} color={PALETTE.grey700} />
-                  <Text style={[NewsCardStyles.commentText, { fontSize: sf(12) }]}> {newscomment}</Text>
+                  <Ionicons name="chatbox" size={s(15)} color={colors.textSecondary} />
+                  <Text style={[NewsCardStyles.commentText, { fontSize: sf(12), color: colors.textSecondary }]}> {newscomment}</Text>
                 </View>
               )}
             </View>
@@ -753,6 +753,7 @@ function NewsCard({ item, onPress, isSocialMedia = false, isPremium = false }) {
 // NewsCard-style layout with play button overlay   tapping opens VideoPlayerModal
 function DinaMalarTVCard({ item, onVideoPress }) {
   const { sf } = useFontSize();
+  const { colors } = useTheme();
 
   const imageUri =
     item.largeimages || item.images || item.image || item.thumbnail || item.thumb ||
@@ -763,7 +764,7 @@ function DinaMalarTVCard({ item, onVideoPress }) {
   const ago = item.ago || item.time_ago || '';
   const newscomment = item.newscomment || item.commentcount || item.nmcomment || item.comments?.total || '';
   return (
-    <View style={NewsCardStyles.wrap}>
+    <View style={[NewsCardStyles.wrap, { backgroundColor: colors.cardBackground }]}>
       <TouchableOpacity onPress={onVideoPress} activeOpacity={0.88}>
 
         {/* Thumbnail with play-button overlay */}
@@ -788,7 +789,7 @@ function DinaMalarTVCard({ item, onVideoPress }) {
         <View style={NewsCardStyles.contentContainer}>
           {!!title && (
             <Text
-              style={[NewsCardStyles.title, { fontSize: sf(15), lineHeight: sf(22) }]}
+              style={[NewsCardStyles.title, { fontSize: sf(15), lineHeight: sf(22), color: colors.text }]}
               numberOfLines={3}
             >
               {title}
@@ -797,17 +798,17 @@ function DinaMalarTVCard({ item, onVideoPress }) {
 
           {!!category && (
             <View style={NewsCardStyles.catPill}>
-              <Text style={[NewsCardStyles.catText, { fontSize: sf(11) }]}>{category}</Text>
+              <Text style={[NewsCardStyles.catText, { fontSize: sf(11), color: colors.textSecondary }]}>{category}</Text>
             </View>
           )}
 
           <View style={NewsCardStyles.metaRow}>
-            <Text style={[NewsCardStyles.timeText, { fontSize: sf(11) }]}>{ago}</Text>
+            <Text style={[NewsCardStyles.timeText, { fontSize: sf(11), color: colors.textSecondary }]}>{ago}</Text>
             <View style={NewsCardStyles.metaRight}>
               {!!newscomment && newscomment !== '0' && (
                 <View style={NewsCardStyles.commentRow}>
-                  <Ionicons name="chatbox" size={s(14)} color={PALETTE.grey700} />
-                  <Text style={[NewsCardStyles.commentText, { fontSize: sf(11) }]}> {newscomment}</Text>
+                  <Ionicons name="chatbox" size={s(14)} color={colors.textSecondary} />
+                  <Text style={[NewsCardStyles.commentText, { fontSize: sf(11), color: colors.textSecondary }]}> {newscomment}</Text>
                 </View>
               )}
             </View>
@@ -925,216 +926,13 @@ function DinaMalarTVSection({ data, onVideoPress }) {
   );
 }
 
-const tvSecSt = StyleSheet.create({
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'space-between',
-    paddingHorizontal: s(12),
-    paddingTop: vs(14),
-    paddingBottom: vs(4),
-  },
-  titleWrap: {},
-  sectionTitle: {
-    fontFamily: FONTS.muktaMalar.bold,
-    color: PALETTE.textDark,
-  },
-  titleUnderline: {
-    height: vs(3),
-    width: s(40),
-    backgroundColor: PALETTE.primary,
-    // borderRadius: 2,
-  },
-  tabBar: {
-    flexDirection: 'row',
-    paddingHorizontal: s(12),
-    paddingBottom: vs(6),
-    gap: s(8),
-    justifyContent: "center",
-    alignItems: "center"
-  },
-  tab: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: s(12),
-    paddingVertical: vs(2),
-    borderRadius: s(5),
-    borderWidth: 1,
-    borderColor: PALETTE.grey200 || '#e0e0e0',
-    backgroundColor: '#f5f5f5',
-    // gap: s(4),
-  },
-  tabActive: {
-    // backgroundColor: PALETTE.primary,
-    // borderColor: PALETTE.primary,
-  },
-  tabText: {
-    fontFamily: FONTS.muktaMalar.regular,
-    color: PALETTE.grey800,
-  },
-  tabTextActive: {
-    color: PALETTE.grey800,
-    fontFamily: FONTS.muktaMalar.medium,
-  },
-  liveDot: {
-    width: s(8),
-    height: s(8),
-    borderRadius: s(4),
-    backgroundColor: '#ff3b30',
-  },
-});
-
-const tvCardSt = StyleSheet.create({
-  playOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.28)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  playCircle: {
-    width: s(48),
-    height: s(48),
-    borderRadius: s(24),
-    backgroundColor: 'rgba(9, 109, 210, 0.85)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingLeft: s(3),
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.6)',
-  },
-  badge: {
-    position: 'absolute',
-    top: s(8),
-    left: s(8),
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: PALETTE.primary,
-    borderRadius: s(4),
-    paddingHorizontal: s(6),
-    paddingVertical: s(3),
-  },
-  badgeText: {
-    color: '#fff',
-    fontSize: ms(9),
-    fontFamily: FONTS.muktaMalar.bold,
-    letterSpacing: 0.5,
-  },
-});
-
-// --- District News Section --------------------------------------------------------
-function DistrictNewsSection({ districts, onPress }) {
-  const { sf } = useFontSize();
-
-  return (
-    <View style={styles.districtSection}>
-      <FlatList
-        data={districts}
-        showsHorizontalScrollIndicator={false}
-        keyExtractor={(item) => item.id?.toString() || item.title}
-        scrollEnabled={false}
-        renderItem={({ item, index }) => {
-          return (
-            <TouchableOpacity
-              style={styles.districtCard}
-              onPress={() => onPress(item)}
-              activeOpacity={0.8}
-            >
-              <View style={styles.districtHeader}>
-                <View style={styles.districtIconContainer}>
-                  {item.icon && item.icon.trim() !== '' ? (
-                    <Image
-                      source={{ uri: item.icon }}
-                      style={styles.districtIcon}
-                      resizeMode="contain"
-                      onError={(error) => {
-                        console.warn('? Failed to load icon:', item.title);
-                        console.warn('URL:', item.icon);
-                        console.warn('Original URL:', item.originalIcon);
-                        console.warn('Error:', error.nativeEvent?.error);
-                      }}
-                      onLoad={() => {
-                        console.log('? Successfully loaded icon:', item.title);
-                      }}
-                    />
-                  ) : (
-                    <View style={styles.defaultIconContainer}>
-                      <Text style={[styles.defaultIconText, { fontSize: sf(16) }]}>
-                        {item.title ? item.title.charAt(0).toUpperCase() : '?'}
-                      </Text>
-                    </View>
-                  )}
-                </View>
-
-                <View style={styles.districtNameContainer}>
-                  <Text style={[styles.districtName, { fontSize: sf(12), lineHeight: sf(15) }]} numberOfLines={2}>
-                    {item.title}
-                  </Text>
-                  <Ionicons
-                    name="chevron-forward"
-                    size={s(18)}
-                    color={PALETTE.grey700}
-                    style={styles.forwardIcon}
-                  />
-                </View>
-              </View>
-
-              <View style={styles.districtDivider} />
-
-              {item.data && item.data.length > 0 && (
-                <View style={styles.newsItemsContainer}>
-                  {item.data.slice(0, 5).map((newsItem, idx) => (
-                    <View key={`${item.id}-news-${idx}`} style={styles.newsItemRow}>
-                      <Image
-                        source={{ uri: newsItem.image || newsItem.largeimages || newsItem.images || newsItem.thumbnail || 'https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_default.jpg?im=Resize,width=400' }}
-                        style={styles.newsItemImage}
-                        resizeMode="cover"
-                        onError={() => console.log('Failed to load news image')}
-                      />
-
-                      <View style={styles.newsItemInfo}>
-                        <Text style={[styles.newsItemTitle, { fontSize: sf(10), lineHeight: sf(12) }]} numberOfLines={2}>
-                          {newsItem.newstitle || newsItem.title}
-                        </Text>
-                        <Text style={[styles.newsItemTime, { fontSize: sf(9) }]}>
-                          {newsItem.ago || newsItem.time}
-                        </Text>
-                      </View>
-                    </View>
-                  ))}
-                </View>
-              )}
-            </TouchableOpacity>
-          );
-        }}
-        contentContainerStyle={styles.districtListContainer}
-      />
-    </View>
-  );
-}
-
-// --- Skeleton Card ------------------------------------------------------------
-function SkeletonCard() {
-  return (
-    <View style={{ backgroundColor: PALETTE.white, marginBottom: vs(2) }}>
-      <View style={{ paddingHorizontal: s(12), paddingTop: vs(8) }}>
-        <View style={{ width: '100%', height: vs(200), backgroundColor: PALETTE.grey200 }} />
-      </View>
-      <View style={{ padding: s(12) }}>
-        <View style={{ height: vs(14), backgroundColor: PALETTE.grey200, borderRadius: s(4), marginBottom: vs(8), width: '92%' }} />
-        <View style={{ height: vs(14), backgroundColor: PALETTE.grey200, borderRadius: s(4), marginBottom: vs(8), width: '68%' }} />
-        <View style={{ height: vs(22), backgroundColor: PALETTE.grey200, borderRadius: s(4), marginBottom: vs(8), width: s(70) }} />
-        <View style={{ height: vs(10), backgroundColor: PALETTE.grey100, borderRadius: s(4), width: '30%' }} />
-      </View>
-      <View style={{ height: vs(6), backgroundColor: PALETTE.grey200 }} />
-    </View>
-  );
-}
-
 function SkeletonLoader() {
+  const { colors } = useTheme();
+  
   return (
     <>
       <View style={{ height: vs(200), backgroundColor: PALETTE.grey200 }} />
-      <View style={{ backgroundColor: PALETTE.white, paddingVertical: vs(8) }}>
+      <View style={{ backgroundColor: colors.cardBackground, paddingVertical: vs(8) }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: s(10), marginBottom: vs(6) }}>
           <View style={{ width: s(32), height: s(32), backgroundColor: PALETTE.grey200, marginRight: s(8), borderRadius: s(4) }} />
           {[1, 2, 3, 4].map(i => (
@@ -1149,7 +947,7 @@ function SkeletonLoader() {
           ))}
         </View>
       </View>
-      <View style={{ backgroundColor: PALETTE.white, paddingHorizontal: s(12), paddingVertical: vs(14) }}>
+      <View style={{ backgroundColor: colors.cardBackground, paddingHorizontal: s(12), paddingVertical: vs(14) }}>
         <View style={{ width: s(140), height: vs(16), backgroundColor: PALETTE.grey200, borderRadius: s(4), marginBottom: vs(6) }} />
         <View style={{ width: s(44), height: vs(2), backgroundColor: PALETTE.grey300 }} />
       </View>
@@ -1161,6 +959,7 @@ function SkeletonLoader() {
 // --- HomeScreen ---------------------------------------------------------------
 export default function HomeScreen() {
   const navigation = useNavigation();
+  const { colors } = useTheme();
 
   const [selectedCategory, setSelectedCategory] = useState('latest');
   const [trendingTags, setTrendingTags] = useState([]);
@@ -2056,7 +1855,7 @@ export default function HomeScreen() {
                             {/* Divider after date */}
                             <View style={[NewsCardStyles.divider, { marginVertical: vs(8) }]} />
                             {!!description && (
-                              <Text style={[NewsCardStyles.title, { fontSize: sf(12), lineHeight: sf(18), color: PALETTE.grey800,fontFamily:FONTS.muktaMalar.regular }]} numberOfLines={2}>{description}</Text>
+                              <Text style={[NewsCardStyles.title, { fontSize: sf(12), lineHeight: sf(18), color: colors.text,fontFamily:FONTS.muktaMalar.regular }]} numberOfLines={2}>{description}</Text>
                             )}
                           </View>
                         </TouchableOpacity>
@@ -2175,8 +1974,8 @@ export default function HomeScreen() {
 
   // --- Render ----------------------------------------------------------------
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={PALETTE.white} />
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={colors.text === '#ffffff' ? "light-content" : "dark-content"} backgroundColor={colors.cardBackground} />
 
       <TopMenuStrip
         onMenuPress={handleMenuPress}
@@ -2241,7 +2040,6 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: PALETTE.grey100,
     paddingTop: Platform.OS === 'android' ? vs(30) : 0,
   },
 
@@ -2249,7 +2047,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: PALETTE.white,
+    backgroundColor: colors.cardBackground,
     paddingTop: Platform.OS === 'android' ? vs(10) : vs(50),
     paddingBottom: vs(10),
     paddingHorizontal: s(14),
@@ -2297,14 +2095,14 @@ const styles = StyleSheet.create({
   },
 
   sectionHeader: {
-    backgroundColor: PALETTE.white,
+    backgroundColor: colors.cardBackground,
     paddingHorizontal: s(12),
     paddingTop: vs(14),
     paddingBottom: vs(10),
   },
   sectionTitle: {
     fontFamily: FONTS.muktaMalar.bold,
-    color: PALETTE.grey800,
+    color: colors.text,
     // marginBottom: vs(2),
   },
   sectionUnderline: {
@@ -2332,7 +2130,7 @@ const styles = StyleSheet.create({
   },
 
   districtSection: {
-    backgroundColor: PALETTE.white,
+    backgroundColor: colors.cardBackground,
     marginBottom: vs(8),
   },
   districtListContainer: {
@@ -2340,7 +2138,7 @@ const styles = StyleSheet.create({
     paddingVertical: vs(8),
   },
   districtCard: {
-    backgroundColor: PALETTE.white,
+    backgroundColor: colors.cardBackground,
     borderWidth: 1,
     borderColor: PALETTE.grey200,
     overflow: 'hidden',
@@ -2361,7 +2159,7 @@ const styles = StyleSheet.create({
   districtIconContainer: {
     width: s(50),
     height: s(50),
-    // backgroundColor: PALETTE.white,
+    // backgroundColor: colors.cardBackground,
     borderRadius: s(25),
     justifyContent: 'center',
     alignItems: 'center',
@@ -2389,7 +2187,7 @@ const styles = StyleSheet.create({
   },
   districtName: {
     fontFamily: FONTS.muktaMalar.bold,
-    color: PALETTE.grey800,
+    color: colors.text,
     textAlign: 'left',
     flex: 1,
   },
@@ -2426,7 +2224,7 @@ const styles = StyleSheet.create({
   },
   newsItemTitle: {
     fontFamily: FONTS.muktaMalar.regular,
-    color: PALETTE.grey800,
+    color: colors.text,
     marginBottom: vs(3),
   },
   newsItemTime: {

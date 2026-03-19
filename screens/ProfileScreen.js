@@ -1,3 +1,4 @@
+// ProfileScreen.js
 import React from 'react';
 import {
   View,
@@ -9,10 +10,11 @@ import {
 } from 'react-native';
 import Slider from '@react-native-community/slider';
 import { useFontSize } from '../context/FontSizeContext';
+import { useTheme } from '../context/ThemeContext';
 import { COLORS, FONTS } from '../utils/constants';
 
 // ─── Font Size Row ────────────────────────────────────────────────────────────
-const SIZE_KEYS = ['small', 'normal', 'large', 'extraLarge',  ];
+const SIZE_KEYS = ['small', 'normal', 'large', 'extraLarge'];
 
 function FontSizeRow() {
   const { currentSize, changeFontSize, FONT_SCALES } = useFontSize();
@@ -28,7 +30,6 @@ function FontSizeRow() {
 
   return (
     <View style={fsr.card}>
-
       {/* ── Top: small A — dot track — big A ── */}
       <View style={fsr.trackSection}>
         {/* Small A */}
@@ -118,7 +119,6 @@ function FontSizeRow() {
           <Text style={[fsr.preview, { fontSize: previewSize }]}>தமிழ்</Text>
         </View>
       </View>
-
     </View>
   );
 }
@@ -308,12 +308,13 @@ const fsr = StyleSheet.create({
 
 // ─── Notifications Row ────────────────────────────────────────────────────────
 function NotificationsRow({ value, onChange }) {
+  const { colors } = useTheme();
   return (
     <View style={nr.row}>
       <View style={nr.iconWrap}>
         <Text style={nr.bellIcon}>🔔</Text>
       </View>
-      <Text style={nr.label}>அறிவிப்புகள்</Text>
+      <Text style={[nr.label, { color: colors.text }]}>அறிவிப்புகள்</Text>
       <Switch
         value={value}
         onValueChange={onChange}
@@ -350,72 +351,68 @@ const nr = StyleSheet.create({
 // ─── Main ProfileScreen ───────────────────────────────────────────────────────
 const ProfileScreen = () => {
   const [notifications, setNotifications] = React.useState(true);
-  const [darkMode, setDarkMode] = React.useState(false);
+  const { isDarkMode, toggleTheme, colors } = useTheme();
   const { sf } = useFontSize();
 
   return (
-    <ScrollView style={styles.container}>
-
+    <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
       {/* ── Header ── */}
       <View style={styles.header}>
-        {/* <View style={styles.avatar}>
-          <Text style={[styles.avatarText, { fontSize: sf(32) }]}>பி</Text>
-        </View> */}
         <Text style={[styles.userName, { fontSize: sf(20) }]}>பயனர்</Text>
         <Text style={[styles.userEmail, { fontSize: sf(14) }]}>user@dinamalar.com</Text>
       </View>
 
       {/* ── Font Size + Notifications block (matches screenshot) ── */}
-      <View style={styles.settingsBlock}>
+      <View style={[styles.settingsBlock, { backgroundColor: colors.cardBackground }]}>
         <FontSizeRow />
-        <View style={styles.blockDivider} />
+        <View style={[styles.blockDivider, { backgroundColor: colors.border }]} />
         <NotificationsRow value={notifications} onChange={setNotifications} />
       </View>
 
       {/* ── Saved News ── */}
-      <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { fontSize: sf(16) }]}>சேமித்த செய்திகள்</Text>
-        <TouchableOpacity style={styles.menuItem}>
-          <Text style={[styles.menuText, { fontSize: sf(16) }]}>புக்மார்க் செய்தவை</Text>
-          <Text style={[styles.arrow, { fontSize: sf(20) }]}>›</Text>
+      <View style={[styles.section, { backgroundColor: colors.cardBackground }]}>
+        <Text style={[styles.sectionTitle, { fontSize: sf(16), color: colors.text }]}>சேமித்த செய்திகள்</Text>
+        <TouchableOpacity style={[styles.menuItem, { borderBottomColor: colors.border }]}>
+          <Text style={[styles.menuText, { fontSize: sf(16), color: colors.text }]}>புக்மார்க் செய்தவை</Text>
+          <Text style={[styles.arrow, { fontSize: sf(20), color: colors.textSecondary }]}>›</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.menuItem}>
-          <Text style={[styles.menuText, { fontSize: sf(16) }]}>வாசித்த செய்திகள்</Text>
-          <Text style={[styles.arrow, { fontSize: sf(20) }]}>›</Text>
+        <TouchableOpacity style={[styles.menuItem, { borderBottomColor: colors.border }]}>
+          <Text style={[styles.menuText, { fontSize: sf(16), color: colors.text }]}>வாசித்த செய்திகள்</Text>
+          <Text style={[styles.arrow, { fontSize: sf(20), color: colors.textSecondary }]}>›</Text>
         </TouchableOpacity>
       </View>
 
       {/* ── Settings ── */}
-      <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { fontSize: sf(16) }]}>அமைப்புகள்</Text>
-        <View style={styles.menuItem}>
-          <Text style={[styles.menuText, { fontSize: sf(16) }]}>இருண்ட பயன்முறை</Text>
+      <View style={[styles.section, { backgroundColor: colors.cardBackground }]}>
+        <Text style={[styles.sectionTitle, { fontSize: sf(16), color: colors.text }]}>அமைப்புகள்</Text>
+        <View style={[styles.menuItem, { borderBottomColor: colors.border }]}>
+          <Text style={[styles.menuText, { fontSize: sf(16), color: colors.text }]}>இருண்ட பயன்முறை</Text>
           <Switch
-            value={darkMode}
-            onValueChange={setDarkMode}
-            trackColor={{ false: '#ddd', true: '#d32f2f' }}
+            value={isDarkMode}
+            onValueChange={toggleTheme}
+            trackColor={{ false: '#ddd', true: colors.primary }}
             thumbColor="#fff"
           />
         </View>
-        <TouchableOpacity style={styles.menuItem}>
-          <Text style={[styles.menuText, { fontSize: sf(16) }]}>மொழி</Text>
-          <Text style={[styles.menuValue, { fontSize: sf(16) }]}>தமிழ்</Text>
+        <TouchableOpacity style={[styles.menuItem, { borderBottomColor: colors.border }]}>
+          <Text style={[styles.menuText, { fontSize: sf(16), color: colors.text }]}>மொழி</Text>
+          <Text style={[styles.menuValue, { fontSize: sf(16), color: colors.textSecondary }]}>தமிழ்</Text>
         </TouchableOpacity>
       </View>
 
       {/* ── About ── */}
-      <View style={styles.section}>
-        <TouchableOpacity style={styles.menuItem}>
-          <Text style={[styles.menuText, { fontSize: sf(16) }]}>எங்களைப் பற்றி</Text>
-          <Text style={[styles.arrow, { fontSize: sf(20) }]}>›</Text>
+      <View style={[styles.section, { backgroundColor: colors.cardBackground }]}>
+        <TouchableOpacity style={[styles.menuItem, { borderBottomColor: colors.border }]}>
+          <Text style={[styles.menuText, { fontSize: sf(16), color: colors.text }]}>எங்களைப் பற்றி</Text>
+          <Text style={[styles.arrow, { fontSize: sf(20), color: colors.textSecondary }]}>›</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.menuItem}>
-          <Text style={[styles.menuText, { fontSize: sf(16) }]}>தனியுரிமைக் கொள்கை</Text>
-          <Text style={[styles.arrow, { fontSize: sf(20) }]}>›</Text>
+        <TouchableOpacity style={[styles.menuItem, { borderBottomColor: colors.border }]}>
+          <Text style={[styles.menuText, { fontSize: sf(16), color: colors.text }]}>தனியுரிமைக் கொள்கை</Text>
+          <Text style={[styles.arrow, { fontSize: sf(20), color: colors.textSecondary }]}>›</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.menuItem}>
-          <Text style={[styles.menuText, { fontSize: sf(16) }]}>நிபந்தனைகள்</Text>
-          <Text style={[styles.arrow, { fontSize: sf(20) }]}>›</Text>
+        <TouchableOpacity style={[styles.menuItem, { borderBottomColor: colors.border }]}>
+          <Text style={[styles.menuText, { fontSize: sf(16), color: colors.text }]}>நிபந்தனைகள்</Text>
+          <Text style={[styles.arrow, { fontSize: sf(20), color: colors.textSecondary }]}>›</Text>
         </TouchableOpacity>
       </View>
 
@@ -423,7 +420,6 @@ const ProfileScreen = () => {
       <TouchableOpacity style={styles.logoutButton}>
         <Text style={[styles.logoutText, { fontSize: sf(16) }]}>வெளியேறு</Text>
       </TouchableOpacity>
-
     </ScrollView>
   );
 };
@@ -432,7 +428,6 @@ const ProfileScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f0f0f0',
   },
 
   // ── Header ──
@@ -441,19 +436,6 @@ const styles = StyleSheet.create({
     paddingTop: 50,
     paddingBottom: 30,
     alignItems: 'center',
-  },
-  avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 15,
-  },
-  avatarText: {
-    fontWeight: 'bold',
-    color: '#fff',
   },
   userName: {
     fontWeight: 'bold',
@@ -466,7 +448,6 @@ const styles = StyleSheet.create({
 
   // ── Font + Notif block ──
   settingsBlock: {
-    backgroundColor: '#fff',
     borderRadius: 12,
     marginHorizontal: 12,
     marginTop: 20,
@@ -479,23 +460,19 @@ const styles = StyleSheet.create({
   },
   blockDivider: {
     height: 1,
-    backgroundColor: '#f0f0f0',
     marginHorizontal: 16,
   },
 
   // ── Sections ──
   section: {
-    backgroundColor: 'white',
     marginTop: 20,
     paddingVertical: 10,
   },
   sectionTitle: {
     fontWeight: 'bold',
-    color: '#333',
     paddingHorizontal: 15,
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
   },
   menuItem: {
     flexDirection: 'row',
@@ -504,17 +481,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
   },
   menuText: {
-    color: '#333',
-    
   },
   menuValue: {
-    color: '#666',
   },
   arrow: {
-    color: '#666',
   },
 
   // ── Logout ──

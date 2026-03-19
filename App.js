@@ -1,7 +1,7 @@
  import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import AppNavigator from './navigation/AppNavigator';
-import { ThemeProvider } from './theme/ThemeContext';
+import { ThemeProvider } from './context/ThemeContext';
 import { FontSizeProvider } from './context/FontSizeContext';
 import { View } from 'react-native';
 
