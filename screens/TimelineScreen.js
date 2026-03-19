@@ -17,6 +17,7 @@ import UniversalHeaderComponent from '../components/UniversalHeaderComponent';
 import AppHeaderComponent from '../components/AppHeaderComponent';
 import TEXT_STYLES from '../utils/textStyles';
 import { useFontSize } from '../context/FontSizeContext';
+import FontSizeControl from '../components/FontSizeControl';
 import { StatusBar } from 'expo-status-bar';
 
 const PALETTE = {
@@ -85,7 +86,7 @@ const PlayIcon = ({ size = 28 }) => {
       <View style={[vtStyles.playTriangle, {
         borderTopWidth: scaledSize * 0.12,
         borderBottomWidth: scaledSize * 0.12,
-        borderLeftWidth: scaledSize * 0.30,
+        borderLeftWidth: scaledSize * 0.25,
         marginLeft: scaledSize * 0.06,
       }]} />
     </View>
@@ -901,7 +902,7 @@ export default function TimelineScreen() {
     if (isVideoItem(item)) {
       // Navigate to VideoScreen with the Dinamalar video ID
       const videoId = getDinaVideoId(item) || item.newsid || item.id;
-      navigation.navigate('VideoScreen', { videoId, videoItem: item });
+      navigation.navigate('VideoDetailScreen', { videoId, videoItem: item });
     } else {
       const newsId = item.id || item.newsid;
       navigation.navigate('NewsDetailsScreen', { newsId, newsItem: item });

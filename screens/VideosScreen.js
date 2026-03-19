@@ -1195,7 +1195,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  thumbPlayBtn: { position: 'absolute', bottom: vs(8), left: s(10) },
+  thumbPlayBtn: { position: 'absolute', bottom: vs(5), left: s(5) },
   playCircle: {
     width: s(48),
     height: s(48),

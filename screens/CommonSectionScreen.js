@@ -677,10 +677,10 @@ const st = StyleSheet.create({
   sectionTitle: {
     fontFamily: FONTS.muktaMalar.bold,
     color: PALETTE.grey800,
-    marginBottom: vs(2),
+    // marginBottom: vs(2),
   },
   sectionUnderline: {
-    height: vs(5),
+    height: vs(3),
     width: '20%',
     backgroundColor: PALETTE.primary,
   },
@@ -943,6 +943,11 @@ export default function CommonSectionScreen() {
         (Array.isArray(d?.sections) ? d.sections : null) ||
         (Array.isArray(d?.data) ? d.data : null) ||
         [];
+
+      // Special handling for photodata API - if data is directly an array of items
+      if (apiEndpoint.includes('photodata') && Array.isArray(d) && d.length > 0) {
+        rawSections = [{ title: '', id: 'all', data: d }];
+      }
 
       const sectionsWithData = rawSections.filter(sec => Array.isArray(sec?.data) && sec.data.length > 0);
       let finalSections = sectionsWithData;
@@ -1331,26 +1336,26 @@ export default function CommonSectionScreen() {
 // ─────────────────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f2f2f2', paddingTop: Platform.OS === 'android' ? vs(28) : 0 },
-  pageTitleWrap: {   paddingTop: vs(14), paddingBottom: vs(6), backgroundColor: '#fff' },
+  pageTitleWrap: { paddingTop: vs(14), paddingBottom: vs(6), backgroundColor: '#fff' },
   pageTitle: { fontSize: 18, fontFamily: FONTS.anek.bold, color: '#111', fontWeight: '700', paddingHorizontal: s(12), paddingTop: vs(14), marginBottom: vs(4) }, // ← Will be scaled dynamically
 
   tabsWrap: { backgroundColor: '#fff', elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: vs(1) }, shadowOpacity: 0.08, shadowRadius: s(2) },
   tabsContent: { paddingHorizontal: s(4), alignItems: 'center' },
   tab: { paddingHorizontal: s(12), paddingVertical: vs(12), marginHorizontal: s(2), borderBottomWidth: vs(3), borderBottomColor: 'transparent' },
   tabActive: { borderBottomColor: COLORS.primary },
-  tabText: { fontSize: 14, fontFamily: FONTS.muktaMalar.semibold, color: COLORS.text }, // ← Will be scaled dynamically
-  tabTextActive: { fontSize: 14, fontFamily: FONTS.muktaMalar.medium, color: COLORS.primary }, // ← Will be scaled dynamically
-  tabsBottomLine: { height: StyleSheet.hairlineWidth, backgroundColor: '#e0e0e0' },
+  tabText: TEXT_STYLES.tabs.small,
+
+  tabTextActive: TEXT_STYLES.tabs.smallActive,
 
   list: { flex: 1 },
   listContent: { paddingTop: vs(6), paddingBottom: vs(30) },
   rasiGridContent: { flexDirection: 'column', paddingBottom: vs(30) },
   webView: { flex: 1 },
-  webViewLoader: { 
-    flex: 1, 
-    justifyContent: 'center', 
-    alignItems: 'center', 
-    backgroundColor: '#fff' 
+  webViewLoader: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff'
   },
 
   sectionWrap: { paddingHorizontal: s(12), paddingTop: vs(16), paddingBottom: vs(4), backgroundColor: '#f2f2f2' },
