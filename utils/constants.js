@@ -136,12 +136,20 @@ export const FONTS = {
         backgroundColor: PALETTE.white,
         position: 'relative',
       },
+      socialMediaWrap: {
+        width: '100%',
+        // backgroundColor: PALETTE.white,
+        position: 'relative',
+        // marginVertical: vs(2),
+        // borderRadius: s(8),
+      },
       imageWrap: {
-        // marginHorizontal: s(12),
+        marginHorizontal: s(12),
         marginTop: vs(8),
-        // borderRadius: s(6),
         overflow: 'hidden',
-        backgroundColor: PALETTE.grey200,
+        // backgroundColor: PALETTE.grey200,
+        
+        
       },
       image: {
         width: '100%',
@@ -207,6 +215,11 @@ export const FONTS = {
       audioIcon: {
         flexDirection: 'row',
         alignItems: 'center',
+      },
+      divider: {
+        height: 1,
+        backgroundColor: PALETTE.grey200,
+        marginHorizontal: s(12),
       },
   
     };

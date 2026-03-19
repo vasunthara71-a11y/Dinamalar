@@ -224,7 +224,7 @@ const Chip = ({ label, active, onPress }) => {
       style={[styles.chip, active && styles.chipActive]}
       activeOpacity={0.8}
     >
-      {active && <Ionicons name="checkmark" size={13} color={PALETTE.white} style={{ marginRight: 4 ,}} />}
+      {active && <Ionicons name="checkmark" size={13} color={PALETTE.white} style={{ marginRight: 4, }} />}
       <Text style={[styles.chipText, active && styles.chipTextActive, { fontSize: sf(13) }]}>{label}</Text>
     </TouchableOpacity>
   );
@@ -394,8 +394,24 @@ function TaboolaWidget({ pageUrl, mode, container, placement, pageType = 'homepa
 }
 
 // ─── Main Screen ─────────────────────────────────────────────────────────────────
-const VideosScreen = ({ navigation }) => {
+const VideosScreen = ({ navigation, route }) => {
   const { sf } = useFontSize();
+
+  const initialTabKey = route?.params?.initialTabKey || '';
+
+  // Add this ref to track if we've applied the initial tab
+  const initialTabApplied = useRef(false);
+
+  // Map tab key to Tamil/English keywords to match against API category titles
+  const TAB_KEY_KEYWORDS = {
+    'live': ['live', 'நேரலை', 'லைவ்'],
+    'விளையாட்டு': ['விளையாட்டு', 'sport', 'Sports'],
+    'சினிமா': ['சினிமா', 'cinema', 'Cinema'],
+  };
+
+  // Add this after your existing useState declarations:
+  const initialCategory = route?.params?.initialCategory || '';
+  const hasFetchedOnce = useRef(false);
 
   // ── API data ──────────────────────────────────────────────────────────────────
   const [allVideos, setAllVideos] = useState([]);
@@ -517,15 +533,15 @@ const VideosScreen = ({ navigation }) => {
       // API handles district filtering server-side — no client-side filtering needed
       let finalVideos = newsVideos;
 
-     if (append) {
-  setAllVideos(prev => {
-    const existingIds = new Set(prev.map(v => v.videoid).filter(Boolean));
-    const newItems = finalVideos.filter(v => !v.videoid || !existingIds.has(v.videoid));
-    return [...prev, ...newItems];
-  });
-} else {
-  setAllVideos(finalVideos);
-}
+      if (append) {
+        setAllVideos(prev => {
+          const existingIds = new Set(prev.map(v => v.videoid).filter(Boolean));
+          const newItems = finalVideos.filter(v => !v.videoid || !existingIds.has(v.videoid));
+          return [...prev, ...newItems];
+        });
+      } else {
+        setAllVideos(finalVideos);
+      }
       if (data?.taboola_ads?.mobile) {
         setTaboolaAds(prev => prev ?? data.taboola_ads.mobile);
       }
@@ -577,13 +593,49 @@ const VideosScreen = ({ navigation }) => {
     setShowScrollTop(e.nativeEvent.contentOffset.y > 300);
   }, []);
 
-  useEffect(() => { fetchVideos(); }, [fetchVideos]);
+  useEffect(() => {
+    if (!initialTabKey || initialTabApplied.current) return;
+    if (categories.length === 0) return;  // wait for categories to load
 
+    const keywords = TAB_KEY_KEYWORDS[initialTabKey] || [];
+    const matched = categories.find(cat =>
+      keywords.some(kw =>
+        (cat.title || '').toLowerCase().includes(kw.toLowerCase())
+      )
+    );
+
+    if (matched) {
+      initialTabApplied.current = true;
+      const catValue = String(matched.value ?? '');
+      setActiveCategory(catValue);
+      fetchVideos({ cat: catValue });
+    }
+  }, [categories, initialTabKey]);
+  useEffect(() => {
+    if (!initialTabKey) {
+      fetchVideos();
+    }
+  }, [fetchVideos]);
+
+  useEffect(() => {
+    if (initialCategory) {
+      setActiveCategory(initialCategory);
+      fetchVideos({ cat: initialCategory });
+    } else {
+      fetchVideos();
+    }
+  }, [fetchVideos, initialCategory]);
   // Refresh data when screen comes into focus
   useFocusEffect(
     useCallback(() => {
-      fetchVideos();
-    }, [fetchVideos])
+      if (!hasFetchedOnce.current) {
+        hasFetchedOnce.current = true;
+        // Initial fetch — don't override, let the initialTabKey effect handle it
+        if (!initialTabKey) {
+          fetchVideos();
+        }
+      }
+    }, [fetchVideos, initialTabKey])
   );
 
   // ── Category tab press ────────────────────────────────────────────────────────
@@ -902,12 +954,12 @@ const VideosScreen = ({ navigation }) => {
         onScroll={handleScroll}
         scrollEventThrottle={16}
         data={loading ? [] : listData}
-      keyExtractor={(item, idx) => {
-  if (item._type === 'shorts_strip') return item._key || `shorts_strip_${idx}`;
-  if (item._type === 'taboola_ad') return item._key || `taboola_${idx}`;
-  // ← append idx to guarantee uniqueness even if videoid repeats
-  return item?.videoid != null ? `video_${item.videoid}_${idx}` : `item_${idx}`;
-}}
+        keyExtractor={(item, idx) => {
+          if (item._type === 'shorts_strip') return item._key || `shorts_strip_${idx}`;
+          if (item._type === 'taboola_ad') return item._key || `taboola_${idx}`;
+          // ← append idx to guarantee uniqueness even if videoid repeats
+          return item?.videoid != null ? `video_${item.videoid}_${idx}` : `item_${idx}`;
+        }}
         renderItem={({ item }) => {
           // ── Shorts strip — pass item.items (only this strip's reels) ────
           if (item._type === 'shorts_strip') {
@@ -972,13 +1024,13 @@ const VideosScreen = ({ navigation }) => {
         }}
       />
       {/* Comments Modal */}
-    <CommentsModal
-  visible={commentsVisible}
-  onClose={() => setCommentsVisible(false)}
-  newsId={selectedVideo?.videoid}
-  newsTitle={selectedVideo?.videotitle}
-  commentCount={parseInt(selectedVideo?.nmcomment || 0)}
-/>
+      <CommentsModal
+        visible={commentsVisible}
+        onClose={() => setCommentsVisible(false)}
+        newsId={selectedVideo?.videoid}
+        newsTitle={selectedVideo?.videotitle}
+        commentCount={parseInt(selectedVideo?.nmcomment || 0)}
+      />
 
       {/* Drawer Menu */}
       <DrawerMenu
@@ -1058,8 +1110,8 @@ const styles = StyleSheet.create({
     backgroundColor: PALETTE.grey300,
     justifyContent: 'center', alignItems: 'center',
     position: 'relative',
-    borderWidth:1,
-    borderColor:PALETTE.grey700
+    borderWidth: 1,
+    borderColor: PALETTE.grey700
   },
   filterIconBtnActive: { backgroundColor: '#EBF5FF', borderWidth: 1, borderColor: PALETTE.primary },
   filterDot: {
@@ -1313,7 +1365,7 @@ const styles = StyleSheet.create({
   filterSection: { paddingHorizontal: s(20), paddingTop: vs(18), paddingBottom: vs(4) },
   filterSectionLabel: {
     fontSize: ms(14), fontWeight: '700', color: PALETTE.grey800,
-      fontFamily: FONTS.muktaMalar.bold,
+    fontFamily: FONTS.muktaMalar.bold,
   },
 
   // Chips

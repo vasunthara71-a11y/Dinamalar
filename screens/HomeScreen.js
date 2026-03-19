@@ -28,15 +28,249 @@ import { SvgUri } from 'react-native-svg';
 import FooterMenu from '../components/FooterMenu';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import { useFontSize } from '../context/FontSizeContext';
 import LocationDrawer from '../components/LocationDrawer';
 import TopMenuStrip from '../components/TopMenuStrip';
 import AppHeaderComponent from '../components/AppHeaderComponent';
- import { useFontSize } from '../context/FontSizeContext';
- 
+
+// ─── Share Market Card ────────────────────────────────────────────────
+function ShareMarketCard({ commodity }) {
+  const markets = commodity?.sharemarket || [];
+  if (!markets.length) return null;
+
+  return (
+    <View style={shareMarketStyles.wrap}>
+      <View style={shareMarketStyles.header}>
+        <Text style={shareMarketStyles.icon}>📈</Text>
+        <Text style={shareMarketStyles.title}>பங்கு சந்தை</Text>
+      </View>
+      <View style={shareMarketStyles.row}>
+        {markets.map((m, i) => {
+          const isUp = m.change !== 'down';
+          return (
+            <React.Fragment key={i}>
+              {i > 0 && <View style={shareMarketStyles.divider} />}
+              <View style={shareMarketStyles.col}>
+                <Text style={shareMarketStyles.label}>{m.stype?.toUpperCase()}</Text>
+                <Text style={shareMarketStyles.value}>{m.value}</Text>
+                <View style={shareMarketStyles.diffRow}>
+                  <Text style={[shareMarketStyles.diffText, { color: isUp ? '#16a34a' : '#dc2626' }]}>
+                    {m.diff}
+                  </Text>
+                  <Ionicons
+                    name={isUp ? 'caret-up' : 'caret-down'}
+                    size={s(10)}
+                    color={isUp ? '#16a34a' : '#dc2626'}
+                  />
+                </View>
+                <Text style={shareMarketStyles.dateText}>{m.date}</Text>
+              </View>
+            </React.Fragment>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
+const shareMarketStyles = StyleSheet.create({
+  wrap: {
+    backgroundColor: COLORS.white,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    marginBottom: vs(10),
+    overflow: 'hidden',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: s(12),
+    gap: s(10),
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+    backgroundColor: COLORS.background || '#f8f8f8',
+  },
+  icon: { fontSize: s(20) },
+  title: { fontSize: ms(13), color: COLORS.text, fontWeight: '700' },
+  row: { flexDirection: 'row', padding: s(12), backgroundColor: COLORS.white },
+  col: { flex: 1, alignItems: 'center' },
+  divider: { width: 1, backgroundColor: COLORS.border },
+  label: { fontSize: ms(12), color: COLORS.subtext, marginBottom: vs(4), fontWeight: '700' },
+  value: { fontSize: ms(15), color: COLORS.text, fontWeight: '800' },
+  diffRow: { flexDirection: 'row', alignItems: 'center', gap: s(2), marginTop: vs(2) },
+  diffText: { fontSize: ms(11), fontWeight: '700' },
+  dateText: { fontSize: ms(10), color: COLORS.subtext, marginTop: vs(4) },
+});
+
+// ─── Gold / Silver Card ───────────────────────────────────────────────────────
+function GoldSilverCard({ commodity }) {
+  const meta = commodity?.data?.[0] || {};
+  const gold = commodity?.gold || [];
+  const silver = commodity?.silver || [];
+  const all = [...gold, ...silver];
+  const labelMap = { G22k: '22 காரட் 1கி', G18k: '18 காரட் 1கி', Silv: 'வெள்ளி 1கி' };
+
+  const renderDiff = (diff, change) => {
+    if (!diff || diff === '0') return null;
+    const isUp = change === 'increase';
+    return (
+      <View style={gc.diffRow}>
+        <Text style={[gc.diffText, { color: isUp ? '#16a34a' : '#dc2626' }]}>
+          {isUp ? '+' : ''}{diff}
+        </Text>
+        <Ionicons
+          name={isUp ? 'caret-up' : 'caret-down'}
+          size={s(10)}
+          color={isUp ? '#16a34a' : '#dc2626'}
+        />
+      </View>
+    );
+  };
+
+  return (
+    <View style={gc.wrap}>
+      <View style={gc.header}>
+        <Text style={gc.icon}>🪙</Text>
+        <View>
+          <Text style={gc.title}>{meta.goldtitle || ''}</Text>
+          <Text style={gc.date}>{meta.golddate || ''}</Text>
+        </View>
+      </View>
+      <View style={gc.row}>
+        {all.map((item, i) => (
+          <React.Fragment key={i}>
+            {i > 0 && <View style={gc.divider} />}
+            <View style={gc.col}>
+              <Text style={gc.label}>{labelMap[item.gtype] || item.gtype}</Text>
+              <Text style={gc.value}>{item.rate}</Text>
+              {renderDiff(item.diff, item.change)}
+            </View>
+          </React.Fragment>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+// ─── Fuel Card ────────────────────────────────────────────────────────────────
+function FuelCard({ commodity }) {
+  const meta = commodity?.data?.[0] || {};
+  const fuel = commodity?.fuel?.[0] || {};
+  if (!fuel.petrol && !fuel.diesel) return null;
+
+  return (
+    <View style={fc.wrap}>
+      <View style={fc.header}>
+        <Text style={fc.icon}>⛽</Text>
+        <View>
+          <Text style={fc.title}>{meta.fueltitle || 'பெட்ரோல் & டீசல் விலை ( ₹ )'}</Text>
+          <Text style={fc.date}>{fuel.date || meta.fueldate || ''}</Text>
+        </View>
+      </View>
+      <View style={fc.row}>
+        <View style={fc.col}>
+          <Text style={fc.label}>பெட்ரோல்</Text>
+          <Text style={fc.value}>{fuel.petrol}</Text>
+        </View>
+        <View style={fc.divider} />
+        <View style={fc.col}>
+          <Text style={fc.label}>டீசல்</Text>
+          <Text style={fc.value}>{fuel.diesel}</Text>
+        </View>
+      </View>
+    </View>
+  );
+}
+
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 // ── Taboola publisher ID for mobile (from your website TaboolaScript.js) ──────
 const TABOOLA_PUBLISHER_ID = 'mdinamalarcom';
+
+// ─── Styles for Gold/Silver and Fuel Cards ──────────────────────────────
+const gc = StyleSheet.create({
+  wrap: {
+    backgroundColor: COLORS.white,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    marginBottom: vs(10),
+    overflow: 'hidden',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: s(12),
+    gap: s(10),
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+    backgroundColor: COLORS.background || '#f8f8f8',
+  },
+  icon: { fontSize: s(22) },
+  title: {
+    fontSize: ms(13),
+    color: COLORS.text,
+    fontFamily: FONTS.muktaMalar.semibold,
+  },
+  date: {
+    fontSize: ms(11),
+    color: COLORS.subtext,
+    marginTop: vs(2),
+    fontFamily: FONTS.muktaMalar.regular,
+  },
+  row: { flexDirection: 'row', padding: s(12), backgroundColor: COLORS.white },
+  col: { flex: 1, alignItems: 'center' },
+  divider: {
+    width: 1,
+    backgroundColor: COLORS.border,
+    marginVertical: vs(2),
+  },
+  label: {
+    fontSize: ms(11),
+    color: COLORS.subtext,
+    marginBottom: vs(4),
+    textAlign: 'center',
+    fontFamily: FONTS.muktaMalar.regular,
+  },
+  value: {
+    fontSize: ms(14),
+    color: COLORS.text,
+    fontFamily: FONTS.muktaMalar.bold,
+  },
+  diffRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: s(2),
+    marginTop: vs(2),
+  },
+  diffText: {
+    fontSize: ms(11),
+    fontFamily: FONTS.muktaMalar.medium,
+  },
+});
+
+const fc = StyleSheet.create({
+  wrap: {
+    backgroundColor: COLORS.white,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    marginBottom: vs(10),
+    overflow: 'hidden',
+  },
+  header: {
+    flexDirection: 'row', alignItems: 'center',
+    padding: s(12), gap: s(10),
+    borderBottomWidth: 1, borderBottomColor: COLORS.border,
+    backgroundColor: COLORS.background || '#f8f8f8',
+  },
+  icon: { fontSize: s(22) },
+  title: { fontSize: ms(13), color: COLORS.text, fontWeight: '700' },
+  date: { fontSize: ms(11), color: COLORS.subtext, marginTop: vs(2) },
+  row: { flexDirection: 'row', padding: s(12), backgroundColor: COLORS.white },
+  col: { flex: 1, alignItems: 'center' },
+  divider: { width: 1, backgroundColor: COLORS.border, marginVertical: vs(2) },
+  label: { fontSize: ms(11), color: COLORS.subtext, marginBottom: vs(4) },
+  value: { fontSize: ms(20), color: COLORS.text, fontWeight: '800' },
+});
 
 // --- Palette ------------------------------------------------------------------
 const PALETTE = {
@@ -66,7 +300,7 @@ function TaboolaWidget({ pageUrl, mode, container, placement, pageType = 'homepa
   const [height, setHeight] = useState(1);
   if (!mode || !container || !placement || !pageUrl) return null;
   const safe = (str) => String(str || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-  
+
   const html = `<!DOCTYPE html>
 <html>
 <head>
@@ -220,7 +454,7 @@ const resolveScreenFromLink = (link = '') => {
 };
 
 // --- App Header Component --------------------------------------------------------
-function AppHeader({ onSearch, onMenu, onLocation, selectedDistrict = '???????' }) {
+function AppHeader({ onSearch, onMenu, onLocation, selectedDistrict = 'உள்ளூர்' }) {
   const { sf } = useFontSize();
 
   return (
@@ -383,7 +617,7 @@ const shortsSt = StyleSheet.create({
     height: vs(200),
     borderRadius: s(8),
     overflow: 'hidden',
-    backgroundColor: PALETTE.grey200,
+    // backgroundColor: PALETTE.grey200,
     marginBottom: vs(8),
   },
   image: {
@@ -449,30 +683,30 @@ function NewsCard({ item, onPress, isSocialMedia = false }) {
   const title = item.newstitle || item.title || item.videotitle || item.name || '';
   const category = item.maincat || item.categrorytitle || item.ctitle || item.maincategory || '';
   const ago = item.ago || item.time_ago || '';
-const newscomment = item.newscomment || item.commentcount || item.nmcomment || item.comments?.total || '';  const hasAudio = item.audio === 1 || item.audio === '1' || item.audio === true ||
+  const newscomment = item.newscomment || item.commentcount || item.nmcomment || item.comments?.total || ''; const hasAudio = item.audio === 1 || item.audio === '1' || item.audio === true ||
     (typeof item.audio === 'string' && item.audio.length > 1 && item.audio !== '0');
 
   return (
-    <View style={NewsCardStyles.wrap}>
+    <View style={isSocialMedia ? NewsCardStyles.socialMediaWrap : NewsCardStyles.wrap}>
       <TouchableOpacity onPress={onPress} activeOpacity={0.88}>
         <View style={NewsCardStyles.imageWrap}>
           <Image
             source={{ uri: imageUri }}
             style={
               isSocialMedia
-                ? [NewsCardStyles.image, { height: 400 }]
-                : NewsCardStyles.image
+                ? [NewsCardStyles.image, { height: 400, borderRadius: ms(18) }]
+                : [NewsCardStyles.image,]
             }
-            resizeMode={isSocialMedia ? "cover" : "contain"}
+            resizeMode={isSocialMedia ? "contain" : "contain"}
           />
         </View>
 
         <View style={NewsCardStyles.contentContainer}>
-          {!!title && (
+          {!!title && !isSocialMedia && (
             <Text style={[NewsCardStyles.title, { fontSize: sf(14), lineHeight: sf(22) }]} numberOfLines={3}>{title}</Text>
           )}
 
-          {!!category && (
+          {!!category && !isSocialMedia && (
             <View style={NewsCardStyles.catPill}>
               <Text style={[NewsCardStyles.catText, { fontSize: sf(12) }]}>{category}</Text>
             </View>
@@ -489,7 +723,7 @@ const newscomment = item.newscomment || item.commentcount || item.nmcomment || i
 
               {!!newscomment && newscomment !== '0' && (
                 <View style={NewsCardStyles.commentRow}>
-                  <Ionicons name="chatbox" size={s(14)} color={PALETTE.grey700} />
+                  <Ionicons name="chatbox" size={s(15)} color={PALETTE.grey700} />
                   <Text style={[NewsCardStyles.commentText, { fontSize: sf(12) }]}> {newscomment}</Text>
                 </View>
               )}
@@ -502,8 +736,6 @@ const newscomment = item.newscomment || item.commentcount || item.nmcomment || i
     </View>
   );
 }
-
-// --- Dinamalar TV Card --------------------------------------------------------
 // NewsCard-style layout with play button overlay   tapping opens VideoPlayerModal
 function DinaMalarTVCard({ item, onVideoPress }) {
   const { sf } = useFontSize();
@@ -515,7 +747,7 @@ function DinaMalarTVCard({ item, onVideoPress }) {
   const title = item.newstitle || item.title || item.videotitle || item.name || '';
   const category = item.maincat || item.categrorytitle || item.ctitle || item.maincategory || '';
   const ago = item.ago || item.time_ago || '';
-const newscomment = item.newscomment || item.commentcount || item.nmcomment || item.comments?.total || '';
+  const newscomment = item.newscomment || item.commentcount || item.nmcomment || item.comments?.total || '';
   return (
     <View style={NewsCardStyles.wrap}>
       <TouchableOpacity onPress={onVideoPress} activeOpacity={0.88}>
@@ -578,53 +810,62 @@ const newscomment = item.newscomment || item.commentcount || item.nmcomment || i
 // --- Dinamalar TV Section (with Live / Sports / Cinema tabs) -----------------
 const TV_TABS = [
   { key: 'live', label: 'Live', ta: 'Live', vCategory: '5050', slug: '/videos/live-and-recorded' },
-  { key: 'sports', label: '??????????', ta: '??????????', vCategory: '594', slug: '/videos/sports-tamil-videos' },
-  { key: 'cinema', label: '??????', ta: '??????', vCategory: '594', slug: '/videos/tamil-cinema-videos' },
+  { key: 'விளையாட்டு', label: 'விளையாட்டு', ta: 'விளையாட்டு', vCategory: '594', slug: '/videos/sports-tamil-videos' },
+  { key: 'சினிமா', label: 'சினிமா', ta: 'சினிமா', vCategory: '594', slug: '/videos/tamil-cinema-videos' },
 ];
 
 // Map API maincat values ? tab key
 function getTabKey(item) {
   // First check by VCategory (actual field from API)
-  const vCategory = String(item.VCategory || item.maincatid || '');
+  const vCategory = String(item.VCategory || item.maincatid || item.vcategory || '');
   const maincat = (item.maincat || '').toLowerCase();
   const ctitle = (item.ctitle || '').toLowerCase();
-  
+
+  // Debug logging
+  console.log('getTabKey item:', {
+    vCategory,
+    maincat,
+    ctitle,
+    title: item.title,
+    category: item.category
+  });
+
   if (vCategory === '5050') return 'live';
-  
+
   // For VCategory 594, differentiate by category name
   if (vCategory === '594') {
-    if (ctitle.includes('??????') || maincat.includes('cinema')) return 'cinema';
-    if (ctitle.includes('??????????') || maincat.includes('sport')) return 'sports';
+    if (ctitle.includes('சினிமா') || maincat.includes('cinema')) return 'cinema';
+    if (ctitle.includes('விளையாட்டு') || maincat.includes('sport')) return 'sports';
     // Default to sports if unclear
     return 'sports';
   }
-  
+
   // Fallback to category name matching
-  const cat = (item.maincat || item.categrorytitle || item.maincategory || '').toLowerCase();
-  
-  if (cat.includes('live') || cat.includes('?????') || cat.includes('????')) return 'live';
-  if (cat.includes('sport') || cat.includes('????????') || cat.includes('cricket') || cat.includes('football')) return 'sports';
-  if (cat.includes('cinema') || cat.includes('??????') || cat.includes('movie') || cat.includes('film')) return 'cinema';
-  
+  const cat = (item.maincat || item.categrorytitle || item.maincategory || item.category || '').toLowerCase();
+
+  if (cat.includes('live') || cat.includes('நேரலை') || cat.includes('live')) return 'live';
+  if (cat.includes('sport') || cat.includes('விளையாட்டு') || cat.includes('cricket') || cat.includes('football')) return 'sports';
+  if (cat.includes('cinema') || cat.includes('சினிமா') || cat.includes('movie') || cat.includes('film')) return 'cinema';
+
   return 'live'; // default
 }
 
 function DinaMalarTVSection({ data, onVideoPress }) {
   const { sf } = useFontSize();
-  const [activeTab, setActiveTab] = useState('live');
+  const navigation = useNavigation();
 
-  const grouped = useMemo(() => {
-    const g = { live: [], sports: [], cinema: [] };
-    (data || []).forEach(item => { g[getTabKey(item)].push(item); });
-    return g;
-  }, [data]);
+  // Separate live and regular videos
+  const liveItems = (data || []).filter(item => 
+    String(item.VCategory || item.maincatid || '') === '5050' || 
+    (item.maincat || '').toLowerCase() === 'live'
+  );
+  const tvItems = (data || []).filter(item => 
+    String(item.VCategory || item.maincatid || '') !== '5050' && 
+    (item.maincat || '').toLowerCase() !== 'live'
+  );
 
-  const defaultTab = useMemo(() => {
-    return TV_TABS.find(t => grouped[t.key]?.length > 0)?.key || 'live';
-  }, [grouped]);
-
-  const safeTab = grouped[activeTab]?.length > 0 ? activeTab : defaultTab;
-  const displayItems = grouped[safeTab] || [];
+  // All items to display: live first, then tv videos
+  const allItems = [...liveItems, ...tvItems];
 
   return (
     <View>
@@ -634,35 +875,37 @@ function DinaMalarTVSection({ data, onVideoPress }) {
           <View style={tvSecSt.titleUnderline} />
         </View>
       </View>
+
+      {/* Tabs — UI only, navigate to VideosScreen on press */}
       <View style={tvSecSt.tabBar}>
-        {TV_TABS.map(tab => {
-          const isActive = safeTab === tab.key;
-          return (
-            <TouchableOpacity
-              key={tab.key}
-              style={[tvSecSt.tab, isActive && tvSecSt.tabActive]}
-              onPress={() => setActiveTab(tab.key)}
-              activeOpacity={0.7}
-            >
-              {tab.key === 'live' && isActive && <View style={tvSecSt.liveDot} />}
-              <Text style={[tvSecSt.tabText, { fontSize: sf(13) }, isActive && tvSecSt.tabTextActive]}>
-                {tab.ta}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
+        {TV_TABS.map(tab => (
+          <TouchableOpacity
+            key={tab.key}
+            style={tvSecSt.tab}
+            onPress={() => navigation?.navigate('VideosScreen', { initialTabKey: tab.key })}
+            activeOpacity={0.7}
+          >
+            <Text style={[tvSecSt.tabText, { fontSize: sf(13) }]}>
+              {tab.ta}
+            </Text>
+          </TouchableOpacity>
+        ))}
       </View>
-      {displayItems.length > 0
-        ? displayItems.map((item, i) => (
+
+      {/* Show all videos below tabs */}
+      {allItems.length > 0
+        ? allItems.map((item, i) => (
           <DinaMalarTVCard
-            key={`tv-${safeTab}-${i}-${item.newsid || item.videoid || i}`}
+            key={`tv-${i}-${item.newsid || item.videoid || i}`}
             item={item}
             onVideoPress={() => onVideoPress(item)}
           />
         ))
-        : <View style={{ paddingVertical: s(24), alignItems: 'center' }}>
+        : (
+          <View style={{ paddingVertical: s(24), alignItems: 'center' }}>
             <Text style={{ color: PALETTE.grey500, fontSize: sf(13) }}>தகவல் இல்லை</Text>
           </View>
+        )
       }
     </View>
   );
@@ -677,16 +920,16 @@ const tvSecSt = StyleSheet.create({
     paddingTop: vs(14),
     paddingBottom: vs(4),
   },
-  titleWrap: { gap: vs(3) },
+  titleWrap: {},
   sectionTitle: {
     fontFamily: FONTS.muktaMalar.bold,
     color: PALETTE.textDark,
   },
   titleUnderline: {
-    height: 3,
+    height: vs(3),
     width: s(40),
     backgroundColor: PALETTE.primary,
-    borderRadius: 2,
+    // borderRadius: 2,
   },
   tabBar: {
     flexDirection: 'row',
@@ -700,18 +943,16 @@ const tvSecSt = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: s(12),
-    paddingVertical: vs(5),
+    paddingVertical: vs(2),
     borderRadius: s(5),
     borderWidth: 1,
     borderColor: PALETTE.grey200 || '#e0e0e0',
     backgroundColor: '#f5f5f5',
-    gap: s(4),
+    // gap: s(4),
   },
   tabActive: {
-    backgroundColor: PALETTE.grey300,
-    borderBottomColor: PALETTE.grey800,
-
-
+    // backgroundColor: PALETTE.primary,
+    // borderColor: PALETTE.primary,
   },
   tabText: {
     fontFamily: FONTS.muktaMalar.regular,
@@ -918,7 +1159,8 @@ export default function HomeScreen() {
   const [isLocationDrawerVisible, setIsLocationDrawerVisible] = useState(false);
   const [selectedDistrict, setSelectedDistrict] = useState('உள்ளூர்');
   const [showScrollTop, setShowScrollTop] = useState(false);
- 
+  const [commodity, setCommodity] = useState(null);
+
   const flatListRef = useRef(null);
 
   const handleScroll = useCallback((e) => {
@@ -961,7 +1203,7 @@ export default function HomeScreen() {
   // --- Load Data -------------------------------------------------------------
   const loadAll = useCallback(async () => {
     try {
-      const [homeRes, shortRes, shortsRes, varthagamRes, varavaramRes, joshiyamRes, districtRes, premiumRes] = await Promise.allSettled([
+      const [homeRes, shortRes, shortsRes, varthagamRes, varavaramRes, joshiyamRes, districtRes, premiumRes, panguRes] = await Promise.allSettled([
         fetchHomeData(),
         fetchShortNews(),
         CDNApi.get(API_ENDPOINTS.SHORTS),
@@ -970,9 +1212,21 @@ export default function HomeScreen() {
         CDNApi.get(API_ENDPOINTS.JOSHIYAM),
         CDNApi.get(API_ENDPOINTS.DISTRICT),
         CDNApi.get(`/newsdata?cat=651`),
+        CDNApi.get(API_ENDPOINTS.ANMIGASINTHANAI),
       ]);
 
-      if (homeRes.status === 'fulfilled') {
+      if (varthagamRes.status === 'fulfilled') {
+          setCommodity(varthagamRes.value?.data?.commodity || null);
+        }
+
+        if (panguRes.status === 'fulfilled') {
+          const d = homeRes.value?.data;
+          if (panguRes.value?.data?.length > 0) {
+            sections.push({ title: panguRes.value?.data?.[0]?.title || 'பாங்கு சன்னை', data: panguRes.value.data });
+          }
+        }
+
+        if (homeRes.status === 'fulfilled') {
         const d = homeRes.value?.data;
 
         setBreakingNews(
@@ -986,7 +1240,7 @@ export default function HomeScreen() {
         const tharpothaiyaData = d?.tharpothaiya_seithigal?.[0]?.data || [];
 
         if (tharpothaiyaData.length > 0)
-          sections.push({ title: d.tharpothaiya_seithigal[0].title || '???????? ??????', data: tharpothaiyaData });
+          sections.push({ title: d.tharpothaiya_seithigal[0].title || 'தற்போதைய செய்திகள்', data: tharpothaiyaData });
 
         if (d?.editorchoice?.data?.length > 0)
           sections.push({ title: d.editorchoice.title, data: d.editorchoice.data });
@@ -997,13 +1251,13 @@ export default function HomeScreen() {
         }
 
         if (d?.bannernews?.[0]?.data?.length > 0)
-          sections.push({ title: d.bannernews[0].title || '??????? ??????', data: d.bannernews[0].data });
+          sections.push({ title: d.bannernews[0].title || 'முகப்புச் செய்திகள்', data: d.bannernews[0].data });
 
         if (d?.catroons?.[0]?.data?.length > 0)
-          sections.push({ title: d.catroons[0].title || '????????????', data: d.catroons[0].data });
+          sections.push({ title: d.catroons[0].title || 'கேலிச்சித்திரங்கள்', data: d.catroons[0].data });
 
         if (d?.premium_stories?.data?.length > 0)
-          sections.push({ title: d.premium_stories.title || '????????? ??????', data: d.premium_stories.data });
+          sections.push({ title: d.premium_stories.title || 'பிரத்யேகச் செய்திகள்', data: d.premium_stories.data });
 
         if (d?.reels?.data?.length > 0)
           sections.push({ title: d.reels.title, data: d.reels.data, type: 'shorts' });
@@ -1014,7 +1268,7 @@ export default function HomeScreen() {
           const liveItems = (d?.live || []).map(item => ({ ...item, maincat: 'live' }));
           const tvItems = d.dinamalartv;
           sections.push({
-            title: '??????? ????',
+            title: 'தினமலர் டிவி',
             data: [...liveItems, ...tvItems],
             type: 'video',
           });
@@ -1029,18 +1283,18 @@ export default function HomeScreen() {
 
 
         if (d?.dinamdinam) {
-          const combined = []; let dynTitle = '????? ?????';
+          const combined = []; let dynTitle = 'தினம் தினம்';
           d.dinamdinam.forEach((sec) => {
             if (sec?.data) {
               combined.push(...sec.data);
-              if (sec.title && dynTitle === '????? ?????') dynTitle = sec.title;
+              if (sec.title && dynTitle === 'தினம் தினம்') dynTitle = sec.title;
             }
           });
           if (combined.length > 0) sections.push({ title: dynTitle, data: combined });
 
         }
         if (d?.sports?.data?.length > 0)
-          sections.push({ title: d.sports.title || '??????????', data: d.sports.data.slice(0, 3) });
+          sections.push({ title: d.sports.title || 'விளையாட்டு', data: d.sports.data.slice(0, 3) });
 
         if (d?.varthagam?.varthagam1?.data?.length > 0) {
           const flattenedData = [];
@@ -1050,25 +1304,47 @@ export default function HomeScreen() {
             }
           });
           if (flattenedData.length > 0) {
-            sections.push({ title: d.varthagam.varthagam1.title || '?????????', data: flattenedData.slice(0, 3) });
+            sections.push({ title: d.varthagam.varthagam1.title || 'வர்த்தகம்', data: flattenedData.slice(0, 3) });
           }
+        }
+
+        // Add commodity rate cards section after varthagam
+        if (commodity) {
+          sections.push({ 
+            title: 'வரத்தகம் விலை', 
+            data: [],
+            isCommodity: true 
+          });
+        }
+
+        // Add Share Market section after commodity
+        if (commodity && commodity.sharemarket && commodity.sharemarket.length > 0) {
+          sections.push({ 
+            title: 'பங்கு சந்தை', 
+            data: [],
+            isShareMarket: true 
+          });
         }
 
 
 
         if (Array.isArray(d?.webstories) && d.webstories[0]?.data?.length > 0)
-          sections.push({ title: d.webstories[0].title || '???? ????????', data: d.webstories[0].data, type: 'shorts' });
+          sections.push({ title: d.webstories[0].title || 'வெப் ஸ்டோரிகள்', data: d.webstories[0].data, type: 'shorts' });
         else if (d?.webstories?.data?.length > 0)
-          sections.push({ title: d.webstories.title || '???? ????????', data: d.webstories.data, type: 'shorts' });
+          sections.push({ title: d.webstories.title || 'வெப் ஸ்டோரிகள்', data: d.webstories.data, type: 'shorts' });
 
-        // if (d?.kalvimalar?.data?.length > 0)
-        //   sections.push({ title: d.kalvimalar.title || '????? ????', data: d.kalvimalar.data });
+        if (d?.kalvimalar?.data?.length > 0)
+          sections.push({ title: d.kalvimalar.title || 'கால்விமார்', data: d.kalvimalar.data });
 
-        // if (d?.special?.data?.length > 0)
-        //   sections.push({ title: d.special.title || '???????', data: d.special.data });
+        if (d?.special?.data?.length > 0)
+          sections.push({ title: d.special.title || 'சிறப்புச்', data: d.special.data });
 
-        // if (d?.audio?.[0]?.data?.length > 0)
-        //   sections.push({ title: d.audio[0].title || '??????????', data: d.audio[0].data });
+        if (d?.audio?.[0]?.data?.length > 0)
+          sections.push({ title: d.audio[0].title || 'ஆடியே', data: d.audio[0].data });
+
+        // -- Pangu Sannathai Section ---------------------------------
+        if (d?.anmegasinthanai?.data?.length > 0)
+          sections.push({ title: d.anmegasinthanai.title || 'பாங்கு சன்னை', data: d.anmegasinthanai.data });
 
         // -- Live   merged into Dinamalar TV section above --
 
@@ -1076,7 +1352,7 @@ export default function HomeScreen() {
 
         if (shortsRes.status === 'fulfilled' && shortsRes.value?.data?.length > 0) {
           sections.push({
-            title: '????????',
+            title: 'சிறுசெய்திகள்',
             data: shortsRes.value.data,
             type: 'shorts'
           });
@@ -1089,7 +1365,7 @@ export default function HomeScreen() {
             if (Array.isArray(item?.data)) varthagamData.push(...item.data);
           });
           if (varthagamData.length > 0) {
-            sections.push({ title: '?????????', data: varthagamData });
+            sections.push({ title: 'வர்த்தகம்', data: varthagamData });
           }
         }
 
@@ -1107,7 +1383,7 @@ export default function HomeScreen() {
             }
           });
           if (joshiyamData.length > 0) {
-            sections.push({ title: '???????', data: joshiyamData });
+            sections.push({ title: 'ஜோசியம்', data: joshiyamData });
           }
         }
 
@@ -1117,10 +1393,10 @@ export default function HomeScreen() {
 
           if (districtsList.length > 0) {
             const filteredDistricts = districtsList
-              .filter(district => district.title && !district.title.toLowerCase().includes('????????') && !district.title.toLowerCase().includes('ariyalur'))
+              .filter(district => district.title && !district.title.toLowerCase().includes('அரியலூர்') && !district.title.toLowerCase().includes('ariyalur'))
               .sort((a, b) => {
-                const aIsMadurai = a.title && (a.title.toLowerCase().includes('?????') || a.title.toLowerCase().includes('madurai'));
-                const bIsMadurai = b.title && (b.title.toLowerCase().includes('?????') || b.title.toLowerCase().includes('madurai'));
+                const aIsMadurai = a.title && (a.title.toLowerCase().includes('மதுரை') || a.title.toLowerCase().includes('madurai'));
+                const bIsMadurai = b.title && (b.title.toLowerCase().includes('மதுரை') || b.title.toLowerCase().includes('madurai'));
                 if (aIsMadurai && !bIsMadurai) return -1;
                 if (!aIsMadurai && bIsMadurai) return 1;
                 return 0;
@@ -1137,7 +1413,7 @@ export default function HomeScreen() {
             }));
 
             sections.push({
-              title: '?????? ?????????',
+              title: 'மாவட்டச் செய்திகள்',
               data: districtsData,
               type: 'district'
             });
@@ -1146,10 +1422,10 @@ export default function HomeScreen() {
             const newlist = responseData?.newlist || [];
             if (newlist.length > 0) {
               const filteredDistricts = newlist
-                .filter(district => district.title && !district.title.toLowerCase().includes('????????') && !district.title.toLowerCase().includes('ariyalur'))
+                .filter(district => district.title && !district.title.toLowerCase().includes('அரியலூர்') && !district.title.toLowerCase().includes('ariyalur'))
                 .sort((a, b) => {
-                  const aIsMadurai = a.title && (a.title.toLowerCase().includes('?????') || a.title.toLowerCase().includes('madurai'));
-                  const bIsMadurai = b.title && (b.title.toLowerCase().includes('?????') || b.title.toLowerCase().includes('madurai'));
+                  const aIsMadurai = a.title && (a.title.toLowerCase().includes('மதுரை') || a.title.toLowerCase().includes('madurai'));
+                  const bIsMadurai = b.title && (b.title.toLowerCase().includes('மதுரை') || b.title.toLowerCase().includes('madurai'));
                   if (aIsMadurai && !bIsMadurai) return -1;
                   if (!aIsMadurai && bIsMadurai) return 1;
                   return 0;
@@ -1167,7 +1443,7 @@ export default function HomeScreen() {
 
               if (districtsData.length > 0) {
                 sections.push({
-                  title: '?????? ?????????',
+                  title: 'மாவட்டச் செய்திகள்',
                   data: districtsData,
                   type: 'district'
                 });
@@ -1203,34 +1479,34 @@ export default function HomeScreen() {
     const districtTitle = item.districttitle || item.district_title;
     const categoryLower = category.toLowerCase().trim();
 
-    if (categoryLower.includes('????????') || categoryLower.includes('tharpothaiya') ||
-      categoryLower.includes('???????? ?????????') || categoryLower.includes('?????????') ||
-      categoryLower.includes('????????') || categoryLower.includes('???????? ??????') ||
-      categoryLower.includes('?????????') || categoryLower.includes('????????? ??????')) {
+    if (categoryLower.includes('தற்போதைய செய்திகள்') || categoryLower.includes('tharpothaiya') ||
+      categoryLower.includes('தற்போதைய செய்திகள்') || categoryLower.includes('தற்போதைய') ||
+      categoryLower.includes('தற்போதைய') || categoryLower.includes('தற்போதைய செய்திகள்') ||
+      categoryLower.includes('தற்போதைய') || categoryLower.includes('தற்போதைய செய்திகள்')) {
       navigation?.navigate('TharpothaiyaSeithigalScreen');
       return;
     }
 
-    if (categoryLower.includes('?????????') || categoryLower.includes('varthagam') ||
-      categoryLower.includes('business') || categoryLower.includes('??????') ||
+    if (categoryLower.includes('வர்த்தகம்') || categoryLower.includes('varthagam') ||
+      categoryLower.includes('business') || categoryLower.includes('வர்த்தகம்') ||
       (item.maincategory === 'varthagam' || item.maincat === 'varthagam')) {
       navigation?.navigate('VarthagamScreen');
       return;
     }
 
-    if (categoryLower.includes('????? ?????') || categoryLower.includes('dinamdinam') ||
-      categoryLower.includes('??????????')) {
+    if (categoryLower.includes('தினம் தினம்') || categoryLower.includes('dinamdinam') ||
+      categoryLower.includes('தினம் தினம்')) {
       navigation?.navigate('DinamDinamScreen');
       return;
     }
 
-    if (categoryLower.includes('??????????') || categoryLower.includes('sports') ||
-      categoryLower.includes('?????????????') || categoryLower.includes('sport')) {
+    if (categoryLower.includes('விளையாட்டு') || categoryLower.includes('sports') ||
+      categoryLower.includes('விளையாட்டு') || categoryLower.includes('sport')) {
       navigation?.navigate('SportsScreen');
       return;
     }
 
-    if (categoryLower.includes('?????????') || categoryLower.includes('tamil nadu') ||
+    if (categoryLower.includes('தமிழ்நாடு') || categoryLower.includes('tamil nadu') ||
       categoryLower.includes('tamilnadu')) {
       navigation?.navigate('TamilNaduScreen');
       return;
@@ -1241,11 +1517,11 @@ export default function HomeScreen() {
       return;
     }
 
-    if (categoryLower.includes('???????') || categoryLower.includes('joshiyam') ||
-      categoryLower.includes('???????') || categoryLower.includes('????') ||
+    if (categoryLower.includes('ஜோசியம்') || categoryLower.includes('joshiyam') ||
+      categoryLower.includes('ஜோசியம்') || categoryLower.includes('ராசி') ||
       categoryLower.includes('rasi') || categoryLower.includes('astrology')) {
       navigation?.navigate('CommonSectionScreen', {
-        screenTitle: '???????',
+        screenTitle: 'ஜோசியம்',
         apiEndpoint: '/joshiyam',
         allTabLink: '/joshiyam'
       });
@@ -1331,6 +1607,19 @@ export default function HomeScreen() {
                 }}
               />
 
+              // -- Commodity (Gold/Silver/Fuel) ------------------------------
+            ) : section.isCommodity ? (
+              <View key={`sec-${si}`} style={{ paddingHorizontal: s(12), marginTop: vs(10) }}>
+                <GoldSilverCard commodity={commodity} />
+                <FuelCard commodity={commodity} />
+              </View>
+
+              // -- Share Market (Stock Market) ------------------------------
+            ) : section.isShareMarket ? (
+              <View key={`sec-${si}`} style={{ paddingHorizontal: s(12), marginTop: vs(10) }}>
+                <ShareMarketCard commodity={commodity} />
+              </View>
+
               // -- District (hidden) -------------------------------------------
             ) : section.type === 'district' ? (
               null
@@ -1344,12 +1633,12 @@ export default function HomeScreen() {
                     key={`${si}-${i}-${item.newsid || item.id || i}`}
                     item={item}
                     isSocialMedia={section.isSocialMedia || false}
-                    isPremium={section.title?.toLowerCase().includes('?????????') || section.title?.toLowerCase().includes('premium')}
+                    isPremium={section.title?.toLowerCase().includes('பிரத்யேகச் செய்திகள்') || section.title?.toLowerCase().includes('premium')}
                     onPress={() => {
                       const sectionTitle = section.title?.toLowerCase() || '';
 
-                      if (sectionTitle.includes('????????') || sectionTitle.includes('tharpothaiya') ||
-                        sectionTitle.includes('????????') || sectionTitle.includes('?????????')) {
+                      if (sectionTitle.includes('தற்போதைய செய்திகள்') || sectionTitle.includes('tharpothaiya') ||
+                        sectionTitle.includes('தற்போதைய') || sectionTitle.includes('தற்போதைய செய்திகள்')) {
                         navigation?.navigate('NewsDetailsScreen', {
                           newsId: item.newsid || item.id,
                           newsItem: item,
@@ -1359,52 +1648,52 @@ export default function HomeScreen() {
                         return;
                       }
 
-                      if (sectionTitle.includes('?????????') || sectionTitle.includes('varavaram')) {
+                      if (sectionTitle.includes('வரவரம்') || sectionTitle.includes('varavaram')) {
                         navigation?.navigate('CommonSectionScreen', {
-                          screenTitle: '?????????',
+                          screenTitle: 'வரவரம்',
                           apiEndpoint: 'https://api-st-cdn.dinamalar.com/varavaram',
                           allTabLink: 'https://api-st-cdn.dinamalar.com/varavaram'
                         });
                         return;
                       }
 
-                      if (sectionTitle.includes('?????????') || sectionTitle.includes('varthagam') ||
-                        sectionTitle.includes('business') || sectionTitle.includes('??????')) {
+                      if (sectionTitle.includes('வர்த்தகம்') || sectionTitle.includes('varthagam') ||
+                        sectionTitle.includes('business') || sectionTitle.includes('வர்த்தகம்')) {
                         navigation?.navigate('VarthagamScreen');
                         return;
                       }
 
-                      if (sectionTitle.includes('????? ?????') || sectionTitle.includes('dinamdinam') ||
-                        sectionTitle.includes('??????????')) {
+                      if (sectionTitle.includes('தினம் தினம்') || sectionTitle.includes('dinamdinam') ||
+                        sectionTitle.includes('தினம் தினம்')) {
                         navigation?.navigate('DinamDinamScreen');
                         return;
                       }
 
-                      if (sectionTitle.includes('??????????') || sectionTitle.includes('sports') ||
-                        sectionTitle.includes('?????????????')) {
+                      if (sectionTitle.includes('விளையாட்டு') || sectionTitle.includes('sports') ||
+                        sectionTitle.includes('விளையாட்டு')) {
                         navigation?.navigate('SportsScreen');
                         return;
                       }
 
-                      if (sectionTitle.includes('?????????') || sectionTitle.includes('tamil nadu') ||
+                      if (sectionTitle.includes('தமிழ்நாடு') || sectionTitle.includes('tamil nadu') ||
                         sectionTitle.includes('tamilnadu')) {
                         navigation?.navigate('TamilNaduScreen');
                         return;
                       }
 
-                      if (sectionTitle.includes('???????') || sectionTitle.includes('joshiyam') ||
-                        sectionTitle.includes('???????')) {
+                      if (sectionTitle.includes('ஜோசியம்') || sectionTitle.includes('joshiyam') ||
+                        sectionTitle.includes('ஜோசியம்')) {
                         navigation?.navigate('CommonSectionScreen', {
-                          screenTitle: '???????',
+                          screenTitle: 'ஜோசியம்',
                           apiEndpoint: '/joshiyam',
                           allTabLink: '/joshiyam'
                         });
                         return;
                       }
 
-                      if (sectionTitle.includes('?????????') || sectionTitle.includes('premium')) {
+                      if (sectionTitle.includes('பிரத்யேகச் செய்திகள்') || sectionTitle.includes('premium')) {
                         navigation?.navigate('CommonSectionScreen', {
-                          screenTitle: '?????????',
+                          screenTitle: 'பிரத்யேகச் செய்திகள்',
                           apiEndpoint: 'https://api-st-cdn.dinamalar.com/newsdata?cat=651',
                           allTabLink: 'https://api-st-cdn.dinamalar.com/newsdata?cat=651',
                         });
@@ -1482,7 +1771,7 @@ export default function HomeScreen() {
         </TouchableOpacity>
       )}
 
-  
+
     </View>
   );
 }
@@ -1555,11 +1844,11 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontFamily: FONTS.muktaMalar.bold,
     color: PALETTE.grey800,
-    marginBottom: vs(2),
+    // marginBottom: vs(2),
   },
   sectionUnderline: {
-    height: vs(4),
-    width: s(45),
+    height: vs(3),
+    width: s(40),
     backgroundColor: PALETTE.primary,
   },
 
@@ -1611,7 +1900,7 @@ const styles = StyleSheet.create({
   districtIconContainer: {
     width: s(50),
     height: s(50),
-    backgroundColor: PALETTE.white,
+    // backgroundColor: PALETTE.white,
     borderRadius: s(25),
     justifyContent: 'center',
     alignItems: 'center',
@@ -1666,7 +1955,7 @@ const styles = StyleSheet.create({
   newsItemImage: {
     width: '100%',
     height: vs(80),
-    backgroundColor: PALETTE.grey200,
+    // backgroundColor: PALETTE.grey200,
     marginBottom: vs(8),
   },
   newsItemInfo: {
