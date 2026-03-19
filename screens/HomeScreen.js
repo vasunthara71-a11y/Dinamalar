@@ -33,6 +33,7 @@ import { useFontSize } from '../context/FontSizeContext';
 import LocationDrawer from '../components/LocationDrawer';
 import TopMenuStrip from '../components/TopMenuStrip';
 import AppHeaderComponent from '../components/AppHeaderComponent';
+import DinamalarCalendar from '../components/DinamalarCalendar';
 
 // ─── Share Market Card ────────────────────────────────────────────────
 function ShareMarketCard({ commodity }) {
@@ -2055,7 +2056,7 @@ export default function HomeScreen() {
                             {/* Divider after date */}
                             <View style={[NewsCardStyles.divider, { marginVertical: vs(8) }]} />
                             {!!description && (
-                              <Text style={[NewsCardStyles.title, { fontSize: sf(12), lineHeight: sf(18), color: PALETTE.grey700,fontFamily:FONTS.muktaMalar.regular }]} numberOfLines={2}>{description}</Text>
+                              <Text style={[NewsCardStyles.title, { fontSize: sf(12), lineHeight: sf(18), color: PALETTE.grey800,fontFamily:FONTS.muktaMalar.regular }]} numberOfLines={2}>{description}</Text>
                             )}
                           </View>
                         </TouchableOpacity>
@@ -2063,6 +2064,8 @@ export default function HomeScreen() {
                       </View>
                     );
                   }
+
+                
                   
                   // Render video card for cinema videos
                   if (isCinemaSection && isVideoItem) {
@@ -2079,6 +2082,7 @@ export default function HomeScreen() {
                       />
                     );
                   }
+                  
                   
                   // Render regular news card
                   return (
@@ -2161,7 +2165,10 @@ export default function HomeScreen() {
               </View>
             )
           ))}
+
+          <DinamalarCalendar />
         </>
+        
       )}
     </>
   );
