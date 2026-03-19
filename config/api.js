@@ -109,6 +109,13 @@ export const API_ENDPOINTS = {
   EDITOR_CHOICE: '/editorchoice',
   TODAY_SPECIAL: '/todayspecial',
 
+  // Static Pages
+  CONTACT_US: '/contactus',
+  COPYRIGHT: '/copyright',
+  PRIVACY_POLICY: '/privacypolicy',
+  TERMS_CONDITIONS: '/termsconditions',
+  ABOUT_US: '/aboutus',
+
   // Web Stories
   WEBSTORY: '/webstoriesupdate',
   WEBSTORYLISTING: '/webstorieslisting',
@@ -499,6 +506,13 @@ export const api = {
   getSpecialCatList: () => mainApi.get(API_ENDPOINTS.SPECIALCATLIST),
   getEditorChoice: () => mainApi.get(API_ENDPOINTS.EDITOR_CHOICE),
   getTodaySpecial: () => mainApi.get(API_ENDPOINTS.TODAY_SPECIAL),
+
+  // Static Pages
+  getContactUs: () => mainApi.get(API_ENDPOINTS.CONTACT_US),
+  getCopyright: () => mainApi.get(API_ENDPOINTS.COPYRIGHT),
+  getPrivacyPolicy: () => mainApi.get(API_ENDPOINTS.PRIVACY_POLICY),
+  getTermsConditions: () => mainApi.get(API_ENDPOINTS.TERMS_CONDITIONS),
+  getAboutUs: () => mainApi.get(API_ENDPOINTS.ABOUT_US),
 
   // Web Stories
   getWebStory: () => mainApi.get(API_ENDPOINTS.WEBSTORY),

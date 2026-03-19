@@ -51,8 +51,6 @@ const LINK_ROUTE_MAP = [
   { match: ['subscription'], screen: 'SubscriptionScreen' },
   { match: ['thirukural'], screen: 'ThirukkuralScreen' },
   { match: ['kadal'], screen: 'KadalThamaraiScreen' },
-  { match: ['cinema'], screen: 'CategoryNewsScreen' },
-  { match: ['temple', 'kovilgal'], screen: 'CategoryNewsScreen' },
 ];
 
 const resolveScreenFromLink = (link = '') => {
@@ -139,13 +137,19 @@ const isValidSubItem = (sub) => {
 const isValidMenuItem = (item) => {
   const t = (item?.Title || item?.title || item?.name || '').trim();
   const isMundaiyaPathipugal = t === 'முன்னைய பாதிபுகள்' || t === 'முன்னைய பாடல்கள்' || t.toLowerCase().includes('mundaiya') || t.toLowerCase().includes('pathipugal');
-  return t.length > 0 && !isMundaiyaPathipugal;
+  const isTempleOrCinema = t === 'கோவில்கள்' || t === 'கோவில்' || t === 'Temple' || t === 'சினிமா' || t === 'Cinema' || 
+                           t.toLowerCase().includes('temple') || t.toLowerCase().includes('cinema') || 
+                           t.toLowerCase().includes('kovil') || t.toLowerCase().includes('கோவில்');
+  return t.length > 0 && !isMundaiyaPathipugal && !isTempleOrCinema;
 };
 
 const isValidMenu2Item = (item) => {
   const t = (item?.Title || item?.title || item?.name || '').trim();
   const isMundaiyaPathipugal = t === 'முன்னைய பாதிபுகள்' || t === 'முன்னைய பாடல்கள்' || t.toLowerCase().includes('mundaiya') || t.toLowerCase().includes('pathipugal');
-  return t.length > 0 && !isMundaiyaPathipugal;
+  const isTempleOrCinema = t === 'கோவில்கள்' || t === 'கோவில்' || t === 'Temple' || t === 'சினிமா' || t === 'Cinema' || 
+                           t.toLowerCase().includes('temple') || t.toLowerCase().includes('cinema') || 
+                           t.toLowerCase().includes('kovil') || t.toLowerCase().includes('கோவில்');
+  return t.length > 0 && !isMundaiyaPathipugal && !isTempleOrCinema;
 };
 
 const isValidFollowItem = (item) => {
@@ -160,7 +164,6 @@ const THARPOTHAIYA_TAB_MAP = [
   { titles: ['உலகம்'], catIds: ['34'], tabTitle: 'உலகம்' },
   { titles: ['Premium', 'பிரீமியம்', 'ப்ரீமியம்'], catIds: ['651'], tabTitle: 'பிரீமியம்' },
   { titles: ['விளையாட்டு', 'Sports'], catIds: [], tabTitle: '__sports__' },
-  { titles: ['சினிமா', 'Cinema'], catIds: [], tabTitle: '__cinema__' },
   { titles: ['வர்த்தகம்', 'Business'], catIds: [], tabTitle: '__varthagam__' },
   { titles: ['நேரலை', 'Timeline', 'Latest'], catIds: ['latestmain'], tabTitle: '__timeline__' },
 ];
@@ -259,7 +262,6 @@ const DrawerMenu = ({ isVisible, onClose, onMenuPress, navigation }) => {
       if (titleMatch || catMatch) {
         if (entry.tabTitle === '__timeline__') navigation?.navigate('TimelineScreen');
         else if (entry.tabTitle === '__sports__') navigation?.navigate('SportsScreen');
-        else if (entry.tabTitle === '__cinema__') navigation?.navigate('CategoryNewsScreen', { catName: title });
         else if (entry.tabTitle === '__varthagam__') navigation?.navigate('VarthagamScreen');
         else if (entry.tabTitle === '__tamilnadu__') navigation?.navigate('TamilNaduScreen');
         else if (entry.tabTitle === '__india__') navigation?.navigate('CategoryNewsScreen', { catName: 'இந்தியா', catId: '100' });

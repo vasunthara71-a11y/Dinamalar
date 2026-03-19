@@ -13,6 +13,7 @@ import {
   StatusBar,
   Platform,
   ActivityIndicator,
+  Linking,
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import RenderHtml from 'react-native-render-html';
@@ -957,30 +958,36 @@ const VideosScreen = ({ navigation, route }) => {
         keyExtractor={(item, idx) => {
           if (item._type === 'shorts_strip') return item._key || `shorts_strip_${idx}`;
           if (item._type === 'taboola_ad') return item._key || `taboola_${idx}`;
-          // ← append idx to guarantee uniqueness even if videoid repeats
-          return item?.videoid != null ? `video_${item.videoid}_${idx}` : `item_${idx}`;
+          return item.videoid || item.id || `video_${idx}`;
         }}
-        renderItem={({ item }) => {
-          // ── Shorts strip — pass item.items (only this strip's reels) ────
+        renderItem={({ item, index }) => {
+          // ── Shorts strip ───────────────────────────────────────────────
           if (item._type === 'shorts_strip') {
             return (
               <ShortsSectionRow
                 items={item.items}
-                onPress={(v) => navigation?.navigate?.('VideoDetailScreen', { video: v })}
+                onPress={(v) => {
+                  // Open shorts link in Chrome instead of VideoDetailScreen
+                  const shortsLink = v.link || v.slug || `https://www.dinamalar.com/shorts/${v.id || v.videoid}`;
+                  console.log('Opening shorts in Chrome:', shortsLink);
+                  Linking.openURL(shortsLink).catch(err => console.error('Failed to open URL:', err));
+                }}
               />
             );
           }
           // ── Taboola ad slot ──────────────────────────────────────────────
           if (item._type === 'taboola_ad') {
             return (
-              <TaboolaWidget
-                pageUrl="https://www.dinamalar.com/videos"
-                mode={item.mode}
-                container={item.container}
-                placement={item.placement}
-                targetType={item.target_type}
-                pageType="video"
-              />
+              <View style={{ paddingHorizontal: s(12), marginTop: vs(10) }}>
+                <TaboolaWidget
+                  pageUrl="https://www.dinamalar.com/videos"
+                  mode={item.mode}
+                  container={item.container}
+                  placement={item.placement}
+                  targetType={item.target_type}
+                  pageType="video"
+                />
+              </View>
             );
           }
           // ── Regular video card ───────────────────────────────────────────

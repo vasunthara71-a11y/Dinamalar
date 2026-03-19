@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
-import { CDNApi } from '../config/api';
+import { CDNApi, mainApi } from '../config/api';
 import { ms, s, vs } from '../utils/scaling';
 import { COLORS, FONTS, NewsCard as NewsCardStyles } from '../utils/constants';
 import TEXT_STYLES from '../utils/textStyles';
@@ -841,11 +841,13 @@ export default function CommonSectionScreen() {
     allTabLink = '/dinamdinam',
     initialTabId,
     initialTabLink,
+    useFullUrl = false,
   } = route.params || {};
 
   const [subTabs, setSubTabs] = useState([]);
   const [activeTab, setActiveTab] = useState(null);
   const [allSections, setAllSections] = useState([]);
+  const [htmlContent, setHtmlContent] = useState(null);
 
   const [tabNews, setTabNews] = useState([]);
   const [tabPage, setTabPage] = useState(1);
@@ -909,8 +911,22 @@ export default function CommonSectionScreen() {
   // ── Fetch main endpoint ────────────────────────────────────────────────────
   const fetchAll = useCallback(async () => {
     try {
-      const res = await CDNApi.get(apiEndpoint);
+      // Use different API based on useFullUrl flag
+      const api = useFullUrl ? mainApi : CDNApi;
+      const res = await api.get(apiEndpoint);
       const d = res?.data;
+
+      // Check if response is HTML content (for static pages)
+      if (typeof d === 'string' && d.includes('<html')) {
+        setHtmlContent(d);
+        setAllSections([]);
+        setSubTabs([]);
+        setActiveTab({ title: 'அனைத்தும்', link: apiEndpoint, _isAllTab: true });
+        return;
+      }
+
+      // Reset HTML content if not HTML
+      setHtmlContent(null);
 
       const tabs =
         d?.speciallist || d?.subcatlist || d?.catlist ||
@@ -974,7 +990,7 @@ export default function CommonSectionScreen() {
       setInitLoading(false);
       setRefreshing(false);
     }
-  }, [apiEndpoint, allTabLink, initialTabId, initialTabLink, fetchTabNews]);
+  }, [apiEndpoint, allTabLink, initialTabId, initialTabLink, useFullUrl, fetchTabNews]);
 
   useFocusEffect(
     useCallback(() => {
@@ -1194,6 +1210,20 @@ export default function CommonSectionScreen() {
           contentContainerStyle={styles.listContent}
           style={styles.list}
         />
+      ) : htmlContent ? (
+        // Static page HTML content
+        <WebView
+          source={{ html: htmlContent, baseUrl: 'https://www.dinamalar.com' }}
+          style={styles.webView}
+          javaScriptEnabled
+          domStorageEnabled
+          startInLoadingState={true}
+          renderLoading={() => (
+            <View style={styles.webViewLoader}>
+              <ActivityIndicator size="large" color={PALETTE.primary} />
+            </View>
+          )}
+        />
       ) : isRasiTab && rasiDetailItem ? (
         // ✅ INLINE RASI DETAIL — shown below the tabs, same screen
         // ✅ subTabs + onTabChange passed for arrow tab navigation
@@ -1315,6 +1345,13 @@ const styles = StyleSheet.create({
   list: { flex: 1 },
   listContent: { paddingTop: vs(6), paddingBottom: vs(30) },
   rasiGridContent: { flexDirection: 'column', paddingBottom: vs(30) },
+  webView: { flex: 1 },
+  webViewLoader: { 
+    flex: 1, 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    backgroundColor: '#fff' 
+  },
 
   sectionWrap: { paddingHorizontal: s(12), paddingTop: vs(16), paddingBottom: vs(4), backgroundColor: '#f2f2f2' },
   emptyWrap: { alignItems: 'center', justifyContent: 'center', paddingVertical: vs(80), gap: vs(12) },

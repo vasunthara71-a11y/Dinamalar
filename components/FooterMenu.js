@@ -71,9 +71,23 @@ function FooterMenu() {
     if (item.Targetlink === '_blank' || item.Targetlink === 'targetblank' || item.Link.startsWith('http')) {
       Linking.openURL(item.Link);
     } else if (item.id) {
-      navigation.navigate('CategoryNewsScreen', { catId: item.id, catName: item.Title });
+      // For Contact Us, Copyright, Terms, Privacy etc. use CommonSectionScreen with full URL
+      const fullApiUrl = item.Link.startsWith('/') ? `https://www.dinamalar.com${item.Link}` : item.Link;
+      navigation.navigate('CommonSectionScreen', { 
+        screenTitle: item.Title,
+        apiEndpoint: item.Link,
+        allTabLink: item.Link,
+        useFullUrl: true
+      });
     } else if (item.slug) {
-      navigation.navigate('CategoryNewsScreen', { catId: item.slug.replace('/', ''), catName: item.Title });
+      // For Contact Us, Copyright, Terms, Privacy etc. use CommonSectionScreen with full URL
+      const fullApiUrl = item.slug.startsWith('/') ? `https://www.dinamalar.com${item.slug}` : item.slug;
+      navigation.navigate('CommonSectionScreen', { 
+        screenTitle: item.Title,
+        apiEndpoint: item.slug,
+        allTabLink: item.slug,
+        useFullUrl: true
+      });
     }
   };
 
