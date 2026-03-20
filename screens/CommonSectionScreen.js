@@ -23,6 +23,7 @@ import { useFontSize } from '../context/FontSizeContext';
 import { WebView } from 'react-native-webview';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import VideoPlayerModal from '../components/VideoPlayerModal';
+import RenderHtml from 'react-native-render-html';
 
 // ── Taboola publisher ID for mobile (from your website TaboolaScript.js) ──────
 const TABOOLA_PUBLISHER_ID = 'mdinamalarcom';
@@ -229,6 +230,8 @@ function parseFootnoteParagraphs(html = '') {
 // Rasi Card Component (list view)
 // ─────────────────────────────────────────────────────────────────────────────
 const RasiCard = ({ item, onPress }) => {
+  const [imageError, setImageError] = useState(false);
+  
   const imageUri =
     item.largeimages ||
     item.icon ||
@@ -237,10 +240,25 @@ const RasiCard = ({ item, onPress }) => {
   const title = item.title || item.newstitle || '';
   const hasVideo = !!item.videopath || (item.video && item.video !== '0');
 
+  const handleImageError = () => {
+    setImageError(true);
+  };
+
   return (
     <TouchableOpacity style={rc.wrap} onPress={onPress} activeOpacity={0.85}>
       <View style={rc.imageWrap}>
-        <Image source={{ uri: imageUri }} style={rc.image} resizeMode="cover" />
+        {imageError ? (
+          <View style={rc.imagePlaceholder}>
+            <Ionicons name="image-outline" size={s(24)} color="#ccc" />
+          </View>
+        ) : (
+          <Image 
+            source={{ uri: imageUri }} 
+            style={rc.image} 
+            resizeMode="cover"
+            onError={handleImageError}
+          />
+        )}
         {hasVideo && (
           <View style={rc.playOverlay}>
             <View style={rc.playBtn}>
@@ -260,6 +278,7 @@ const rc = StyleSheet.create({
   wrap: { flexDirection: 'row', backgroundColor: '#fff', alignItems: 'center', paddingVertical: vs(6), paddingHorizontal: s(10), borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
   imageWrap: { width: '30%', height: vs(80), position: 'relative', overflow: 'hidden' },
   image: { width: '100%', height: '100%', resizeMode: 'cover' },
+  imagePlaceholder: { width: '100%', height: '100%', backgroundColor: '#f8f8f8', justifyContent: 'center', alignItems: 'center' },
   playOverlay: { ...StyleSheet.absoluteFillObject, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.25)' },
   playBtn: { width: s(28), height: s(28), borderRadius: s(14), backgroundColor: 'rgba(0,0,0,0.65)', justifyContent: 'center', alignItems: 'center', paddingLeft: s(2) },
   content: { flex: 1, paddingHorizontal: s(12) },
@@ -269,6 +288,60 @@ const rc = StyleSheet.create({
 // ─────────────────────────────────────────────────────────────────────────────
 // Inline Rasi Detail View
 // ─────────────────────────────────────────────────────────────────────────────
+// Simple HTML parser function
+const parseHtmlContent = (html) => {
+  if (!html) return '';
+  
+  // Replace HTML tags with formatting
+  let cleanText = html
+    .replace(/<div[^>]*>/gi, '\n\n')
+    .replace(/<\/div>/gi, '')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<b[^>]*>/gi, '**')
+    .replace(/<\/b>/gi, '**')
+    .replace(/<strong[^>]*>/gi, '**')
+    .replace(/<\/strong>/gi, '**')
+    .replace(/<p[^>]*>/gi, '\n\n')
+    .replace(/<\/p>/gi, '')
+    .replace(/<span[^>]*>/gi, '')
+    .replace(/<\/span>/gi, '')
+    .replace(/<[^>]*>/gi, '') // Remove any remaining HTML tags
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/\n\s*\n\s*\n/gi, '\n\n') // Remove extra newlines
+    .trim();
+  
+  return cleanText;
+};
+
+// Function to render formatted text with bold handling
+const renderFormattedText = (text) => {
+  if (!text) return null;
+  
+  const parts = text.split('**');
+  return parts.map((part, index) => {
+    if (index % 2 === 0) {
+      // Regular text
+      return part ? (
+        <Text key={index} style={{ fontSize: ms(15), fontFamily: FONTS.muktaMalar.regular, color: '#333', lineHeight: ms(24), marginBottom: vs(5) }}>
+          {part}
+        </Text>
+      ) : null;
+    } else {
+      // Bold text
+      return part ? (
+        <Text key={index} style={{ fontSize: ms(15), fontFamily: FONTS.muktaMalar.bold, color: '#333', lineHeight: ms(24), marginBottom: vs(5), fontWeight: '700' }}>
+          {part}
+        </Text>
+      ) : null;
+    }
+  });
+};
+
 function RasiDetailView({ tabId, tabTitle, initialJcat, initialItem, onBack, subTabs, onTabChange }) {
   const [detail, setDetail] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -315,6 +388,15 @@ function RasiDetailView({ tabId, tabTitle, initialJcat, initialItem, onBack, sub
         null;
 
       console.log('[RasiDetailView] extracted item:', JSON.stringify(item, null, 2));
+      
+      // Check all possible content fields
+      console.log('[RasiDetailView] content fields:');
+      console.log('  footnote:', item?.footnote?.substring(0, 100));
+      console.log('  content:', item?.content?.substring(0, 100));
+      console.log('  description:', item?.description?.substring(0, 100));
+      console.log('  prediction:', item?.prediction?.substring(0, 100));
+      console.log('  palan:', item?.palan?.substring(0, 100));
+      
       setDetail(item || (d?.footnote ? d : initialItem || null));
     } catch (e) {
       console.error('[RasiDetailView] error:', e?.message);
@@ -346,7 +428,9 @@ function RasiDetailView({ tabId, tabTitle, initialJcat, initialItem, onBack, sub
   const palan = detail?.palan || detail?.prediction || detail?.description || detail?.content || '';
   const rasiLabel = detail?.rasi || detail?.zodiac || detail?.sign || currentRasi.title;
   const footnoteHtml = detail?.footnote || detail?.content || detail?.description || '';
-  const paragraphs = parseFootnoteParagraphs(footnoteHtml);
+  const parsedContent = parseHtmlContent(footnoteHtml);
+  console.log('[RasiDetailView] footnoteHtml:', footnoteHtml?.substring(0, 200) + '...');
+  console.log('[RasiDetailView] parsedContent:', parsedContent?.substring(0, 200) + '...');
 
   const hasVideo = !!detail?.videopath || (detail?.video && detail.video !== '0');
   const videoUrl = detail?.videopath || detail?.videolink || detail?.videourl || '';
@@ -444,18 +528,18 @@ function RasiDetailView({ tabId, tabTitle, initialJcat, initialItem, onBack, sub
               </TouchableOpacity>
             ))}
           </View>
-
           <View style={rd.rasiTitleWrap}>
             <Text style={rd.rasiTitleText}>{rasiLabel}</Text>
           </View>
 
           <View style={rd.footnoteWrap}>
-            {paragraphs.length > 0 ? (
-              paragraphs.map((p, i) =>
-                p.bold ? null : (
-                  <Text key={i} style={rd.paragraph}>{p.text}</Text>
-                )
-              )
+            {parsedContent ? (
+              <>
+                <Text style={{ fontSize: ms(12), color: '#666', marginBottom: vs(10) }}>
+                  ராசி விவரங்கள்:
+                </Text>
+                {renderFormattedText(parsedContent)}
+              </>
             ) : (
               <View style={rd.emptyWrap}>
                 <Ionicons name="star-outline" size={s(36)} color="#ccc" />
@@ -645,7 +729,7 @@ function NewsCard({ item, onPress, sectionTitle = '' }) {
 
         <View style={NewsCardStyles.contentContainer}>
           {!!title && (
-            <Text style={[NewsCardStyles.title, { fontSize: sf(14), lineHeight: sf(22) }]} numberOfLines={3}>{title}</Text>
+            <Text style={[NewsCardStyles.title, { fontSize: sf(13), lineHeight: sf(22) }]} numberOfLines={3}>{title}</Text>
           )}
 
           {!!category && (
@@ -655,7 +739,7 @@ function NewsCard({ item, onPress, sectionTitle = '' }) {
           )}
 
           <View style={NewsCardStyles.metaRow}>
-            <Text style={[NewsCardStyles.timeText, { fontSize: sf(12) }]}>{ago}</Text>
+            <Text style={[NewsCardStyles.timeText, { fontSize: sf(13) }]}>{ago}</Text>
             <View style={NewsCardStyles.metaRight}>
               {hasAudio && (
                 <View style={NewsCardStyles.audioIcon}>
@@ -664,7 +748,7 @@ function NewsCard({ item, onPress, sectionTitle = '' }) {
               )}
               {!!newscomment && newscomment !== '0' && (
                 <View style={NewsCardStyles.commentRow}>
-                  <Ionicons name="chatbox" size={s(14)} color={PALETTE.grey700} />
+                  <Ionicons name="chatbox" size={s(15)} color={PALETTE.grey700} />
                   <Text style={[NewsCardStyles.commentText, { fontSize: sf(12) }]}> {newscomment}</Text>
                 </View>
               )}
@@ -1401,10 +1485,10 @@ export default function CommonSectionScreen() {
         <View style={NewsCardStyles.contentContainer}>
 
           {!!title && (
-            <Text style={[NewsCardStyles.title, { fontSize: sf(14), lineHeight: sf(22) }]} numberOfLines={3}>{title}</Text>
+            <Text style={[NewsCardStyles.title, { fontSize: sf(13), lineHeight: sf(22) }]} numberOfLines={3}>{title}</Text>
           )}
           {!!ago && (
-            <Text style={[NewsCardStyles.timeText, { fontSize: sf(12) }]}>{ago}</Text>
+            <Text style={[NewsCardStyles.timeText, { fontSize: sf(13) }]}>{ago}</Text>
           )}
           <View style={anc.divider} />
         </View>

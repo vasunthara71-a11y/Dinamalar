@@ -24,7 +24,7 @@ import DrawerMenu from '../components/DrawerMenu';
 import LocationDrawer from '../components/LocationDrawer';
 import { ms, s, vs } from '../utils/scaling';
 import { CDNApi, API_ENDPOINTS } from '../config/api';
-import { FONTS } from '../utils/constants';
+import { FONTS, NewsCard } from '../utils/constants';
 import { useFontSize } from '../context/FontSizeContext';
 import WebView from 'react-native-webview';
 
@@ -61,13 +61,13 @@ const getTimeAgo = (dateStr) => {
 };
 
 // ─── Play Icon ──────────────────────────────────────────────────────────────────
-const PlayIcon = ({ size = 28 }) => (
+const PlayIcon = ({ size = 52 }) => (
   <View style={[styles.playCircle, { width: size, height: size, borderRadius: size / 2 }]}>
     <View style={[styles.playTriangle, {
       borderTopWidth: size * 0.22,
       borderBottomWidth: size * 0.22,
       borderLeftWidth: size * 0.36,
-      marginLeft: size * 0.07,
+      marginLeft: size * 0.07
     }]} />
   </View>
 );
@@ -147,6 +147,40 @@ const ShortsSectionRow = ({ items, onPress }) => {
   );
 };
 
+// ─── Image with Fallback ─────────────────────────────────────────────────────
+function ImageWithFallback({ source, style, resizeMode = 'cover', iconSize = 40 }) {
+  const [imageError, setImageError] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  const handleImageError = () => {
+    setImageError(true);
+    setLoading(false);
+  };
+
+  const handleImageLoad = () => {
+    setImageError(false);
+    setLoading(false);
+  };
+
+  if (imageError || !source?.uri) {
+    return (
+      <View style={[style, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#f5f5f5' }]}>
+        <Ionicons name="image-outline" size={s(iconSize)} color={PALETTE.grey500} />
+      </View>
+    );
+  }
+
+  return (
+    <Image
+      source={source}
+      style={style}
+      resizeMode={resizeMode}
+      onError={handleImageError}
+      onLoad={handleImageLoad}
+    />
+  );
+}
+
 // ─── Video Card ─────────────────────────────────────────────────────────────────
 const VideoCard = ({ video, onPress, onCommentsPress, districtLabel }) => {
   const { sf } = useFontSize();
@@ -165,53 +199,66 @@ const VideoCard = ({ video, onPress, onCommentsPress, districtLabel }) => {
   const pillLabel = districtLabel || video.ctitle || video.maincat || '';
 
   return (
-    <TouchableOpacity activeOpacity={0.88} onPress={() => onPress?.(video)} style={styles.card}>
-      <View style={styles.thumbWrap}>
-        {video.images ? (
-          <Image source={{ uri: video.images }} style={[styles.thumbnail,]} resizeMode="cover" />
-        ) : (
-          <View style={[styles.thumbnail, styles.thumbPlaceholder]}>
-            <Text style={styles.thumbPlaceholderIcon}>🎬</Text>
+    <View style={NewsCard.wrap}>
+      <TouchableOpacity activeOpacity={0.88} onPress={() => onPress?.(video)}>
+        <View style={NewsCard.imageWrap}>
+          <ImageWithFallback
+            source={{ uri: video.images }}
+            style={[NewsCard.image, { height: ms(200) }]}
+            resizeMode="cover"
+            iconSize={40}
+          />
+          {/* Video play button overlay */}
+          <View style={styles.playButtonOverlay}>
+            <PlayIcon size={36} />
           </View>
-        )}
-        <View style={styles.thumbOverlay} />
-        <View style={styles.thumbPlayBtn}>
-          <PlayIcon size={28} />
+          {/* Duration badge */}
+          {!!video.duration && (
+            <View style={styles.durationBadge}>
+              <Text style={[styles.durationText, { fontSize: sf(11) }]}>{video.duration}</Text>
+            </View>
+          )}
         </View>
-        {!!video.duration && (
-          <View style={styles.durationBadge}>
-            <Text style={[styles.durationText, { fontSize: sf(11) }]}>{video.duration}</Text>
-          </View>
-        )}
-      </View>
 
-      <View style={styles.cardBody}>
-        <Text style={[styles.videoTitle, { fontSize: sf(14), lineHeight: sf(20) }]}>{video.videotitle}</Text>
-        <Text style={[styles.metaDate, { fontSize: sf(12) }]}>{timeAgo || video.standarddate}</Text>
-        <View style={styles.cardMeta}>
-          <View style={styles.cardMetaLeft}>
+        <View style={NewsCard.contentContainer}>
+          <Text style={[NewsCard.title, {
+            fontSize: sf(13), lineHeight: sf(22), marginBottom: vs(5),
+          }]} numberOfLines={3}>
+            {video.videotitle}
+          </Text>
+
+          {/* Date below title */}
+          <Text style={[NewsCard.timeText, { fontSize: sf(13) }]}>
+            {timeAgo || video.standarddate}
+          </Text>
+
+          {/* Category and comments in same row */}
+          <View style={[NewsCard.metaRow, {
+            // marginBottom: vs(8),
+            marginTop: vs(8)
+          }]}>
+            {/* Category pill on left */}
             {!!pillLabel && (
-              <View style={[styles.categoryPill]}>
-                {/* {districtLabel && (
-                  <Ionicons name="location" size={s(10)} color={PALETTE.primary} style={{ marginRight: s(3) }} />
-                )} */}
-                <Text style={[styles.categoryPillText, { fontSize: sf(12) }]}>
+              <View style={NewsCard.catPill}>
+                <Text style={[NewsCard.catText, { fontSize: sf(12) }]}>
                   {pillLabel}
                 </Text>
               </View>
             )}
-          </View>
-          <View style={styles.cardMetaRight}>
-            <TouchableOpacity style={styles.commentBtn} onPress={() => onCommentsPress?.(video)} activeOpacity={0.8}>
-              <Ionicons name="chatbox" size={ms(20)} color={PALETTE.grey600} />
-              {commentCount > 0 && (
-                <Text style={[styles.commentCount, { fontSize: sf(12) }]}>{commentCount}</Text>
-              )}
-            </TouchableOpacity>
+
+            {/* Comments button on right */}
+            <View style={NewsCard.metaRight}>
+              <TouchableOpacity style={NewsCard.commentRow} onPress={() => onCommentsPress?.(video)} activeOpacity={0.8}>
+                <Ionicons name="chatbox" size={s(15)} color={PALETTE.grey700} />
+                {!!commentCount && commentCount !== '0' && (
+                  <Text style={[NewsCard.commentText, { fontSize: sf(12) }]}> {commentCount}</Text>
+                )}
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
-      </View>
-    </TouchableOpacity>
+      </TouchableOpacity>
+    </View>
   );
 };
 
@@ -1135,8 +1182,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: s(12),
     borderRadius: s(20),
-     borderWidth: 1,
-     height:ms(30),
+    borderWidth: 1,
+    height: ms(30),
     borderColor: PALETTE.grey300, backgroundColor: PALETTE.grey100, gap: s(4),
   },
   catTabActive: { backgroundColor: PALETTE.primary, },
@@ -1259,14 +1306,49 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: s(8),
   },
-  commentBtn: {
-    flexDirection: 'row',
+  playButtonOverlay: {
+    position: 'absolute',
+    bottom: s(8), left: s(8),
+    justifyContent: 'center',
     alignItems: 'center',
-    gap: s(3),
+  },
+  playButton: {
+    width: s(48),
+    height: s(48),
+    borderRadius: s(24),
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  durationBadge: {
+    position: 'absolute',
+    bottom: s(8),
+    right: s(8),
+    backgroundColor: 'rgba(0,0,0,0.8)',
     paddingHorizontal: s(6),
     paddingVertical: vs(2),
     borderRadius: s(4),
+  },
+  durationText: {
+    color: '#FFFFFF',
+    fontSize: ms(11),
+    fontWeight: '600',
+    fontFamily: FONTS.muktaMalar.medium,
+  },
+  commentBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: s(2),
+    paddingHorizontal: s(4),
+    paddingVertical: vs(2),
+    borderRadius: s(4),
     backgroundColor: PALETTE.grey200,
+  },
+  commentCount: {
+    color: PALETTE.grey600,
+    fontWeight: '600',
+    fontSize: ms(10),
+    fontFamily: FONTS.muktaMalar.medium,
   },
   categoryPill: {
     flexDirection: 'row',
@@ -1524,7 +1606,7 @@ const VideoSkeletonLoader = () => (
   <View style={{ backgroundColor: PALETTE.white }}>
     {/* Category tabs skeleton */}
     <View style={styles.catRow}>
-      <View style={[styles.filterIconBtn, { backgroundColor: PALETTE.grey200,borderColor:PALETTE.grey200 }]} />
+      <View style={[styles.filterIconBtn, { backgroundColor: PALETTE.grey200, borderColor: PALETTE.grey200 }]} />
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}

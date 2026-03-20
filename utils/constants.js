@@ -185,7 +185,7 @@ export const FONTS = {
         letterSpacing: 0.5,
       },
       contentContainer: {
-        paddingHorizontal: s(10),
+        paddingHorizontal: s(12),
         paddingTop: vs(10),
         paddingBottom: vs(15),
       },
@@ -195,18 +195,19 @@ export const FONTS = {
         color: PALETTE.grey800,
         lineHeight: ms(23),
         marginBottom: vs(8),
+        // fontWeight:"600"
       },
       catPill: {
         alignSelf: 'flex-start',
         // backgroundColor: PALETTE.grey200,
         borderWidth: 1,
         borderColor: PALETTE.grey300,
-         paddingHorizontal: s(10),
-        paddingVertical: s(3),
+         paddingHorizontal: s(8),
+        // paddingVertical: s(3),
         marginBottom: vs(10),
       },
       catText: {
-        fontFamily: FONTS.muktaMalar.bold,
+        fontFamily: FONTS.muktaMalar.semibold,
         fontSize: ms(12),
         color: PALETTE.catText,
       },

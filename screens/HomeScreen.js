@@ -189,6 +189,18 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 // ── Taboola publisher ID for mobile (from your website TaboolaScript.js) ──────
 const TABOOLA_PUBLISHER_ID = 'mdinamalarcom';
 
+// ─── Play Icon (same as VideosScreen) ───────────────────────────────────────────
+const PlayIcon = ({ size = 52 }) => (
+  <View style={[tvCardSt.playCircle, { width: size, height: size, borderRadius: size / 2 }]} >
+    <View style={[tvCardSt.playTriangle, { 
+      borderTopWidth: size * 0.22, 
+      borderBottomWidth: size * 0.22, 
+      borderLeftWidth: size * 0.36, 
+      marginLeft: size * 0.07 
+    }]} />
+  </View>
+);
+
 // ─── Styles for Gold/Silver and Fuel Cards ──────────────────────────────
 const gc = StyleSheet.create({
   wrap: {
@@ -206,7 +218,7 @@ const gc = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
     backgroundColor: COLORS.background || '#f8f8f8',
-    margin:ms(5)
+    margin: ms(5)
   },
   icon: { fontSize: s(22) },
   title: {
@@ -536,7 +548,7 @@ function SectionHeader({ title }) {
 
   return (
     <View style={styles.sectionHeader}>
-      <Text style={[styles.sectionTitle, { fontSize: sf(16) }]}>{title}</Text>
+      <Text style={[styles.sectionTitle, { fontSize: sf(18) }]}>{title}</Text>
       <View style={styles.sectionUnderline} />
     </View>
   );
@@ -678,7 +690,7 @@ const shortsSt = StyleSheet.create({
 // --- News Card ----------------------------------------------------------------
 function NewsCard({ item, onPress, isSocialMedia = false, isPremium = false }) {
   const { sf } = useFontSize();
-  
+
   console.log('NewsCard isPremium:', isPremium, 'Title:', item.newstitle || item.title);
 
   const imageUri =
@@ -717,17 +729,23 @@ function NewsCard({ item, onPress, isSocialMedia = false, isPremium = false }) {
 
         <View style={NewsCardStyles.contentContainer}>
           {!!title && !isSocialMedia && (
-            <Text style={[NewsCardStyles.title, { fontSize: sf(14), lineHeight: sf(22) }]} numberOfLines={3}>{title}</Text>
+            <Text style={[NewsCardStyles.title, { fontSize: sf(13), lineHeight: sf(22) }]} numberOfLines={3}>
+               {title}
+            </Text>
           )}
 
           {!!category && !isSocialMedia && (
             <View style={NewsCardStyles.catPill}>
-              <Text style={[NewsCardStyles.catText, { fontSize: sf(12) }]}>{category}</Text>
+              <Text style={[NewsCardStyles.catText, { fontSize: sf(12) }]}>
+                {category}
+               </Text>
             </View>
           )}
 
           <View style={NewsCardStyles.metaRow}>
-            <Text style={[NewsCardStyles.timeText, { fontSize: sf(12) }]}>{ago}</Text>
+            <Text style={[NewsCardStyles.timeText, { fontSize: sf(13) }]}>
+                {ago}   
+                </Text>
             <View style={NewsCardStyles.metaRight}>
               {hasAudio && (
                 <View style={NewsCardStyles.audioIcon}>
@@ -772,9 +790,7 @@ function DinaMalarTVCard({ item, onVideoPress }) {
 
           {/* Semi-transparent scrim + centred play circle */}
           <View style={tvCardSt.playOverlay}>
-            <View style={tvCardSt.playCircle}>
-              <Ionicons name="play" size={s(22)} color="#fff" />
-            </View>
+            <PlayIcon size={36} />
           </View>
 
           {/* "TV" badge   top-left corner */}
@@ -869,12 +885,12 @@ function DinaMalarTVSection({ data, onVideoPress }) {
   const navigation = useNavigation();
 
   // Separate live and regular videos
-  const liveItems = (data || []).filter(item => 
-    String(item.VCategory || item.maincatid || '') === '5050' || 
+  const liveItems = (data || []).filter(item =>
+    String(item.VCategory || item.maincatid || '') === '5050' ||
     (item.maincat || '').toLowerCase() === 'live'
   );
-  const tvItems = (data || []).filter(item => 
-    String(item.VCategory || item.maincatid || '') !== '5050' && 
+  const tvItems = (data || []).filter(item =>
+    String(item.VCategory || item.maincatid || '') !== '5050' &&
     (item.maincat || '').toLowerCase() !== 'live'
   );
 
@@ -899,7 +915,7 @@ function DinaMalarTVSection({ data, onVideoPress }) {
             onPress={() => navigation?.navigate('VideosScreen', { initialTabKey: tab.key })}
             activeOpacity={0.7}
           >
-            <Text style={[tvSecSt.tabText, { fontSize: ms(14) }]}>
+            <Text style={[tvSecSt.tabText, { fontSize: sf(13) }]}>
               {tab.ta}
             </Text>
           </TouchableOpacity>
@@ -951,8 +967,7 @@ const tvSecSt = StyleSheet.create({
     paddingBottom: vs(6),
     gap: s(8),
     justifyContent: "center",
-    alignItems: "center",
-    paddingTop:ms(5)
+    alignItems: "center"
   },
   tab: {
     flexDirection: 'row',
@@ -987,8 +1002,8 @@ const tvSecSt = StyleSheet.create({
 
 const tvCardSt = StyleSheet.create({
   playOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.28)',
+    position: 'absolute',
+    bottom: s(8), left: s(8),
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1002,6 +1017,11 @@ const tvCardSt = StyleSheet.create({
     paddingLeft: s(3),
     borderWidth: 2,
     borderColor: 'rgba(255,255,255,0.6)',
+  },
+  playTriangle: {
+    width: 0, height: 0, borderStyle: 'solid',
+    borderTopColor: 'transparent', borderBottomColor: 'transparent',
+    borderLeftColor: '#FFFFFF',
   },
   badge: {
     position: 'absolute',
@@ -1247,17 +1267,17 @@ export default function HomeScreen() {
       console.log('=== API RESPONSES DEBUG END ===');
 
       if (varthagamRes.status === 'fulfilled') {
-          setCommodity(varthagamRes.value?.data?.commodity || null);
-        }
+        setCommodity(varthagamRes.value?.data?.commodity || null);
+      }
 
-        if (panguRes.status === 'fulfilled') {
-          const d = homeRes.value?.data;
-          if (panguRes.value?.data?.length > 0) {
-            sections.push({ title: panguRes.value?.data?.[0]?.title || 'பாங்கு சன்னை', data: panguRes.value.data });
-          }
+      if (panguRes.status === 'fulfilled') {
+        const d = homeRes.value?.data;
+        if (panguRes.value?.data?.length > 0) {
+          sections.push({ title: panguRes.value?.data?.[0]?.title || 'பாங்கு சன்னை', data: panguRes.value.data });
         }
+      }
 
-        if (homeRes.status === 'fulfilled') {
+      if (homeRes.status === 'fulfilled') {
         const d = homeRes.value?.data;
         console.log('Home data keys:', Object.keys(d || {}));
         console.log('Premium stories in home data:', d?.premium_stories);
@@ -1325,19 +1345,19 @@ export default function HomeScreen() {
 
         // Add commodity rate cards section after varthagam
         if (commodity) {
-          sections.push({ 
-            title: 'வரத்தகம் விலை', 
+          sections.push({
+            title: 'வரத்தகம் விலை',
             data: [],
-            isCommodity: true 
+            isCommodity: true
           });
         }
 
         // Add Share Market section after commodity
         if (commodity && commodity.sharemarket && commodity.sharemarket.length > 0) {
-          sections.push({ 
-            title: 'பங்கு சந்தை', 
+          sections.push({
+            title: 'பங்கு சந்தை',
             data: [],
-            isShareMarket: true 
+            isShareMarket: true
           });
         }
 
@@ -1500,23 +1520,23 @@ export default function HomeScreen() {
         console.log('Cinema response data:', cinemaRes.value?.data);
         console.log('Cinema2 response status:', cinemaRes2.status);
         console.log('Cinema2 response data:', cinemaRes2.value?.data);
-        
+
         let cinemaNews = [];
         let cinemaVideos = [];
-        
+
         // Process cinema data from first API
         if (cinemaRes.status === 'fulfilled' && cinemaRes.value?.data) {
           cinemaNews = cinemaRes.value.data?.slice(0, 2) || [];
           cinemaVideos = cinemaRes.value.video?.slice(0, 2) || [];
           console.log('Cinema - News:', cinemaNews.length, 'Videos:', cinemaVideos.length);
-        } 
+        }
         // Process cinema data from second API
         else if (cinemaRes2.status === 'fulfilled' && cinemaRes2.value?.data) {
           cinemaNews = cinemaRes2.value.data?.slice(0, 2) || [];
           cinemaVideos = cinemaRes2.value.video?.slice(0, 2) || [];
           console.log('Cinema2 - News:', cinemaNews.length, 'Videos:', cinemaVideos.length);
         }
-        
+
         // If no external cinema data, check home API for cinema data
         if (cinemaNews.length === 0 && cinemaVideos.length === 0) {
           console.log('Trying home API for cinema data...');
@@ -1529,7 +1549,7 @@ export default function HomeScreen() {
             console.log('Found cinema videos in home API:', cinemaVideos.length);
           }
         }
-        
+
         // Add cinema section with both news and videos
         if (cinemaNews.length > 0 || cinemaVideos.length > 0) {
           const allCinemaContent = [...cinemaNews, ...cinemaVideos];
@@ -1570,31 +1590,31 @@ export default function HomeScreen() {
         console.log('joshiyamRes exists:', !!joshiyamRes);
         console.log('joshiyamRes.status:', joshiyamRes?.status);
         console.log('joshiyamRes.value?.data exists:', !!joshiyamRes?.value?.data);
-        
+
         let joshiyamData = [];
         let hasValidData = false;
-        
+
         if (joshiyamRes && joshiyamRes.status === 'fulfilled' && joshiyamRes.value?.data) {
           console.log('Joshiyam data type:', typeof joshiyamRes.value.data);
           console.log('Joshiyam data structure:', JSON.stringify(joshiyamRes.value.data, null, 2));
-          
+
           // Handle the specific joshiyam data structure
           if (Array.isArray(joshiyamRes.value.data)) {
             // Find the item with title "ஜோசியம்" which contains the actual data
             const joshiyamSection = joshiyamRes.value.data.find(item => item.title === 'ஜோசியம்');
             console.log('joshiyamSection found:', !!joshiyamSection);
-            
+
             if (joshiyamSection) {
               console.log('joshiyamSection.data type:', typeof joshiyamSection.data);
               console.log('joshiyamSection.data length:', joshiyamSection.data?.length);
-              
+
               if (Array.isArray(joshiyamSection.data) && joshiyamSection.data.length > 0) {
                 // Check if items have valid data (title, image, etc.)
-                const validItems = joshiyamSection.data.filter(item => 
+                const validItems = joshiyamSection.data.filter(item =>
                   item.title && (item.image || item.link || item.id)
                 );
                 console.log('validItems count:', validItems.length);
-                
+
                 if (validItems.length > 0) {
                   hasValidData = true;
                   // Transform joshiyam data to match NewsCard expected format
@@ -1631,7 +1651,7 @@ export default function HomeScreen() {
         } else {
           console.log('Joshiyam data not available or not fulfilled');
         }
-        
+
         // Only add section if we have valid data
         console.log('Final check - hasValidData:', hasValidData, 'joshiyamData.length:', joshiyamData.length);
         if (hasValidData && joshiyamData.length > 0) {
@@ -1647,46 +1667,46 @@ export default function HomeScreen() {
           console.log('=== TEMPLE DEBUG START ===');
           console.log('Temple data type:', typeof templeRes.value.data);
           console.log('Temple data structure:', templeRes.value.data);
-          
+
           let templeData = [];
-          
+
           // Handle the temple data structure
           if (Array.isArray(templeRes.value.data)) {
             // Find temple-related items in the data
-            const templeItems = templeRes.value.data.filter(item => 
+            const templeItems = templeRes.value.data.filter(item =>
               item.kovil || item.Dinamorukovil || item.temple || item.title?.includes('கோயில்')
             );
-            
+
             console.log('Found temple items:', templeItems.length);
-            
+
             if (templeItems.length > 0) {
               // Process different temple sections
               templeItems.forEach(templeSection => {
                 // Process "கோயில்கள்" section
                 if (templeSection.kovil && Array.isArray(templeSection.kovil)) {
-                  const validKovilItems = templeSection.kovil.filter(item => 
+                  const validKovilItems = templeSection.kovil.filter(item =>
                     item.newstitle && (item.images || item.largeimage)
                   );
                   templeData.push(...validKovilItems.slice(0, 2));
                 }
-                
+
                 // Process "தினம் ஒரு கோயில்" section
                 if (templeSection.Dinamorukovil && Array.isArray(templeSection.Dinamorukovil)) {
-                  const validDailyItems = templeSection.Dinamorukovil.filter(item => 
+                  const validDailyItems = templeSection.Dinamorukovil.filter(item =>
                     item.newstitle && (item.images || item.largeimage)
                   );
                   templeData.push(...validDailyItems.slice(0, 2));
                 }
-                
+
                 // Process "360° கோயில்கள்" section
                 if (templeSection.temple && Array.isArray(templeSection.temple)) {
-                  const valid360Items = templeSection.temple.filter(item => 
+                  const valid360Items = templeSection.temple.filter(item =>
                     item.tname && item.images
                   );
                   templeData.push(...valid360Items.slice(0, 1));
                 }
               });
-              
+
               // Transform temple data to match NewsCard expected format
               templeData = templeData.slice(0, 3).map(item => ({
                 ...item,
@@ -1705,13 +1725,13 @@ export default function HomeScreen() {
                 newsid: item.newsid || item.id,
                 external_link: item.link
               }));
-              
+
               console.log('Found and transformed temple section with items:', templeData.length);
             } else {
               console.log('No temple items found in the data');
             }
           }
-          
+
           if (templeData.length > 0) {
             console.log('Temple section found:', 'கோயில்கள்', 'Items:', templeData.length);
             sections.push({ title: 'கோயில்கள்', data: templeData });
@@ -1727,18 +1747,18 @@ export default function HomeScreen() {
         if (templeRes && templeRes.status === 'fulfilled' && templeRes.value?.data) {
           console.log('=== ULLAGA TAMILAR DEBUG START ===');
           console.log('Checking for ullagathamilarseithigal data...');
-          
+
           let ullagaTamilData = [];
-          
+
           // Look for ullagathamilarseithigal in the temple data
           if (Array.isArray(templeRes.value.data)) {
-            const ullagaSection = templeRes.value.data.find(item => 
+            const ullagaSection = templeRes.value.data.find(item =>
               item.etitle === 'ullaga thamilar seithigal' || item.title?.includes('உலக தமிழர்')
             );
-            
+
             if (ullagaSection && Array.isArray(ullagaSection.data) && ullagaSection.data.length > 0) {
               console.log('Found ullagathamilarseithigal section with items:', ullagaSection.data.length);
-              
+
               // Transform data to match NewsCard expected format
               ullagaTamilData = ullagaSection.data.slice(0, 3).map(item => ({
                 ...item,
@@ -1757,13 +1777,13 @@ export default function HomeScreen() {
                 newsid: item.News_ID || item.id,
                 external_link: item.link
               }));
-              
+
               console.log('Transformed ullagathamilarseithigal items:', ullagaTamilData.length);
             } else {
               console.log('ullagathamilarseithigal section not found or empty');
             }
           }
-          
+
           if (ullagaTamilData.length > 0) {
             console.log('Ullaga Tamilar section found:', 'உலக தமிழர் செய்திகள்', 'Items:', ullagaTamilData.length);
             sections.push({ title: 'உலக தமிழர் செய்திகள்', data: ullagaTamilData });
@@ -1776,7 +1796,7 @@ export default function HomeScreen() {
         // Add aanmigam section with nested data processing
         console.log('=== AANMIGAM DEBUG START ===');
         console.log('Aanmigam response exists:', !!aanmigamRes);
-        
+
         if (aanmigamRes && aanmigamRes.status === 'fulfilled') {
           console.log('aanmigamRes.status is fulfilled');
           if (aanmigamRes.value?.data) {
@@ -1785,7 +1805,7 @@ export default function HomeScreen() {
               console.log('aanmigamRes.value.data is array with length:', aanmigamRes.value.data.length);
               if (aanmigamRes.value.data.length > 0) {
                 console.log('Adding aanmigam section with data:', aanmigamRes.value.data.length, 'categories');
-                
+
                 // Process nested aanmigam data
                 const allAanmigamNews = [];
                 aanmigamRes.value.data.forEach((category, index) => {
@@ -1797,7 +1817,7 @@ export default function HomeScreen() {
                     console.log('Category has no data or data is empty:', category);
                   }
                 });
-                
+
                 console.log('Total aanmigam news items collected:', allAanmigamNews.length);
                 if (allAanmigamNews.length > 0) {
                   console.log('Pushing aanmigam section to sections array');
@@ -1819,7 +1839,7 @@ export default function HomeScreen() {
           console.log('Aanmigam data not available or empty');
         }
         console.log('=== AANMIGAM DEBUG END ===');
-        
+
         if (cinemaNews.length === 0 && cinemaVideos.length === 0) {
           console.log('Cinema data not available from any source');
         }
@@ -2024,7 +2044,7 @@ export default function HomeScreen() {
                   const isCinemaSection = section.title?.toLowerCase().includes('சினிமா');
                   const isVaramalarSection = section.title?.toLowerCase().includes('வாரமலர்');
                   console.log('Section title:', section.title, 'Is premium:', isPremiumStory, 'Is video:', isVideoItem, 'Is varamalar:', isVaramalarSection);
-                  
+
                   // Custom varamalar card with title below category
                   if (isVaramalarSection) {
                     const { sf } = useFontSize();
@@ -2033,7 +2053,7 @@ export default function HomeScreen() {
                     const category = item.maincat || 'வாரமலர்';
                     const date = item.standarddate || item.date || item.ago || '';
                     const description = item.bookdescription || item.newsdescription || item.description || '';
-                    
+
                     return (
                       <View key={`varamalar-${si}-${i}-${item.id || i}`} style={NewsCardStyles.wrap}>
                         <TouchableOpacity onPress={() => goToArticle(item)} activeOpacity={0.88}>
@@ -2057,7 +2077,7 @@ export default function HomeScreen() {
                             {/* Divider after date */}
                             <View style={[NewsCardStyles.divider, { marginVertical: vs(8) }]} />
                             {!!description && (
-                              <Text style={[NewsCardStyles.title, { fontSize: sf(12), lineHeight: sf(18), color: PALETTE.grey800,fontFamily:FONTS.muktaMalar.regular }]} numberOfLines={2}>{description}</Text>
+                              <Text style={[NewsCardStyles.title, { fontSize: sf(12), lineHeight: sf(18), color: PALETTE.grey800, fontFamily: FONTS.muktaMalar.regular }]} numberOfLines={2}>{description}</Text>
                             )}
                           </View>
                         </TouchableOpacity>
@@ -2066,8 +2086,8 @@ export default function HomeScreen() {
                     );
                   }
 
-                
-                  
+
+
                   // Render video card for cinema videos
                   if (isCinemaSection && isVideoItem) {
                     return (
@@ -2083,84 +2103,84 @@ export default function HomeScreen() {
                       />
                     );
                   }
-                  
-                  
+
+
                   // Render regular news card
                   return (
-                  <NewsCard
-                    key={`${si}-${i}-${item.newsid || item.id || i}`}
-                    item={item}
-                    isSocialMedia={section.isSocialMedia || false}
-                    isPremium={isPremiumStory}
-                    onPress={() => {
-                      const sectionTitle = section.title?.toLowerCase() || '';
+                    <NewsCard
+                      key={`${si}-${i}-${item.newsid || item.id || i}`}
+                      item={item}
+                      isSocialMedia={section.isSocialMedia || false}
+                      isPremium={isPremiumStory}
+                      onPress={() => {
+                        const sectionTitle = section.title?.toLowerCase() || '';
 
-                      if (sectionTitle.includes('தற்போதைய செய்திகள்') || sectionTitle.includes('tharpothaiya') ||
-                        sectionTitle.includes('தற்போதைய') || sectionTitle.includes('தற்போதைய செய்திகள்')) {
-                        navigation?.navigate('NewsDetailsScreen', {
-                          newsId: item.newsid || item.id,
-                          newsItem: item,
-                          slug: item.slug || '',
-                          newsList: section.data,
-                        });
-                        return;
-                      }
+                        if (sectionTitle.includes('தற்போதைய செய்திகள்') || sectionTitle.includes('tharpothaiya') ||
+                          sectionTitle.includes('தற்போதைய') || sectionTitle.includes('தற்போதைய செய்திகள்')) {
+                          navigation?.navigate('NewsDetailsScreen', {
+                            newsId: item.newsid || item.id,
+                            newsItem: item,
+                            slug: item.slug || '',
+                            newsList: section.data,
+                          });
+                          return;
+                        }
 
-                      if (sectionTitle.includes('வரவரம்') || sectionTitle.includes('varavaram')) {
-                        navigation?.navigate('CommonSectionScreen', {
-                          screenTitle: 'வரவரம்',
-                          apiEndpoint: 'https://api-st-cdn.dinamalar.com/varavaram',
-                          allTabLink: 'https://api-st-cdn.dinamalar.com/varavaram'
-                        });
-                        return;
-                      }
+                        if (sectionTitle.includes('வரவரம்') || sectionTitle.includes('varavaram')) {
+                          navigation?.navigate('CommonSectionScreen', {
+                            screenTitle: 'வரவரம்',
+                            apiEndpoint: 'https://api-st-cdn.dinamalar.com/varavaram',
+                            allTabLink: 'https://api-st-cdn.dinamalar.com/varavaram'
+                          });
+                          return;
+                        }
 
-                      if (sectionTitle.includes('வர்த்தகம்') || sectionTitle.includes('varthagam') ||
-                        sectionTitle.includes('business') || sectionTitle.includes('வர்த்தகம்')) {
-                        navigation?.navigate('VarthagamScreen');
-                        return;
-                      }
+                        if (sectionTitle.includes('வர்த்தகம்') || sectionTitle.includes('varthagam') ||
+                          sectionTitle.includes('business') || sectionTitle.includes('வர்த்தகம்')) {
+                          navigation?.navigate('VarthagamScreen');
+                          return;
+                        }
 
-                      if (sectionTitle.includes('தினம் தினம்') || sectionTitle.includes('dinamdinam') ||
-                        sectionTitle.includes('தினம் தினம்')) {
-                        navigation?.navigate('DinamDinamScreen');
-                        return;
-                      }
+                        if (sectionTitle.includes('தினம் தினம்') || sectionTitle.includes('dinamdinam') ||
+                          sectionTitle.includes('தினம் தினம்')) {
+                          navigation?.navigate('DinamDinamScreen');
+                          return;
+                        }
 
-                      if (sectionTitle.includes('விளையாட்டு') || sectionTitle.includes('sports') ||
-                        sectionTitle.includes('விளையாட்டு')) {
-                        navigation?.navigate('SportsScreen');
-                        return;
-                      }
+                        if (sectionTitle.includes('விளையாட்டு') || sectionTitle.includes('sports') ||
+                          sectionTitle.includes('விளையாட்டு')) {
+                          navigation?.navigate('SportsScreen');
+                          return;
+                        }
 
-                      if (sectionTitle.includes('தமிழ்நாடு') || sectionTitle.includes('tamil nadu') ||
-                        sectionTitle.includes('tamilnadu')) {
-                        navigation?.navigate('TamilNaduScreen');
-                        return;
-                      }
+                        if (sectionTitle.includes('தமிழ்நாடு') || sectionTitle.includes('tamil nadu') ||
+                          sectionTitle.includes('tamilnadu')) {
+                          navigation?.navigate('TamilNaduScreen');
+                          return;
+                        }
 
-                      if (sectionTitle.includes('ஜோசியம்') || sectionTitle.includes('joshiyam') ||
-                        sectionTitle.includes('ஜோசியம்')) {
-                        navigation?.navigate('CommonSectionScreen', {
-                          screenTitle: 'ஜோசியம்',
-                          apiEndpoint: '/joshiyam',
-                          allTabLink: '/joshiyam'
-                        });
-                        return;
-                      }
+                        if (sectionTitle.includes('ஜோசியம்') || sectionTitle.includes('joshiyam') ||
+                          sectionTitle.includes('ஜோசியம்')) {
+                          navigation?.navigate('CommonSectionScreen', {
+                            screenTitle: 'ஜோசியம்',
+                            apiEndpoint: '/joshiyam',
+                            allTabLink: '/joshiyam'
+                          });
+                          return;
+                        }
 
-                      if (sectionTitle.includes('பிரத்யேகச் செய்திகள்') || sectionTitle.includes('premium')) {
-                        navigation?.navigate('CommonSectionScreen', {
-                          screenTitle: 'பிரத்யேகச் செய்திகள்',
-                          apiEndpoint: 'https://api-st-cdn.dinamalar.com/newsdata?cat=651',
-                          allTabLink: 'https://api-st-cdn.dinamalar.com/newsdata?cat=651',
-                        });
-                        return;
-                      }
+                        if (sectionTitle.includes('பிரத்யேகச் செய்திகள்') || sectionTitle.includes('premium')) {
+                          navigation?.navigate('CommonSectionScreen', {
+                            screenTitle: 'பிரத்யேகச் செய்திகள்',
+                            apiEndpoint: 'https://api-st-cdn.dinamalar.com/newsdata?cat=651',
+                            allTabLink: 'https://api-st-cdn.dinamalar.com/newsdata?cat=651',
+                          });
+                          return;
+                        }
 
-                      goToArticle(item);
-                    }}
-                  />
+                        goToArticle(item);
+                      }}
+                    />
                   );
                 })}
               </View>
@@ -2169,14 +2189,14 @@ export default function HomeScreen() {
 
           <DinamalarCalendar />
         </>
-        
+
       )}
     </>
   );
 
   // --- Render ----------------------------------------------------------------
   const { sf } = useFontSize();
-  
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor={PALETTE.white} />

@@ -125,30 +125,28 @@ function TharpothaiyaNewsCard({ item, onPress, isPremium = false }) {
         {/* Content */}
         <View style={NewsCard.contentContainer}>
           {!!title && (
-            <Text style={[NewsCard.title, { fontSize: sf(16), lineHeight: sf(22) }]} numberOfLines={3}>{title}</Text>
+            <Text style={[NewsCard.title, { fontSize: sf(13), lineHeight: sf(22) }]} numberOfLines={3}>{title}</Text>
           )}
 
-          {/* Category pill — gray, matches screenshot */}
           {!!category && (
             <View style={NewsCard.catPill}>
-              <Text style={[NewsCard.catText, { fontSize: sf(11) }]}>{category}</Text>
+              <Text style={[NewsCard.catText, { fontSize: sf(12) }]}>{category}</Text>
             </View>
           )}
 
-          {/* Meta row */}
           <View style={NewsCard.metaRow}>
-            <Text style={[NewsCard.timeText, { fontSize: sf(12) }]}>{ago}</Text>
+            <Text style={[NewsCard.timeText, { fontSize: sf(13) }]}>{ago}</Text>
             <View style={NewsCard.metaRight}>
+              {hasAudio && (
+                <View style={NewsCard.audioIcon}>
+                  <Ionicons name="volume-high" size={s(14)} color={PALETTE.grey700} />
+                </View>
+              )}
 
               {!!newscomment && newscomment !== '0' && (
                 <View style={NewsCard.commentRow}>
-                  <Ionicons name="chatbox" size={sf(16)} color={PALETTE.grey600} />
-                  <Text style={[NewsCard.commentText, { fontSize: sf(13) }]}> {newscomment}</Text>
-                </View>
-              )}
-              {hasAudio && (
-                <View style={NewsCard.audioIcon}>
-                  <Ionicons name="volume-high" size={sf(14)} color={PALETTE.grey700} />
+                  <Ionicons name="chatbox" size={s(15)} color={PALETTE.grey700} />
+                  <Text style={[NewsCard.commentText, { fontSize: sf(12) }]}> {newscomment}</Text>
                 </View>
               )}
             </View>
