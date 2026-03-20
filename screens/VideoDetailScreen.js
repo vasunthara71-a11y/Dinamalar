@@ -18,6 +18,9 @@ import AppHeaderComponent from '../components/AppHeaderComponent';
 import DrawerMenu from '../components/DrawerMenu';
 import LocationDrawer from '../components/LocationDrawer';
 import CommentsModal from '../components/CommentsModal';
+import LazyImage from '../components/LazyImage';
+import { dataPreloader } from '../utils/preloader';
+import { backgroundRefresh } from '../utils/backgroundRefresh';
 
 const { width: SW, height: SH } = Dimensions.get('window');
 const VH = (SW * 9) / 16;
@@ -385,77 +388,86 @@ const VideoDetailScreen = ({ navigation, route }) => {
     if (!id) { setError('Video ID not found'); setLoading(false); return; }
     setLoading(true); setError(null);
     try {
+      // Main video detail fetch
       const res = await CDNApi.get(`/videodetail?id=${id}`);
       const data = res.data;
 
       if (data?.latestvideo) setLatestvideo(data.latestvideo);
       if (data?.comments?.data) setVideoComments(data.comments.data);
 
-      // Taboola & ads
+      // Taboola & ads (non-critical, can be set async)
       setTaboolaAds(data?.taboola_ads?.mobile ?? null);
       setMobileAds(data?.googleads?.mobileads ?? null);
 
-      // ── Fetch /relatedmost — videos.data → தொடர்புடையவை, reels.data → ஷார்ட்ஸ் ──
+      // ── Parallel fetch of related content ───────────────────────────────
       const relatedEndpoint = data?.morerelated ?? `/relatedmost?videoid=${id}`;
-      try {
-        const relatedRes = await CDNApi.get(relatedEndpoint);
-        const relatedApiData = relatedRes.data;
+      
+      // Create array of parallel requests
+      const parallelRequests = [
+        // Related videos, reels, and news
+        CDNApi.get(relatedEndpoint).catch(e => {
+          console.warn('relatedmost fetch error', e);
+          return { data: { videos: { data: data?.relatedvideos || [] }, reels: { data: data?.relatedreels || [] }, newlist: { data: [] } } };
+        }),
+      ];
 
+      // Add morerelated fetch if endpoint exists
+      if (data?.morerelated) {
+        parallelRequests.push(
+          CDNApi.get(data.morerelated).catch(e => {
+            console.warn('morerelated fetch error', e);
+            return { data: { data: [] } };
+          })
+        );
+      }
+
+      // Execute all requests in parallel
+      const results = await Promise.allSettled(parallelRequests);
+      
+      // Process related content
+      const relatedResult = results[0];
+      if (relatedResult.status === 'fulfilled') {
+        const relatedApiData = relatedResult.value.data;
+        
         // data.videos.data → தொடர்புடையவை section
         const videosData = relatedApiData?.videos?.data ?? [];
         setRelatedVideos(videosData.filter(v => v && v.videoid));
 
-        // data.reels.data → ஷார்ட்ஸ் section (replaces relatedReels)
+        // data.reels.data → ஷார்ட்ஸ் section
         const reelsData = relatedApiData?.reels?.data ?? [];
         setRelatedReels(reelsData.filter(r => r && r.id));
 
         // data.newlist.data → செய்திகள் section
         const newsListData = relatedApiData?.newlist?.data ?? [];
         setNewsList(newsListData.filter(n => n && (n.newsid || n.id)));
-
-      } catch (e) {
-        console.warn('relatedmost fetch error', e);
-        // fallback to original API fields
-        setRelatedVideos(data?.relatedvideos ?? []);
-        setRelatedReels(data?.relatedreels ?? []);
       }
 
-      // ── data.videoreels.data — separate by type (unchanged) ─────────────
+      // Process morerelated if exists
+      if (data?.morerelated && results[1]?.status === 'fulfilled') {
+        const moreData = results[1].value.data?.data ?? results[1].value.data ?? [];
+        setVideoReelNews(Array.isArray(moreData) ? moreData.filter(v => v && v.videoid) : []);
+        setMoreRelated(data.morerelated);
+      }
+
+      // ── Process other data (non-blocking) ───────────────────────────────
       const vrData = data?.videoreels?.data ?? [];
       const relatedReelIds = new Set((data?.relatedreels ?? []).map(r => String(r.id || '')));
       setVideoReelReels(vrData.filter(v => v && v.type === 'reels' && !relatedReelIds.has(String(v.id || ''))));
-      setVideoReelNews(vrData.filter(v => v && (v.type === 'news' || (v.videoid && !v.type))));
-
-
-
-      // ── data.morerelated — fetch immediately for "மேலும் வீடியோக்கள்" ──
-      if (data?.morerelated) {
-        setMoreRelated(data.morerelated);
-        try {
-          const moreRes = await CDNApi.get(data.morerelated);
-          const moreData = moreRes.data?.data ?? moreRes.data ?? [];
-          setVideoReelNews(Array.isArray(moreData) ? moreData.filter(v => v && v.videoid) : []);
-        } catch (e) {
-          console.warn('morerelated fetch error', e);
-          // fallback: use videoreels type=news if morerelated fails
-          setVideoReelNews(vrData.filter(v => v && (v.type === 'news' || (v.videoid && !v.type))));
-        }
-      } else {
-        // No morerelated endpoint — fall back to videoreels type=news
+      
+      // Use morerelated or fallback to videoreels type=news
+      if (!data?.morerelated) {
         setVideoReelNews(vrData.filter(v => v && (v.type === 'news' || (v.videoid && !v.type))));
       }
 
-      // ── data.videomix.data — older related ──────────────────────────────
       setVideomixData((data?.videomix?.data ?? []).filter(v => v && v.type !== 'googlead' && v.type !== 'reels'));
-
-      // ── data.videodistrict — array of {id, districtname} ────────────────
       setVideoDistrict(Array.isArray(data?.videodistrict) ? data.videodistrict : []);
 
-      // ── data.morerelated ────────────────────────────────────────────────
-      if (data?.morerelated) setMoreRelated(data.morerelated);
-
-    } catch (err) { setError(err?.message || 'பிழை ஏற்பட்டது'); }
-    finally { setLoading(false); }
+    } catch (err) { 
+      setError(err?.message || 'பிழை ஏற்பட்டது'); 
+    }
+    finally { 
+      setLoading(false); 
+    }
   }, []);
 
   useEffect(() => {

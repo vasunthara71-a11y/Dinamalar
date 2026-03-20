@@ -4,6 +4,14 @@ import AppNavigator from './navigation/AppNavigator';
 import { ThemeProvider } from './theme/ThemeContext';
 import { FontSizeProvider } from './context/FontSizeContext';
 import { View } from 'react-native';
+import { useAppOptimization } from './hooks/useAppOptimization';
+
+function AppContent() {
+  // Initialize app optimizations
+  useAppOptimization();
+
+  return <AppNavigator />;
+}
 
 export default function App() {
   const [fontsLoaded] = useFonts({
@@ -53,7 +61,7 @@ export default function App() {
       <FontSizeProvider>
         <View style={{ flex: 1 }}>
           <StatusBar style="dark" backgroundColor="#fff" />
-          <AppNavigator />
+          <AppContent />
         </View>
       </FontSizeProvider>
     </ThemeProvider>

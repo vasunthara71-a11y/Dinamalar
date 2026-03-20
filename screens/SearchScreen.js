@@ -26,6 +26,19 @@ import axios from 'axios';
 
 const SEARCH_API_BASE = 'https://api-st-cdn.dinamalar.com/searchfilter?search=';
 
+
+const PALETTE = {
+  primary: '#096dd2',
+  grey100: '#F9FAFB',
+  grey200: '#F4F6F8',
+  grey300: '#DFE3E8',
+  grey400: '#C4CDD5',
+  grey500: '#919EAB',
+  grey600: '#637381',
+  grey700: '#637381',
+  grey800: '#212B36',
+  white: '#FFFFFF',
+};
 // News Card (same as CommonSectionScreen)
 // ─────────────────────────────────────────────────────────────────────────────
 function NewsCard({ item, onPress, sectionTitle = '' }) {
@@ -43,9 +56,9 @@ function NewsCard({ item, onPress, sectionTitle = '' }) {
     (typeof item.audio === 'string' && item.audio.length > 1 && item.audio !== '0');
 
   return (
-    <View style={NewsCardStyles.wrap}>
+    <View style={[NewsCardStyles.wrap,]}>
       <TouchableOpacity onPress={onPress} activeOpacity={0.88}>
-        <View style={NewsCardStyles.imageWrap}>
+        <View style={[NewsCardStyles.imageWrap,{marginHorizontal:ms(0)}]}>
           <Image
             source={{ uri: imageUri }}
             style={NewsCardStyles.image}
@@ -53,9 +66,9 @@ function NewsCard({ item, onPress, sectionTitle = '' }) {
           />
         </View>
 
-        <View style={NewsCardStyles.contentContainer}>
+        <View style={[NewsCardStyles.contentContainer,{paddingHorizontal:ms(0)}]}>
           {!!title && (
-            <Text style={[NewsCardStyles.title, { fontSize: sf(14), lineHeight: sf(22) }]} numberOfLines={3}>{title}</Text>
+            <Text style={[NewsCardStyles.title, { fontSize: sf(13), lineHeight: sf(22) }]} numberOfLines={3}>{title}</Text>
           )}
 
           {!!category && (
@@ -65,7 +78,7 @@ function NewsCard({ item, onPress, sectionTitle = '' }) {
           )}
 
           <View style={NewsCardStyles.metaRow}>
-            <Text style={[NewsCardStyles.timeText, { fontSize: sf(12) }]}>{ago}</Text>
+            <Text style={[NewsCardStyles.timeText, { fontSize: sf(13) }]}>{ago}</Text>
             <View style={NewsCardStyles.metaRight}>
               {hasAudio && (
                 <View style={NewsCardStyles.audioIcon}>
@@ -96,21 +109,19 @@ function SectionTitle({ title }) {
 
   return (
     <View style={styles.sectionHeader}>
-      <View style={styles.titleContainer}>
-        <Text style={[styles.sectionTitle, { fontSize: sf(16) }]}>{title || ''}</Text>
-        <View style={styles.sectionUnderline} />
-      </View>
+      <Text style={[styles.sectionTitle, { fontSize: sf(18) }]}>{title || ''}</Text>
+      <View style={styles.sectionUnderline} />
     </View>
   );
 }
 
 // ─── Short Card (Dinamalar mobile website style - landscape like video cards) ──
 const ShortCard = ({ video, onPress }) => {
-  const title    = video.newstitle || video.title || video.videotitle || '';
+  const title = video.newstitle || video.title || video.videotitle || '';
   const imageUri = video.images || video.largeimages || video.image || '';
   const duration = video.duration || '';
   const catLabel = video.maincat || video.CatName || '';
-  const pubDate  = video.ago || video.standarddate || '';
+  const pubDate = video.ago || video.standarddate || '';
 
   return (
     <TouchableOpacity
@@ -199,13 +210,13 @@ const ShortsSectionRow = ({ items, onPress }) => {
 };
 
 // ─── Result Card (full-width image, title, category, meta) ───────────────────
-var SearchResultItem = function(props) {
-  var item    = props.item;
+var SearchResultItem = function (props) {
+  var item = props.item;
   var onPress = props.onPress;
 
-  var isReels  = item.type === 'reels';
-  var isVideo  = item.type === 'video' || item.video === '1' || item.video === 1;
-  var isPhoto  = item.type === 'photo';
+  var isReels = item.type === 'reels';
+  var isVideo = item.type === 'video' || item.video === '1' || item.video === 1;
+  var isPhoto = item.type === 'photo';
   var hasAudio = item.audio === '1' || item.audio === 1;
 
   // For reels, render as portrait short card
@@ -217,16 +228,16 @@ var SearchResultItem = function(props) {
     );
   }
 
-  var title         = item.newstitle    || item.Title    || item.title    || '';
-  var imageUrl      = item.images       || item.ImageUrl || item.imageurl || '';
-  var pubDate       = item.ago          || item.standarddate || item.newsdate || '';
-  var catLabel      = item.maincat      || item.CatName  || item.catname  || '';
+  var title = item.newstitle || item.Title || item.title || '';
+  var imageUrl = item.images || item.ImageUrl || item.imageurl || '';
+  var pubDate = item.ago || item.standarddate || item.newsdate || '';
+  var catLabel = item.maincat || item.CatName || item.catname || '';
   var commentsCount = parseInt(item.newscomment || item.CommentCount || 0);
 
   return (
     <TouchableOpacity
       style={styles.resultCard}
-      onPress={function() { onPress && onPress(item); }}
+      onPress={function () { onPress && onPress(item); }}
       activeOpacity={0.88}
     >
       {/* Full width image */}
@@ -294,47 +305,47 @@ var SearchResultItem = function(props) {
 };
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
-var SearchScreen = function() {
+var SearchScreen = function () {
   var navigation = useNavigation();
 
-  var sq = useState('');         var searchQuery    = sq[0]; var setSearchQuery    = sq[1];
-  var sr = useState([]);         var searchResults  = sr[0]; var setSearchResults  = sr[1];
-  var il = useState(false);      var isLoading      = il[0]; var setIsLoading      = il[1];
-  var lm = useState(false);      var isLoadingMore  = lm[0]; var setIsLoadingMore  = lm[1];
-  var er = useState(null);       var error          = er[0]; var setError          = er[1];
-  var hs = useState(false);      var hasSearched    = hs[0]; var setHasSearched    = hs[1];
-  var ac = useState('all');      var activeCategory = ac[0]; var setActiveCategory = ac[1];
-  var cf = useState([]);         var categoryFilter = cf[0]; var setCategoryFilter = cf[1];
-  var tk = useState([]);         var trendingTopics = tk[0]; var setTrendingTopics = tk[1];
-  var mc = useState([]);         var mostCommented   = mc[0]; var setMostCommented   = mc[1];
-  var ml = useState(false);      var mostCommentedLoading = ml[0]; var setMostCommentedLoading = ml[1];
-  var cp = useState(1);          var currentPage    = cp[0]; var setCurrentPage    = cp[1];
-  var lp = useState(1);          var lastPage       = lp[0]; var setLastPage       = lp[1];
+  var sq = useState(''); var searchQuery = sq[0]; var setSearchQuery = sq[1];
+  var sr = useState([]); var searchResults = sr[0]; var setSearchResults = sr[1];
+  var il = useState(false); var isLoading = il[0]; var setIsLoading = il[1];
+  var lm = useState(false); var isLoadingMore = lm[0]; var setIsLoadingMore = lm[1];
+  var er = useState(null); var error = er[0]; var setError = er[1];
+  var hs = useState(false); var hasSearched = hs[0]; var setHasSearched = hs[1];
+  var ac = useState('all'); var activeCategory = ac[0]; var setActiveCategory = ac[1];
+  var cf = useState([]); var categoryFilter = cf[0]; var setCategoryFilter = cf[1];
+  var tk = useState([]); var trendingTopics = tk[0]; var setTrendingTopics = tk[1];
+  var mc = useState([]); var mostCommented = mc[0]; var setMostCommented = mc[1];
+  var ml = useState(false); var mostCommentedLoading = ml[0]; var setMostCommentedLoading = ml[1];
+  var cp = useState(1); var currentPage = cp[0]; var setCurrentPage = cp[1];
+  var lp = useState(1); var lastPage = lp[0]; var setLastPage = lp[1];
   var cq = useRef('');           // track current query for load more
-  var fs = useState(false);      var showScrollTop  = fs[0]; var setShowScrollTop  = fs[1];
+  var fs = useState(false); var showScrollTop = fs[0]; var setShowScrollTop = fs[1];
   var flatListRef = useRef(null);
 
-  var dv = useState(false);      var isDrawerVisible         = dv[0]; var setIsDrawerVisible         = dv[1];
-  var lv = useState(false);      var isLocationDrawerVisible = lv[0]; var setIsLocationDrawerVisible = lv[1];
-  var sd = useState('உள்ளூர்'); var selectedDistrict        = sd[0]; var setSelectedDistrict        = sd[1];
+  var dv = useState(false); var isDrawerVisible = dv[0]; var setIsDrawerVisible = dv[1];
+  var lv = useState(false); var isLocationDrawerVisible = lv[0]; var setIsLocationDrawerVisible = lv[1];
+  var sd = useState('உள்ளூர்'); var selectedDistrict = sd[0]; var setSelectedDistrict = sd[1];
 
   var inputRef = useRef(null);
 
   // Fetch trending topics on mount
-  useEffect(function() {
+  useEffect(function () {
     axios.get(SEARCH_API_BASE + 'gold')
-      .then(function(response) {
+      .then(function (response) {
         var data = response && response.data;
         if (data && Array.isArray(data.trendingkeywords) && data.trendingkeywords.length > 0) {
           setTrendingTopics(data.trendingkeywords[0]?.data || []);
         }
       })
-      .catch(function() {});
+      .catch(function () { });
 
     // Fetch most commented data
     setMostCommentedLoading(true);
     axios.get('https://api-st-cdn.dinamalar.com/photodata')
-      .then(function(response) {
+      .then(function (response) {
         var data = response && response.data;
         console.log('[SearchScreen] Most commented API response:', data);
         if (data && data.mostcommented && Array.isArray(data.mostcommented.data)) {
@@ -344,18 +355,18 @@ var SearchScreen = function() {
           console.log('[SearchScreen] No most commented data found');
         }
       })
-      .catch(function(err) {
+      .catch(function (err) {
         console.error('Most commented fetch error:', err);
       })
-      .finally(function() {
+      .finally(function () {
         setMostCommentedLoading(false);
       });
   }, []);
 
-  var handleMenuPress = function(menuItem) {};
-  var goToSearch      = function() {};
-  var goToNotifs      = function() { navigation && navigation.navigate('NotificationScreen'); };
-  var handleSelectDistrict = function(district) {
+  var handleMenuPress = function (menuItem) { };
+  var goToSearch = function () { };
+  var goToNotifs = function () { navigation && navigation.navigate('NotificationScreen'); };
+  var handleSelectDistrict = function (district) {
     setSelectedDistrict(district.title);
     setIsLocationDrawerVisible(false);
     if (district.id) {
@@ -366,7 +377,7 @@ var SearchScreen = function() {
   };
 
   // ─── Search ────────────────────────────────────────────────────────────────
-  var performSearch = useCallback(function(query) {
+  var performSearch = useCallback(function (query) {
     if (!query || !query.trim()) return;
     Keyboard.dismiss();
     setIsLoading(true);
@@ -377,7 +388,7 @@ var SearchScreen = function() {
     cq.current = query.trim();
 
     axios.get(SEARCH_API_BASE + encodeURIComponent(query.trim()) + '&page=1')
-      .then(function(response) {
+      .then(function (response) {
         var data = response && response.data;
         var results = [];
 
@@ -405,16 +416,16 @@ var SearchScreen = function() {
           setTrendingTopics(data.trendingkeywords[0]?.data || []);
         }
       })
-      .catch(function(err) {
+      .catch(function (err) {
         console.error('Search error:', err);
         setError('தேடல் தோல்வியடைந்தது. மீண்டும் முயற்சிக்கவும்.');
         setSearchResults([]);
       })
-      .finally(function() { setIsLoading(false); });
+      .finally(function () { setIsLoading(false); });
   }, []);
 
   // ─── Load more (pagination) ────────────────────────────────────────────────
-  var loadMore = useCallback(function() {
+  var loadMore = useCallback(function () {
     if (isLoadingMore || isLoading || currentPage >= lastPage || !cq.current) return;
 
     var nextPage = currentPage + 1;
@@ -422,7 +433,7 @@ var SearchScreen = function() {
 
     var typeParam = activeCategory !== 'all' ? '&type=' + activeCategory : '';
     axios.get(SEARCH_API_BASE + encodeURIComponent(cq.current) + '&page=' + nextPage + typeParam)
-      .then(function(response) {
+      .then(function (response) {
         var data = response && response.data;
         var results = [];
 
@@ -433,57 +444,57 @@ var SearchScreen = function() {
         }
 
         // Append to existing results
-        setSearchResults(function(prev) { return prev.concat(results); });
+        setSearchResults(function (prev) { return prev.concat(results); });
 
         if (data && data.pagination) {
           setCurrentPage(data.pagination.current_page || nextPage);
           setLastPage(data.pagination.last_page || 1);
         }
       })
-      .catch(function(err) {
+      .catch(function (err) {
         console.error('Load more error:', err);
       })
-      .finally(function() { setIsLoadingMore(false); });
+      .finally(function () { setIsLoadingMore(false); });
   }, [isLoadingMore, isLoading, currentPage, lastPage, activeCategory]);
 
   // ─── Filter results by active tab ─────────────────────────────────────────
-  var filteredResults = React.useMemo(function() {
+  var filteredResults = React.useMemo(function () {
     if (activeCategory === 'all') return searchResults;
-    return searchResults.filter(function(item) {
-      var itemType    = (item.type || '').toLowerCase();
+    return searchResults.filter(function (item) {
+      var itemType = (item.type || '').toLowerCase();
       var itemMaincat = (item.maincat || '').toLowerCase();
-      var itemCatId   = String(item.maincatid || '').toLowerCase();
+      var itemCatId = String(item.maincatid || '').toLowerCase();
 
       if (activeCategory === 'news') {
         return itemType === 'news' &&
-               itemMaincat !== 'ஷார்ட்ஸ்' &&
-               itemCatId !== 'shorts';
+          itemMaincat !== 'ஷார்ட்ஸ்' &&
+          itemCatId !== 'shorts';
       }
       if (activeCategory === 'video') {
         return itemType === 'video' || itemType === 'reels' ||
-               itemMaincat === 'ஷார்ட்ஸ்' || itemCatId === 'shorts';
+          itemMaincat === 'ஷார்ட்ஸ்' || itemCatId === 'shorts';
       }
       if (activeCategory === 'photo') {
         return itemType === 'photo' || itemMaincat.includes('photo') ||
-               itemCatId.includes('photo') || itemMaincat.includes('படம்') ||
-               itemMaincat.includes('புகைப்படம்');
+          itemCatId.includes('photo') || itemMaincat.includes('படம்') ||
+          itemMaincat.includes('புகைப்படம்');
       }
       if (activeCategory === 'kalvimalar') {
         return itemMaincat.includes('கல்வி') || itemCatId.includes('kalvi') ||
-               itemMaincat.includes('kalvi');
+          itemMaincat.includes('kalvi');
       }
       if (activeCategory === 'nri') {
         return itemMaincat.includes('உலக') || itemCatId.includes('nri') ||
-               itemMaincat.includes('nri');
+          itemMaincat.includes('nri');
       }
       return itemType.indexOf(activeCategory) !== -1 ||
-             itemMaincat.indexOf(activeCategory) !== -1 ||
-             itemCatId.indexOf(activeCategory) !== -1;
+        itemMaincat.indexOf(activeCategory) !== -1 ||
+        itemCatId.indexOf(activeCategory) !== -1;
     });
   }, [searchResults, activeCategory]);
 
-  var handleItemPress = function(item) {
-    var newsId   = item.id || item.Id || item.NewsId || item.newsid;
+  var handleItemPress = function (item) {
+    var newsId = item.id || item.Id || item.NewsId || item.newsid;
     var itemType = (item.type || '').toLowerCase();
     if (itemType === 'reels' || itemType === 'video') {
       // Map search result fields to VideoDetailScreen expected fields based on actual API structure
@@ -511,7 +522,7 @@ var SearchScreen = function() {
   };
 
   // When a category tab is clicked, fetch filtered results from API using type param
-  var handleCategoryPress = useCallback(function(ename) {
+  var handleCategoryPress = useCallback(function (ename) {
     setActiveCategory(ename);
     if (!cq.current) return;
 
@@ -522,7 +533,7 @@ var SearchScreen = function() {
 
     var url = SEARCH_API_BASE + encodeURIComponent(cq.current) + '&page=1&type=' + ename;
     axios.get(url)
-      .then(function(response) {
+      .then(function (response) {
         var data = response && response.data;
         var results = [];
         if (data && Array.isArray(data.detail)) {
@@ -530,7 +541,7 @@ var SearchScreen = function() {
         } else if (Array.isArray(data)) {
           results = data;
         }
-        setSearchResults(function(prev) {
+        setSearchResults(function (prev) {
           return results;
         });
         if (data && data.pagination) {
@@ -538,25 +549,25 @@ var SearchScreen = function() {
           setLastPage(data.pagination.last_page || 1);
         }
       })
-      .catch(function() {})
-      .finally(function() { setIsLoading(false); });
+      .catch(function () { })
+      .finally(function () { setIsLoading(false); });
   }, []);
 
   // Build category tabs from API categoryfilter
-  var categoryTabs = React.useMemo(function() {
+  var categoryTabs = React.useMemo(function () {
     if (categoryFilter.length === 0) return [];
-    return categoryFilter.map(function(cf) {
+    return categoryFilter.map(function (cf) {
       return { id: cf.ename, label: cf.name, count: cf.count };
     });
   }, [categoryFilter]);
 
   // ─── Scroll to top handler ─────────────────────────────────────────────────────
-  var handleScroll = function(event) {
+  var handleScroll = function (event) {
     var offsetY = event.nativeEvent.contentOffset.y;
     setShowScrollTop(offsetY > 300);
   };
 
-  var scrollToTop = function() {
+  var scrollToTop = function () {
     if (flatListRef.current) {
       flatListRef.current.scrollToOffset({ offset: 0, animated: true });
     }
@@ -582,8 +593,8 @@ var SearchScreen = function() {
       >
         <AppHeaderComponent
           onSearch={goToSearch}
-          onMenu={function() { setIsDrawerVisible(true); }}
-          onLocation={function() { setIsLocationDrawerVisible(true); }}
+          onMenu={function () { setIsDrawerVisible(true); }}
+          onLocation={function () { setIsLocationDrawerVisible(true); }}
           selectedDistrict="உள்ளூர்"
         />
       </UniversalHeaderComponent>
@@ -598,14 +609,14 @@ var SearchScreen = function() {
             placeholderTextColor="#999"
             value={searchQuery}
             onChangeText={setSearchQuery}
-            onSubmitEditing={function() { performSearch(searchQuery); }}
+            onSubmitEditing={function () { performSearch(searchQuery); }}
             returnKeyType="search"
             autoCorrect={false}
           />
           {searchQuery.length > 0 && (
             <TouchableOpacity
-              onPress={function() { 
-                setSearchQuery(''); 
+              onPress={function () {
+                setSearchQuery('');
                 setSearchResults([]);
                 setHasSearched(false);
                 setActiveCategory('all');
@@ -622,7 +633,7 @@ var SearchScreen = function() {
         </View>
         <TouchableOpacity
           style={styles.searchBtn}
-          onPress={function() { performSearch(searchQuery); }}
+          onPress={function () { performSearch(searchQuery); }}
           activeOpacity={0.85}
         >
           <Text style={styles.searchBtnText}>Search</Text>
@@ -650,12 +661,12 @@ var SearchScreen = function() {
                 <Text style={styles.trendingTitle}> TRENDING TOPICS</Text>
               </View>
               <View style={styles.trendingChips}>
-                {trendingTopics.map(function(topic, idx) {
+                {trendingTopics.map(function (topic, idx) {
                   return (
                     <TouchableOpacity
                       key={idx}
                       style={styles.trendingChip}
-                      onPress={function() {
+                      onPress={function () {
                         setSearchQuery(topic.key);
                         performSearch(topic.key);
                       }}
@@ -675,7 +686,7 @@ var SearchScreen = function() {
           )}
           {mostCommented.length > 0 && (
             <View style={styles.mostCommentedList}>
-              {mostCommented.map(function(item, idx) {
+              {mostCommented.map(function (item, idx) {
                 return (
                   <NewsCard
                     key={`most-commented-${idx}`}
@@ -698,13 +709,13 @@ var SearchScreen = function() {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.categoryScroll}
           >
-            {categoryTabs.map(function(tab) {
+            {categoryTabs.map(function (tab) {
               var isActive = activeCategory === tab.id;
               return (
                 <TouchableOpacity
                   key={tab.id}
                   style={[styles.catTab, isActive && styles.catTabActive]}
-                  onPress={function() { handleCategoryPress(tab.id); }}
+                  onPress={function () { handleCategoryPress(tab.id); }}
                   activeOpacity={0.75}
                 >
                   <Text style={[styles.catTabText, isActive && styles.catTabTextActive]}>
@@ -728,7 +739,7 @@ var SearchScreen = function() {
             <Text style={styles.errorText}>{error}</Text>
             <TouchableOpacity
               style={styles.retryBtn}
-              onPress={function() { performSearch(searchQuery); }}
+              onPress={function () { performSearch(searchQuery); }}
             >
               <Text style={styles.retryBtnText}>மீண்டும் முயற்சி</Text>
             </TouchableOpacity>
@@ -742,10 +753,10 @@ var SearchScreen = function() {
           <FlatList
             ref={flatListRef}
             data={filteredResults}
-            keyExtractor={function(item, index) {
+            keyExtractor={function (item, index) {
               return String(item.id || item.Id || item.NewsId || item.newsid || '') + '_' + index;
             }}
-            renderItem={function(info) {
+            renderItem={function (info) {
               return <SearchResultItem item={info.item} onPress={handleItemPress} />;
             }}
             contentContainerStyle={styles.listContent}
@@ -755,7 +766,7 @@ var SearchScreen = function() {
             scrollEventThrottle={16}
             onEndReached={loadMore}
             onEndReachedThreshold={0.5}
-            ListFooterComponent={function() {
+            ListFooterComponent={function () {
               if (!isLoadingMore) return null;
               return (
                 <View style={styles.loadMoreFooter}>
@@ -827,7 +838,7 @@ var styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: ms(6),
-    height:vs(30)
+    height: vs(30)
   },
   searchBtnText: {
     color: '#fff',
@@ -842,10 +853,10 @@ var styles = StyleSheet.create({
     backgroundColor: '#fff',
     paddingHorizontal: s(14),
   },
-  englishHint:{
-    paddingVertical:vs(15),
-    justifyContent:"center",
-    alignItems:"center"
+  englishHint: {
+    paddingVertical: vs(15),
+    justifyContent: "center",
+    alignItems: "center"
   },
   englishHintText: {
     fontSize: ms(13),
@@ -906,21 +917,21 @@ var styles = StyleSheet.create({
 
   // ── Section Title (same as CommonSectionScreen) ───────────────────────────────
   sectionHeader: {
-    // paddingBottom: vs(10),
-    paddingVertical:ms(15)
+    backgroundColor: PALETTE.white,
+    // paddingHorizontal: s(12),
+    paddingTop: vs(14),
+    paddingBottom: vs(10),
   },
   titleContainer: {
     flexDirection: 'column',
     alignItems: 'flex-start',
   },
   sectionTitle: {
-    fontFamily: 'MuktaMalar',
-    fontWeight: '700',
-    color: '#111',
-    marginBottom: vs(2),
-   },
+    fontFamily: FONTS.muktaMalar.bold,
+    color: PALETTE.grey800,
+  },
   sectionUnderline: {
-    height: vs(5),
+    height: vs(3),
     width: '30%',
     backgroundColor: '#1565C0',
   },

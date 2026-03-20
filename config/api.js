@@ -1,5 +1,24 @@
 import axios from 'axios';
 
+// ─── Simple Request Cache ───────────────────────────────────────────────────────
+const requestCache = new Map();
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+const getCachedData = (key) => {
+  const cached = requestCache.get(key);
+  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+    return cached.data;
+  }
+  return null;
+};
+
+const setCachedData = (key, data) => {
+  requestCache.set(key, {
+    data,
+    timestamp: Date.now()
+  });
+};
+
 // ─── API Base URLs ────────────────────────────────────────────────────────
 export const API_BASE_URLS = {
   MAIN: 'https://api-st-cdn.dinamalar.com',
@@ -313,43 +332,52 @@ export const u38Api = axios.create({
 
 export const CDNApi = axios.create({
   baseURL:API_BASE_URLS.CDN,
-  timeout:30000, // Increased from 12s to 30s for better mobile network handling
+  timeout:15000, // Reduced to 15s for faster failure detection
   headers:{
     'Content-Type':'application/json',
-    'Cache-Control': 'no-cache, no-store, must-revalidate',
-    'Pragma': 'no-cache',
-    'Expires': '0'
+    'Accept': 'application/json',
+    'Accept-Encoding': 'gzip, deflate, br', // Enable compression
+    'Connection': 'keep-alive' // Connection pooling
   },
 });
 
-// Add request interceptor for debugging
+// Add request interceptor with caching
 CDNApi.interceptors.request.use(
    (config) => {
-    // console.log('=== API REQUEST DEBUG ===');
-    // console.log('URL:', config.baseURL + config.url);
-    // console.log('Method:', config.method);
-    // console.log('Headers:', config.headers);
-    // console.log('========================');
+    // Check cache for GET requests
+    if (config.method === 'get') {
+      const cacheKey = `${config.baseURL}${config.url}`;
+      const cachedData = getCachedData(cacheKey);
+      if (cachedData) {
+        // Return cached data immediately
+        config.adapter = () => Promise.resolve({
+          data: cachedData,
+          status: 200,
+          statusText: 'OK',
+          headers: {},
+          config,
+          request: {},
+        });
+      }
+    }
     return config;
   },
   (error) => {
-    // console.error('API Request Error:', error);
     return Promise.reject(error);
   }
-)
+);
 
-
-u38Api.interceptors.request.use(
-  (config) => {
-    // console.log('=== API REQUEST DEBUG ===');
-    // console.log('URL:', config.baseURL + config.url);
-    // console.log('Method:', config.method);
-    // console.log('Headers:', config.headers);
-    // console.log('========================');
-    return config;
+// Add response caching interceptor
+CDNApi.interceptors.response.use(
+  (response) => {
+    // Cache successful GET responses
+    if (response.config.method === 'get' && response.status === 200) {
+      const cacheKey = `${response.config.baseURL}${response.config.url}`;
+      setCachedData(cacheKey, response.data);
+    }
+    return response;
   },
   (error) => {
-    console.error('API Request Error:', error);
     return Promise.reject(error);
   }
 );
