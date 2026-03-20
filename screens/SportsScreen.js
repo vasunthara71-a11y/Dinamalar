@@ -61,7 +61,7 @@ function SectionTitle({ title }) {
   const { sf } = useFontSize();
   return (
     <View style={st.wrap}>
-      <Text style={[st.text, { fontSize: sf(18) }]}>{title}</Text>
+      <Text style={[st.text, { fontSize: sf(16) }]}>{title}</Text>
       <View style={st.underline} />
     </View>
   );
@@ -81,7 +81,7 @@ const st = StyleSheet.create({
     height: vs(3),
     width: s(60),
     backgroundColor: COLORS.primary,
-  },
+   },
 });
 
 // ─── News Card (same as HomeScreen) ────────────────────────────────────────────────────────
@@ -116,11 +116,11 @@ function SportsNewsCard({ item, onPress }) {
           )}
 
           {/* Category pill — gray, matches screenshot */}
-          {!!category && (
+          {/* {!!category && (
             <View style={NewsCard.catPill}>
               <Text style={[NewsCard.catText, { fontSize: sf(12) }]}>{category}</Text>
             </View>
-          )}
+          )} */}
 
           {/* Meta row */}
           <View style={NewsCard.metaRow}>
@@ -382,8 +382,11 @@ export default function SportsScreen() {
 
       {/* ── Page Title ── */}
       <View style={styles.pageTitleWrap}>
-        <Text style={[styles.pageTitle, { fontSize: sf(18) }]}>விளையாட்டு</Text>
+        <Text style={[styles.pageTitle, { fontSize: sf(18) }]}>
+          {isAllTab ? 'விளையாட்டு' : (activeTab?.title || 'விளையாட்டு')}
+        </Text>
       </View>
+      
 
       {/* ── Tabs from subcatlist ── */}
       {subTabs.length > 0 && (
@@ -406,7 +409,7 @@ export default function SportsScreen() {
                   onPress={() => handleTabPress(tab)}
                   activeOpacity={0.8}
                 >
-                  <Text style={[styles.tabText, isActive && styles.tabTextActive, { fontSize: sf(13) }]}>
+                  <Text style={[styles.tabText, isActive && styles.tabTextActive, { fontSize: ms(17) }]}>
                     {tab.title}
                   </Text>
                 </TouchableOpacity>
@@ -502,7 +505,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: s(2),
   },
-  tabsContent: { paddingHorizontal: s(4), alignItems: 'center' },
+  tabsContent: { paddingHorizontal: s(20), alignItems: 'center' },
   tab: {
     paddingHorizontal: s(12),
     paddingVertical: vs(12),
@@ -512,12 +515,12 @@ const styles = StyleSheet.create({
   },
   tabActive: { borderBottomColor: COLORS.primary },
   tabText: {
-    fontSize: sf(13),
+    fontSize: ms(16),
     fontFamily: FONTS.muktaMalar.medium,
     color: COLORS.black,
   },
   tabTextActive: {
-    fontSize: sf(13),
+    fontSize: ms(13),
     fontFamily: FONTS.muktaMalar.bold,
     color: COLORS.primary,
   },

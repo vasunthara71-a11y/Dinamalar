@@ -271,7 +271,7 @@ const shStyles = StyleSheet.create({
     paddingBottom: vs(12),
   },
   title: {
-    fontFamily: FONTS.muktaMalar.bold,
+    fontFamily: FONTS.anek.bold,
     fontSize: ms(18),
     color: PALETTE.grey800,
         marginBottom: vs(2),

@@ -227,10 +227,11 @@ const st = StyleSheet.create({
 
   // Pill text — near-black — matches screenshot dark text on white pill
   pillText: {
-    fontFamily: FONTS.anek.regular,
-    fontSize:   ms(13),
+    fontFamily: FONTS.muktaMalar.medium,
+    fontSize:   ms(14),
     color:      COLORS.text,       // GREY[800] — near-black, matches screenshot
     textAlign:  'center',
+    fontWeight:"600"
   },
 
   // Active text — white

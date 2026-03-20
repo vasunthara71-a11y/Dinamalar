@@ -75,8 +75,8 @@ function NewsCard({ item, onPress, sectionTitle = '' }) {
 
               {!!newscomment && newscomment !== '0' && (
                 <View style={NewsCardStyles.commentRow}>
-                  <Ionicons name="chatbox" size={s(14)} color={COLORS.text} />
-                  <Text style={[NewsCardStyles.commentText, { fontSize: sf(12) }]}> {newscomment}</Text>
+                  <Ionicons name="chatbox" size={s(16)} color={COLORS.subtext} />
+                  <Text style={[NewsCardStyles.commentText, { fontSize: sf(14) }]}> {newscomment}</Text>
                 </View>
               )}
             </View>

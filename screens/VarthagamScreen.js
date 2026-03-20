@@ -54,8 +54,8 @@ function SectionTitle({ title }) {
   );
 }
 const st = StyleSheet.create({
-  wrap: { 
-    paddingTop: vs(14), 
+  wrap: {
+    paddingTop: vs(14),
     paddingBottom: vs(10),
   },
 
@@ -652,7 +652,9 @@ export default function VarthagamScreen() {
 
       {/* ── Page Title ── */}
       <View style={styles.pageTitleWrap}>
-        <Text style={[styles.pageTitle, { fontSize: sf(18) }]}>வர்த்தகம்</Text>
+        <Text style={[styles.pageTitle, { fontSize: sf(18) }]}>
+          {activeTab && activeTab.title !== 'All' ? activeTab.title : 'வர்த்தகம்'}
+        </Text>
       </View>
 
       {/* ── Sub Tabs ── */}
@@ -671,7 +673,7 @@ export default function VarthagamScreen() {
                 : index === 0;
               return (
                 <TouchableOpacity
-                  key={`tab-${tab.id || index}`}
+                  key={`tab-${tab.id || index}-${index}`}
                   style={styles.tab}
                   onPress={() => handleTabPress(tab)}
                   activeOpacity={0.8}
@@ -681,11 +683,12 @@ export default function VarthagamScreen() {
                   </Text>
                   {isActive && <View style={styles.tabUnderline} />}
                 </TouchableOpacity>
+
               );
             })}
           </ScrollView>
           {/* bottom red line same as TharpothaiyaSeithigalScreen */}
-          <View style={styles.tabsRedLine} />
+          {/* <View style={styles.tabsBottomLine} /> */}
         </View>
       )}
 
@@ -727,7 +730,7 @@ export default function VarthagamScreen() {
           ListEmptyComponent={
             <View style={styles.emptyWrap}>
               <Ionicons name="bar-chart-outline" size={s(48)} color={COLORS.subtext} />
-              <Text style={[styles.emptyText, { fontSize: sf(15) }]}>செய்திகள் இல்லை</Text>
+              <Text style={[styles.emptyText, { fontSize: sf(15), color: COLORS.subtext }]}>செய்திகள் இல்லை</Text>
             </View>
           }
           ListFooterComponent={
@@ -767,7 +770,7 @@ const styles = StyleSheet.create({
   pageTitle: {
     fontSize: ms(18),
     color: COLORS.text,
-    fontFamily: FONTS.muktaMalar.bold,
+    fontFamily: FONTS.anek.bold,
   },
   // ── Tabs ──
   tabsWrap: {
@@ -775,26 +778,32 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
   },
-  tabsRedLine: {
-    height: vs(3),
-    // backgroundColor: COLORS.primary,
+  tabsBottomLine: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: COLORS.primary,
   },
   tabsContent: { paddingHorizontal: s(8) },
   tab: {
-    paddingHorizontal: s(14),
+    paddingHorizontal: s(12),
     paddingVertical: vs(12),
     marginHorizontal: s(2),
-    alignItems: 'center',
-    position: 'relative',
+    borderBottomWidth: vs(3),
+    borderBottomColor: 'transparent',
   },
-  tabText: { fontSize: ms(13), color: COLORS.text, fontWeight: '600' },
-  tabTextActive: { color: COLORS.text, fontWeight: '600' },
+  tabText: {
+    fontSize: ms(16),
+    color: COLORS.grey700,
+    fontWeight: '500',
+    fontFamily: FONTS.muktaMalar.regular,
+  },
+  // tabTextActive: { color: COLORS.text, fontWeight: '700', fontFamily: FONTS.muktaMalar.regular, },
   tabUnderline: {
     position: 'absolute',
-    bottom: 0, left: s(6), right: s(6),
+    bottom: 0,
+    left: s(6),
+    right: s(6),
     height: vs(4),
     backgroundColor: COLORS.primary,
-    // borderRadius: s(2),
   },
 
   list: { flex: 1 },

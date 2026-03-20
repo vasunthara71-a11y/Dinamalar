@@ -12,6 +12,7 @@ import {
 import { mainApi, API_ENDPOINTS } from '../config/api';
 import { COLORS, FONTS } from '../utils/constants';
 import { vs } from 'react-native-size-matters';
+import { useFontSize } from '../context/FontSizeContext';
 
 const BLUE   = '#1565c0';
 const RED    = '#cc0000';
@@ -64,6 +65,7 @@ function extractCalendarData(resData) {
 }
 
 export default function DinamalarCalendarScreen() {
+  const { sf } = useFontSize();
   const [calInfo,  setCalInfo]  = useState(null);
   const [upcoming, setUpcoming] = useState([]);
   const [history,  setHistory]  = useState([]);
@@ -125,9 +127,9 @@ export default function DinamalarCalendarScreen() {
     return (
       <SafeAreaView style={st.safe}>
         <View style={st.center}>
-          <Text style={st.errorText}>{error || 'தரவு கிடைக்கவில்லை'}</Text>
+          <Text style={[st.errorText, { fontSize: sf(15) }]}>{error || 'தரவு கிடைக்கவில்லை'}</Text>
           <TouchableOpacity style={st.retryBtn} onPress={fetchCalendarData}>
-            <Text style={st.retryText}>மீண்டும் முயற்சி</Text>
+            <Text style={[st.retryText, { fontSize: sf(14) }]}>மீண்டும் முயற்சி</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -150,29 +152,29 @@ export default function DinamalarCalendarScreen() {
       >
         {/* Page title */}
         <View style={st.pageTitleRow}>
-          <Text style={st.pageTitle}>காலண்டர்</Text>
+          <Text style={[st.pageTitle, { fontSize: sf(20) }]}>காலண்டர்</Text>
           <View style={st.titleUnderline} />
         </View>
 
         {/* Date card */}
         <View style={st.card}>
           <View style={st.cardLeft}>
-            <Text style={st.cardNum}>{calInfo.engdate}</Text>
-            <Text style={st.cardMonth}>{calInfo.engmonth}</Text>
-            <Text style={st.cardDay}>{calInfo.daytamil}</Text>
+            <Text style={[st.cardNum, { fontSize: sf(38) }]}>{calInfo.engdate}</Text>
+            <Text style={[st.cardMonth, { fontSize: sf(13) }]}>{calInfo.engmonth}</Text>
+            <Text style={[st.cardDay, { fontSize: sf(12) }]}>{calInfo.daytamil}</Text>
           </View>
           <View style={st.cardRight}>
             <View style={st.cardTopRow}>
               <View style={st.cardTopLeft}>
-                <Text style={st.tamilMonth}>{calInfo.tamilmonth}</Text>
-                <Text style={st.tamilYear}>{calInfo.tamilyear}</Text>
+                <Text style={[st.tamilMonth, { fontSize: sf(17) }]}>{calInfo.tamilmonth}</Text>
+                <Text style={[st.tamilYear, { fontSize: sf(11) }]}>{calInfo.tamilyear}</Text>
               </View>
-              <Text style={st.tamilDateNum}>{calInfo.tamildate}</Text>
+              <Text style={[st.tamilDateNum, { fontSize: sf(24) }]}>{calInfo.tamildate}</Text>
             </View>
             <View style={st.cardSep} />
             <View style={st.ramzanRow}>
-              <Text style={st.ramzanLabel}>{calInfo.muslimmonth}</Text>
-              <Text style={st.ramzanNum}>{calInfo.muslimdate}</Text>
+              <Text style={[st.ramzanLabel, { fontSize: sf(16) }]}>{calInfo.muslimmonth}</Text>
+              <Text style={[st.ramzanNum, { fontSize: sf(20) }]}>{calInfo.muslimdate}</Text>
             </View>
           </View>
         </View>
@@ -181,7 +183,7 @@ export default function DinamalarCalendarScreen() {
         {!!specialDay && (
           <View style={st.badgeWrap}>
             <View style={st.badge}>
-              <Text style={st.badgeText}>{specialDay}</Text>
+              <Text style={[st.badgeText, { fontSize: sf(13) }]}>{specialDay}</Text>
             </View>
           </View>
         )}
@@ -190,8 +192,8 @@ export default function DinamalarCalendarScreen() {
         <View style={st.panchangam}>
           {panchangamRows.map((row, i) => (
             <View key={i} style={st.pRow}>
-              <Text style={st.pLabel}>{row.label} :</Text>
-              <Text style={st.pValue}>{row.value}</Text>
+              <Text style={[st.pLabel, { fontSize: sf(12) }]}>{row.label} :</Text>
+              <Text style={[st.pValue, { fontSize: sf(12) }]}>{row.value}</Text>
             </View>
           ))}
         </View>
@@ -201,13 +203,13 @@ export default function DinamalarCalendarScreen() {
         {/* Upcoming */}
         {upcoming.length > 0 && (
           <>
-            <Text style={st.sectionHead}>வரவிருக்கும் விசேஷங்கள்</Text>
+            <Text style={[st.sectionHead, { fontSize: sf(16) }]}>வரவிருக்கும் விசேஷங்கள்</Text>
             {upcoming.map((item, i) => (
               <View key={i} style={st.bulletRow}>
                 <View style={st.bullet} />
                 <View style={st.bulletContent}>
-                  <Text style={st.bulletTitle}>{item.news_head}</Text>
-                  <Text style={st.bulletDate}>{item.standarddate}</Text>
+                  <Text style={[st.bulletTitle, { fontSize: sf(13.5) }]}>{item.news_head}</Text>
+                  <Text style={[st.bulletDate, { fontSize: sf(12) }]}>{item.standarddate}</Text>
                 </View>
               </View>
             ))}
@@ -219,11 +221,11 @@ export default function DinamalarCalendarScreen() {
         {/* History */}
         {history.length > 0 && (
           <>
-            <Text style={st.sectionHead}>வரலாற்றில் இன்று</Text>
+            <Text style={[st.sectionHead, { fontSize: sf(16) }]}>வரலாற்றில் இன்று</Text>
             {history.map((item, i) => (
               <View key={i} style={st.bulletRow}>
                 <View style={st.bullet} />
-                <Text style={st.histText}>{item.news_head}</Text>
+                <Text style={[st.histText, { fontSize: sf(13) }]}>{item.news_head}</Text>
               </View>
             ))}
           </>
@@ -243,9 +245,9 @@ export default function DinamalarCalendarScreen() {
 const st = StyleSheet.create({
   safe:      { flex: 1, backgroundColor: '#fff' },
   center:    { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  errorText: { fontSize: 15, color: RED, textAlign: 'center', marginBottom: 12 },
+  errorText: { fontSize: 15, color: RED, textAlign: 'center', marginBottom: 12, fontFamily: FONTS.muktaMalar.regular },
   retryBtn:  { paddingHorizontal: 24, paddingVertical: 10, backgroundColor: BLUE, borderRadius: 6 },
-  retryText: { color: '#fff', fontWeight: '600', fontSize: 14 },
+  retryText: { color: '#fff', fontWeight: '600', fontSize: 14, fontFamily: FONTS.muktaMalar.semibold },
 
   // Scroll
   scroll:      { flex: 1 },
@@ -253,7 +255,7 @@ const st = StyleSheet.create({
 
   // Page title
   pageTitleRow:   { marginBottom: 10 },
-  pageTitle:      { fontSize: 20, fontWeight: '700', color: TEXT1 },
+  pageTitle:      { fontSize: 20, fontWeight: '700', color: TEXT1, fontFamily: FONTS.muktaMalar.bold },
   titleUnderline: { height: 3, width: 52, backgroundColor: COLORS.primary, marginTop: 4 },
 
   // Date card
@@ -283,9 +285,9 @@ const st = StyleSheet.create({
     paddingVertical:   10,
   },
   cardTopLeft:   { flex: 1 },
-  tamilMonth:    { fontSize: 17, fontWeight: '600', color: BLUE },
-  tamilYear:     { fontSize: 11, color: TEXT3, marginTop: 2 },
-  tamilDateNum:  { fontSize: 24, fontWeight: '600', color: BLUE },
+  tamilMonth:    { fontSize: 17, fontWeight: '600', color: BLUE, fontFamily: FONTS.muktaMalar.bold },
+  tamilYear:     { fontSize: 11, color: TEXT3, marginTop: 2, fontFamily: FONTS.muktaMalar.regular },
+  tamilDateNum:  { fontSize: 24, fontWeight: '600', color: BLUE, fontFamily: FONTS.muktaMalar.bold },
   cardSep:       { height: 0.5, backgroundColor: BORDER },
   ramzanRow: {
     flexDirection:     'row',
@@ -309,7 +311,7 @@ const st = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical:   6,
   },
-  badgeText: { fontSize: 13, fontWeight: '600', color: '#3e2c00' },
+  badgeText: { fontSize: 13, fontWeight: '600', color: '#3e2c00', fontFamily: FONTS.muktaMalar.semibold },
 
   // Panchangam
   panchangam: { marginTop: 8 ,justifyContent:"center",alignItems:"center"},
@@ -333,7 +335,7 @@ const st = StyleSheet.create({
   },
 
   // Section heading
-  sectionHead: { fontSize: 16, fontWeight: '700', color: TEXT1, marginBottom: 12 },
+  sectionHead: { fontSize: 16, fontWeight: '700', color: TEXT1, marginBottom: 12, fontFamily: FONTS.muktaMalar.bold },
 
   // Bullet rows
   bulletRow: {
@@ -351,9 +353,9 @@ const st = StyleSheet.create({
     flexShrink:      0,
   },
   bulletContent: { flex: 1 },
-  bulletTitle:   { fontSize: 13.5, color: TEXT1, fontWeight: '500', lineHeight: 19 },
-  bulletDate:    { fontSize: 12,   color: TEXT3, marginTop: 2 },
-  histText:      { flex: 1, fontSize: 13.5, color: TEXT1, lineHeight: 19 },
+  bulletTitle:   { fontSize: 13.5, color: TEXT1, fontWeight: '500', lineHeight: 19, fontFamily: FONTS.muktaMalar.regular },
+  bulletDate:    { fontSize: 12,   color: TEXT3, marginTop: 2, fontFamily: FONTS.muktaMalar.regular },
+  histText:      { flex: 1, fontSize: 13.5, color: TEXT1, lineHeight: 22, fontFamily: FONTS.muktaMalar.regular },
 
   // More button
   moreBtn: {
@@ -364,5 +366,5 @@ const st = StyleSheet.create({
     paddingVertical: 11,
     alignItems:      'center',
   },
-  moreBtnText: { fontSize: 14, color: RED, fontWeight: '600' },
+  moreBtnText: { fontSize: 14, color: RED, fontWeight: '600', fontFamily: FONTS.muktaMalar.semibold },
 });

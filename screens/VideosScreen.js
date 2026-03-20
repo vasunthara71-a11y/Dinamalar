@@ -1118,7 +1118,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center', alignItems: 'center',
     position: 'relative',
     borderWidth: 1,
-    borderColor: PALETTE.grey700
+    borderColor: PALETTE.grey600
   },
   filterIconBtnActive: { backgroundColor: '#EBF5FF', borderWidth: 1, borderColor: PALETTE.primary },
   filterDot: {
@@ -1133,8 +1133,10 @@ const styles = StyleSheet.create({
   },
   catTab: {
     flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: s(14), paddingVertical: vs(7),
-    borderRadius: s(20), borderWidth: 1.5,
+    paddingHorizontal: s(12),
+    borderRadius: s(20),
+     borderWidth: 1,
+     height:ms(30),
     borderColor: PALETTE.grey300, backgroundColor: PALETTE.grey100, gap: s(4),
   },
   catTabActive: { backgroundColor: PALETTE.primary, },
@@ -1522,7 +1524,7 @@ const VideoSkeletonLoader = () => (
   <View style={{ backgroundColor: PALETTE.white }}>
     {/* Category tabs skeleton */}
     <View style={styles.catRow}>
-      <View style={[styles.filterIconBtn, { backgroundColor: PALETTE.grey200 }]} />
+      <View style={[styles.filterIconBtn, { backgroundColor: PALETTE.grey200,borderColor:PALETTE.grey200 }]} />
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -1532,7 +1534,7 @@ const VideoSkeletonLoader = () => (
         {[1, 2, 3, 4, 5].map((i) => (
           <View
             key={i}
-            style={[styles.catTab, { backgroundColor: PALETTE.grey200, borderColor: PALETTE.grey300, width: s(80) }]}
+            style={[styles.catTab, { backgroundColor: PALETTE.grey200, borderColor: PALETTE.grey100, width: s(80) }]}
           />
         ))}
       </ScrollView>

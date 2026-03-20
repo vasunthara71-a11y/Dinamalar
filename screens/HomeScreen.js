@@ -2174,6 +2174,8 @@ export default function HomeScreen() {
   );
 
   // --- Render ----------------------------------------------------------------
+  const { sf } = useFontSize();
+  
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor={PALETTE.white} />

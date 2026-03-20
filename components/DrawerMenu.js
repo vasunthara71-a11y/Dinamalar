@@ -137,19 +137,16 @@ const isValidSubItem = (sub) => {
 const isValidMenuItem = (item) => {
   const t = (item?.Title || item?.title || item?.name || '').trim();
   const isMundaiyaPathipugal = t === 'முன்னைய பாதிபுகள்' || t === 'முன்னைய பாடல்கள்' || t.toLowerCase().includes('mundaiya') || t.toLowerCase().includes('pathipugal');
-  const isTempleOrCinema = t === 'கோவில்கள்' || t === 'கோவில்' || t === 'Temple' || t === 'சினிமா' || t === 'Cinema' || 
-                           t.toLowerCase().includes('temple') || t.toLowerCase().includes('cinema') || 
-                           t.toLowerCase().includes('kovil') || t.toLowerCase().includes('கோவில்');
-  return t.length > 0 && !isMundaiyaPathipugal && !isTempleOrCinema;
+  const isTemple = t === 'கோவில்கள்' || t === 'கோவில்' || t === 'Temple' ||
+    t.toLowerCase().includes('temple') ||
+    t.toLowerCase().includes('kovil') || t.toLowerCase().includes('கோவில்');
+  return t.length > 0 && !isMundaiyaPathipugal && !isTemple;
 };
 
 const isValidMenu2Item = (item) => {
   const t = (item?.Title || item?.title || item?.name || '').trim();
   const isMundaiyaPathipugal = t === 'முன்னைய பாதிபுகள்' || t === 'முன்னைய பாடல்கள்' || t.toLowerCase().includes('mundaiya') || t.toLowerCase().includes('pathipugal');
-  const isTempleOrCinema = t === 'கோவில்கள்' || t === 'கோவில்' || t === 'Temple' || t === 'சினிமா' || t === 'Cinema' || 
-                           t.toLowerCase().includes('temple') || t.toLowerCase().includes('cinema') || 
-                           t.toLowerCase().includes('kovil') || t.toLowerCase().includes('கோவில்');
-  return t.length > 0 && !isMundaiyaPathipugal && !isTempleOrCinema;
+  return t.length > 0 && !isMundaiyaPathipugal;
 };
 
 const isValidFollowItem = (item) => {
@@ -304,8 +301,10 @@ const DrawerMenu = ({ isVisible, onClose, onMenuPress, navigation }) => {
     if (title === 'ஸ்பெஷல்' || id === 'special' || link === '/specialmain' || link.includes('specialmain')) { navigation?.navigate('CommonSectionScreen', { screenTitle: 'ஸ்பெஷல்', apiEndpoint: '/specialmain', allTabLink: '/specialmain', initialTabId: 'All', initialTabLink: '/specialmain', initialTabTitle: 'அனைத்தும்' }); onClose(); return; }
     const isSpecialParent = parentTitle === 'ஸ்பெஷல்' || parentId === 'special' || parentLink === '/specialmain';
     if (isSpecialParent || link.includes('specialcatlist') || link.includes('speciallist')) { navigation?.navigate('CommonSectionScreen', { screenTitle: 'ஸ்பெஷல்', apiEndpoint: '/specialmain', allTabLink: '/specialmain', initialTabId: id || item.etitle || 'all', initialTabLink: link || '', initialTabTitle: title || '' }); onClose(); return; }
-    if (title === 'ஆன்மீகம்' || id === 'anmegam' || link === '/anmegam' || link.includes('anmegam')) { navigation?.navigate('CommonSectionScreen', { screenTitle: 'ஆன்மீகம்', apiEndpoint: '/anmegam', allTabLink: '/anmegam' }); onClose(); return; }
-    const isAnmegamParent = parentTitle === 'ஆன்மீகம்' || parentId === 'anmegam' || parentLink === '/anmegam';
+if (title === 'ஆன்மீகம்' || id === 'anmegam' || link === '/anmegam') {
+  navigation?.navigate('CommonSectionScreen', { screenTitle: 'ஆன்மீகம்', apiEndpoint: '/anmegam', allTabLink: '/anmegam' });
+  onClose(); return;
+}    const isAnmegamParent = parentTitle === 'ஆன்மீகம்' || parentId === 'anmegam' || parentLink === '/anmegam';
     if (isAnmegamParent) { navigation?.navigate('CommonSectionScreen', { screenTitle: 'ஆன்மீகம்', apiEndpoint: '/anmegam', allTabLink: '/anmegam', initialTabId: id || '', initialTabLink: link || '', initialTabTitle: title || '' }); onClose(); return; }
     if (title === 'காலண்டர்' || id === 'calendar' || link === '/calendar' || link.includes('calendar')) { navigation?.navigate('CommonSectionScreen', { screenTitle: 'காலண்டர்', apiEndpoint: '/calendar', allTabLink: '/calendar' }); onClose(); return; }
     const isCalendarParent = parentTitle === 'காலண்டர்' || parentId === 'calendar' || parentLink === '/calendar';
@@ -361,8 +360,8 @@ const DrawerMenu = ({ isVisible, onClose, onMenuPress, navigation }) => {
             />
             {/* ☀ Light pill */}
             <View style={ds.themeToggle}>
-              <Ionicons name="sunny-outline" size={s(12)} color="#f5a623" />
-              <Text style={{ fontFamily: FONTS.muktaMalar.bold, fontSize: 14, color: P.grey700, marginLeft: s(3) }}>
+              <Ionicons name="sunny-outline" size={s(22)} color={P.grey700} />
+              <Text style={{ fontFamily: FONTS.muktaMalar, fontSize: 16, color: P.grey700, marginLeft: s(3) }}>
                 Light
               </Text>
             </View>
@@ -373,22 +372,20 @@ const DrawerMenu = ({ isVisible, onClose, onMenuPress, navigation }) => {
               hitSlop={{ top: 14, bottom: 14, left: 14, right: 14 }}
               activeOpacity={0.7}
             >
-              <Ionicons name="close" size={s(20)} color={P.grey800} />
+              <Ionicons name="close" size={s(30)} color={P.grey700} />
             </TouchableOpacity>
           </View>
 
           {/* ── Sign Up ────────────────────────────────────────────────── */}
           <View style={ds.signUpWrap}>
             <TouchableOpacity style={ds.signUpBtn} activeOpacity={0.8}>
-              <Text style={{ fontFamily: FONTS.muktaMalar.bold, fontSize: 14, color: P.grey800 }}>
+              <Text style={{ fontFamily: FONTS.muktaMalar.semibold, fontSize: ms(16), color: P.grey700 }}>
                 Sign Up
               </Text>
-              <Ionicons name="arrow-forward" size={s(13)} color={P.grey700} />
+              <Ionicons name="exit-outline" size={s(16)} color={P.grey700} />
             </TouchableOpacity>
           </View>
 
-          {/* ── Divider under sign up ──────────────────────────────────── */}
-          <View style={ds.topDivider} />
 
           {loading ? (
             <View style={ds.loaderWrap}>
@@ -408,11 +405,15 @@ const DrawerMenu = ({ isVisible, onClose, onMenuPress, navigation }) => {
                   onPress={() => { navigation?.navigate('MainTabs', { screen: 'Home' }); onClose(); }}
                   activeOpacity={0.7}
                 >
-                  <Ionicons name="home-outline" size={s(20)} color={P.grey800} style={{ marginRight: s(10) }} />
-                  <Text style={{ fontFamily: FONTS.muktaMalar.bold, fontSize: ms(16), color: P.grey800 }}>
+                  <Ionicons name="home-outline" size={s(20)} color={P.grey800} style={{ marginRight: s(15) }} />
+                  <Text style={{ fontFamily: FONTS.muktaMalar.semibold, fontSize: ms(17), color: P.grey700 }}>
                     முகப்பு
                   </Text>
                 </TouchableOpacity>
+
+
+                {/* ── Divider under sign up ──────────────────────────────────── */}
+                <View style={ds.topDivider} />
 
                 {/* menu1 rows */}
                 {validMenu1.map((item, index) => (
@@ -422,10 +423,10 @@ const DrawerMenu = ({ isVisible, onClose, onMenuPress, navigation }) => {
                     onPress={() => handleMenuItemPress(item)}
                     activeOpacity={0.7}
                   >
-                    <Text style={{ fontSize: 16, color: P.primary, fontFamily: FONTS.muktaMalar.bold, marginRight: s(8), lineHeight: 22 }}>
+                    <Text style={{ fontSize: 16, color: P.primary, fontFamily: FONTS.muktaMalar.semibold, marginRight: s(8), lineHeight: 22 }}>
                       »
                     </Text>
-                    <Text style={{ fontFamily: FONTS.muktaMalar.bold, fontSize: ms(16), color: "#454F5B", flex: 1 }} numberOfLines={1}>
+                    <Text style={{ fontFamily: FONTS.muktaMalar.semibold, fontSize: ms(17), color: "#454F5B", flex: 1 }} numberOfLines={1}>
                       {item.Title || item.title || item.name || ''}
                     </Text>
                   </TouchableOpacity>
@@ -442,7 +443,7 @@ const DrawerMenu = ({ isVisible, onClose, onMenuPress, navigation }) => {
                     <Text style={{ fontSize: 25, color: P.primary, fontFamily: FONTS.muktaMalar.bold, marginRight: s(8), lineHeight: ms(22) }}>
                       »
                     </Text>
-                    <Text style={{ fontFamily: FONTS.muktaMalar.bold, fontSize: ms(25), color: P.grey800, flex: 1 }} numberOfLines={1}>
+                    <Text style={{ fontFamily: FONTS.muktaMalar.semibold, fontSize: ms(25), color: P.grey800, flex: 1 }} numberOfLines={1}>
                       {item.Title || item.title || item.name || ''}
                     </Text>
                   </TouchableOpacity>
@@ -467,7 +468,7 @@ const DrawerMenu = ({ isVisible, onClose, onMenuPress, navigation }) => {
                     const isNri = itemTitle === 'உலக தமிழர்' || itemId === 'nrimain' || itemLink === '/nrimain';
                     const isSpecial = itemTitle === 'ஸ்பெஷல்' || itemId === 'special ' || itemLink === '/specialmain';
                     const isweekly = itemTitle === 'வாராவாரம்' || itemId === 'weekly' || itemLink === '/weekly';
-                    const isSpritual = itemTitle === 'ஆன்மிகம்' || itemId === 'anmigam' || itemLink === '/anmegam';
+                    const isSpritual = itemTitle === 'ஆன்மீகம்' || itemId === 'anmegam' || itemLink === '/anmegam';
                     const isCalendar = itemTitle === 'காலண்டர்' || itemId === 'calendar' || itemLink === '/calendar';
                     const isMalargal = itemTitle === 'மலர்கள்' || itemId === 'malargal' || itemLink === '/malargal';
                     const isPhoto = itemTitle === 'போட்டோ' || itemId === 'photo' || itemLink === '/photodata';
@@ -533,7 +534,7 @@ const DrawerMenu = ({ isVisible, onClose, onMenuPress, navigation }) => {
 
                           {/* Title — flex:1 pushes chevron to right edge */}
                           <Text
-                            style={{ fontFamily: FONTS.muktaMalar.bold, fontSize: ms(16), color: P.grey800, flex: 1 }}
+                            style={{ fontFamily: FONTS.muktaMalar.semibold, fontSize: ms(16), color: P.grey800, flex: 1 }}
                             numberOfLines={1}
                           >
                             {itemTitle}
@@ -543,8 +544,8 @@ const DrawerMenu = ({ isVisible, onClose, onMenuPress, navigation }) => {
                           {hasSub && (
                             <Ionicons
                               name={isExpanded ? 'chevron-up' : 'chevron-down'}
-                              size={s(14)}
-                              color={P.grey500}
+                              size={s(11)}
+                              color={P.grey700}
                               style={{ marginLeft: s(6) }}
                             />
                           )}
@@ -566,9 +567,9 @@ const DrawerMenu = ({ isVisible, onClose, onMenuPress, navigation }) => {
                                   <Text
                                     style={{
                                       flex: 1,
-                                      fontFamily: isAllRow ? FONTS.muktaMalar.bold : FONTS.muktaMalar.bold,
-                                      fontSize: ms(14),
-                                      color: isAllRow ? P.primary : P.grey600,
+                                      fontFamily: isAllRow ? FONTS.muktaMalar.semibold : FONTS.muktaMalar.regular,
+                                      fontSize: ms(16),
+                                      color: isAllRow ? P.primary : P.grey800,
                                       marginLeft: ms(10)
 
                                     }}
@@ -576,7 +577,7 @@ const DrawerMenu = ({ isVisible, onClose, onMenuPress, navigation }) => {
                                   >
                                     {subTitle}
                                   </Text>
-                                  <Ionicons name="chevron-forward" size={s(14)} color={isAllRow ? P.primary : P.grey500} />
+                                  <Ionicons name="chevron-forward" size={s(12)} color={isAllRow ? P.primary : P.grey700} />
                                 </TouchableOpacity>
                               );
                             })}
@@ -658,14 +659,14 @@ const ds = StyleSheet.create({
     borderWidth: 1,
     borderColor: P.grey300,
     borderRadius: s(20),
-    paddingHorizontal: s(10),
+    paddingHorizontal: s(12),
     paddingVertical: vs(4),
   },
 
   closeBtn: {
     width: s(30), height: s(30),
     borderRadius: s(15),
-    backgroundColor: P.grey200,
+    // backgroundColor: P.grey200,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -682,6 +683,7 @@ const ds = StyleSheet.create({
     borderRadius: s(6),
     paddingHorizontal: s(14),
     paddingVertical: vs(6),
+    justifyContent: "space-around"
   },
 
   topDivider: { height: 1, backgroundColor: P.border },

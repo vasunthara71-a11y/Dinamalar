@@ -309,8 +309,9 @@ export default function DistrictNewsScreen() {
         }
       }
 
-      // Default: All tab (tabs[0] has no id)
-      setActiveDistrict(tabs[0] || null);
+      // Default to Chennai district instead of All tab
+      const chennaiDistrict = tabs.find(t => t.title && (t.title.includes('சென்னை') || t.title.toLowerCase().includes('chennai')));
+      setActiveDistrict(chennaiDistrict || tabs[0] || null);
     } catch (e) {
       console.error('DistrictNewsScreen fetchAll error:', e?.message);
     } finally {
@@ -564,7 +565,7 @@ export default function DistrictNewsScreen() {
 
       <View style={styles.pageTitleRow}>
         <View style={styles.pageTitleLeft}>
-          <Text style={[styles.pageTitle, { fontSize: sf(16) }]}>{headerTitle}</Text>
+          <Text style={[styles.pageTitle, { fontSize: sf(18) }]}>{headerTitle}</Text>
           <View style={styles.pageTitleUnderline} />
         </View>
 
@@ -574,7 +575,7 @@ export default function DistrictNewsScreen() {
           activeOpacity={0.8}
         >
           <Text style={[styles.pickerBtnText, { fontSize: sf(10) }]}>உள்ளூர் செய்திகள்</Text>
-          <Ionicons name="chevron-down" size={s(14)} color={COLORS.primary} />
+          <Ionicons name="chevron-down" size={s(14)} color={COLORS.text} />
         </TouchableOpacity>
       </View>
 
@@ -669,13 +670,13 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   pageTitle: {
-    fontSize: scaledSizes.font.lg,
+    fontSize: sf(18),
     fontFamily: FONTS.muktaMalar.bold,
     color: '#1a1a1a',
-    marginBottom: vs(3),
+    // marginBottom: vs(3),
   },
   pageTitleUnderline: {
-    height: vs(5),
+    height: vs(3),
     width: '50%',
     backgroundColor: COLORS.primary,
   },
@@ -683,16 +684,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: s(4),
-    borderWidth: 1,
-    borderColor: COLORS.primary,
+    // borderWidth: 1,
+    borderColor: COLORS.text,
     // borderRadius: s(4),
     paddingHorizontal: s(5),
     paddingVertical: vs(5),
+    backgroundColor: '#e9e9e9',
   },
   pickerBtnText: {
     fontSize: ms(12),
     fontFamily: FONTS.muktaMalar.regular,
-    color: COLORS.primary,
+    color: COLORS.text,
+    fontWeight:'700'
   },
   list: { flex: 1 },
   listContent: { paddingTop: vs(6), paddingBottom: vs(30) },

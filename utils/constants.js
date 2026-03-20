@@ -88,36 +88,36 @@ export const COLORS = {
 // ─── Font Configuration ───────────────────────────────────────────────────────────────
 export const FONTS = {
   anek: {
-    family: 'AnekDevanagari',
-    thin: 'AnekDevanagari-Thin',
-    extraLight: 'AnekDevanagari-ExtraLight',
-    light: 'AnekDevanagari-Light',
-    regular: 'AnekDevanagari-Regular',
-    medium: 'AnekDevanagari-Medium',
-    semiBold: 'AnekDevanagari-SemiBold',
-    bold: 'AnekDevanagari-Bold',
-    extraBold: 'AnekDevanagari-ExtraBold',
+    family: 'AnekTamil',
+    thin: 'AnekTamil-Thin',
+    extraLight: 'AnekTamil-ExtraLight',
+    light: 'AnekTamil-Light',
+    regular: 'AnekTamil-Regular',
+    medium: 'AnekTamil-Medium',
+    semiBold: 'AnekTamil-SemiBold',
+    bold: 'AnekTamil-Bold',
+    extraBold: 'AnekTamil-ExtraBold',
     // Condensed variants
     condensed: {
-      thin: 'AnekDevanagari_Condensed-Thin',
-      extraLight: 'AnekDevanagari_Condensed-ExtraLight',
-      light: 'AnekDevanagari_Condensed-Light',
-      regular: 'AnekDevanagari_Condensed-Regular',
-      medium: 'AnekDevanagari_Condensed-Medium',
-      semiBold: 'AnekDevanagari_Condensed-SemiBold',
-      bold: 'AnekDevanagari_Condensed-Bold',
-      extraBold: 'AnekDevanagari_Condensed-ExtraBold',
+      thin: 'AnekTamil_Condensed-Thin',
+      extraLight: 'AnekTamil_Condensed-ExtraLight',
+      light: 'AnekTamil_Condensed-Light',
+      regular: 'AnekTamil_Condensed-Regular',
+      medium: 'AnekTamil_Condensed-Medium',
+      semiBold: 'AnekTamil_Condensed-SemiBold',
+      bold: 'AnekTamil_Condensed-Bold',
+      extraBold: 'AnekTamil_Condensed-ExtraBold',
     },
     // Expanded variants
     expanded: {
-      thin: 'AnekDevanagari_Expanded-Thin',
-      extraLight: 'AnekDevanagari_Expanded-ExtraLight',
-      light: 'AnekDevanagari_Expanded-Light',
-      regular: 'AnekDevanagari_Expanded-Regular',
-      medium: 'AnekDevanagari_Expanded-Medium',
-      semiBold: 'AnekDevanagari_Expanded-SemiBold',
-      bold: 'AnekDevanagari_Expanded-Bold',
-      extraBold: 'AnekDevanagari_Expanded-ExtraBold',
+      thin: 'AnekTamil_Expanded-Thin',
+      extraLight: 'AnekTamil_Expanded-ExtraLight',
+      light: 'AnekTamil_Expanded-Light',
+      regular: 'AnekTamil_Expanded-Regular',
+      medium: 'AnekTamil_Expanded-Medium',
+      semiBold: 'AnekTamil_Expanded-SemiBold',
+      bold: 'AnekTamil_Expanded-Bold',
+      extraBold: 'AnekTamil_Expanded-ExtraBold',
     },
   },
   muktaMalar: {
@@ -145,7 +145,7 @@ export const FONTS = {
       },
       imageWrap: {
         marginHorizontal: s(12),
-        marginTop: vs(8),
+        marginTop: vs(5),
         overflow: 'hidden',
         // backgroundColor: PALETTE.grey200,
         
@@ -267,32 +267,32 @@ export const FONT_STYLES = {
   // Anek font styles for English/Headings
   anek: {
     thin: {
-      fontFamily: 'AnekDevanagari-Thin',
+      fontFamily: 'AnekTamil-Thin',
       fontSize: 14,
       color: COLORS.text,
     },
     light: {
-      fontFamily: 'AnekDevanagari-Light',
+      fontFamily: 'AnekTamil-Light',
       fontSize: 14,
       color: COLORS.text,
     },
     regular: {
-      fontFamily: 'AnekDevanagari-Regular',
+      fontFamily: 'AnekTamil-Regular',
       fontSize: 14,
       color: COLORS.text,
     },
     medium: {
-      fontFamily: 'AnekDevanagari-Medium',
+      fontFamily: 'AnekTamil-Medium',
       fontSize: 14,
       color: COLORS.text,
     },
     bold: {
-      fontFamily: 'AnekDevanagari-Bold',
+      fontFamily: 'AnekTamil-Bold',
       fontSize: 14,
       color: COLORS.text,
     },
     extraBold: {
-      fontFamily: 'AnekDevanagari-ExtraBold',
+      fontFamily: 'AnekTamil-ExtraBold',
       fontSize: 14,
       color: COLORS.text,
     },
@@ -308,34 +308,34 @@ export const FONT_STYLES = {
   },
 
   // Quick shortcuts for Anek fonts
-  anekThin: { fontFamily: 'AnekDevanagari-Thin' },
-  anekLight: { fontFamily: 'AnekDevanagari-Light' },
-  anekRegular: { fontFamily: 'AnekDevanagari-Regular' },
-  anekMedium: { fontFamily: 'AnekDevanagari-Medium' },
-  anekBold: { fontFamily: 'AnekDevanagari-Bold' },
-  anekExtraBold: { fontFamily: 'AnekDevanagari-ExtraBold' },
+  anekThin: { fontFamily: 'AnekTamil-Thin' },
+  anekLight: { fontFamily: 'AnekTamil-Light' },
+  anekRegular: { fontFamily: 'AnekTamil-Regular' },
+  anekMedium: { fontFamily: 'AnekTamil-Medium' },
+  anekBold: { fontFamily: 'AnekTamil-Bold' },
+  anekExtraBold: { fontFamily: 'AnekTamil-ExtraBold' },
 
   // Condensed variants shortcuts
-  anekCondensedThin: { fontFamily: 'AnekDevanagari_Condensed-Thin' },
-  anekCondensedRegular: { fontFamily: 'AnekDevanagari_Condensed-Regular' },
-  anekCondensedMedium: { fontFamily: 'AnekDevanagari_Condensed-Medium' },
-  anekCondensedBold: { fontFamily: 'AnekDevanagari_Condensed-Bold' },
+  anekCondensedThin: { fontFamily: 'AnekTamil_Condensed-Thin' },
+  anekCondensedRegular: { fontFamily: 'AnekTamil_Condensed-Regular' },
+  anekCondensedMedium: { fontFamily: 'AnekTamil_Condensed-Medium' },
+  anekCondensedBold: { fontFamily: 'AnekTamil_Condensed-Bold' },
 
   // Expanded variants shortcuts
-  anekExpandedThin: { fontFamily: 'AnekDevanagari_Expanded-Thin' },
-  anekExpandedRegular: { fontFamily: 'AnekDevanagari_Expanded-Regular' },
-  anekExpandedMedium: { fontFamily: 'AnekDevanagari_Expanded-Medium' },
-  anekExpandedBold: { fontFamily: 'AnekDevanagari_Expanded-Bold' },
+  anekExpandedThin: { fontFamily: 'AnekTamil_Expanded-Thin' },
+  anekExpandedRegular: { fontFamily: 'AnekTamil_Expanded-Regular' },
+  anekExpandedMedium: { fontFamily: 'AnekTamil_Expanded-Medium' },
+  anekExpandedBold: { fontFamily: 'AnekTamil_Expanded-Bold' },
 
   // Mixed font combinations (Tamil + English)
   heading: {
-    fontFamily: 'AnekDevanagari-Bold', // English headings
+    fontFamily: 'AnekTamil-Bold', // English headings
     fontSize: 20,
     color: COLORS.text,
     fontWeight: 'bold',
   },
   subheading: {
-    fontFamily: 'AnekDevanagari-Medium', // English subheadings
+    fontFamily: 'AnekTamil-Medium', // English subheadings
     fontSize: 16,
     color: COLORS.text,
     fontWeight: '500',
@@ -347,7 +347,7 @@ export const FONT_STYLES = {
     lineHeight: 22,
   },
   caption: {
-    fontFamily: 'AnekDevanagari-Regular', // English captions
+    fontFamily: 'AnekTamil-Regular', // English captions
     fontSize: 12,
     color: COLORS.subtext,
   },

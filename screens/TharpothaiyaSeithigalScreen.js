@@ -43,18 +43,18 @@ const { width: SCREEN_W } = Dimensions.get('window');
 
 // These tabs have their own dedicated screens — tap navigates away
 const NAV_ONLY_TABS = [
-  { id: 'varthagam', title: 'வர்த்தகம்',  screen: 'VarthagamScreen'    },
-  { id: 'district',  title: 'உள்ளூர்',    screen: 'DistrictNewsScreen' },
-  { id: 'sports',    title: 'விளையாட்டு', screen: 'SportsScreen'       },
+  { id: 'varthagam', title: 'வர்த்தகம்', screen: 'VarthagamScreen' },
+  { id: 'district', title: 'உள்ளூர்', screen: 'DistrictNewsScreen' },
+  { id: 'sports', title: 'விளையாட்டு', screen: 'SportsScreen' },
 ];
 
 // These tabs fetch news inline
 const TOP_TABS = [
-  { id: 'tharpothaiya', title: 'தற்போதைய',  endpoint: '/newsdata?cat=5010' },
-  { id: 'tamilagam',   title: 'தமிழகம்',    endpoint: '/newsdata?cat=89'   },
-  { id: 'india',       title: 'இந்தியா',     endpoint: '/newsdata?cat=100'  },
-  { id: 'world',       title: 'உலகம்',       endpoint: '/newsdata?cat=34'   },
-  { id: 'premium',     title: 'பிரீமியம்',   endpoint: '/newsdata?cat=651'  },
+  { id: 'tharpothaiya', title: 'தற்போதைய செய்தி', endpoint: '/newsdata?cat=5010' },
+  { id: 'tamilagam', title: 'தமிழகம்', endpoint: '/newsdata?cat=89' },
+  { id: 'india', title: 'இந்தியா', endpoint: '/newsdata?cat=100' },
+  { id: 'world', title: 'உலகம்', endpoint: '/newsdata?cat=34' },
+  { id: 'premium', title: 'பிரீமியம்', endpoint: '/newsdata?cat=651' },
 ];
 
 // All tabs shown in the horizontal scroll bar (fetch tabs + nav-only tabs)
@@ -78,10 +78,10 @@ function SkeletonCard() {
 }
 
 const sk = StyleSheet.create({
-  card:  { backgroundColor: '#fff', marginBottom: vs(8) },
+  card: { backgroundColor: '#fff', marginBottom: vs(8) },
   image: { width: '100%', height: vs(190), backgroundColor: '#e8e8e8' },
-  body:  { padding: s(10) },
-  line:  {
+  body: { padding: s(10) },
+  line: {
     height: vs(12),
     backgroundColor: '#e8e8e8',
     borderRadius: s(4),
@@ -92,7 +92,7 @@ const sk = StyleSheet.create({
 
 // ─── News Card (same as HomeScreen) ────────────────────────────────────────────────────────
 // Fixed naming conflict - using TharpothaiyaNewsCard
-function TharpothaiyaNewsCard({ item, onPress }) {
+function TharpothaiyaNewsCard({ item, onPress, isPremium = false }) {
   const { sf } = useFontSize();
   const imageUri =
     item.images ||
@@ -106,7 +106,7 @@ function TharpothaiyaNewsCard({ item, onPress }) {
   const newscomment = item.newscomment || item.commentcount || '';
   const hasAudio = item.audio === 1 || item.audio === '1' || item.audio === true ||
     (typeof item.audio === 'string' && item.audio.length > 1 && item.audio !== '0');
-  
+
   return (
     <View style={NewsCard.wrap}>
       <TouchableOpacity onPress={onPress} activeOpacity={0.88}>
@@ -114,6 +114,12 @@ function TharpothaiyaNewsCard({ item, onPress }) {
         {/* Image with horizontal padding */}
         <View style={NewsCard.imageWrap}>
           <Image source={{ uri: imageUri }} style={NewsCard.image} resizeMode="cover" />
+          {/* Premium Tag */}
+          {isPremium && (
+            <View style={NewsCard.premiumTag}>
+              <Text style={NewsCard.premiumTagText}>பிரீமியம்</Text>
+            </View>
+          )}
         </View>
 
         {/* Content */}
@@ -133,11 +139,11 @@ function TharpothaiyaNewsCard({ item, onPress }) {
           <View style={NewsCard.metaRow}>
             <Text style={[NewsCard.timeText, { fontSize: sf(12) }]}>{ago}</Text>
             <View style={NewsCard.metaRight}>
-              
+
               {!!newscomment && newscomment !== '0' && (
                 <View style={NewsCard.commentRow}>
-                  <Ionicons name="chatbox" size={sf(14)} color={PALETTE.grey700} />
-                  <Text style={[NewsCard.commentText, { fontSize: sf(12) }]}> {newscomment}</Text>
+                  <Ionicons name="chatbox" size={sf(16)} color={PALETTE.grey600} />
+                  <Text style={[NewsCard.commentText, { fontSize: sf(13) }]}> {newscomment}</Text>
                 </View>
               )}
               {hasAudio && (
@@ -163,7 +169,7 @@ export default function TharpothaiyaSeithigalScreen({ route }) {
 
   const initialTabId = route?.params?.tabId || 'tharpothaiya';
   const initialTabTitle = route?.params?.initialTabTitle;
-  
+
   // Map tab titles to tab IDs
   const getTabIdFromTitle = (title) => {
     const titleToIdMap = {
@@ -175,36 +181,36 @@ export default function TharpothaiyaSeithigalScreen({ route }) {
     };
     return titleToIdMap[title] || 'tharpothaiya';
   };
-  
+
   // Use initialTabTitle if provided, otherwise use tabId
   const resolvedTabId = initialTabTitle ? getTabIdFromTitle(initialTabTitle) : initialTabId;
-  
-  // Only fetchable tabs can be the initial active tab
-  const initialTab   = TOP_TABS.find(t => t.id === resolvedTabId) || TOP_TABS[0];
 
-  const [activeTopTab,            setActiveTopTab]            = useState(initialTab);
-  const [subTabs,                 setSubTabs]                 = useState([]);
-  const [activeSubTab,            setActiveSubTab]            = useState(null);
-  const [news,                    setNews]                    = useState([]);
-  const [page,                    setPage]                    = useState(1);
-  const [lastPage,                setLastPage]                = useState(1);
-  const [loading,                 setLoading]                 = useState(true);
-  const [loadingMore,             setLoadingMore]             = useState(false);
-  const [refreshing,              setRefreshing]              = useState(false);
-  const [showScrollTop,           setShowScrollTop]           = useState(false);
-  const [isDrawerVisible,         setIsDrawerVisible]         = useState(false);
+  // Only fetchable tabs can be the initial active tab
+  const initialTab = TOP_TABS.find(t => t.id === resolvedTabId) || TOP_TABS[0];
+
+  const [activeTopTab, setActiveTopTab] = useState(initialTab);
+  const [subTabs, setSubTabs] = useState([]);
+  const [activeSubTab, setActiveSubTab] = useState(null);
+  const [news, setNews] = useState([]);
+  const [page, setPage] = useState(1);
+  const [lastPage, setLastPage] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  const [isDrawerVisible, setIsDrawerVisible] = useState(false);
   const [isLocationDrawerVisible, setIsLocationDrawerVisible] = useState(false);
-  const [selectedDistrict,        setSelectedDistrict]        = useState('உள்ளூர்');
+  const [selectedDistrict, setSelectedDistrict] = useState('உள்ளூர்');
 
   const topTabScrollRef = useRef(null);
   const subTabScrollRef = useRef(null);
-  const flatListRef     = useRef(null);
+  const flatListRef = useRef(null);
 
   // ✅ On every focus: if tabId is a nav-only tab, redirect immediately
   useEffect(() => {
     const newTabId = route?.params?.tabId;
     const newTabTitle = route?.params?.initialTabTitle;
-    
+
     // Handle tabId parameter
     if (newTabId) {
       const navOnly = NAV_ONLY_TABS.find(t => t.id === newTabId);
@@ -218,7 +224,7 @@ export default function TharpothaiyaSeithigalScreen({ route }) {
         setActiveTopTab(newTab);
       }
     }
-    
+
     // Handle initialTabTitle parameter
     if (newTabTitle) {
       const resolvedTabId = getTabIdFromTitle(newTabTitle);
@@ -238,7 +244,7 @@ export default function TharpothaiyaSeithigalScreen({ route }) {
   }, []);
 
   const buildUrl = useCallback((topTab, subTab, pg) => {
-    const ep  = subTab?.link || topTab.endpoint;
+    const ep = subTab?.link || topTab.endpoint;
     const sep = ep.includes('?') ? '&' : '?';
     return `${ep}${sep}page=${pg}`;
   }, []);
@@ -248,24 +254,24 @@ export default function TharpothaiyaSeithigalScreen({ route }) {
       const url = buildUrl(topTab, subTab, pg);
       console.log('Fetching:', url);
       const res = await CDNApi.get(url);
-      const d   = res?.data;
+      const d = res?.data;
 
       if (!append && !subTab) {
         setSubTabs(d?.subcatlist || []);
       }
 
       const list = (
-        d?.newlist?.data  ||
+        d?.newlist?.data ||
         d?.newslist?.data ||
-        d?.data           ||
-        d?.list           ||
+        d?.data ||
+        d?.list ||
         []
       ).filter(Boolean);
 
       const lp =
-        d?.newlist?.last_page  ||
+        d?.newlist?.last_page ||
         d?.newslist?.last_page ||
-        d?.last_page           ||
+        d?.last_page ||
         1;
 
       setLastPage(lp);
@@ -331,9 +337,9 @@ export default function TharpothaiyaSeithigalScreen({ route }) {
 
   const goToArticle = (item) => {
     navigation.navigate('NewsDetailsScreen', {
-      newsId:   item.newsid || item.id,
-      newsItem: item, 
-      slug:     item.slug || '',
+      newsId: item.newsid || item.id,
+      newsItem: item,
+      slug: item.slug || '',
       newsList: news,
     });
   };
@@ -354,9 +360,9 @@ export default function TharpothaiyaSeithigalScreen({ route }) {
 
   const handleSelectDistrict = (district) => {
     setSelectedDistrict(district.title);
-    if (district.id) navigation?.navigate('DistrictNewsScreen', { 
-      districtId: district.id, 
-      districtTitle: district.title 
+    if (district.id) navigation?.navigate('DistrictNewsScreen', {
+      districtId: district.id,
+      districtTitle: district.title
     });
   };
 
@@ -388,6 +394,13 @@ export default function TharpothaiyaSeithigalScreen({ route }) {
         />
       </UniversalHeaderComponent>
 
+      {/* ── Page Title ── */}
+      <View style={styles.pageTitleWrap}>
+        <Text style={[styles.pageTitle, { fontSize: sf(18) }]}>
+          {activeTopTab.title === 'தற்போதைய' ? 'தற்போதைய செய்திகள்' : `${activeTopTab.title} `}
+        </Text>
+      </View>
+
       {/* ── Top Tabs ── */}
       <View style={styles.topTabsWrapper}>
         <ScrollView
@@ -397,16 +410,16 @@ export default function TharpothaiyaSeithigalScreen({ route }) {
           contentContainerStyle={styles.tabsContent}
         >
           {ALL_DISPLAY_TABS.map((tab) => {
-              // Nav-only tabs are never shown as active
-              const isNavOnly = NAV_ONLY_TABS.some(t => t.id === tab.id);
-              const isActive  = !isNavOnly && activeTopTab.id === tab.id;
+            // Nav-only tabs are never shown as active
+            const isNavOnly = NAV_ONLY_TABS.some(t => t.id === tab.id);
+            const isActive = !isNavOnly && activeTopTab.id === tab.id;
             return (
               <TouchableOpacity
                 key={tab.id}
                 style={[styles.tab, isActive && styles.tabActive]}
                 onPress={() => handleTopTabPress(tab)}
               >
-                <Text style={[styles.tabText, isActive && styles.tabTextActive, { fontSize: sf(14) }]}>
+                <Text style={[styles.tabText, isActive && styles.tabTextActive,]}>
                   {tab.title}
                 </Text>
               </TouchableOpacity>
@@ -432,7 +445,11 @@ export default function TharpothaiyaSeithigalScreen({ route }) {
             `news-${activeTopTab.id}-${i}-${item?.newsid || item?.id || i}`
           }
           renderItem={({ item }) => (
-            <TharpothaiyaNewsCard item={item} onPress={() => goToArticle(item)} />
+            <TharpothaiyaNewsCard
+              item={item}
+              onPress={() => goToArticle(item)}
+              isPremium={activeTopTab.id === 'premium'}
+            />
           )}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
@@ -489,6 +506,18 @@ const styles = StyleSheet.create({
     paddingTop: Platform.OS === 'android' ? vs(28) : 0,
   },
 
+  pageTitleWrap: {
+    paddingHorizontal: s(14),
+    paddingTop: vs(14),
+    paddingBottom: vs(6),
+    backgroundColor: COLORS.white,
+  },
+  pageTitle: {
+    fontSize: ms(18),
+    color: COLORS.text,
+    fontFamily: FONTS.anek.bold,
+  },
+
   topTabsWrapper: {
     backgroundColor: '#fff',
     elevation: 3,
@@ -515,9 +544,18 @@ const styles = StyleSheet.create({
     borderBottomColor: COLORS.primary,
   },
 
-  tabText: TEXT_STYLES.tabs.small,
+  tabText: {
+     fontSize: ms(16),
+    fontFamily: FONTS.muktaMalar.medium,
+    color: COLORS.black,
+  },
 
-  tabTextActive: TEXT_STYLES.tabs.smallActive,
+  tabTextActive:
+  {
+     fontSize: ms(16),
+    fontFamily: FONTS.muktaMalar.medium,
+    color: COLORS.black,
+  },
 
   tabsBottomLine: {
     height: StyleSheet.hairlineWidth,

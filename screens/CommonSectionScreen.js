@@ -169,6 +169,9 @@ const RASI_LIST = [
   { etitle: 'meenam', title: 'மீனம்' },
 ];
 
+// Photo section IDs
+const PHOTO_SECTION_IDS = ['81', '5001', '5002', '5003', 'top10', 'mostcommented'];
+
 // ─────────────────────────────────────────────────────────────────────────────
 // HTML helpers
 // ─────────────────────────────────────────────────────────────────────────────
@@ -232,7 +235,6 @@ const RasiCard = ({ item, onPress }) => {
     'https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_default.jpg?im=Resize,width=400';
 
   const title = item.title || item.newstitle || '';
-  // ✅ videopath added
   const hasVideo = !!item.videopath || (item.video && item.video !== '0');
 
   return (
@@ -267,7 +269,6 @@ const rc = StyleSheet.create({
 // ─────────────────────────────────────────────────────────────────────────────
 // Inline Rasi Detail View
 // ─────────────────────────────────────────────────────────────────────────────
-// ✅ Added subTabs + onTabChange props for arrow tab navigation
 function RasiDetailView({ tabId, tabTitle, initialJcat, initialItem, onBack, subTabs, onTabChange }) {
   const [detail, setDetail] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -295,7 +296,6 @@ function RasiDetailView({ tabId, tabTitle, initialJcat, initialItem, onBack, sub
       console.log('[RasiDetailView] full response:', JSON.stringify(d, null, 2));
       console.log('[RasiDetailView] keys:', Object.keys(d || {}));
 
-      // ✅ videodailyrasi shape added first
       const item =
         d?.videodailyrasi?.data?.[0] ||
         d?.newlist?.data?.[0] ||
@@ -315,10 +315,6 @@ function RasiDetailView({ tabId, tabTitle, initialJcat, initialItem, onBack, sub
         null;
 
       console.log('[RasiDetailView] extracted item:', JSON.stringify(item, null, 2));
-      console.log('[RasiDetailView] item.palan:', item?.palan);
-      console.log('[RasiDetailView] item.rasi:', item?.rasi);
-      console.log('[RasiDetailView] item.description:', item?.description?.substring?.(0, 50));
-      console.log('[RasiDetailView] item.content:', item?.content?.substring?.(0, 50));
       setDetail(item || (d?.footnote ? d : initialItem || null));
     } catch (e) {
       console.error('[RasiDetailView] error:', e?.message);
@@ -329,7 +325,6 @@ function RasiDetailView({ tabId, tabTitle, initialJcat, initialItem, onBack, sub
     }
   }, [resolvedEndpoint, initialItem, selectedDate]);
 
-  // Fetch whenever activeJcat changes
   React.useEffect(() => { fetchDetail(activeJcat); }, [activeJcat]);
 
   const goToRasi = (etitle) => {
@@ -338,7 +333,6 @@ function RasiDetailView({ tabId, tabTitle, initialJcat, initialItem, onBack, sub
     scrollRef.current?.scrollTo({ y: 0, animated: false });
   };
 
-  // ✅ Arrows navigate between TABS (இன்றைய ராசி → வார ராசி → மாத ராசி...)
   const rasiTabList = (subTabs || []).filter(t => RASI_TAB_IDS.includes(String(t.id)));
   const currentTabIdx = rasiTabList.findIndex(t => String(t.id) === String(tabId));
   const prevDisabled = currentTabIdx <= 0;
@@ -354,10 +348,6 @@ function RasiDetailView({ tabId, tabTitle, initialJcat, initialItem, onBack, sub
   const footnoteHtml = detail?.footnote || detail?.content || detail?.description || '';
   const paragraphs = parseFootnoteParagraphs(footnoteHtml);
 
-  console.log('[RasiDetailView] extracted values:', {
-    date, prevDate, palan, rasiLabel, footnoteHtml, paragraphsCount: paragraphs.length
-  });
-  // ✅ videopath added
   const hasVideo = !!detail?.videopath || (detail?.video && detail.video !== '0');
   const videoUrl = detail?.videopath || detail?.videolink || detail?.videourl || '';
   const imageUri =
@@ -379,28 +369,6 @@ function RasiDetailView({ tabId, tabTitle, initialJcat, initialItem, onBack, sub
       contentContainerStyle={{ paddingBottom: vs(40) }}
       showsVerticalScrollIndicator={false}
     >
-      {/* ── Rasi chip strip (12 rashis) ── */}
-      {/* <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={rd.chipStrip}
-        contentContainerStyle={rd.chipContent}
-      >
-        {RASI_LIST.map(r => {
-          const active = r.etitle === activeJcat;
-          return (
-            <TouchableOpacity
-              key={r.etitle}
-              style={[rd.chip, active && rd.chipActive]}
-              onPress={() => goToRasi(r.etitle)}
-              activeOpacity={0.75}
-            >
-              <Text style={[rd.chipText, active && rd.chipTextActive]}>{r.title}</Text>
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView> */}
-
       {loading ? (
         <View style={rd.loaderWrap}>
           <ActivityIndicator size="large" color={COLORS.primary} />
@@ -408,19 +376,15 @@ function RasiDetailView({ tabId, tabTitle, initialJcat, initialItem, onBack, sub
         </View>
       ) : (
         <>
-          {/* ── Page title ── */}
           <Text style={rd.pageTitle}>{pageTitle}</Text>
           <View style={rd.dateRow}>
             {!!date && <Text style={rd.date}>{date}</Text>}
-
           </View>
 
-          {/* ── Previous date row ── */}
           {!!prevDate && (
             <View style={rd.prevDateRow}>
               <Text style={rd.prevDateLabel}>முந்தய நாட்களின் ராசி</Text>
               <TouchableOpacity onPress={() => setShowDatePicker(true)} style={rd.datePickerBtn}>
-
                 <View style={rd.prevDateBadge}>
                   <Ionicons name="calendar-outline" size={s(13)} color="#555" />
                   <Text style={rd.prevDateText}>{prevDate}</Text>
@@ -429,8 +393,6 @@ function RasiDetailView({ tabId, tabTitle, initialJcat, initialItem, onBack, sub
             </View>
           )}
 
-
-          {/* ── Rasi : Palan ── */}
           {(!!rasiLabel || !!palan) && (
             <View style={rd.rasiPalanRow}>
               <View style={rd.greyDot} />
@@ -438,10 +400,7 @@ function RasiDetailView({ tabId, tabTitle, initialJcat, initialItem, onBack, sub
             </View>
           )}
 
-
-          {/* ── Image + side arrows ── */}
           <View style={rd.imageSection}>
-            {/* ✅ left arrow → previous TAB */}
             <TouchableOpacity
               style={[rd.arrowBtn, rd.arrowLeft]}
               onPress={goToPrev}
@@ -451,22 +410,7 @@ function RasiDetailView({ tabId, tabTitle, initialJcat, initialItem, onBack, sub
               <Ionicons name="chevron-back" size={s(24)} color={prevDisabled ? '#ccc' : '#333'} />
             </TouchableOpacity>
 
-            {/* tap thumbnail → plays video in fullscreen Modal */}
             <View style={rd.imageWrap}>
-              {/* <TouchableOpacity
-                style={{ flex: 1 }}
-                activeOpacity={hasVideo ? 0.85 : 1}
-                onPress={() => { if (hasVideo && videoUrl) setVideoPlaying(true); }}
-              >
-                <Image source={{ uri: imageUri }} style={rd.image} resizeMode="cover" />
-                {hasVideo && (
-                  <View style={rd.playOverlay}>
-                    <View style={rd.playBtn}>
-                      <Ionicons name="play" size={s(28)} color="#fff" />
-                    </View>
-                  </View>
-                )}
-              </TouchableOpacity> */}
               <VideoPlayerModal
                 visible={hasVideo && videoPlaying}
                 url={videoUrl}
@@ -474,10 +418,6 @@ function RasiDetailView({ tabId, tabTitle, initialJcat, initialItem, onBack, sub
               />
             </View>
 
-            {/* ── Fullscreen video Modal ── */}
-
-
-            {/* ✅ right arrow → next TAB */}
             <TouchableOpacity
               style={[rd.arrowBtn, rd.arrowRight]}
               onPress={goToNext}
@@ -488,7 +428,6 @@ function RasiDetailView({ tabId, tabTitle, initialJcat, initialItem, onBack, sub
             </TouchableOpacity>
           </View>
 
-          {/* ── Share row ── */}
           <View style={rd.shareRow}>
             {[
               { icon: 'logo-facebook', bg: '#1877F2', onPress: () => Linking.openURL(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`) },
@@ -506,12 +445,10 @@ function RasiDetailView({ tabId, tabTitle, initialJcat, initialItem, onBack, sub
             ))}
           </View>
 
-          {/* ── Rasi title underlined ── */}
           <View style={rd.rasiTitleWrap}>
             <Text style={rd.rasiTitleText}>{rasiLabel}</Text>
           </View>
 
-          {/* ── Footnote paragraphs ── */}
           <View style={rd.footnoteWrap}>
             {paragraphs.length > 0 ? (
               paragraphs.map((p, i) =>
@@ -527,7 +464,6 @@ function RasiDetailView({ tabId, tabTitle, initialJcat, initialItem, onBack, sub
             )}
           </View>
 
-          {/* ── Error ── */}
           {!!error && !footnoteHtml && (
             <View style={rd.errorRow}>
               <Text style={rd.errorText}>{error}</Text>
@@ -536,11 +472,6 @@ function RasiDetailView({ tabId, tabTitle, initialJcat, initialItem, onBack, sub
               </TouchableOpacity>
             </View>
           )}
-
-          {/* ── மேலும் strip ── */}
-          {/* <View style={rd.moreStrip}>
-            <Text style={rd.moreText}>மேலும் {tabTitle} :</Text>
-          </View> */}
         </>
       )}
 
@@ -563,36 +494,25 @@ function RasiDetailView({ tabId, tabTitle, initialJcat, initialItem, onBack, sub
 }
 
 const rd = StyleSheet.create({
-  // Chip strip
   chipStrip: { backgroundColor: '#fff', maxHeight: vs(46), borderBottomWidth: 1, borderBottomColor: '#eee' },
   chipContent: { paddingHorizontal: s(8), alignItems: 'center', paddingVertical: vs(5), gap: s(5) },
   chip: { paddingHorizontal: s(12), paddingVertical: vs(5), borderRadius: s(20), backgroundColor: '#f0f0f0', borderWidth: 1, borderColor: 'transparent' },
   chipActive: { backgroundColor: COLORS.primary + '18', borderColor: COLORS.primary },
   chipText: { fontSize: ms(12), fontFamily: FONTS.muktaMalar.regular, color: '#555' },
   chipTextActive: { color: COLORS.primary, fontWeight: '700' },
-
-  // Loader
   loaderWrap: { alignItems: 'center', justifyContent: 'center', paddingVertical: vs(60), gap: vs(12) },
   loaderText: { fontSize: ms(14), color: '#888', fontFamily: FONTS.muktaMalar.regular },
-
-  // Title / date
   pageTitle: { fontSize: ms(18), fontFamily: FONTS.anek.bold, color: '#111', fontWeight: '700', paddingHorizontal: s(12), paddingTop: vs(14), marginBottom: vs(4) },
   date: { fontSize: ms(13), color: '#888', fontFamily: FONTS.muktaMalar.regular },
   dateRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: s(12), marginBottom: vs(10) },
   datePickerBtn: { padding: s(5) },
-
-  // Prev date
   prevDateRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: s(12), paddingVertical: vs(8), backgroundColor: '#f8f8f8', borderTopWidth: 1, borderBottomWidth: 1, borderColor: '#eee', marginBottom: vs(10) },
   prevDateLabel: { fontSize: ms(13), fontFamily: FONTS.muktaMalar.regular, color: '#444' },
   prevDateBadge: { flexDirection: 'row', alignItems: 'center', gap: s(5), backgroundColor: '#fff', borderWidth: 1, borderColor: '#ddd', paddingHorizontal: s(8), paddingVertical: vs(4), borderRadius: s(4) },
   prevDateText: { fontSize: ms(12), fontFamily: FONTS.muktaMalar.regular, color: '#444' },
-
-  // Rasi : Palan
   rasiPalanRow: { flexDirection: 'row', alignItems: 'center', gap: s(8), paddingHorizontal: s(12), marginBottom: vs(10), justifyContent: 'flex-end' },
   greyDot: { width: s(8), height: s(8), borderRadius: s(4), backgroundColor: '#888' },
   rasiPalanText: { fontSize: ms(13), fontFamily: FONTS.muktaMalar.bold, color: '#444', fontWeight: '600' },
-
-  // Image + arrows
   imageSection: { flexDirection: 'row', alignItems: 'center' },
   arrowBtn: { width: s(32), alignItems: 'center', justifyContent: 'center', paddingVertical: vs(10) },
   arrowLeft: { paddingLeft: s(4) },
@@ -601,29 +521,19 @@ const rd = StyleSheet.create({
   image: { width: '100%', height: '100%', resizeMode: 'cover' },
   playOverlay: { ...StyleSheet.absoluteFillObject, justifyContent: 'center', alignItems: 'center' },
   playBtn: { width: s(56), height: s(56), borderRadius: s(28), backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'center', alignItems: 'center', paddingLeft: s(3) },
-
-  // Share
   shareRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: vs(14), gap: s(14), borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
   shareCircle: { width: s(36), height: s(36), borderRadius: s(18), alignItems: 'center', justifyContent: 'center' },
   shareCircleBorder: { borderWidth: 1, borderColor: '#ddd' },
-
-  // Rasi title underlined
   rasiTitleWrap: { paddingHorizontal: s(12), paddingTop: vs(14), paddingBottom: vs(8) },
   rasiTitleText: { fontSize: ms(16), fontFamily: FONTS.muktaMalar.medium || FONTS.muktaMalar.bold, color: '#111', fontWeight: '700', textDecorationLine: 'underline' },
-
-  // Footnote
   footnoteWrap: { paddingHorizontal: s(12), paddingTop: vs(4) },
   paragraph: { fontSize: ms(15), fontFamily: FONTS.muktaMalar.regular, color: '#333', lineHeight: ms(24), marginBottom: vs(10) },
   emptyWrap: { alignItems: 'center', paddingVertical: vs(40), gap: vs(10) },
   emptyText: { fontSize: ms(14), color: '#aaa', fontFamily: FONTS.muktaMalar.regular },
-
-  // Error
   errorRow: { alignItems: 'center', paddingHorizontal: s(20), paddingVertical: vs(20), gap: vs(10) },
   errorText: { fontSize: ms(14), color: '#888', textAlign: 'center', fontFamily: FONTS.muktaMalar.regular },
   retryBtn: { paddingHorizontal: s(20), paddingVertical: vs(8), backgroundColor: COLORS.primary, borderRadius: s(6) },
   retryText: { color: '#fff', fontSize: ms(13), fontFamily: FONTS.muktaMalar.medium, fontWeight: '700' },
-
-  // மேலும்
   moreStrip: { paddingHorizontal: s(12), paddingVertical: vs(14), borderTopWidth: 1, borderTopColor: '#eee', marginTop: vs(16) },
   moreText: { fontSize: ms(15), fontFamily: FONTS.muktaMalar.medium || FONTS.muktaMalar.bold, color: '#222', fontWeight: '700' },
 });
@@ -649,41 +559,26 @@ const sk = StyleSheet.create({
   body: { padding: s(12) },
   line: { height: vs(12), backgroundColor: '#e8e8e8', marginBottom: vs(6), width: '90%' },
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Section Title
 // ─────────────────────────────────────────────────────────────────────────────
 function SectionTitle({ title }) {
   const { sf } = useFontSize();
-
   return (
     <View style={st.sectionHeader}>
       <View style={st.titleContainer}>
-        <Text style={[st.sectionTitle, { fontSize: sf(16) }]}>{title || ''}</Text>
+        <Text style={[st.sectionTitle, { fontSize: sf(18) }]}>{title || ''}</Text>
         <View style={st.sectionUnderline} />
       </View>
     </View>
   );
 }
 const st = StyleSheet.create({
-  sectionHeader: {
-    // backgroundColor: PALETTE.white,
-    // paddingHorizontal: s(12),
-    // paddingTop: vs(14),
-    paddingBottom: vs(10),
-  },
-  titleContainer: {
-    flexDirection: 'column',
-    alignItems: 'flex-start',
-  },
-  sectionTitle: {
-    fontFamily: FONTS.muktaMalar.bold,
-    color: PALETTE.grey800,
-    // marginBottom: vs(2),
-  },
-  sectionUnderline: {
-    height: vs(3),
-    width: '20%',
-    backgroundColor: PALETTE.primary,
-  },
+  sectionHeader: { paddingBottom: vs(10) },
+  titleContainer: { flexDirection: 'column', alignItems: 'flex-start' },
+  sectionTitle: { fontFamily: FONTS.muktaMalar.bold, color: PALETTE.grey800 },
+  sectionUnderline: { height: vs(3), width: '20%', backgroundColor: PALETTE.primary },
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -691,7 +586,6 @@ const st = StyleSheet.create({
 // ─────────────────────────────────────────────────────────────────────────────
 function InlineVideoPlayer({ url, style }) {
   if (!url) return null;
-
   const html = `
     <!DOCTYPE html>
     <html>
@@ -700,24 +594,14 @@ function InlineVideoPlayer({ url, style }) {
         <style>
           * { margin: 0; padding: 0; box-sizing: border-box; }
           html, body { width: 100%; height: 100%; background: #000; }
-          iframe {
-            width: 100%;
-            height: 100%;
-            border: none;
-            border-radius: 6px;
-          }
+          iframe { width: 100%; height: 100%; border: none; border-radius: 6px; }
         </style>
       </head>
       <body>
-        <iframe
-          src="${url}"
-          allowfullscreen
-          allow="autoplay; fullscreen"
-        ></iframe>
+        <iframe src="${url}" allowfullscreen allow="autoplay; fullscreen"></iframe>
       </body>
     </html>
   `;
-
   return (
     <WebView
       source={{ html }}
@@ -730,6 +614,7 @@ function InlineVideoPlayer({ url, style }) {
   );
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
 // News Card (same as HomeScreen)
 // ─────────────────────────────────────────────────────────────────────────────
 function NewsCard({ item, onPress, sectionTitle = '' }) {
@@ -739,7 +624,8 @@ function NewsCard({ item, onPress, sectionTitle = '' }) {
     item.largeimages || item.images || item.image || item.thumbnail || item.thumb ||
     'https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_default.jpg?im=Resize,width=400';
 
-  const title = item.newstitle || item.title || item.videotitle || item.name || '';
+  const title = item.newstitle || item.title || item.videotitle ||
+    item.footnote || item.name || '';
   const category = item.maincat || item.categrorytitle || item.ctitle || item.maincategory || sectionTitle || '';
   const ago = item.ago || item.time_ago || item.standarddate || item.date || '';
   const newscomment = item.newscomment || item.commentcount || item.nmcomment || item.comments?.total || '';
@@ -776,7 +662,6 @@ function NewsCard({ item, onPress, sectionTitle = '' }) {
                   <Ionicons name="volume-high" size={s(14)} color={PALETTE.grey700} />
                 </View>
               )}
-
               {!!newscomment && newscomment !== '0' && (
                 <View style={NewsCardStyles.commentRow}>
                   <Ionicons name="chatbox" size={s(14)} color={PALETTE.grey700} />
@@ -787,7 +672,6 @@ function NewsCard({ item, onPress, sectionTitle = '' }) {
           </View>
         </View>
       </TouchableOpacity>
-
       <View style={NewsCardStyles.divider} />
     </View>
   );
@@ -860,10 +744,7 @@ export default function CommonSectionScreen() {
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [taboolaAds, setTaboolaAds] = useState(null);
 
-  // ── Inline rasi detail state ──────────────────────────────────────────────
-  // When not null: shows RasiDetailView instead of the rasi card list
   const [rasiDetailItem, setRasiDetailItem] = useState(null);
-  // { jcat, item } — item is the tapped card for instant display
 
   const [isDrawerVisible, setIsDrawerVisible] = useState(false);
   const [isLocationDrawerVisible, setIsLocationDrawerVisible] = useState(false);
@@ -883,6 +764,13 @@ export default function CommonSectionScreen() {
     if (!tab?.link || tabIsAll(tab)) return;
     try {
       const isRasiSubTab = RASI_TAB_IDS.includes(String(tab.id));
+      const isPhotoSubTab = tab.link?.includes('photoitem') ||
+        tab.link?.includes('getsocialmedia') ||
+        tab.link?.includes('webstories');
+
+      const isAnmegamSubTab = tab.link?.includes('anmegammain') ||
+        tab.link?.includes('anmegam');
+
       let url = isRasiSubTab ? '/joshiyam' : tab.link;
       const sep = url.includes('?') ? '&' : '?';
       const fullUrl = `${url}${sep}page=${pg}`;
@@ -890,12 +778,52 @@ export default function CommonSectionScreen() {
       const d = res?.data;
 
       let list = [];
+
       if (isRasiSubTab && d?.newlist?.[0]?.data) {
         list = d.newlist[0].data;
+
+      } else if (isAnmegamSubTab) {
+        // ── /anmegammainlist: newlist is an OBJECT with data array + pagination
+        if (tab.link?.includes('anmegammainlist')) {
+          list = Array.isArray(d?.newlist?.data) ? d.newlist.data : extractList(d).filter(Boolean);
+          const lp = d?.newlist?.pagination?.last_page || extractLastPage(d) || 1;
+          setTabLastPage(lp);
+          setTabNews(prev => append ? [...prev, ...list] : list);
+          setTabPage(pg);
+          return;
+        }
+
+        // ── /anmegammain: newlist is an ARRAY of sections
+        if (Array.isArray(d?.newlist)) {
+          const sections = d.newlist.filter(s => Array.isArray(s?.data) && s.data.length > 0);
+          if (sections.length > 0) {
+            setAllSections(sections);
+            setSubTabs(d?.subcatlist || []);
+            setTabNews([]);
+            setTabPage(pg);
+            setTabLastPage(extractLastPage(d) || 1);
+            setActiveTab(prev => ({ ...prev, _isAnmegamChild: true, _isAllTab: true }));
+            return;
+          }
+        }
+        list = extractList(d).filter(Boolean);
+
+      } else if (isPhotoSubTab) {
+        list = d?.data ||
+          d?.newlist?.data ||
+          d?.indraiyephoto?.data ||
+          d?.pogaimadam?.data ||
+          d?.cartoons?.data ||
+          d?.nri?.data ||
+          extractList(d);
       } else {
         list = extractList(d).filter(Boolean);
       }
-      const lp = extractLastPage(d);
+
+      const lp = extractLastPage(d) ||
+        d?.indraiyephoto?.last_page ||
+        d?.pogaimadam?.last_page ||
+        d?.cartoons?.last_page || 1;
       setTabLastPage(lp);
       setTabNews(prev => append ? [...prev, ...list] : list);
       setTabPage(pg);
@@ -911,12 +839,10 @@ export default function CommonSectionScreen() {
   // ── Fetch main endpoint ────────────────────────────────────────────────────
   const fetchAll = useCallback(async () => {
     try {
-      // Use different API based on useFullUrl flag
       const api = useFullUrl ? mainApi : CDNApi;
       const res = await api.get(apiEndpoint);
       const d = res?.data;
 
-      // Check if response is HTML content (for static pages)
       if (typeof d === 'string' && d.includes('<html')) {
         setHtmlContent(d);
         setAllSections([]);
@@ -924,9 +850,140 @@ export default function CommonSectionScreen() {
         setActiveTab({ title: 'அனைத்தும்', link: apiEndpoint, _isAllTab: true });
         return;
       }
-
-      // Reset HTML content if not HTML
       setHtmlContent(null);
+
+      // ── Handle photodata API shape ────────────────────────────────────────
+      if (apiEndpoint.includes('photodata') || d?.indraiyephoto || d?.pogaimadam || d?.cartoons) {
+        const photoSections = [];
+
+        if (d?.indraiyephoto?.data?.length > 0)
+          photoSections.push({ title: 'இன்றைய போட்டோ', id: '81', data: d.indraiyephoto.data });
+
+        if (d?.pogaimadam?.data?.length > 0)
+          photoSections.push({ title: 'புகைப்பட ஆல்பம்', id: '5001', data: d.pogaimadam.data });
+
+        if (d?.cartoons?.data?.length > 0)
+          photoSections.push({ title: 'கார்ட்டூன்ஸ்', id: '5002', data: d.cartoons.data });
+
+        if (d?.nri?.data?.length > 0)
+          photoSections.push({ title: 'NRI ஆல்பம்', id: '5003', data: d.nri.data });
+
+        if (d?.top10?.data?.length > 0)
+          photoSections.push({ title: 'அதிகம் பார்த்தவைகள்', id: 'top10', data: d.top10.data });
+
+        if (d?.mostcommented?.data?.length > 0)
+          photoSections.push({ title: 'அதிகம் விமர்ச்சிக்கப்பட்டவை', id: 'mostcommented', data: d.mostcommented.data });
+
+        const tabs = d?.subcatlisting || [];
+        setSubTabs(tabs);
+        setAllSections(photoSections);
+        setTaboolaAds(d?.taboola_ads?.mobile || null);
+        setActiveTab({ title: 'அனைத்தும்', link: apiEndpoint, _isAllTab: true });
+        return;
+      }
+
+      // ── ORDER MATTERS: most specific first ───────────────────────────────
+
+      // ── Handle /anmegammainlist?cat=X&subcat=Y ────────────────────────────
+      if (apiEndpoint.includes('anmegammainlist')) {
+        const tabs = d?.subcatlist || [];
+        setSubTabs(tabs);
+        const listData = Array.isArray(d?.newlist?.data) ? d.newlist.data : [];
+        const lp = d?.newlist?.pagination?.last_page || 1;
+        setAllSections([{
+          title: '',  // ✅ FIX: empty string so SectionTitle doesn't render
+          id: d?.newlist?.id || '',
+          data: listData,
+          _isAnmegamSection: true,
+        }]);
+        setTabLastPage(lp);
+        setTaboolaAds(d?.taboola_ads?.mobile || null);
+        setActiveTab({ title: 'அனைத்தும்', link: apiEndpoint, _isAllTab: true });
+        return;
+      }
+
+      // ── Handle /anmegammain?cat=HIN ───────────────────────────────────────
+      if (apiEndpoint.includes('anmegammain')) {
+        const sections = [];
+        if (Array.isArray(d?.newlist)) {
+          d.newlist.forEach(item => {
+            if (Array.isArray(item?.data) && item.data.length > 0) {
+              sections.push({
+                title: item.title || '',
+                id: item.id || '',
+                data: item.data.slice(0, 3),
+                link: item.link,
+                slug: item.slug,
+                _isAnmegamSection: true,
+              });
+            }
+          });
+        }
+        const tabs = d?.subcatlist || [];
+        setSubTabs(tabs);
+        setAllSections(sections);
+        setTaboolaAds(d?.taboola_ads?.mobile || null);
+        setActiveTab({ title: 'அனைத்தும்', link: apiEndpoint, _isAllTab: true });
+        return;
+      }
+
+      // ── Handle /anmegam (parent) ──────────────────────────────────────────
+      // ── Handle /anmegam (parent) ──────────────────────────────────────────
+      if (apiEndpoint.includes('anmegam')) {
+        const anmegamSections = [];
+        if (d?.newlist?.length > 0) {
+          d.newlist.forEach(item => {
+            if (item.data?.length > 0) {
+              anmegamSections.push({
+                title: item.title,
+                id: item.id,
+                data: [{
+                  _isCategoryCard: true,
+                  images: item.images,
+                  largeimages: item.images,
+                  title: item.title,
+                  engtitle: item.engtitle,
+                  link: item.link,
+                  slug: item.slug,
+                  maincat: item.maincat,
+                  maincategory: item.maincategory,
+                  maincatid: item.maincatid,
+                  id: item.id,
+                }],
+                link: item.link,
+                slug: item.slug,
+                maincat: item.maincat,
+                maincatid: item.maincatid,
+              });
+            }
+          });
+        }
+
+        const tabs = d?.subcatlist || [];
+        setSubTabs(tabs);
+        setAllSections(anmegamSections);
+        setTaboolaAds(d?.taboola_ads?.mobile || null);
+        setActiveTab({ title: 'அனைத்தும்', link: apiEndpoint, _isAllTab: true });
+
+        // ✅ FIX: if initialTabLink is set (e.g. Islam from drawer), push directly to that child screen
+        if (initialTabLink && initialTabLink !== '/anmegam' && initialTabLink !== allTabLink) {
+          const preselected = tabs.find(t =>
+            t.link === initialTabLink ||
+            (initialTabId && String(t.id) === String(initialTabId))
+          );
+          if (preselected && preselected.link?.includes('anmegammain')) {
+            navigation.push('CommonSectionScreen', {
+              screenTitle: preselected.title,
+              apiEndpoint: preselected.link,
+              allTabLink: preselected.link,
+              useFullUrl: false,
+            });
+          }
+        }
+
+        return;
+      }
+      // ── existing logic ────────────────────────────────────────────────────
 
       const tabs =
         d?.speciallist || d?.subcatlist || d?.catlist ||
@@ -943,11 +1000,6 @@ export default function CommonSectionScreen() {
         (Array.isArray(d?.sections) ? d.sections : null) ||
         (Array.isArray(d?.data) ? d.data : null) ||
         [];
-
-      // Special handling for photodata API - if data is directly an array of items
-      if (apiEndpoint.includes('photodata') && Array.isArray(d) && d.length > 0) {
-        rawSections = [{ title: '', id: 'all', data: d }];
-      }
 
       const sectionsWithData = rawSections.filter(sec => Array.isArray(sec?.data) && sec.data.length > 0);
       let finalSections = sectionsWithData;
@@ -967,8 +1019,6 @@ export default function CommonSectionScreen() {
       }
 
       setAllSections(finalSections);
-
-      // Store mobile Taboola placements from the API
       setTaboolaAds(d?.taboola_ads?.mobile || null);
 
       if (initialTabId || initialTabLink) {
@@ -1003,24 +1053,72 @@ export default function CommonSectionScreen() {
       setTabNews([]);
       setTabPage(1);
       setTabLastPage(1);
-      setRasiDetailItem(null); // reset detail on focus
+      setRasiDetailItem(null);
       fetchAll();
     }, [fetchAll])
   );
 
   // ── Tab press ──────────────────────────────────────────────────────────────
   const handleTabPress = (tab) => {
+    setRasiDetailItem(null);
+
+    const pressedIsAll = !!tab._isAllTab || tab.link === allTabLink;
+
+    // ── /anmegam parent → clicking இந்து/இஸ்லாம் etc → push /anmegammain screen
+    if (
+      apiEndpoint.includes('anmegam') &&
+      !apiEndpoint.includes('anmegammain') &&
+      !pressedIsAll &&
+      tab.link?.includes('anmegammain')
+    ) {
+      navigation.push('CommonSectionScreen', {
+        screenTitle: tab.title,
+        apiEndpoint: tab.link,
+        allTabLink: tab.link,
+        useFullUrl: false,
+      });
+      return;
+    }
+
+    // ── /anmegammain → clicking கட்டுரைகள்/தகவல்கள் etc → push /anmegammainlist screen
+    if (
+      apiEndpoint.includes('anmegammainlist') &&
+      !pressedIsAll &&
+      tab.link?.includes('anmegammainlist') &&
+      tab.link !== apiEndpoint  // ✅ not the same tab
+    ) {
+      navigation.push('CommonSectionScreen', {
+        screenTitle: tab.title,
+        apiEndpoint: tab.link,
+        allTabLink: allTabLink,
+        useFullUrl: false,
+      });
+      return;
+    }
+
+    // ── /anmegammainlist → clicking "All" tab → push /anmegammain screen
+    // ✅ MUST be before alreadyActive check — otherwise blocked when activeTab._isAllTab=true
+    if (
+      apiEndpoint.includes('anmegammainlist') &&
+      pressedIsAll &&
+      tab.link?.includes('anmegammain')
+    ) {
+      navigation.push('CommonSectionScreen', {
+        screenTitle: tab.title || screenTitle,
+        apiEndpoint: tab.link,
+        allTabLink: tab.link,
+        useFullUrl: false,
+      });
+      return;
+    }
+
+    // ✅ alreadyActive check AFTER navigation.push cases above
     const alreadyActive = activeTab
       ? (tabIsAll(tab) ? tabIsAll(activeTab) : String(activeTab.id) === String(tab.id))
       : false;
     if (alreadyActive) return;
 
-    // Clear inline rasi detail when switching tabs
-    setRasiDetailItem(null);
-
-    const pressedIsAll = !!tab._isAllTab || tab.link === allTabLink;
     const nextTab = { ...tab, _isAllTab: pressedIsAll };
-
     setActiveTab(nextTab);
     flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
 
@@ -1049,6 +1147,101 @@ export default function CommonSectionScreen() {
 
   // ── Navigation ─────────────────────────────────────────────────────────────
   const goToArticle = (item) => {
+    if (apiEndpoint.includes('anmegammain') && !apiEndpoint.includes('anmegammainlist')) {
+      const targetTab = subTabs.find(t =>
+        String(t.id) === String(item.maincatid) ||
+        t.title === item.categrorytitle ||
+        t.title === item.maincat
+      );
+      if (targetTab && targetTab.link?.includes('anmegammainlist')) {
+        navigation.push('CommonSectionScreen', {
+          screenTitle: targetTab.title,
+          apiEndpoint: targetTab.link,
+          allTabLink: apiEndpoint,
+          useFullUrl: false,
+        });
+        return;
+      }
+    }
+
+    // ✅ on /anmegammainlist screen → clicking article → go to NewsDetailsScreen directly
+    if (apiEndpoint.includes('anmegammainlist')) {
+      navigation.navigate('NewsDetailsScreen', {
+        newsId: item.newsid || item.id,
+        newsItem: item,
+        slug: item.slug || item.reacturl || '',
+        disableComments: false,
+      });
+      return;
+    }
+
+    // ── Handle photodata section items → navigate to their sub-tab ──────────
+    const isPhotoEndpoint = apiEndpoint.includes('photodata') ||
+      allSections.some(s => PHOTO_SECTION_IDS.includes(String(s.id)));
+
+    if (item._isCategoryCard && apiEndpoint.includes('anmegam')) {
+      const targetTab = subTabs.find(t =>
+        String(t.id) === String(item.maincatid) ||
+        t.link === item.link ||
+        t.title === item.title
+      );
+      if (targetTab) { handleTabPress(targetTab); return; }
+    }
+
+    if (item._isCategoryCard && apiEndpoint.includes('anmegam')) {
+      const targetTab = subTabs.find(t =>
+        String(t.id) === String(item.maincatid) ||
+        t.link === item.link ||
+        t.title === item.title
+      );
+      if (targetTab) { handleTabPress(targetTab); return; }
+    }
+
+    if (isPhotoEndpoint && isAllTab) {
+      const sectionId = item.maincatid || item.category;
+
+      // Map section IDs to sub-tab links
+      const photoTabMap = {
+        '81': '/photoitem?cat=81',
+        '5001': '/photoitem?cat=5001',
+        '5002': '/photoitem?cat=5002',
+        '5003': '/photoitem?cat=5003',
+      };
+
+      const targetLink = photoTabMap[String(sectionId)];
+      if (targetLink) {
+        const targetTab = subTabs.find(t =>
+          t.link === targetLink || String(t.id) === String(sectionId)
+        );
+        if (targetTab) {
+          handleTabPress(targetTab);
+          return;
+        }
+      }
+
+      // Fallback: match by maincat title
+      if (item.maincat) {
+        const targetTab = subTabs.find(t => t.title === item.maincat);
+        if (targetTab) {
+          handleTabPress(targetTab);
+          return;
+        }
+      }
+
+      // Fallback: match by maincategory
+      if (item.maincategory) {
+        const targetTab = subTabs.find(t =>
+          (t.title || '').toLowerCase().includes((item.maincategory || '').toLowerCase()) ||
+          (item.maincategory || '').toLowerCase().includes((t.title || '').toLowerCase())
+        );
+        if (targetTab) {
+          handleTabPress(targetTab);
+          return;
+        }
+      }
+    }
+
+    // ── existing joshiyam logic ──────────────────────────────────────────────
     const isJoshiyamEndpoint = apiEndpoint === '/joshiyam';
     if (isJoshiyamEndpoint && isAllTab) {
       let targetTab = null;
@@ -1076,7 +1269,7 @@ export default function CommonSectionScreen() {
     }
 
     navigation.navigate('NewsDetailsScreen', {
-      newsId: item.newsid || item.id || item.rasiid || item.nid,
+      newsId: item.newsid || item.id || item.eventid || item.rasiid || item.nid,
       newsItem: item,
       slug: item.slug || item.reacturl || '',
       disableComments: apiEndpoint?.includes('api-st-cdn.dinamalar.com/varavaram'),
@@ -1109,8 +1302,19 @@ export default function CommonSectionScreen() {
     if (isAllTab) {
       const flat = [];
       allSections.forEach(section => {
-        if (section.title) flat.push({ type: 'section', title: section.title, id: section.id });
-        (section.data || []).forEach(item => flat.push({ type: 'news', item, sectionTitle: section.title }));
+        if (section.title) flat.push({
+          type: 'section',
+          title: section.title,
+          id: section.id,
+          sectionLink: section.link,
+          _isAnmegamSection: section._isAnmegamSection,
+        });
+        (section.data || []).forEach(item => flat.push({
+          type: 'news',
+          item,
+          sectionTitle: section.title,
+          _isAnmegamSection: section._isAnmegamSection,
+        }));
       });
       return flat;
     }
@@ -1129,15 +1333,113 @@ export default function CommonSectionScreen() {
 
   const isTabActive = (tab) => {
     if (!activeTab) return false;
+
+    if (apiEndpoint.includes('anmegammainlist')) {
+      // ✅ All tab: active only if its link matches allTabLink
+      if (tab.link === allTabLink || tab.link?.includes('anmegammain') && !tab.link?.includes('anmegammainlist')) {
+        return false; // All tab never shows as active on this screen
+      }
+      // ✅ subcat tabs: active if link matches current apiEndpoint
+      return tab.link === apiEndpoint;
+    }
+
     if (tabIsAll(tab) || tab.link === allTabLink) return tabIsAll(activeTab);
     return String(activeTab.id) === String(tab.id);
   };
 
+  // ─── Anmegam News Card ────────────────────────────────────────────────────────
+  function AnmegamNewsCard({ item, onPress }) {
+    const { sf } = useFontSize();
+    const imageUri =
+      item.largeimages || item.images || item.image ||
+      'https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_default.jpg?im=Resize,width=400';
+    const title = item.newstitle || item.title || '';
+    const ago = item.ago || item.time_ago || item.standarddate || item.date || '';
+
+    return (
+      <TouchableOpacity onPress={onPress} activeOpacity={0.88} style={anc.wrap}>
+        <Image source={{ uri: imageUri }} style={anc.image} resizeMode="cover" />
+        {!!title && (
+          <Text style={[anc.title, { fontSize: sf(15), lineHeight: sf(23) }]}>
+            {title}
+          </Text>
+        )}
+        {!!ago && (
+          <Text style={[anc.ago, { fontSize: sf(12) }]}>{ago}</Text>
+        )}
+        <View style={anc.divider} />
+      </TouchableOpacity>
+    );
+  }
+
+  const anc = StyleSheet.create({
+    wrap: { backgroundColor: '#fff', paddingHorizontal: s(12), paddingTop: vs(10) },
+    image: { width: '100%', height: vs(190), borderRadius: s(4) },
+    title: {
+      fontSize: ms(15),
+      fontFamily: FONTS.muktaMalar.bold,
+      color: '#111',
+      fontWeight: '700',
+      marginTop: vs(8),
+    },
+    ago: {
+      fontSize: ms(12),
+      fontFamily: FONTS.muktaMalar.regular,
+      color: '#888',
+      marginTop: vs(4),
+      marginBottom: vs(10),
+    },
+    divider: { height: 1, backgroundColor: '#f0f0f0', marginTop: vs(6) },
+  });
+
+  // ─── Anmigam Category Card (All tab) ─────────────────────────────────────────
+  function AnmigamCategoryCard({ item, onPress }) {
+    const imageUri = item.images || item.largeimages ||
+      'https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_default.jpg?im=Resize,width=400';
+
+    return (
+      <TouchableOpacity onPress={onPress} activeOpacity={0.88} style={acc.wrap}>
+        <Image source={{ uri: imageUri }} style={acc.image} resizeMode="cover" />
+      </TouchableOpacity>
+    );
+  }
+
+  const acc = StyleSheet.create({
+    wrap: { backgroundColor: '#fff', marginBottom: vs(4), paddingHorizontal: ms(12) },
+    image: { width: '100%', height: vs(200) },
+    moreRow: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end',
+      paddingHorizontal: s(12), paddingVertical: vs(10),
+      borderBottomWidth: 1, borderBottomColor: '#f0f0f0',
+    },
+    moreText: { fontSize: ms(14), fontFamily: FONTS.muktaMalar.medium, color: COLORS.primary, marginRight: s(2) },
+  });
+
   const renderItem = ({ item: row }) => {
     if (row.type === 'section')
-      return <View style={styles.sectionWrap}><SectionTitle title={row.title} /></View>;
+      return <View style={styles.sectionWrap}>
+        <SectionTitle title={row.title} />
+      </View>;
+
+    if (row.type === 'news' && row.item?._isCategoryCard)
+      return (
+        <AnmigamCategoryCard
+          item={row.item}
+          onPress={() => goToArticle(row.item)}
+        />
+      );
+
+    if (row.type === 'news' && row._isAnmegamSection)
+      return (
+        <AnmegamNewsCard
+          item={row.item}
+          onPress={() => goToArticle(row.item)}
+        />
+      );
+
     if (row.type === 'rasi' || row.type === 'individualRasi')
       return <RasiCard item={row.item} onPress={() => goToRasiDetails(row.item)} />;
+
     return <NewsCard
       item={row.item}
       onPress={() => goToArticle(row.item)}
@@ -1175,7 +1477,9 @@ export default function CommonSectionScreen() {
 
       {/* ── Page Title ── */}
       <View style={styles.pageTitleWrap}>
-        <Text style={[styles.pageTitle, { fontSize: sf(16) }]}>{screenTitle}</Text>
+        <Text style={[styles.pageTitle, { fontSize: sf(16), fontFamily: FONTS.anek.bold }]}>
+          {(screenTitle === 'தினம் தினம்' || screenTitle === 'வராவரம்' || screenTitle === 'ஜோசியம்' || screenTitle === 'உலக தமிழர்' || screenTitle === 'ஸ்பெஷல்' || screenTitle === 'ஆன்மீகம்' || screenTitle === 'காலண்டர்' || screenTitle === 'போட்டோ' || screenTitle === 'விளையாட்டு' || screenTitle === 'வர்த்தகம்') ? (isAllTab ? screenTitle : (activeTab?.title || screenTitle)) : screenTitle}
+        </Text>
       </View>
 
       {/* ── Tabs ── */}
@@ -1216,7 +1520,6 @@ export default function CommonSectionScreen() {
           style={styles.list}
         />
       ) : htmlContent ? (
-        // Static page HTML content
         <WebView
           source={{ html: htmlContent, baseUrl: 'https://www.dinamalar.com' }}
           style={styles.webView}
@@ -1230,8 +1533,6 @@ export default function CommonSectionScreen() {
           )}
         />
       ) : isRasiTab && rasiDetailItem ? (
-        // ✅ INLINE RASI DETAIL — shown below the tabs, same screen
-        // ✅ subTabs + onTabChange passed for arrow tab navigation
         <RasiDetailView
           key={`${activeTab?.id}-${rasiDetailItem.jcat}`}
           tabId={String(activeTab?.id || '')}
@@ -1243,7 +1544,6 @@ export default function CommonSectionScreen() {
           onTabChange={(tab) => handleTabPress(tab)}
         />
       ) : isRasiTab ? (
-        // Rasi card list
         <ScrollView
           ref={rasiScrollViewRef}
           style={styles.list}
@@ -1271,7 +1571,7 @@ export default function CommonSectionScreen() {
           keyExtractor={(row, i) =>
             row.type === 'section'
               ? `sec-${row.id || i}-${row.title}`
-              : `news-${i}-${row.item?.newsid || row.item?.id || row.item?.rasiid || i}`
+              : `news-${i}-${row.item?.newsid || row.item?.id || row.item?.eventid || row.item?.rasiid || i}`
           }
           renderItem={renderItem}
           contentContainerStyle={styles.listContent}
@@ -1337,26 +1637,28 @@ export default function CommonSectionScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f2f2f2', paddingTop: Platform.OS === 'android' ? vs(28) : 0 },
   pageTitleWrap: { paddingTop: vs(14), paddingBottom: vs(6), backgroundColor: '#fff' },
-  pageTitle: { fontSize: 18, fontFamily: FONTS.anek.bold, color: '#111', fontWeight: '700', paddingHorizontal: s(12), paddingTop: vs(14), marginBottom: vs(4) }, // ← Will be scaled dynamically
+  pageTitle: { fontSize: 18, fontFamily: FONTS.anek.bold, color: '#111', paddingHorizontal: s(12), marginBottom: vs(4) },
 
   tabsWrap: { backgroundColor: '#fff', elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: vs(1) }, shadowOpacity: 0.08, shadowRadius: s(2) },
   tabsContent: { paddingHorizontal: s(4), alignItems: 'center' },
   tab: { paddingHorizontal: s(12), paddingVertical: vs(12), marginHorizontal: s(2), borderBottomWidth: vs(3), borderBottomColor: 'transparent' },
   tabActive: { borderBottomColor: COLORS.primary },
-  tabText: TEXT_STYLES.tabs.small,
-
-  tabTextActive: TEXT_STYLES.tabs.smallActive,
+  tabText: {
+    fontSize: ms(16),
+    fontFamily: FONTS.muktaMalar.medium,
+    color: COLORS.black,
+  },
+  tabTextActive: {
+    fontSize: ms(16),
+    fontFamily: FONTS.muktaMalar.medium,
+    color: COLORS.black,
+  },
 
   list: { flex: 1 },
   listContent: { paddingTop: vs(6), paddingBottom: vs(30) },
   rasiGridContent: { flexDirection: 'column', paddingBottom: vs(30) },
   webView: { flex: 1 },
-  webViewLoader: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#fff'
-  },
+  webViewLoader: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' },
 
   sectionWrap: { paddingHorizontal: s(12), paddingTop: vs(16), paddingBottom: vs(4), backgroundColor: '#f2f2f2' },
   emptyWrap: { alignItems: 'center', justifyContent: 'center', paddingVertical: vs(80), gap: vs(12) },
