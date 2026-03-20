@@ -6,58 +6,6 @@
   <component name="ChangeListManager">
     <list default="true" id="7dff0835-ba21-4555-8c27-70a8bbe09433" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/App.js" beforeDir="false" afterPath="$PROJECT_DIR$/App.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/assets/fonts/Anek/AnekDevanagari-Bold.ttf" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/assets/fonts/Anek/AnekDevanagari-ExtraBold.ttf" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/assets/fonts/Anek/AnekDevanagari-ExtraLight.ttf" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/assets/fonts/Anek/AnekDevanagari-Light.ttf" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/assets/fonts/Anek/AnekDevanagari-Medium.ttf" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/assets/fonts/Anek/AnekDevanagari-Regular.ttf" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/assets/fonts/Anek/AnekDevanagari-SemiBold.ttf" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/assets/fonts/Anek/AnekDevanagari-Thin.ttf" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/assets/fonts/Anek/AnekDevanagari_Condensed-Bold.ttf" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/assets/fonts/Anek/AnekDevanagari_Condensed-ExtraBold.ttf" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/assets/fonts/Anek/AnekDevanagari_Condensed-ExtraLight.ttf" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/assets/fonts/Anek/AnekDevanagari_Condensed-Light.ttf" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/assets/fonts/Anek/AnekDevanagari_Condensed-Medium.ttf" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/assets/fonts/Anek/AnekDevanagari_Condensed-Regular.ttf" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/assets/fonts/Anek/AnekDevanagari_Condensed-SemiBold.ttf" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/assets/fonts/Anek/AnekDevanagari_Condensed-Thin.ttf" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/assets/fonts/Anek/AnekDevanagari_Expanded-Bold.ttf" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/assets/fonts/Anek/AnekDevanagari_Expanded-ExtraBold.ttf" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/assets/fonts/Anek/AnekDevanagari_Expanded-ExtraLight.ttf" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/assets/fonts/Anek/AnekDevanagari_Expanded-Light.ttf" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/assets/fonts/Anek/AnekDevanagari_Expanded-Medium.ttf" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/assets/fonts/Anek/AnekDevanagari_Expanded-Regular.ttf" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/assets/fonts/Anek/AnekDevanagari_Expanded-SemiBold.ttf" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/assets/fonts/Anek/AnekDevanagari_Expanded-Thin.ttf" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/assets/fonts/Anek/AnekDevanagari_SemiCondensed-Bold.ttf" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/assets/fonts/Anek/AnekDevanagari_SemiCondensed-ExtraBold.ttf" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/assets/fonts/Anek/AnekDevanagari_SemiCondensed-ExtraLight.ttf" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/assets/fonts/Anek/AnekDevanagari_SemiCondensed-Light.ttf" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/assets/fonts/Anek/AnekDevanagari_SemiCondensed-Medium.ttf" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/assets/fonts/Anek/AnekDevanagari_SemiCondensed-Regular.ttf" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/assets/fonts/Anek/AnekDevanagari_SemiCondensed-SemiBold.ttf" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/assets/fonts/Anek/AnekDevanagari_SemiCondensed-Thin.ttf" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/assets/fonts/Anek/AnekDevanagari_SemiExpanded-Bold.ttf" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/assets/fonts/Anek/AnekDevanagari_SemiExpanded-ExtraBold.ttf" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/assets/fonts/Anek/AnekDevanagari_SemiExpanded-ExtraLight.ttf" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/assets/fonts/Anek/AnekDevanagari_SemiExpanded-Light.ttf" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/assets/fonts/Anek/AnekDevanagari_SemiExpanded-Medium.ttf" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/assets/fonts/Anek/AnekDevanagari_SemiExpanded-Regular.ttf" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/assets/fonts/Anek/AnekDevanagari_SemiExpanded-SemiBold.ttf" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/assets/fonts/Anek/AnekDevanagari_SemiExpanded-Thin.ttf" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/components/DinamalarCalendar.js" beforeDir="false" afterPath="$PROJECT_DIR$/components/DinamalarCalendar.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/components/DrawerMenu.js" beforeDir="false" afterPath="$PROJECT_DIR$/components/DrawerMenu.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/screens/CommonSectionScreen.js" beforeDir="false" afterPath="$PROJECT_DIR$/screens/CommonSectionScreen.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/screens/DistrictNewsScreen.js" beforeDir="false" afterPath="$PROJECT_DIR$/screens/DistrictNewsScreen.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/screens/HomeScreen.js" beforeDir="false" afterPath="$PROJECT_DIR$/screens/HomeScreen.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/screens/SearchScreen.js" beforeDir="false" afterPath="$PROJECT_DIR$/screens/SearchScreen.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/screens/TharpothaiyaSeithigalScreen.js" beforeDir="false" afterPath="$PROJECT_DIR$/screens/TharpothaiyaSeithigalScreen.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/screens/TimelineScreen.js" beforeDir="false" afterPath="$PROJECT_DIR$/screens/TimelineScreen.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/screens/VarthagamScreen.js" beforeDir="false" afterPath="$PROJECT_DIR$/screens/VarthagamScreen.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/screens/VideosScreen.js" beforeDir="false" afterPath="$PROJECT_DIR$/screens/VideosScreen.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/utils/constants.js" beforeDir="false" afterPath="$PROJECT_DIR$/utils/constants.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

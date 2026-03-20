@@ -1347,6 +1347,40 @@ export default function CommonSectionScreen() {
     return String(activeTab.id) === String(tab.id);
   };
 
+  // ─── Image with Fallback ─────────────────────────────────────────────────────
+  function ImageWithFallback({ source, style, resizeMode = 'cover', iconSize = 40 }) {
+    const [imageError, setImageError] = useState(false);
+    const [loading, setLoading] = useState(true);
+
+    const handleImageError = () => {
+      setImageError(true);
+      setLoading(false);
+    };
+
+    const handleImageLoad = () => {
+      setImageError(false);
+      setLoading(false);
+    };
+
+    if (imageError || !source?.uri) {
+      return (
+        <View style={[style, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#f5f5f5' }]}>
+          <Ionicons name="image-outline" size={s(iconSize)} color={COLORS.subtext} />
+        </View>
+      );
+    }
+
+    return (
+      <Image
+        source={source}
+        style={style}
+        resizeMode={resizeMode}
+        onError={handleImageError}
+        onLoad={handleImageLoad}
+      />
+    );
+  }
+
   // ─── Anmegam News Card ────────────────────────────────────────────────────────
   function AnmegamNewsCard({ item, onPress }) {
     const { sf } = useFontSize();
@@ -1358,16 +1392,22 @@ export default function CommonSectionScreen() {
 
     return (
       <TouchableOpacity onPress={onPress} activeOpacity={0.88} style={anc.wrap}>
-        <Image source={{ uri: imageUri }} style={anc.image} resizeMode="cover" />
-        {!!title && (
-          <Text style={[anc.title, { fontSize: sf(15), lineHeight: sf(23) }]}>
-            {title}
-          </Text>
-        )}
-        {!!ago && (
-          <Text style={[anc.ago, { fontSize: sf(12) }]}>{ago}</Text>
-        )}
-        <View style={anc.divider} />
+        <ImageWithFallback
+          source={{ uri: imageUri }}
+          style={anc.image}
+          resizeMode="cover"
+          iconSize={40}
+        />
+        <View style={NewsCardStyles.contentContainer}>
+
+          {!!title && (
+            <Text style={[NewsCardStyles.title, { fontSize: sf(14), lineHeight: sf(22) }]} numberOfLines={3}>{title}</Text>
+          )}
+          {!!ago && (
+            <Text style={[NewsCardStyles.timeText, { fontSize: sf(12) }]}>{ago}</Text>
+          )}
+          <View style={anc.divider} />
+        </View>
       </TouchableOpacity>
     );
   }
@@ -1387,9 +1427,9 @@ export default function CommonSectionScreen() {
       fontFamily: FONTS.muktaMalar.regular,
       color: '#888',
       marginTop: vs(4),
-      marginBottom: vs(10),
+      // marginBottom: vs(10),
     },
-    divider: { height: 1, backgroundColor: '#f0f0f0', marginTop: vs(6) },
+    divider: { height: 1, backgroundColor: '#f0f0f0', },
   });
 
   // ─── Anmigam Category Card (All tab) ─────────────────────────────────────────
@@ -1399,7 +1439,12 @@ export default function CommonSectionScreen() {
 
     return (
       <TouchableOpacity onPress={onPress} activeOpacity={0.88} style={acc.wrap}>
-        <Image source={{ uri: imageUri }} style={acc.image} resizeMode="cover" />
+        <ImageWithFallback
+          source={{ uri: imageUri }}
+          style={acc.image}
+          resizeMode="cover"
+          iconSize={40}
+        />
       </TouchableOpacity>
     );
   }
