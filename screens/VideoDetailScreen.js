@@ -12,7 +12,7 @@ import { WebView } from 'react-native-webview';
 import YoutubePlayer from 'react-native-youtube-iframe';
 import { ms, s, vs } from '../utils/scaling';
 import { CDNApi } from '../config/api';
-import { FONTS } from '../utils/constants';
+import { COLORS, FONTS } from '../utils/constants';
 import { useFontSize } from '../context/FontSizeContext';
 import AppHeaderComponent from '../components/AppHeaderComponent';
 import DrawerMenu from '../components/DrawerMenu';
@@ -121,13 +121,13 @@ function SectionHeader({ title }) {
   return (
     <View style={S.sectionHeader}>
       <Text
-        style={[S.sectionTitle, { fontSize: sf(18) }]}
+        style={[S.sectionTitle, { fontSize: sf(16) }]}
         onLayout={(e) => setTitleWidth(e.nativeEvent.layout.width)}
       >
         {title}
       </Text>
       {titleWidth > 0 && (
-        <View style={[S.sectionUnderline, { width: titleWidth * 0.3 }]} />
+        <View style={[S.sectionUnderline, { width: titleWidth * 0.15 }]} />
       )}
     </View>
   );
@@ -156,7 +156,9 @@ const VideoListCard = ({ video, onPress, sf }) => {
         )}
       </View>
       <View style={S.vidListInfo}>
-        <Text style={[S.vidListTitle, { fontSize: sf(12), lineHeight: sf(19) }]}  >{title}</Text>
+        <Text style={[S.vidListTitle, { fontSize: sf(12), lineHeight: sf(19) }]}  >
+          {title}
+          </Text>
         <View style={S.vidListMeta}>
           {!!cat && <View style={S.catPill}><Text style={[S.catTxt, { fontSize: sf(10) }]}>{cat}</Text></View>}
           {!!date && <Text style={[S.metaDate, { fontSize: sf(12) }]}>{date}</Text>}
@@ -250,7 +252,7 @@ const NewsCard = ({ item, onPress, sf }) => {
         {/* Title */}
         <Text
           style={[S.newsCardTitle, { fontSize: sf(12), lineHeight: sf(21) }]}
-           
+
         >
           {title}
         </Text>
@@ -570,7 +572,7 @@ const VideoDetailScreen = ({ navigation, route }) => {
       </View>
 
       <ScrollView ref={scrollRef} showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: vs(80), paddingHorizontal: ms(12) ,paddingTop:ms(20)}}
+        contentContainerStyle={{ paddingBottom: vs(80), paddingHorizontal: ms(12), paddingTop: ms(20) }}
         onScroll={onScroll} scrollEventThrottle={100}>
 
         {/* ── Video slot ─────────────────────────────────────────────────── */}
@@ -598,7 +600,9 @@ const VideoDetailScreen = ({ navigation, route }) => {
 
         {/* ── Article body ──────────────────────────────────────────────── */}
         <View style={S.articleBody}>
-          <Text style={[S.articleTitle, { fontSize: sf(17), lineHeight: sf(26) }]}>{video?.videotitle ?? ''}</Text>
+          <Text style={[S.articleTitle, { fontSize: sf(14), lineHeight: sf(22) }]}>
+            {video?.videotitle ?? ''}
+             </Text>
           {loading && !latestvideo ? (
             <View style={{ gap: vs(10), marginVertical: vs(10) }}>
               {[1, .9, .75].map((w, i) => <View key={i} style={[S.skelLine, { width: `${w * 100}%` }]} />)}
@@ -606,8 +610,13 @@ const VideoDetailScreen = ({ navigation, route }) => {
           ) : !!bodyText ? (
             <View style={{ marginVertical: vs(4) }}>
               <RenderHtml contentWidth={SW - s(28)} source={{ html: bodyText }}
-                baseStyle={{ fontSize: sf(14), lineHeight: sf(24), color: PALETTE.grey800, fontFamily: FONTS.muktaMalar.regular }}
-                tagsStyles={{ p: { marginVertical: vs(4) }, strong: { fontWeight: '700' }, a: { color: PALETTE.primary } }} />
+                baseStyle={{ fontSize: sf(12), lineHeight: Math.round(sf(12) * 1.6), color: PALETTE.grey800, fontFamily: FONTS?.muktaMalar?.regular || undefined }}
+                tagsStyles={{
+                  p: { margin: 0, marginBottom: vs(12), fontSize: sf(12), color: PALETTE.grey800, lineHeight: Math.round(sf(12) * 1.6), textAlign: 'left', fontFamily: FONTS?.muktaMalar?.medium || undefined },
+                  strong: { fontWeight: '700', color: PALETTE.grey800 },
+                  b: { fontWeight: '700', color: PALETTE.grey800 },
+                  a: { color: PALETTE.primary, textDecorationLine: 'underline', fontWeight: '600' }
+                }} />
               <Text style={[S.metaDate, { fontSize: sf(14), marginTop: vs(6) }]}>{video?.standarddate || timeAgo || ''}</Text>
             </View>
           ) : null}
@@ -755,9 +764,9 @@ const VideoDetailScreen = ({ navigation, route }) => {
       </ScrollView>
 
       {showScrollTop && (
-      <TouchableOpacity style={S.scrollTopBtn} onPress={() => scrollRef.current?.scrollTo({ y: 0, animated: true })}>
-        <Ionicons name="arrow-up" size={s(20)} color={PALETTE.white} />
-      </TouchableOpacity>
+        <TouchableOpacity style={S.scrollTopBtn} onPress={() => scrollRef.current?.scrollTo({ y: 0, animated: true })}>
+          <Ionicons name="arrow-up" size={s(20)} color={PALETTE.white} />
+        </TouchableOpacity>
       )}
 
       {/* ── Floating Player ───────────────────────────────────────────────── */}
@@ -823,22 +832,22 @@ const S = StyleSheet.create({
   pipBarLine: { width: s(28), height: s(3), borderRadius: s(2), backgroundColor: 'rgba(255,255,255,.55)' },
 
   articleBody: { backgroundColor: PALETTE.white, paddingTop: vs(12), paddingBottom: vs(4) },
-  articleTitle: { fontFamily: FONTS.muktaMalar.bold, color: PALETTE.grey800, fontWeight: '800', marginBottom: vs(8) },
+  articleTitle: { fontFamily: FONTS.muktaMalar.semibold, color: COLORS.text, marginBottom: vs(8) },
   metaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: vs(4) },
   metaLeft: { flexDirection: 'row', alignItems: 'center', gap: s(8), flex: 1 },
   metaRight: { flexDirection: 'row', alignItems: 'center', gap: s(6) },
   metaBtn: { flexDirection: 'row', alignItems: 'center', padding: s(6), borderRadius: s(4), backgroundColor: PALETTE.grey100, borderWidth: 1, borderColor: PALETTE.grey300 },
-  catPill: { paddingHorizontal: s(8), paddingVertical: vs(2), borderWidth: 1, borderColor: PALETTE.grey400,fontFamily:FONTS.muktaMalar.regular },
-  catTxt: {  color: PALETTE.grey600, fontWeight: '600',fontFamily:FONTS.muktaMalar.regular  },
-  metaDate: { color: PALETTE.grey500,fontFamily:FONTS.muktaMalar.regular },
+  catPill: { paddingHorizontal: s(8), paddingVertical: vs(2), borderWidth: 1, borderColor: PALETTE.grey400, fontFamily: FONTS.muktaMalar.regular },
+  catTxt: { color: PALETTE.grey600, fontWeight: '600', fontFamily: FONTS.muktaMalar.regular },
+  metaDate: { color: PALETTE.grey500, fontFamily: FONTS.muktaMalar.regular },
   divider: { height: 1, backgroundColor: PALETTE.grey300, marginTop: vs(10) },
   skelLine: { height: vs(14), backgroundColor: PALETTE.grey300, borderRadius: s(4) },
 
   section: { backgroundColor: PALETTE.white, marginTop: vs(6) },
   newsCardDivider: {
-  height: vs(8),
-  backgroundColor: PALETTE.grey200,
-},
+    height: vs(8),
+    backgroundColor: PALETTE.grey200,
+  },
 
   sectionHeader: {
     backgroundColor: PALETTE.white,
@@ -903,10 +912,10 @@ const S = StyleSheet.create({
     alignItems: 'center',
     paddingLeft: s(2),
   },
-  vidListPlayWrap: { position: 'absolute', bottom: vs(10), left: s(10) },
+  vidListPlayWrap: { position: 'absolute', bottom: vs(8), left: s(8) },
   vidDurBadge: { position: 'absolute', bottom: vs(6), right: s(8), backgroundColor: 'rgba(0,0,0,.75)', paddingHorizontal: s(6), paddingVertical: vs(2), borderRadius: s(3) },
-  vidDurTxt: { color: PALETTE.white, fontWeight: '700',fontFamily:FONTS.muktaMalar.regular },
-  vidListInfo: { paddingVertical: vs(8),paddingHorizontal:ms(12) },
+  vidDurTxt: { color: PALETTE.white, fontWeight: '700', fontFamily: FONTS.muktaMalar.regular },
+  vidListInfo: { paddingVertical: vs(8), paddingHorizontal: ms(12) },
   vidListTitle: { fontFamily: FONTS.muktaMalar.bold, color: PALETTE.grey800, fontWeight: '700', marginBottom: vs(4) },
   vidListMeta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: ms(7) },
   cardDivider: { height: vs(6), backgroundColor: PALETTE.grey200 },
@@ -937,7 +946,7 @@ const S = StyleSheet.create({
   distTagTxt: { color: PALETTE.primary, fontWeight: '600' },
 
   // News Card
-  newsCard: { backgroundColor: PALETTE.white,  },
+  newsCard: { backgroundColor: PALETTE.white, },
   newsCardThumb: { width: '100%', height: vs(200), backgroundColor: PALETTE.grey200, overflow: 'hidden' },
   newsCardPlaceholder: { backgroundColor: '#f0f0f0', justifyContent: 'center', alignItems: 'center' },
   newsCardPlaceholderLogo: { width: s(140), height: vs(60), opacity: 0.25 },
@@ -950,10 +959,10 @@ const S = StyleSheet.create({
   newsCardTitle: { fontFamily: FONTS.muktaMalar.bold, color: PALETTE.grey800, fontWeight: '700', marginBottom: vs(8) },
   newsCardCatWrap: { marginBottom: vs(6) },
   newsCardCatPill: { alignSelf: 'flex-start', borderWidth: 1, borderColor: PALETTE.grey400, paddingHorizontal: s(10), paddingVertical: vs(3) },
-  newsCardCatTxt: { color: PALETTE.grey600, fontWeight: '600',fontFamily:FONTS.muktaMalar.regular },
+  newsCardCatTxt: { color: PALETTE.grey600, fontWeight: '600', fontFamily: FONTS.muktaMalar.regular },
   newsCardMetaRow: { flexDirection: 'row', alignItems: 'center', gap: s(8), marginTop: vs(2) },
   newsCardCommentRow: { flexDirection: 'row', alignItems: 'center' },
-  newsCardAgo: { color: PALETTE.primary,fontFamily:FONTS.muktaMalar.regular },
+  newsCardAgo: { color: PALETTE.primary, fontFamily: FONTS.muktaMalar.regular },
 
   // Load more
   loadMoreBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: s(6), marginHorizontal: s(14), marginVertical: vs(4), paddingVertical: vs(12), borderWidth: 1, borderColor: PALETTE.primary, borderRadius: s(8), backgroundColor: PALETTE.white },

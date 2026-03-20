@@ -596,7 +596,7 @@ export default function NewsDetailsScreen() {
   const podcastAudioUrl = videoPath || d.audiofile || d.audiourl || null;
   const articlePageUrl = getShareUrl();
 
-  const BASE_FONT = sf(14);
+  const BASE_FONT = sf(12);
   const tagsStyles = React.useMemo(() => buildTagsStyles(BASE_FONT, COLORS.text), [BASE_FONT]);
   const baseStyle = React.useMemo(() => buildBaseStyle(BASE_FONT, COLORS.text), [BASE_FONT]);
   const safeContent = sanitizeHtml(content);
@@ -669,7 +669,9 @@ export default function NewsDetailsScreen() {
               onScroll={handleScroll}
             >
               {/* Title */}
-              <Text style={[styles.title, { fontSize: sf(16), lineHeight: sf(26) }]}>{title}</Text>
+              <Text style={[styles.title, { fontSize: sf(16), lineHeight: sf(22) }]}>
+                {title}
+                </Text>
 
               {/* Meta row */}
               <View style={styles.metaRow}>
@@ -893,18 +895,18 @@ export default function NewsDetailsScreen() {
             </ScrollView>
           )}
 
-        {/* Scroll to top button */}
-        {showScrollTop && (
-          <TouchableOpacity
-            style={styles.scrollTopBtn}
-            onPress={scrollToTop}
-            activeOpacity={0.85}
-          >
-            <Ionicons name="arrow-up" size={s(20)} color="#fff" />
-          </TouchableOpacity>
-        )}
-      </Animated.View>
-    </View>
+          {/* Scroll to top button */}
+          {showScrollTop && (
+            <TouchableOpacity
+              style={styles.scrollTopBtn}
+              onPress={scrollToTop}
+              activeOpacity={0.85}
+            >
+              <Ionicons name="arrow-up" size={s(20)} color="#fff" />
+            </TouchableOpacity>
+          )}
+        </Animated.View>
+      </View>
 
       {!disableComments && (
         <CommentsModal
@@ -926,27 +928,34 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.white, paddingTop: Platform.OS === 'android' ? vs(30) : 0 },
   panLayer: { flex: 1, overflow: 'hidden' },
   animLayer: { flex: 1 },
-  edgeBtnLeft: { position: 'absolute', left: 0, top: '45%',
-     zIndex: 5, 
-    width: ms(40), 
-    height: ms(60), 
-    borderRadius: ms(10),
-     justifyContent: 'center',
-      alignItems: 'center',
-    backgroundColor:"#dfdfdf" 
-  },
-  edgeBtnRight: { position: 'absolute', right: 0, top: '45%', 
+  edgeBtnLeft: {
+    position: 'absolute', left: 0, top: '45%',
     zIndex: 5,
-     width: ms(40),
-     height: ms(60), 
-     borderRadius: ms(10),
-      justifyContent: 'center', alignItems: 'center',
-    backgroundColor:"#dfdfdf"
-   },
-  scrollContent: { paddingBottom: vs(20)
-    
-   },
-  title: { fontWeight: '800', color: COLORS.text, paddingHorizontal: s(12), paddingTop: vs(12) },
+    width: ms(40),
+    height: ms(60),
+    borderRadius: ms(10),
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: "#dfdfdf"
+  },
+  edgeBtnRight: {
+    position: 'absolute', right: 0, top: '45%',
+    zIndex: 5,
+    width: ms(40),
+    height: ms(60),
+    borderRadius: ms(10),
+    justifyContent: 'center', alignItems: 'center',
+    backgroundColor: "#dfdfdf"
+  },
+  scrollContent: {
+    paddingBottom: vs(20)
+
+  },
+  title: {
+    color: COLORS.text, paddingHorizontal: s(12),
+     fontFamily: FONTS.muktaMalar.semibold,
+    paddingTop: vs(12)
+  },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: s(8), paddingHorizontal: s(12), marginBottom: vs(12) },
   iconAction: { flexDirection: 'row', alignItems: 'center', gap: s(3), padding: s(4) },
   iconBadge: { color: COLORS.subtext, fontWeight: '600' },
