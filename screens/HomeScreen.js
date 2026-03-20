@@ -536,7 +536,7 @@ function SectionHeader({ title }) {
 
   return (
     <View style={styles.sectionHeader}>
-      <Text style={[styles.sectionTitle, { fontSize: sf(18) }]}>{title}</Text>
+      <Text style={[styles.sectionTitle, { fontSize: sf(16) }]}>{title}</Text>
       <View style={styles.sectionUnderline} />
     </View>
   );
@@ -899,7 +899,7 @@ function DinaMalarTVSection({ data, onVideoPress }) {
             onPress={() => navigation?.navigate('VideosScreen', { initialTabKey: tab.key })}
             activeOpacity={0.7}
           >
-            <Text style={[tvSecSt.tabText, { fontSize: sf(13) }]}>
+            <Text style={[tvSecSt.tabText, { fontSize: ms(14) }]}>
               {tab.ta}
             </Text>
           </TouchableOpacity>
@@ -951,7 +951,8 @@ const tvSecSt = StyleSheet.create({
     paddingBottom: vs(6),
     gap: s(8),
     justifyContent: "center",
-    alignItems: "center"
+    alignItems: "center",
+    paddingTop:ms(5)
   },
   tab: {
     flexDirection: 'row',

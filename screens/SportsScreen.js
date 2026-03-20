@@ -382,7 +382,7 @@ export default function SportsScreen() {
 
       {/* ── Page Title ── */}
       <View style={styles.pageTitleWrap}>
-        <Text style={[styles.pageTitle, { fontSize: sf(18) }]}>
+        <Text style={[styles.pageTitle, { fontSize: sf(16) }]}>
           {isAllTab ? 'விளையாட்டு' : (activeTab?.title || 'விளையாட்டு')}
         </Text>
       </View>
@@ -409,7 +409,7 @@ export default function SportsScreen() {
                   onPress={() => handleTabPress(tab)}
                   activeOpacity={0.8}
                 >
-                  <Text style={[styles.tabText, isActive && styles.tabTextActive, { fontSize: ms(17) }]}>
+                  <Text style={[styles.tabText, isActive && styles.tabTextActive, { fontSize: ms(16) }]}>
                     {tab.title}
                   </Text>
                 </TouchableOpacity>

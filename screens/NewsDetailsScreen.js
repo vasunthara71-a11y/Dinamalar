@@ -803,12 +803,12 @@ export default function NewsDetailsScreen() {
                           </View>
                           <View style={styles.relatedNewsContent}>
                             {!!relTitle && (
-                              <Text style={[styles.relatedNewsTitle, { fontSize: sf(14), lineHeight: sf(22) }]} numberOfLines={3}>
+                              <Text style={[styles.relatedNewsTitle, { fontSize: sf(12), lineHeight: sf(20) }]} numberOfLines={3}>
                                 {relTitle}
                               </Text>
                             )}
                             <View style={styles.relatedNewsMetaRow}>
-                              <Text style={[styles.relatedNewsTimeText, { fontSize: sf(12) }]}>{relDate}</Text>
+                              <Text style={[styles.relatedNewsTimeText, { fontSize: sf(10) }]}>{relDate}</Text>
                               {relCommentCount > 0 && (
                                 <View style={styles.relatedNewsCommentRow}>
                                   <Ionicons name="chatbox" size={s(14)} color="#637381" />

@@ -1141,7 +1141,7 @@ const styles = StyleSheet.create({
   },
   catTabActive: { backgroundColor: PALETTE.primary, },
   catTabText: { fontSize: ms(16), color: PALETTE.grey700, fontWeight: '500', fontFamily: FONTS.muktaMalar.semibold },
-  catTabTextActive: { color: PALETTE.white, fontWeight: '700', fontFamily: FONTS.muktaMalar.bold },
+  catTabTextActive: { color: PALETTE.white, fontWeight: '500', fontFamily: FONTS.muktaMalar.bold },
   liveDot: { width: s(6), height: s(6), borderRadius: s(3), backgroundColor: PALETTE.red },
 
   // Active filter bar

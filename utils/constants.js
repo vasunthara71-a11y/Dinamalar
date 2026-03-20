@@ -185,7 +185,7 @@ export const FONTS = {
         letterSpacing: 0.5,
       },
       contentContainer: {
-        // paddingHorizontal: s(10),
+        paddingHorizontal: s(10),
         paddingTop: vs(10),
         paddingBottom: vs(15),
       },

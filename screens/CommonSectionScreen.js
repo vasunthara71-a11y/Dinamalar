@@ -568,7 +568,7 @@ function SectionTitle({ title }) {
   return (
     <View style={st.sectionHeader}>
       <View style={st.titleContainer}>
-        <Text style={[st.sectionTitle, { fontSize: sf(18) }]}>{title || ''}</Text>
+        <Text style={[st.sectionTitle, { fontSize: sf(16) }]}>{title || ''}</Text>
         <View style={st.sectionUnderline} />
       </View>
     </View>
@@ -1544,7 +1544,7 @@ export default function CommonSectionScreen() {
                   onPress={() => handleTabPress(tab)}
                   activeOpacity={0.8}
                 >
-                  <Text style={[styles.tabText, active && styles.tabTextActive, { fontSize: sf(14) }]}>
+                  <Text style={[styles.tabText, active && styles.tabTextActive, { fontSize: ms(16) }]}>
                     {tab.title || ''}
                   </Text>
                 </TouchableOpacity>
