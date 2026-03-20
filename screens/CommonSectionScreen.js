@@ -231,7 +231,7 @@ function parseFootnoteParagraphs(html = '') {
 // ─────────────────────────────────────────────────────────────────────────────
 const RasiCard = ({ item, onPress }) => {
   const [imageError, setImageError] = useState(false);
-  
+
   const imageUri =
     item.largeimages ||
     item.icon ||
@@ -252,9 +252,9 @@ const RasiCard = ({ item, onPress }) => {
             <Ionicons name="image-outline" size={s(24)} color="#ccc" />
           </View>
         ) : (
-          <Image 
-            source={{ uri: imageUri }} 
-            style={rc.image} 
+          <Image
+            source={{ uri: imageUri }}
+            style={rc.image}
             resizeMode="cover"
             onError={handleImageError}
           />
@@ -291,7 +291,7 @@ const rc = StyleSheet.create({
 // Simple HTML parser function
 const parseHtmlContent = (html) => {
   if (!html) return '';
-  
+
   // Replace HTML tags with formatting
   let cleanText = html
     .replace(/<div[^>]*>/gi, '\n\n')
@@ -314,14 +314,14 @@ const parseHtmlContent = (html) => {
     .replace(/&#39;/gi, "'")
     .replace(/\n\s*\n\s*\n/gi, '\n\n') // Remove extra newlines
     .trim();
-  
+
   return cleanText;
 };
 
 // Function to render formatted text with bold handling
 const renderFormattedText = (text) => {
   if (!text) return null;
-  
+
   const parts = text.split('**');
   return parts.map((part, index) => {
     if (index % 2 === 0) {
@@ -388,7 +388,7 @@ function RasiDetailView({ tabId, tabTitle, initialJcat, initialItem, onBack, sub
         null;
 
       console.log('[RasiDetailView] extracted item:', JSON.stringify(item, null, 2));
-      
+
       // Check all possible content fields
       console.log('[RasiDetailView] content fields:');
       console.log('  footnote:', item?.footnote?.substring(0, 100));
@@ -396,7 +396,7 @@ function RasiDetailView({ tabId, tabTitle, initialJcat, initialItem, onBack, sub
       console.log('  description:', item?.description?.substring(0, 100));
       console.log('  prediction:', item?.prediction?.substring(0, 100));
       console.log('  palan:', item?.palan?.substring(0, 100));
-      
+
       setDetail(item || (d?.footnote ? d : initialItem || null));
     } catch (e) {
       console.error('[RasiDetailView] error:', e?.message);
@@ -845,6 +845,73 @@ export default function CommonSectionScreen() {
 
   // ── Fetch sub-tab paginated news ──────────────────────────────────────────
   const fetchTabNews = useCallback(async (tab, pg, append = false) => {
+    // ✅ ADD at top of fetchTabNews, before API call
+    // NRI subcatlist tab — fetch articles then group by country
+    const isNriSubTab = apiEndpoint === '/nrimain' && !tabIsAll(tab);
+    if (isNriSubTab) {
+      try {
+        let url = tab.link?.startsWith('//') ? tab.link.slice(1) : tab.link;
+        const sep = url.includes('?') ? '&' : '?';
+        const fullUrl = `${url}${sep}page=${pg}`;
+        const res = await CDNApi.get(fullUrl);
+        const d = res?.data;
+
+        const allArticles = extractList(d).filter(Boolean);
+        const countryMap = new Map();
+        allArticles.forEach(article => {
+          const country = article.maincat || '';
+          if (country) {
+            if (!countryMap.has(country)) countryMap.set(country, []);
+            countryMap.get(country).push(article);
+          }
+        });
+
+        const sections = [];
+        countryMap.forEach((articles, country) => {
+          sections.push({
+            title: country,
+            id: country,
+            data: articles,
+            _isNriSection: true,
+          });
+        });
+
+        // ✅ Build country sub-tabs
+        const countrySubTabs = [
+          { title: 'All', link: '/nrimain', _isAllTab: true },  // All tab to go back
+          ...Array.from(countryMap.keys()).map(country => ({
+            title: country,
+            id: country,
+            link: `/nrimain/country/${country}`,
+            _isNriCountryTab: true,
+            _countryArticles: countryMap.get(country),
+          })),
+        ];
+
+        setSubTabs(countrySubTabs);   // ✅ replace tabs with country tabs
+        setAllSections(sections);
+        setActiveTab(prev => ({
+          ...prev,
+          _isAllTab: true,
+          _isNriSubTab: true,
+          _nriTabId: tab.id,
+          _nriTabLink: tab.link,
+          _nriTabTitle: tab.title,
+        }));
+        setTabNews([]);
+        setTabPage(pg);
+        setTabLastPage(extractLastPage(d) || 1);
+      } catch (e) {
+        console.error('[NRI fetchTabNews] error:', e?.message);
+      } finally {
+        setTabLoading(false);
+        setTabLoadMore(false);
+        setRefreshing(false);
+      }
+      return;
+    }
+
+
     if (!tab?.link || tabIsAll(tab)) return;
     try {
       const isRasiSubTab = RASI_TAB_IDS.includes(String(tab.id));
@@ -856,6 +923,9 @@ export default function CommonSectionScreen() {
         tab.link?.includes('anmegam');
 
       let url = isRasiSubTab ? '/joshiyam' : tab.link;
+      if (url?.startsWith('//')) {
+        url = url.slice(1);
+      }
       const sep = url.includes('?') ? '&' : '?';
       const fullUrl = `${url}${sep}page=${pg}`;
       const res = await CDNApi.get(fullUrl);
@@ -904,6 +974,21 @@ export default function CommonSectionScreen() {
         list = extractList(d).filter(Boolean);
       }
 
+      // ── Handle varavaram tab data - limit to 3 items ───────────────────────
+      if (tab.link?.includes('varavaram') || apiEndpoint?.includes('varavaram')) {
+        list = Array.isArray(list) ? list.slice(0, 3) : list;
+      }
+
+      // ── Handle varamalar tab data - limit to 3 items ───────────────────────
+      if (tab.link?.includes('varamalar') || tab.link?.includes('varavaram') || apiEndpoint?.includes('varamalar')) {
+        list = Array.isArray(list) ? list.slice(0, 3) : list;
+      }
+
+      // ── Handle special tab data - limit to 3 items ───────────────────────
+      if (tab.link?.includes('special') || apiEndpoint?.includes('special')) {
+        list = Array.isArray(list) ? list.slice(0, 3) : list;
+      }
+
       const lp = extractLastPage(d) ||
         d?.indraiyephoto?.last_page ||
         d?.pogaimadam?.last_page ||
@@ -935,6 +1020,44 @@ export default function CommonSectionScreen() {
         return;
       }
       setHtmlContent(null);
+      if (apiEndpoint === '/nrimain') {
+        const rawTabs = d?.subcatlist || [];
+        const tabs = rawTabs.map(t => ({
+          ...t,
+          link: t.link?.startsWith('//') ? t.link.slice(1) : (t.link || ''),
+        }));
+
+        // ✅ Build sections using newlist title as section header
+        // articles within each section shown flat (not grouped by country)
+        const sections = [];
+        if (Array.isArray(d?.newlist)) {
+          d.newlist.forEach(nriSection => {
+            if (Array.isArray(nriSection?.data) && nriSection.data.length > 0) {
+              // Limit each NRI category to 3 items
+              const limitedData = nriSection.data.slice(0, 3);
+              console.log(`[NRI] Section "${nriSection.title}": ${nriSection.data.length} -> ${limitedData.length} items`);
+
+              sections.push({
+                title: nriSection.title || '',   // ✅ உலக தமிழர், Nri news, etc
+                id: nriSection.id || nriSection.etitle || '',
+                data: limitedData,               // ✅ limited to 3 items
+                _isNriSection: true,
+              });
+            }
+          });
+          console.log('[NRI] Total sections processed:', sections.length);
+        }
+
+        setSubTabs(tabs);
+        setAllSections(sections);
+        setTaboolaAds(d?.taboola_ads?.mobile || null);
+        if (tabs.length > 0) {
+          setActiveTab({ ...tabs[0], _isAllTab: true });
+        } else {
+          setActiveTab({ title: 'All', link: '/nrimain', _isAllTab: true });
+        }
+        return;
+      }
 
       // ── Handle photodata API shape ────────────────────────────────────────
       if (apiEndpoint.includes('photodata') || d?.indraiyephoto || d?.pogaimadam || d?.cartoons) {
@@ -1102,6 +1225,108 @@ export default function CommonSectionScreen() {
         });
       }
 
+      // ── Handle varavaram data - limit each category to 3 items ─────────────────
+      if (apiEndpoint?.includes('varavaram') || apiEndpoint?.includes('api-st-cdn.dinamalar.com/varavaram')) {
+        console.log('[Varavaram] API Endpoint:', apiEndpoint);
+        console.log('[Varavaram] Raw data structure:', Object.keys(d || {}));
+        console.log('[Varavaram] Raw sections:', rawSections.length);
+        console.log('[Varavaram] Raw sections data:', rawSections.map(s => ({ title: s.title, dataCount: Array.isArray(s.data) ? s.data.length : 'not array' })));
+        console.log('[Varavaram] Final sections before limiting:', finalSections.length);
+
+        // Apply limiting to both rawSections and finalSections
+        const limitedRawSections = rawSections.map(section => ({
+          ...section,
+          data: Array.isArray(section.data) ? section.data.slice(0, 3) : section.data
+        }));
+
+        finalSections = finalSections.map(section => {
+          const limitedData = Array.isArray(section.data) ? section.data.slice(0, 3) : section.data;
+          console.log(`[Varavaram] Section "${section.title}": ${Array.isArray(section.data) ? section.data.length : 0} -> ${Array.isArray(limitedData) ? limitedData.length : 0} items`);
+
+          return {
+            ...section,
+            data: limitedData,
+          };
+        });
+
+        // If finalSections is empty, use limited rawSections
+        if (finalSections.length === 0 && limitedRawSections.length > 0) {
+          finalSections = limitedRawSections;
+          console.log('[Varavaram] Using limited raw sections instead');
+        }
+
+        console.log('[Varavaram] Final sections after limiting:', finalSections.length);
+        console.log('[Varavaram] Final sections data:', finalSections.map(s => ({ title: s.title, dataCount: Array.isArray(s.data) ? s.data.length : 'not array' })));
+      }
+
+      // ── Handle varamalar data - limit each category to 3 items ─────────────────
+      if (apiEndpoint?.includes('varamalar') || apiEndpoint?.includes('varavaram') || apiEndpoint?.includes('api-st-cdn.dinamalar.com/varamalar')) {
+        console.log('[Varamalar] API Endpoint:', apiEndpoint);
+        console.log('[Varamalar] Raw data structure:', Object.keys(d || {}));
+        console.log('[Varamalar] Raw sections:', rawSections.length);
+        console.log('[Varamalar] Raw sections data:', rawSections.map(s => ({ title: s.title, dataCount: Array.isArray(s.data) ? s.data.length : 'not array' })));
+        console.log('[Varamalar] Final sections before limiting:', finalSections.length);
+
+        // Apply limiting to both rawSections and finalSections
+        const limitedRawSections = rawSections.map(section => ({
+          ...section,
+          data: Array.isArray(section.data) ? section.data.slice(0, 3) : section.data
+        }));
+
+        finalSections = finalSections.map(section => {
+          const limitedData = Array.isArray(section.data) ? section.data.slice(0, 3) : section.data;
+          console.log(`[Varamalar] Section "${section.title}": ${Array.isArray(section.data) ? section.data.length : 0} -> ${Array.isArray(limitedData) ? limitedData.length : 0} items`);
+
+          return {
+            ...section,
+            data: limitedData
+          };
+        });
+
+        // If finalSections is empty, use limited rawSections
+        if (finalSections.length === 0 && limitedRawSections.length > 0) {
+          finalSections = limitedRawSections;
+          console.log('[Varamalar] Using limited raw sections instead');
+        }
+
+        console.log('[Varamalar] Final sections after limiting:', finalSections.length);
+        console.log('[Varamalar] Final sections data:', finalSections.map(s => ({ title: s.title, dataCount: Array.isArray(s.data) ? s.data.length : 'not array' })));
+      }
+
+      // ── Handle special data - limit each category to 3 items ─────────────────
+      if (apiEndpoint?.includes('special') || apiEndpoint?.includes('api-st-cdn.dinamalar.com/special')) {
+        console.log('[Special] API Endpoint:', apiEndpoint);
+        console.log('[Special] Raw data structure:', Object.keys(d || {}));
+        console.log('[Special] Raw sections:', rawSections.length);
+        console.log('[Special] Raw sections data:', rawSections.map(s => ({ title: s.title, dataCount: Array.isArray(s.data) ? s.data.length : 'not array' })));
+        console.log('[Special] Final sections before limiting:', finalSections.length);
+
+        // Apply limiting to both rawSections and finalSections
+        const limitedRawSections = rawSections.map(section => ({
+          ...section,
+          data: Array.isArray(section.data) ? section.data.slice(0, 3) : section.data
+        }));
+
+        finalSections = finalSections.map(section => {
+          const limitedData = Array.isArray(section.data) ? section.data.slice(0, 3) : section.data;
+          console.log(`[Special] Section "${section.title}": ${Array.isArray(section.data) ? section.data.length : 0} -> ${Array.isArray(limitedData) ? limitedData.length : 0} items`);
+
+          return {
+            ...section,
+            data: limitedData
+          };
+        });
+
+        // If finalSections is empty, use limited rawSections
+        if (finalSections.length === 0 && limitedRawSections.length > 0) {
+          finalSections = limitedRawSections;
+          console.log('[Special] Using limited raw sections instead');
+        }
+
+        console.log('[Special] Final sections after limiting:', finalSections.length);
+        console.log('[Special] Final sections data:', finalSections.map(s => ({ title: s.title, dataCount: Array.isArray(s.data) ? s.data.length : 'not array' })));
+      }
+
       setAllSections(finalSections);
       setTaboolaAds(d?.taboola_ads?.mobile || null);
 
@@ -1143,10 +1368,67 @@ export default function CommonSectionScreen() {
   );
 
   // ── Tab press ──────────────────────────────────────────────────────────────
-  const handleTabPress = (tab) => {
-    setRasiDetailItem(null);
+ const handleTabPress = (tab) => {
+  setRasiDetailItem(null);
 
-    const pressedIsAll = !!tab._isAllTab || tab.link === allTabLink;
+  const pressedIsAll = !!tab._isAllTab || tab.link === allTabLink;
+
+  // ✅ 1. NRI country sub-tab clicked → filter articles for that country
+  if (tab._isNriCountryTab && Array.isArray(tab._countryArticles)) {
+    setAllSections([{
+      title: tab.title,
+      id: tab.title,
+      data: tab._countryArticles,
+      _isNriSection: true,
+    }]);
+    setActiveTab(prev => ({
+      ...prev,
+      _isAllTab: true,
+      _isNriSubTab: true,
+      _nriCountryTab: tab.title,   // ✅ mark which country is active
+    }));
+    return;  // ✅ return early — no fetch needed
+  }
+
+  // ✅ 2. NRI country All tab → restore original subcatlist + sections
+  if (tab._isAllTab && tab.link === '/nrimain' && activeTab?._isNriSubTab) {
+    setInitLoading(true);
+    setAllSections([]);
+    setTabNews([]);
+    setTabPage(1);
+    setTabLastPage(1);
+    fetchAll();
+    return;
+  }
+
+  // ✅ 3. NRI main All tab → reload original sections
+  if (apiEndpoint === '/nrimain' && pressedIsAll) {
+    const alreadyActive = tabIsAll(activeTab) && !activeTab._isNriSubTab;
+    if (alreadyActive) return;
+    setInitLoading(true);
+    setAllSections([]);
+    setTabNews([]);
+    setTabPage(1);
+    setTabLastPage(1);
+    fetchAll();
+    return;
+  }
+
+  // ✅ 4. NRI sub-tab (உலக தமிழர், Nri news etc) → fetch and group by country
+  if (apiEndpoint === '/nrimain' && !pressedIsAll) {
+    const nextTab = {
+      ...tab,
+      _isAllTab: false,
+      _isNriSubTab: false,
+      _nriTabTitle: tab.title,
+    };
+    setActiveTab(nextTab);
+    flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
+    setTabLoading(true);
+    setTabNews([]); setTabPage(1); setTabLastPage(1);
+    fetchTabNews(nextTab, 1, false);
+    return;
+  }
 
     // ── /anmegam parent → clicking இந்து/இஸ்லாம் etc → push /anmegammain screen
     if (
@@ -1231,6 +1513,57 @@ export default function CommonSectionScreen() {
 
   // ── Navigation ─────────────────────────────────────────────────────────────
   const goToArticle = (item) => {
+    // ✅ NRI All tab → clicking article → navigate to its section tab
+    if (apiEndpoint === '/nrimain' && isAllTab && !activeTab?._isNriSubTab) {
+      // Find which subcatlist tab matches this article's section
+      const targetTab = subTabs.find(t =>
+        String(t.id) === String(item.maincategory) ||  // e.g. 'nri', 'otherstatenews'
+        String(t.id) === String(item.key?.toLowerCase()) ||
+        t.title === item.key
+      );
+      if (targetTab) {
+        handleTabPress(targetTab);
+        return;
+      }
+    }
+
+    // ✅ NRI sub-tab active OR direct NRI navigation → go to details
+    if (apiEndpoint.includes('nrimain') || apiEndpoint.includes('/nri') ||
+      apiEndpoint.includes('otherstatenews')) {
+      navigation.navigate('NewsDetailsScreen', {
+        newsId: item.newsid || item.id,
+        newsItem: item,
+        slug: item.slug || item.reacturl || '',
+        disableComments: false,
+      });
+      return;
+    }
+
+    // ── NRI All tab card navigation ─────────────────────────────────────────────
+    if (apiEndpoint === '/nrimain' && isAllTab && item._isNriSection) {
+      // Find the corresponding sub-tab for this NRI section
+      const targetTab = subTabs.find(tab =>
+        String(tab.id) === String(item.sectionId) ||
+        tab.title === item.sectionTitle ||
+        tab.link === item.sectionLink
+      );
+
+      if (targetTab) {
+        handleTabPress(targetTab);
+        return;
+      }
+    }
+
+    if (apiEndpoint.includes('nrimain') || apiEndpoint.includes('/nri') ||
+      apiEndpoint.includes('otherstatenews')) {
+      navigation.navigate('NewsDetailsScreen', {
+        newsId: item.newsid || item.id,
+        newsItem: item,
+        slug: item.slug || item.reacturl || '',
+        disableComments: false,
+      });
+      return;
+    }
     if (apiEndpoint.includes('anmegammain') && !apiEndpoint.includes('anmegammainlist')) {
       const targetTab = subTabs.find(t =>
         String(t.id) === String(item.maincatid) ||
@@ -1299,6 +1632,29 @@ export default function CommonSectionScreen() {
         );
         if (targetTab) {
           handleTabPress(targetTab);
+          return;
+        }
+      }
+
+      // ── NRI article navigation ─────────────────────────────────────────────────
+      if (apiEndpoint.includes('nrimain') || apiEndpoint.includes('/nri') || apiEndpoint.includes('otherstatenews')) {
+        const detailLink = item.link || '';
+        if (detailLink.includes('nridetail')) {
+          navigation.navigate('NewsDetailsScreen', {
+            newsId: item.newsid || item.id,
+            newsItem: item,
+            slug: item.slug || item.reacturl || '',
+            disableComments: false,
+          });
+          return;
+        }
+        if (detailLink.includes('otherstatenewsdetail')) {
+          navigation.navigate('NewsDetailsScreen', {
+            newsId: item.newsid || item.id,
+            newsItem: item,
+            slug: item.slug || item.reacturl || '',
+            disableComments: false,
+          });
           return;
         }
       }
@@ -1381,18 +1737,21 @@ export default function CommonSectionScreen() {
     }
   };
 
-  // ── Build flat list data ───────────────────────────────────────────────────
+  // ── Build Flat Data for FlatList ───────────────────────────────────────────
   const buildFlatData = () => {
     if (isAllTab) {
       const flat = [];
       allSections.forEach(section => {
-        if (section.title) flat.push({
-          type: 'section',
-          title: section.title,
-          id: section.id,
-          sectionLink: section.link,
-          _isAnmegamSection: section._isAnmegamSection,
-        });
+        // Only add section title if title exists and is not empty string AND we're in main All tab (not country view)
+        if (section.title && section.title.trim() !== '' && !activeTab?._nriCountryTab) {
+          flat.push({
+            type: 'section',
+            title: section.title,
+            id: section.id,
+            sectionLink: section.link,
+            _isAnmegamSection: section._isAnmegamSection,
+          });
+        }
         (section.data || []).forEach(item => flat.push({
           type: 'news',
           item,
@@ -1415,21 +1774,35 @@ export default function CommonSectionScreen() {
   const isLoading = initLoading || tabLoading;
   const isRasiTab = !isAllTab && RASI_TAB_IDS.includes(String(activeTab?.id));
 
-  const isTabActive = (tab) => {
-    if (!activeTab) return false;
+ const isTabActive = (tab) => {
+  if (!activeTab) return false;
 
-    if (apiEndpoint.includes('anmegammainlist')) {
-      // ✅ All tab: active only if its link matches allTabLink
-      if (tab.link === allTabLink || tab.link?.includes('anmegammain') && !tab.link?.includes('anmegammainlist')) {
-        return false; // All tab never shows as active on this screen
+  // ✅ NRI screen
+  if (apiEndpoint === '/nrimain') {
+    if (activeTab._isNriSubTab) {
+      // ✅ Country sub-tabs showing — highlight correct tab
+      if (activeTab._nriCountryTab) {
+        // A specific country tab is selected
+        return tab.title === activeTab._nriCountryTab && tab._isNriCountryTab;
       }
-      // ✅ subcat tabs: active if link matches current apiEndpoint
-      return tab.link === apiEndpoint;
+      // ✅ Just entered sub-tab view (no country selected yet) → highlight All
+      if (tab._isAllTab || tab.link === '/nrimain') return true;
+      return false;
     }
+    // All tab active — match by link
+    return tab.link === '/nrimain' || tab.link === allTabLink;
+  }
 
-    if (tabIsAll(tab) || tab.link === allTabLink) return tabIsAll(activeTab);
-    return String(activeTab.id) === String(tab.id);
-  };
+  if (apiEndpoint.includes('anmegammainlist')) {
+    if (tab.link === allTabLink || (tab.link?.includes('anmegammain') && !tab.link?.includes('anmegammainlist'))) {
+      return false;
+    }
+    return tab.link === apiEndpoint;
+  }
+
+  if (tabIsAll(tab) || tab.link === allTabLink) return tabIsAll(activeTab);
+  return String(activeTab.id) === String(tab.id);
+};
 
   // ─── Image with Fallback ─────────────────────────────────────────────────────
   function ImageWithFallback({ source, style, resizeMode = 'cover', iconSize = 40 }) {
@@ -1455,13 +1828,62 @@ export default function CommonSectionScreen() {
     }
 
     return (
-      <Image
-        source={source}
-        style={style}
-        resizeMode={resizeMode}
-        onError={handleImageError}
-        onLoad={handleImageLoad}
-      />
+      <View style={style}>
+        <Image
+          source={source}
+          style={[style, { position: 'absolute' }]}
+          resizeMode={resizeMode}
+          onError={handleImageError}
+          onLoad={handleImageLoad}
+        />
+        {loading && (
+          <View style={[style, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#f5f5f5' }]}>
+            <ActivityIndicator size="small" color={COLORS.primary} />
+          </View>
+        )}
+      </View>
+    );
+  }
+
+  // ─── Image Loader Component ───────────────────────────────────────────────────
+  function ImageLoader({ source, style, resizeMode = 'cover', iconSize = 40 }) {
+    const [imageError, setImageError] = useState(false);
+    const [loading, setLoading] = useState(true);
+
+    const handleImageError = () => {
+      setImageError(true);
+      setLoading(false);
+    };
+
+    const handleImageLoad = () => {
+      setImageError(false);
+      setLoading(false);
+    };
+
+    if (imageError || !source?.uri) {
+      return (
+        <View style={[style, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#f0f0f0' }]}>
+          <Ionicons name="image-outline" size={s(iconSize)} color={COLORS.subtext} />
+        </View>
+      );
+    }
+
+    return (
+      <View style={style}>
+        <Image
+          source={source}
+          style={[style, { position: 'absolute' }]}
+          resizeMode={resizeMode}
+          onError={handleImageError}
+          onLoad={handleImageLoad}
+        />
+        {loading && (
+          <View style={[style, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#f0f0f0' }]}>
+            <ActivityIndicator size="small" color={COLORS.primary} />
+            <Text style={{ fontSize: ms(12), color: COLORS.subtext, marginTop: vs(4) }}>Loading...</Text>
+          </View>
+        )}
+      </View>
     );
   }
 
@@ -1607,7 +2029,16 @@ export default function CommonSectionScreen() {
       {/* ── Page Title ── */}
       <View style={styles.pageTitleWrap}>
         <Text style={[styles.pageTitle, { fontSize: sf(16), fontFamily: FONTS.anek.bold }]}>
-          {(screenTitle === 'தினம் தினம்' || screenTitle === 'வராவரம்' || screenTitle === 'ஜோசியம்' || screenTitle === 'உலக தமிழர்' || screenTitle === 'ஸ்பெஷல்' || screenTitle === 'ஆன்மீகம்' || screenTitle === 'காலண்டர்' || screenTitle === 'போட்டோ' || screenTitle === 'விளையாட்டு' || screenTitle === 'வர்த்தகம்') ? (isAllTab ? screenTitle : (activeTab?.title || screenTitle)) : screenTitle}
+          {console.log('[NRI Page Title] apiEndpoint:', apiEndpoint, 'activeTab:', activeTab, '_nriCountryTab:', activeTab?._nriCountryTab, '_nriTabTitle:', activeTab?._nriTabTitle)}
+          {apiEndpoint === '/nrimain'
+            ? (activeTab?._nriCountryTab 
+                ? activeTab.title  // Show country tab title (America, Singapore, etc)
+                : (activeTab?._nriTabTitle || screenTitle)  // _nriTabTitle set immediately on tap, no flash
+              )
+            : (screenTitle === 'தினம் தினம்' || screenTitle === 'வாராவாரம்' || screenTitle === 'ஜோசியம்' || screenTitle === 'உலக தமிழர்' || screenTitle === 'ஸ்பெஷல்' || screenTitle === 'ஆன்மீகம்' || screenTitle === 'காலண்டர்' || screenTitle === 'போட்டோ' || screenTitle === 'விளையாட்டு' || screenTitle === 'வர்த்தகம்')
+              ? (isAllTab ? screenTitle : (activeTab?.title || screenTitle))
+              : screenTitle
+          }
         </Text>
       </View>
 

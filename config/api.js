@@ -73,6 +73,7 @@ export const API_ENDPOINTS = {
 
   // NRI APIs
   NRI: '/nri',
+  NRI_MAIN: '/nrimain',
   NRI_ENGLISH: '/nri?lang=en',
   NRITAMILCAT: '/nricategory?lang=ta&cat',
   NRIENGCAT: '/nricategory?lang=en&cat',
@@ -480,6 +481,7 @@ export const api = {
 
   // NRI APIs
   getNri: () => mainApi.get(API_ENDPOINTS.NRI),
+  getNriMain: () => mainApi.get(API_ENDPOINTS.NRI_MAIN),
   getNriEnglish: () => mainApi.get(API_ENDPOINTS.NRI_ENGLISH),
   getNriTamilCat: (cat) => mainApi.get(`${API_ENDPOINTS.NRITAMILCAT}${cat}`),
   getNriEngCat: (cat) => mainApi.get(`${API_ENDPOINTS.NRIENGCAT}${cat}`),
