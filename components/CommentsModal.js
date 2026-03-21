@@ -14,7 +14,7 @@ import {
   Animated,
   Image,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { CDNApi, mainApi, u38Api } from '../config/api';
 import { COLORS, FONTS } from '../utils/constants';
 import { s, vs, ms, scaledSizes } from '../utils/scaling';
@@ -254,10 +254,11 @@ export default function CommentsModal({ visible, onClose, newsId, newsTitle, com
 
             {/* Header */}
             <View style={modal.header}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: s(10) }}>
-                <Text style={[modal.headerTitle, { fontSize: sf(18) }]}>கருத்துகள்</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: s(5) }}>
+                <MaterialIcons name='comment' size={22} />
+                <Text style={[modal.headerTitle, { fontSize: vs(16) }]}>வாசகர்கள் கருத்துகள்</Text>
                 {totalCount > 0 && (
-                  <Text style={[modal.headerCount, { fontSize: sf(18) }]}>{totalCount}</Text>
+                  <Text style={[modal.headerCount, { fontSize: vs(16) }]}>( {totalCount} )</Text>
                 )}
               </View>
               <TouchableOpacity
@@ -343,12 +344,14 @@ const modal = StyleSheet.create({
   handleWrap: { alignItems: 'center', paddingTop: vs(10), paddingBottom: vs(4) },
   handle: { width: s(36), height: vs(4), borderRadius: s(2), backgroundColor: '#ddd' },
   header: {
-    flexDirection: 'row', alignItems: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: s(12), paddingTop: vs(8), paddingBottom: vs(12),
+
   },
-  headerTitle: { fontSize: scaledSizes.font.xl, fontFamily: FONTS.muktaMalar.bold, color: '#1a1a1a' },
-  headerCount: { fontSize: scaledSizes.font.xl, fontFamily: FONTS.muktaMalar.regular, color: '#888' },
+  headerTitle: { fontFamily: FONTS.muktaMalar.semibold, color: '#1a1a1a' },
+  headerCount: { fontFamily: FONTS.muktaMalar.semibold, color: COLORS.black },
   closeBtn: { padding: s(4) },
   divider: { height: 1, backgroundColor: '#f0f0f0' },
   inputWrap: {
