@@ -9,12 +9,12 @@ import {
   FlatList,
   Modal,
   StyleSheet,
-  SafeAreaView,
   StatusBar,
   Platform,
   ActivityIndicator,
   Linking,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import RenderHtml from 'react-native-render-html';
 import AppHeaderComponent from '../components/AppHeaderComponent';

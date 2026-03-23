@@ -8,11 +8,11 @@ import {
   FlatList,
   Modal,
   StyleSheet,
-  SafeAreaView,
   StatusBar,
   Platform,
   ActivityIndicator,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 // ─── Replace with your actual API base URL ─────────────────────────────────────
 const API_URL = 'https://www.dinamalar.com/videodata';

@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
+import { s, vs } from 'react-native-size-matters';
 
 // ─── Global sf fallback for emergency situations ───────────────────────────────
 // This prevents "Property 'sf' doesn't exist" errors during initialization

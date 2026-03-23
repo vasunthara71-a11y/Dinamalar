@@ -16,6 +16,7 @@ import {
   Animated,
   Linking,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
 import { CDNApi, mainApi, API_ENDPOINTS } from '../config/api';
 import axios from 'axios';
@@ -560,22 +561,36 @@ function SectionHeader({ title }) {
 function ShortsSection({ title, data, onPress }) {
   if (!data || data.length === 0) return null;
 
+  // Split data into 2 columns with 2 items each
+  const column1Data = data.slice(0, 2);
+  const column2Data = data.slice(2, 4);
+
   return (
     <View style={shortsSectionSt.container}>
       <SectionHeader title={title} />
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={shortsSectionSt.scrollContent}
-      >
-        {data.map((item, index) => (
-          <ShortsCard
-            key={`shorts-${index}-${item.newsid || item.id || index}`}
-            item={item}
-            onPress={() => onPress(item)}
-          />
-        ))}
-      </ScrollView>
+      <View style={shortsSectionSt.columnsContainer}>
+        {/* Column 1 */}
+        <View style={shortsSectionSt.column}>
+          {column1Data.map((item, index) => (
+            <ShortsCard
+              key={`shorts-col1-${index}-${item.newsid || item.id || index}`}
+              item={item}
+              onPress={() => onPress(item)}
+            />
+          ))}
+        </View>
+
+        {/* Column 2 */}
+        <View style={shortsSectionSt.column}>
+          {column2Data.map((item, index) => (
+            <ShortsCard
+              key={`shorts-col2-${index}-${item.newsid || item.id || index}`}
+              item={item}
+              onPress={() => onPress(item)}
+            />
+          ))}
+        </View>
+      </View>
     </View>
   );
 }
@@ -585,9 +600,15 @@ const shortsSectionSt = StyleSheet.create({
     backgroundColor: PALETTE.white,
     marginBottom: vs(8),
   },
-  scrollContent: {
-    paddingHorizontal: s(14),
-    paddingVertical: vs(12),
+  columnsContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: s(12),
+    paddingVertical: vs(8),
+    justifyContent: 'space-between',
+  },
+  column: {
+    flex: 1,
+    marginHorizontal: s(2),
   },
 });
 
@@ -612,11 +633,10 @@ function ShortsCard({ item, onPress }) {
           </View>
         )}
 
-        {hasVideo && (
-          <View style={shortsSt.playOverlay}>
-            <Shorts size={s(12)} color="#fff" />
-          </View>
-        )}
+        {/* Shorts icon in right corner */}
+        <View style={shortsSt.shortsIconOverlay}>
+          <Shorts size={s(15)} color="#fff" />
+        </View>
       </View>
     </TouchableOpacity>
   );
@@ -624,12 +644,12 @@ function ShortsCard({ item, onPress }) {
 
 const shortsSt = StyleSheet.create({
   card: {
-    width: s(120),
+    width: s(150),
     marginRight: s(12),
   },
   imageContainer: {
     width: '100%',
-    height: vs(200),
+    height: vs(250),
     borderRadius: s(8),
     overflow: 'hidden',
     // backgroundColor: PALETTE.grey200,
@@ -685,10 +705,21 @@ const shortsSt = StyleSheet.create({
     textShadowColor: 'rgba(0,0,0,0.8)',
     textShadowOffset: { width: 1, height: 1 },
   },
+  shortsIconOverlay: {
+    position: 'absolute',
+    top: s(8),
+    right: s(8),
+    backgroundColor: '#000',
+    borderRadius: s(12),
+    padding: s(4),
+    justifyContent: 'center',
+    alignItems: 'center',
+
+  },
 });
 
 // --- News Card ----------------------------------------------------------------
-function NewsCard({ item, onPress, isSocialMedia = false, isPremium = false }) {
+function NewsCard({ item, onPress, isSocialMedia = false, isPremium = false, hideCategory = false, isCartoon = false }) {
   const { sf } = useFontSize();
 
   console.log('NewsCard isPremium:', isPremium, 'Title:', item.newstitle || item.title);
@@ -697,24 +728,35 @@ function NewsCard({ item, onPress, isSocialMedia = false, isPremium = false }) {
     item.largeimages || item.images || item.image || item.thumbnail || item.thumb ||
     'https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_default.jpg?im=Resize,width=400';
 
-  const title = item.newstitle || item.title || item.videotitle || item.name || '';
+  const title = decodeHtml(item.newstitle || item.title || item.videotitle || item.name || '');
   const category = item.maincat || item.categrorytitle || item.ctitle || item.maincategory || '';
   const ago = item.ago || item.time_ago || '';
-  const newscomment = item.newscomment || item.commentcount || item.nmcomment || item.comments?.total || ''; const hasAudio = item.audio === 1 || item.audio === '1' || item.audio === true ||
+  const newscomment =
+    item.newscomment ||
+    item.newscomments ||
+    item.commentcount ||
+    item.nmcomment ||
+    item.nmcomments ||
+    item.comments?.total ||
+    (typeof item.comments === 'number' ? item.comments : null) ||
+    '';
+  const hasAudio = item.audio === 1 || item.audio === '1' || item.audio === true ||
     (typeof item.audio === 'string' && item.audio.length > 1 && item.audio !== '0');
 
   return (
     <View style={isSocialMedia ? NewsCardStyles.socialMediaWrap : NewsCardStyles.wrap}>
       <TouchableOpacity onPress={onPress} activeOpacity={0.88}>
-        <View style={NewsCardStyles.imageWrap}>
+        <View style={isCartoon ? [NewsCardStyles.imageWrap, { marginHorizontal: 12, paddingHorizontal: 0, padding: 0 }] : NewsCardStyles.imageWrap}>
           <Image
             source={{ uri: imageUri }}
             style={
               isSocialMedia
                 ? [NewsCardStyles.image, { height: 400, borderRadius: ms(18) }]
-                : [NewsCardStyles.image,]
+                : isCartoon
+                  ? [NewsCardStyles.image, { height: 400, width: '100%' }]
+                  : [NewsCardStyles.image]
             }
-            resizeMode={isSocialMedia ? "contain" : "contain"}
+            resizeMode={isCartoon ? "contain" : isSocialMedia ? "contain" : "contain"}
           />
           {/* Premium Tag */}
           {isPremium && (
@@ -734,7 +776,7 @@ function NewsCard({ item, onPress, isSocialMedia = false, isPremium = false }) {
             </Text>
           )}
 
-          {!!category && !isSocialMedia && (
+          {!!category && !isSocialMedia && !hideCategory && !isPremium && (
             <View style={NewsCardStyles.catPill}>
               <Text style={[NewsCardStyles.catText, { fontSize: sf(12) }]}>
                 {category}
@@ -1178,7 +1220,16 @@ function SkeletonLoader() {
     </>
   );
 }
-
+// Add this helper at the top of HomeScreen.js
+const decodeHtml = (str) => {
+  if (!str) return '';
+  return str
+    .replace(/&#39;/g, "'")
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>');
+};
 // --- HomeScreen ---------------------------------------------------------------
 export default function HomeScreen() {
   const navigation = useNavigation();
@@ -1294,10 +1345,81 @@ export default function HomeScreen() {
         setTaboolaAds(d?.taboola_ads?.mobile || null);
 
         const sections = [];
-        const tharpothaiyaData = d?.tharpothaiya_seithigal?.[0]?.data || [];
+        const originalTharpothaiyaData = d?.tharpothaiya_seithigal?.[0]?.data || [];
+        const tharpothaiyaData = originalTharpothaiyaData.slice(0, 14);
+        console.log('=== THARPOTHAIYA DEBUG ===');
+        console.log('Original data count:', originalTharpothaiyaData.length);
+        console.log('Limited data count:', tharpothaiyaData.length);
+        console.log('First 3 items:', tharpothaiyaData.slice(0, 3).map(item => item.newstitle || item.title));
+        console.log('=== END DEBUG ===');
 
-        if (tharpothaiyaData.length > 0)
+        if (tharpothaiyaData.length > 0) {
+          console.log('Adding tharpothaiya section with', tharpothaiyaData.length, 'items');
           sections.push({ title: d.tharpothaiya_seithigal[0].title || 'தற்போதைய செய்திகள்', data: tharpothaiyaData });
+        }
+
+        // Add editor likes (editorchoice) section
+        if (d?.editorchoice?.data?.length > 0) {
+          console.log('Adding editor likes section with data:', d.editorchoice.data.length, 'items');
+          sections.push({ title: d.editorchoice.title || 'எடிட்டர் லைக்ஸ்', data: d.editorchoice.data.slice(0, 1) });
+        } else {
+          console.log('Editor likes data not available or empty');
+        }
+
+        // Add social media cards section
+        if (d?.socialmedia?.data?.length > 0) {
+          console.log('Adding social media cards section with data:', d.socialmedia.data.length, 'items');
+          sections.push({ title: d.socialmedia.title || 'கார்ட்ஸ்', data: d.socialmedia.data.slice(0, 3), isSocialMedia: true });
+        } else {
+          console.log('Social media cards data not available or empty');
+        }
+
+        // Add banner news section after social media cards
+        if (d?.bannernews?.[0]?.data?.length > 0) {
+          const bannerData = d.bannernews[0].data || [];
+          console.log('=== BANNER NEWS DEBUG ===');
+          console.log('Banner data found:', bannerData.length, 'items');
+          console.log('=== END BANNER DEBUG ===');
+
+          if (bannerData.length > 0) {
+            sections.push({ title: d.bannernews[0].title || 'தலைப்பு செய்தி', data: bannerData.slice(0, 1), isBanner: true });
+          }
+        }
+
+        // Add cartoons section after banner news
+        if (d?.catroons?.[0]?.data?.length > 0) {
+          const cartoonsData = d.catroons[0].data || [];
+          console.log('=== CARTOONS DEBUG ===');
+          console.log('Cartoons data found:', cartoonsData.length, 'items');
+          console.log('=== END CARTOONS DEBUG ===');
+
+          if (cartoonsData.length > 0) {
+            sections.push({ title: d.catroons[0].title || 'கார்ட்டூன்ஸ்', data: cartoonsData.slice(0, 3), isCartoons: true });
+          }
+        }
+
+        // Add premium stories section after cartoons
+        if (d?.premium_stories?.data?.length > 0) {
+          const premiumData = d.premium_stories.data || [];
+          console.log('=== PREMIUM STORIES DEBUG ===');
+          console.log('Premium stories data found:', premiumData.length, 'items');
+          console.log('=== END PREMIUM STORIES DEBUG ===');
+
+          if (premiumData.length > 0) {
+            sections.push({ title: d.premium_stories.title || 'பிரீமியம் ஸ்டோரி', data: premiumData.slice(0, 3), isPremium: true });
+          }
+        }
+
+        // Add shorts section after premium stories
+        if (d?.reels?.data?.length > 0) {
+          console.log('=== SHORTS DEBUG ===');
+          console.log('Shorts data found:', d.reels.data.length, 'items');
+          console.log('=== END SHORTS DEBUG ===');
+
+          if (d.reels.data.length > 0) {
+            sections.push({ title: 'ஷார்ட்ஸ்', data: d.reels.data.slice(0, 4), type: 'shorts' });
+          }
+        }
 
         if (d?.dinamalartv?.length > 0) {
           // Tag live items so getTabKey can identify them
@@ -1311,24 +1433,29 @@ export default function HomeScreen() {
         } else {
         }
 
-        if (d?.mixedcontent)
-          d.mixedcontent.forEach((sec) => {
-            if (sec?.data?.length > 0) sections.push({ title: sec.title, data: sec.data });
-          });
-
-
-
-        if (d?.dinamdinam) {
-          const combined = []; let dynTitle = 'தினம் தினம்';
-          d.dinamdinam.forEach((sec) => {
-            if (sec?.data) {
-              combined.push(...sec.data);
-              if (sec.title && dynTitle === 'தினம் தினம்') dynTitle = sec.title;
-            }
-          });
-          if (combined.length > 0) sections.push({ title: dynTitle, data: combined });
-
+        if (d?.mixedcontent || d?.tamilagam || d?.ida5) {
+          // Process mixedcontent
+          if (d?.mixedcontent)
+            d.mixedcontent.forEach((sec) => {
+              if (sec?.data?.length > 0) sections.push({ title: sec.title, data: sec.data.slice(0, 5) });
+            });
         }
+
+  if (d?.dinamdinam) {
+  const combined = [];
+  d.dinamdinam.forEach((sec) => {
+    if (sec?.data) {
+      combined.push(...sec.data);
+    }
+  });
+  if (combined.length > 0) sections.push({ title: 'தினம் தினம்', data: combined.slice(0, 2) });
+}
+
+        // Add shortnews section after dinamdinam
+        if (d?.shortnews?.data?.length > 0) {
+          sections.push({ title: d.shortnews.title || 'ஷார்ட் நியூஸ்', data: d.shortnews.data.slice(0, 5) });
+        }
+
         if (d?.sports?.data?.length > 0)
           sections.push({ title: d.sports.title || 'விளையாட்டு', data: d.sports.data.slice(0, 3) });
 
@@ -1871,6 +1998,16 @@ export default function HomeScreen() {
           console.log('Cinema data not available from any source');
         }
 
+        console.log('=== FINAL SECTIONS DEBUG ===');
+        console.log('Total sections being set:', sections.length);
+        sections.forEach((section, index) => {
+          console.log(`Section ${index}: "${section.title}" - ${section.data?.length || 0} items`);
+          if (section.title?.includes('தற்போதைய') || section.title?.includes('tharpothaiya')) {
+            console.log(`  -> THARPOTHAIYA SECTION FOUND with ${section.data?.length || 0} items`);
+          }
+        });
+        console.log('=== END FINAL DEBUG ===');
+
         setAllNewsSections(sections);
         setTrendingTags(
           d?.trending?.data?.length > 0 ? d.trending.data :
@@ -2019,10 +2156,17 @@ export default function HomeScreen() {
                 key={`sec-${si}`}
                 data={section.data}
                 onVideoPress={(item) => {
-                  navigation?.navigate('VideoDetailScreen', {
-                    videoId: item.videoid || item.id || item.newsid,
-                    video: item,
-                  });
+                  // Check if this is a live item and navigate to VideosScreen with live tab
+                  if (item.maincat === 'live') {
+                    navigation?.navigate('VideosScreen', {
+                      initialTabKey: 'live'
+                    });
+                  } else {
+                    navigation?.navigate('VideoDetailScreen', {
+                      videoId: item.videoid || item.id || item.newsid,
+                      video: item,
+                    });
+                  }
                 }}
               />
 
@@ -2060,6 +2204,92 @@ export default function HomeScreen() {
               // -- District (hidden) -------------------------------------------
             ) : section.type === 'district' ? (
               null
+
+              // -- Banner News ----------------------------------------------
+            ) : section.isBanner ? (
+              <View key={`sec-${si}`}  >
+                <SectionHeader title={section.title} />
+                {section.data?.map((item, i) => {
+                  const isPremiumStory = section.title?.toLowerCase().includes('பிரத்யேகச் செய்திகள்') || section.title?.toLowerCase().includes('premium') || section.title?.toLowerCase().includes('பிரீமியம்');
+
+                  return (
+                    <NewsCard
+                      key={`banner-${si}-${i}-${item.newsid || item.id || i}`}
+                      item={item}
+                      isPremium={isPremiumStory}
+                      hideCategory={true}
+                      onPress={() => {
+                        const link = item.slug || item.link || item.url || item.weburl;
+                        if (link && (link.startsWith('http://') || link.startsWith('https://'))) {
+                          Linking.openURL(link).catch(() => goToArticle(item));
+                        } else if (item.newsid) {
+                          goToArticle(item);
+                        } else {
+                          console.log('No valid navigation target for banner item');
+                        }
+                      }}
+                    />
+                  );
+                })}
+              </View>
+
+              // -- Cartoons ----------------------------------------------
+            ) : section.isCartoons ? (
+              <View key={`sec-${si}`}>
+                <SectionHeader title={section.title} />
+                {section.data?.map((item, i) => {
+                  return (
+                    <NewsCard
+                      key={`cartoon-${si}-${i}-${item.eventid || item.id || i}`}
+                      item={{
+                        ...item,
+                        newscomment: typeof item.comments === 'number' ? item.comments : item.newscomment,
+                      }}
+                      hideCategory={true}
+                      isCartoon={true}
+                      onPress={() => {
+                        const link = item.slug || item.link || item.url || item.weburl;
+                        if (link && (link.startsWith('http://') || link.startsWith('https://'))) {
+                          Linking.openURL(link).catch(() => goToArticle(item));
+                        } else if (item.eventid || item.newsid) {
+                          goToArticle(item);
+                        }
+                      }}
+                    />
+                  );
+                })}
+              </View>
+
+              // -- Premium Stories ----------------------------------------------
+            ) : section.isPremium ? (
+              <View key={`sec-${si}`}  >
+                <SectionHeader title={section.title} />
+                {section.data?.map((item, i) => {
+                  const isPremiumStory = section.title?.toLowerCase().includes('பிரத்யேகச் செய்திகள்') || section.title?.toLowerCase().includes('premium') || section.title?.toLowerCase().includes('பிரீமியம்');
+
+                  return (
+                    <NewsCard
+                      key={`premium-${si}-${i}-${item.newsid || item.id || i}`}
+                      item={{
+                        ...item,
+                        newscomment: typeof item.newscomments === 'number' ? item.newscomments : item.newscomment,
+                      }}
+                      isPremium={isPremiumStory}
+                      hideCategory={false}
+                      onPress={() => {
+                        const link = item.slug || item.link || item.url || item.weburl;
+                        if (link && (link.startsWith('http://') || link.startsWith('https://'))) {
+                          Linking.openURL(link).catch(() => goToArticle(item));
+                        } else if (item.newsid) {
+                          goToArticle(item);
+                        } else {
+                          console.log('No valid navigation target for premium item');
+                        }
+                      }}
+                    />
+                  );
+                })}
+              </View>
 
               // -- Regular news ------------------------------------------------
             ) : (
@@ -2225,7 +2455,7 @@ export default function HomeScreen() {
   const { sf } = useFontSize();
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <StatusBar barStyle="dark-content" backgroundColor={PALETTE.white} />
 
       <TopMenuStrip
@@ -2283,8 +2513,7 @@ export default function HomeScreen() {
         </TouchableOpacity>
       )}
 
-
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -2293,7 +2522,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: PALETTE.grey100,
-    paddingTop: Platform.OS === 'android' ? vs(30) : 0,
+    paddingTop: Platform.OS === 'android' ? vs(0) : 20,
   },
 
   appHeader: {

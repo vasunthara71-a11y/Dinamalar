@@ -7,13 +7,13 @@ import {
   Image,
   StyleSheet,
   ActivityIndicator,
-  SafeAreaView,
   Share,
   Animated,
   Easing,
   Dimensions,
   Platform,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, FontAwesome, Feather } from '@expo/vector-icons';
 import { useAudioPlayer, useAudioPlayerStatus, setAudioModeAsync } from 'expo-audio';
 import { useNavigation } from '@react-navigation/native';

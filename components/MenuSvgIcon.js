@@ -90,15 +90,12 @@ const VaravaramIcon = ({ size = 20, color = '#333' }) => (
 );
 
 // ─── இணைப்பு மலர் — open hand with plant/sprout growing from palm ─────────────
+// ✅ FIXED - all on one line
 const MalargalIcon = ({ size = 20, color = '#333' }) => (
   <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
     {/* palm / cupped hand shape */}
     <Path
-      d="M8 14 L8 10 C8 9.4 8.4 9 9 9 L9 13
-         M9 9 L9 8 C9 7.4 9.4 7 10 7 L10 13
-         M10 7 L10 7 C10 6.4 10.4 6 11 6 L11 13
-         M11 6 L11 7 C11 6.4 11.4 6 12 6 L12 13
-         M8 14 C8 16 10 18 12 18 C14 18 16 16 16 14 L16 12 C16 11.4 15.6 11 15 11 L12 11"
+      d="M8 14 L8 10 C8 9.4 8.4 9 9 9 L9 13 M9 9 L9 8 C9 7.4 9.4 7 10 7 L10 13 M10 7 L10 7 C10 6.4 10.4 6 11 6 L11 13 M11 6 L11 7 C11 6.4 11.4 6 12 6 L12 13 M8 14 C8 16 10 18 12 18 C14 18 16 16 16 14 L16 12 C16 11.4 15.6 11 15 11 L12 11"
       stroke={color} strokeWidth="1.3" fill="none" strokeLinecap="round" strokeLinejoin="round"
     />
     {/* stem */}

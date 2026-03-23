@@ -6,9 +6,9 @@ import {
   TouchableOpacity,
   StyleSheet,
   StatusBar,
-  SafeAreaView,
   ActivityIndicator,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { mainApi, API_ENDPOINTS } from '../config/api';
 import { COLORS, FONTS } from '../utils/constants';
 import { vs } from 'react-native-size-matters';

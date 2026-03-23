@@ -7,12 +7,17 @@ import { s, vs, ms } from '../utils/scaling';
 import { FONTS } from '../utils/constants';
 import useAppStyles from '../hooks/useAppStyles';
 
-const NewsCard = ({ item, onPress, isPremium = false }) => {
+const NewsCard = ({ item, onPress, isPremium = false, hideCategory = false }) => {
   const { styles: appSt } = useAppStyles(); // ← font styles, always fresh
 
   // Debug premium detection
   if (isPremium) {
     console.log(' PREMIUM CARD DETECTED:', item.newstitle || item.title);
+  }
+
+  // Debug hideCategory
+  if (hideCategory) {
+    console.log(' HIDE CATEGORY ENABLED FOR:', item.newstitle || item.title);
   }
 
   const imageUri =
@@ -22,7 +27,15 @@ const NewsCard = ({ item, onPress, isPremium = false }) => {
   const title       = item.newstitle || item.title || item.videotitle || item.name || '';
   const category    = item.maincat || item.categrorytitle || item.ctitle || item.maincategory || '';
   const ago         = item.ago || item.time_ago || '';
-  const newscomment = item.newscomment || item.commentcount || '';
+  const newscomment = item.newscomment || item.commentcount || item.comments || '';
+
+  // Debug comment data
+  console.log('COMMENT DEBUG for:', title);
+  console.log('- newscomment:', item.newscomment);
+  console.log('- commentcount:', item.commentcount);
+  console.log('- comments:', item.comments);
+  console.log('- final newscomment:', newscomment);
+
   const hasAudio    = item.audio === 1 || item.audio === '1' || item.audio === true ||
     (typeof item.audio === 'string' && item.audio.length > 1 && item.audio !== '0');
 
@@ -41,18 +54,21 @@ const NewsCard = ({ item, onPress, isPremium = false }) => {
             </Text>
           )}
 
-          <View style={st.categoryRow}>
-            {!!category && (
-              <View style={st.catPill}>
-                <Text style={[st.catBase, appSt.cardCategory]}>{category}</Text>
-              </View>
-            )}
-            {isPremium && (
-              <View style={st.premiumPill}>
-                <Text style={[st.premiumBase, appSt.cardCategory]}>பிரீமியம்</Text>
-              </View>
-            )}
-          </View>
+          {/* Category Row - Only show if hideCategory is false */}
+          {!hideCategory ? (
+            <View style={st.categoryRow}>
+              {!!category && (
+                <View style={st.catPill}>
+                  <Text style={[st.catBase, appSt.cardCategory]}>{category}</Text>
+                </View>
+              )}
+              {isPremium && (
+                <View style={st.premiumPill}>
+                  <Text style={[st.premiumBase, appSt.cardCategory]}>பிரீமியம்</Text>
+                </View>
+              )}
+            </View>
+          ) : null}
 
           <View style={st.metaRow}>
             <Text style={appSt.cardTime}>{ago}</Text>

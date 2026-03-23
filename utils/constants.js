@@ -148,7 +148,7 @@ export const FONTS = {
         marginHorizontal: s(12),
         marginTop: vs(5),
         overflow: 'hidden',
-        // backgroundColor: PALETTE.grey200,
+        backgroundColor: PALETTE.grey200,
         
         
       },
