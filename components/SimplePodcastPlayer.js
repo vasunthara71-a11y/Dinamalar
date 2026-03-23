@@ -4,14 +4,18 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  Modal,
   ActivityIndicator,
+  Modal,
+  ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAudioPlayer, useAudioPlayerStatus, setAudioModeAsync } from 'expo-audio';
 import { s, vs } from '../utils/scaling';
+import { ms } from 'react-native-size-matters';
+import { FONTS } from '../utils/constants';
+import { useNavigation } from '@react-navigation/native';
 
-// ─── MANUAL TEST DATA (hardcoded URL — bypasses API issues) ──────────────────
+// ─── MANUAL TEST DATA ──────────────────────────────────────────────────────────
 const MANUAL_TEST_DATA = [
   {
     newsid: 58927,
@@ -22,46 +26,34 @@ const MANUAL_TEST_DATA = [
   },
 ];
 
-export default function SimplePodcastPlayer({ data }) {
-  const [isVisible, setIsVisible] = useState(false);
+export default function SimplePodcastPlayer({ data, onMorePress }) {
   const [isReady, setIsReady] = useState(false);
+  const [isDismissed, setIsDismissed] = useState(false);
+  const [showFullPlayer, setShowFullPlayer] = useState(false);
+  const navigation = useNavigation();
 
-  // Always use manual test data to verify playback works
   const currentPodcast = MANUAL_TEST_DATA[0];
   const audioUrl = currentPodcast.audio;
 
-  // useAudioPlayer from expo-audio — pass URI object
   const player = useAudioPlayer({ uri: audioUrl });
   const status = useAudioPlayerStatus(player);
 
-  // Setup audio mode once on mount
   useEffect(() => {
     setAudioModeAsync({
-      playsInSilentMode: true,        // critical for iOS silent switch
+      playsInSilentMode: true,
       shouldPlayInBackground: true,
       interruptionMode: 'doNotMix',
     })
-      .then(() => {
-        console.log('SimplePodcastPlayer: Audio mode configured');
-        setIsReady(true);
-      })
-      .catch((e) => {
-        console.warn('SimplePodcastPlayer: setAudioModeAsync error:', e);
-        setIsReady(true); // still attempt playback
-      });
+      .then(() => setIsReady(true))
+      .catch(() => setIsReady(true));
   }, []);
 
   const handlePlayPause = () => {
-    if (!player) return;
+    if (!player || !isReady) return;
     if (status.playing) {
-      console.log('SimplePodcastPlayer: Pausing');
       player.pause();
     } else {
-      console.log('SimplePodcastPlayer: Playing:', audioUrl);
-      // If track ended, seek to start before replaying
-      if (status.didJustFinish) {
-        player.seekTo(0);
-      }
+      if (status.didJustFinish) player.seekTo(0);
       player.play();
     }
   };
@@ -71,12 +63,17 @@ export default function SimplePodcastPlayer({ data }) {
       player.pause();
       player.seekTo(0);
     }
-    setIsVisible(false);
   };
 
   const handleSeekForward = () => {
     if (!player || !status.duration) return;
     const newTime = Math.min((status.currentTime || 0) + 15, status.duration);
+    player.seekTo(newTime);
+  };
+
+  const handleSeekBackward = () => {
+    if (!player) return;
+    const newTime = Math.max((status.currentTime || 0) - 15, 0);
     player.seekTo(newTime);
   };
 
@@ -89,49 +86,90 @@ export default function SimplePodcastPlayer({ data }) {
 
   const progress = status.duration > 0 ? status.currentTime / status.duration : 0;
 
+  // If dismissed, show nothing
+  if (isDismissed) return null;
+
   return (
     <>
-      {/* Floating podcast button */}
-      <TouchableOpacity
-        style={[styles.floatingButton, status.playing && styles.floatingButtonActive]}
-        onPress={() => setIsVisible(true)}
-        activeOpacity={0.9}
-      >
-        <Ionicons name="musical-notes" size={s(20)} color="#fff" />
-        <Text style={styles.buttonText}>Podcast</Text>
-        {status.playing && <View style={styles.playingDot} />}
-      </TouchableOpacity>
+      {/* ── Compact Floating Mini-Player (matches Dinamalar website) ── */}
+      <View style={styles.miniPlayerContainer}>
+        {/* Dismiss (–) button */}
+        <TouchableOpacity
+          style={styles.dismissBtn}
+          onPress={() => {
+            handleStop();
+            setIsDismissed(true);
+          }}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Text style={styles.dismissText}>−</Text>
+        </TouchableOpacity>
 
-      {/* Player modal */}
+        {/* Label */}
+        <Text style={styles.miniLabel}>Podcast</Text>
+
+        {/* Play / Pause button */}
+        <TouchableOpacity
+          style={styles.miniPlayBtn}
+          onPress={handlePlayPause}
+          disabled={!isReady}
+          activeOpacity={0.8}
+        >
+          {status.isBuffering ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <Ionicons
+              name={status.playing ? 'pause' : 'play'}
+              size={s(20)}
+              color="#fff"
+            />
+          )}
+        </TouchableOpacity>
+
+        {/* "மேலும் >>" — navigates to PodcastPlayer screen */}
+        <TouchableOpacity
+          onPress={() => navigation.navigate('PodcastPlayer')}
+          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+          style={{ flexDirection: "row", alignItems: "center", gap: ms(5) }}
+        >
+          <Text style={styles.moreText}>மேலும் </Text>
+          <Text style={{ color: "#fff", fontSize: ms(15) }}>{'>>'}</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* ── Full-Screen Player Modal (opened via மேலும்) ── */}
       <Modal
-        visible={isVisible}
+        visible={showFullPlayer}
         animationType="slide"
         presentationStyle="fullScreen"
-        onRequestClose={() => setIsVisible(false)}
+        onRequestClose={() => setShowFullPlayer(false)}
       >
-        <View style={styles.modalContainer}>
+        <View style={styles.fullPlayerContainer}>
 
           {/* Header */}
-          <View style={styles.header}>
-            <TouchableOpacity onPress={() => setIsVisible(false)} style={styles.closeBtn}>
+          <View style={styles.fullHeader}>
+            <TouchableOpacity
+              onPress={() => setShowFullPlayer(false)}
+              style={styles.closeBtn}
+            >
               <Ionicons name="chevron-down" size={s(28)} color="#fff" />
             </TouchableOpacity>
-            <Text style={styles.headerLabel}>PODCAST</Text>
+            <Text style={styles.fullHeaderLabel}>PODCAST</Text>
             <View style={{ width: s(40) }} />
           </View>
 
-          {/* Art */}
+          {/* Art circle */}
           <View style={styles.artContainer}>
             <View style={[styles.artCircle, status.playing && styles.artCircleActive]}>
               <Ionicons name="radio" size={s(64)} color="#096dd2" />
             </View>
           </View>
 
-          {/* Info */}
-          <Text style={styles.title}>{currentPodcast.newstitle}</Text>
-          <Text style={styles.subtitle}>{currentPodcast.standarddate}</Text>
+          {/* Title & date */}
+          <Text style={styles.fullTitle}>{currentPodcast.newstitle}</Text>
+          <Text style={styles.fullSubtitle}>{currentPodcast.standarddate}</Text>
 
-          {/* Progress bar */}
+          {/* Progress */}
           <View style={styles.progressContainer}>
             <Text style={styles.timeText}>{formatTime(status.currentTime)}</Text>
             <View style={styles.progressBar}>
@@ -142,14 +180,19 @@ export default function SimplePodcastPlayer({ data }) {
 
           {/* Controls */}
           <View style={styles.controlsRow}>
+            {/* –15s */}
+            <TouchableOpacity style={styles.controlBtn} onPress={handleSeekBackward}>
+              <Ionicons name="play-back" size={s(22)} color="#fff" />
+            </TouchableOpacity>
+
             {/* Stop */}
             <TouchableOpacity style={styles.controlBtn} onPress={handleStop}>
               <Ionicons name="stop" size={s(22)} color="#fff" />
             </TouchableOpacity>
 
-            {/* Play / Pause */}
+            {/* Play/Pause */}
             <TouchableOpacity
-              style={styles.playBtn}
+              style={styles.fullPlayBtn}
               onPress={handlePlayPause}
               disabled={!isReady}
             >
@@ -168,20 +211,21 @@ export default function SimplePodcastPlayer({ data }) {
             <TouchableOpacity style={styles.controlBtn} onPress={handleSeekForward}>
               <Ionicons name="play-forward" size={s(22)} color="#fff" />
             </TouchableOpacity>
+
+            {/* Close full player → back to mini */}
+            <TouchableOpacity
+              style={styles.controlBtn}
+              onPress={() => setShowFullPlayer(false)}
+            >
+              <Ionicons name="contract" size={s(22)} color="#fff" />
+            </TouchableOpacity>
           </View>
 
-          {/* Debug panel */}
-          <View style={styles.debugBox}>
-            <Text style={styles.debugLabel}>🔗 URL:</Text>
-            <Text style={styles.debugUrl} numberOfLines={2}>{audioUrl}</Text>
-            <Text style={styles.debugLabel}>
-              Status:{' '}
-              {status.isBuffering ? '⏳ Buffering' :
-               status.playing    ? '▶️ Playing' :
-               status.didJustFinish ? '✅ Finished' : '⏸ Paused'}
-            </Text>
-            <Text style={styles.debugLabel}>
-              Time: {formatTime(status.currentTime)} / {formatTime(status.duration)}
+          {/* Podcast title strip */}
+          <View style={styles.titleStrip}>
+            <Ionicons name="musical-notes" size={s(14)} color="#096dd2" />
+            <Text style={styles.titleStripText} numberOfLines={2}>
+              {currentPodcast.newstitle}
             </Text>
           </View>
 
@@ -192,48 +236,81 @@ export default function SimplePodcastPlayer({ data }) {
 }
 
 const styles = StyleSheet.create({
-  floatingButton: {
+  miniPlayerContainer: {
     position: 'absolute',
-    right: s(10),
-    top: '45%',
-    backgroundColor: '#096dd2',
-    width: s(60),
-    height: s(60),
-    borderRadius: s(30),
+    right: s(0),
+    top: '42%',
+    backgroundColor: 'rgba(99, 115, 131)',
+    borderTopLeftRadius: s(10),
+    borderBottomLeftRadius: s(10),
+    // paddingTop: vs(10),
+    paddingBottom: vs(10),
+    paddingHorizontal: s(10),
+    alignItems: 'center',
+    gap: vs(6),
+    shadowColor: '#000',
+    shadowOffset: { width: -2, height: 4 },
+    shadowOpacity: 0.18,
+    shadowRadius: s(8),
+    elevation: 12,
+    zIndex: 1000,
+    minWidth: s(90),
+    borderWidth: 1,
+    borderColor: "#fff"
+  },
+  dismissBtn: {
+    alignSelf: 'flex-start',
+    marginLeft: -s(20),
+    width: s(35),
+    height: s(35),
+    borderRadius: s(18),
+    backgroundColor: '#e0e0e0',
     justifyContent: 'center',
     alignItems: 'center',
+    elevation: 6,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: vs(4) },
-    shadowOpacity: 0.3,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.18,
     shadowRadius: s(8),
-    elevation: 10,
-    zIndex: 1000,
+    marginTop: -s(10)
   },
-  floatingButtonActive: {
-    backgroundColor: '#0a56a8',
+  dismissText: {
+    fontSize: s(16),
+    color: '#444',
+    lineHeight: s(18),
+    fontWeight: '600',
   },
-  buttonText: {
+  miniLabel: {
+    fontSize: s(14),
     color: '#fff',
-    fontSize: s(10),
-    fontWeight: 'bold',
-    marginTop: vs(2),
+    letterSpacing: 0.3,
+    fontFamily: FONTS.muktaMalar.medium
   },
-  playingDot: {
-    position: 'absolute',
-    top: s(8),
-    right: s(8),
-    width: s(8),
-    height: s(8),
-    borderRadius: s(4),
-    backgroundColor: '#22c55e',
+  miniPlayBtn: {
+    width: s(40),
+    height: s(40),
+    borderRadius: s(20),
+    borderWidth: 3,
+    borderColor: '#fff',
+    // backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  modalContainer: {
+  moreText: {
+    fontSize: s(12),
+    color: '#fff',
+    // fontWeight: '600',
+    textAlign: 'center',
+    fontFamily: FONTS.muktaMalar.medium
+  },
+
+  fullPlayerContainer: {
     flex: 1,
     backgroundColor: '#0d1b2a',
     paddingHorizontal: s(24),
     paddingBottom: vs(40),
   },
-  header: {
+  fullHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -241,7 +318,7 @@ const styles = StyleSheet.create({
     paddingBottom: vs(20),
   },
   closeBtn: { padding: s(4) },
-  headerLabel: {
+  fullHeaderLabel: {
     color: '#aaa',
     fontSize: s(12),
     fontWeight: '700',
@@ -265,7 +342,7 @@ const styles = StyleSheet.create({
     borderColor: '#096dd2',
     backgroundColor: 'rgba(9,109,210,0.25)',
   },
-  title: {
+  fullTitle: {
     fontSize: s(16),
     fontWeight: 'bold',
     color: '#fff',
@@ -273,7 +350,7 @@ const styles = StyleSheet.create({
     marginBottom: vs(8),
     lineHeight: s(24),
   },
-  subtitle: {
+  fullSubtitle: {
     fontSize: s(13),
     color: '#aaa',
     textAlign: 'center',
@@ -307,18 +384,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: s(32),
+    gap: s(16),
     marginBottom: vs(32),
   },
   controlBtn: {
-    width: s(48),
-    height: s(48),
-    borderRadius: s(24),
+    width: s(44),
+    height: s(44),
+    borderRadius: s(22),
     backgroundColor: 'rgba(255,255,255,0.1)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  playBtn: {
+  fullPlayBtn: {
     width: s(72),
     height: s(72),
     borderRadius: s(36),
@@ -331,19 +408,18 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.5,
     shadowRadius: 8,
   },
-  debugBox: {
+  titleStrip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: s(8),
     backgroundColor: 'rgba(255,255,255,0.07)',
     borderRadius: s(8),
     padding: s(12),
-    gap: vs(4),
   },
-  debugLabel: {
-    color: '#aaa',
-    fontSize: s(11),
-    fontWeight: '600',
-  },
-  debugUrl: {
-    color: '#64b5f6',
-    fontSize: s(10),
+  titleStripText: {
+    flex: 1,
+    color: '#ddd',
+    fontSize: s(12),
+    lineHeight: s(18),
   },
 });

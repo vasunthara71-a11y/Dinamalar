@@ -2,6 +2,7 @@
 import React from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Comment } from '../assets/svg/Icons';
 import { s, vs, ms } from '../utils/scaling';
 import { FONTS } from '../utils/constants';
 import useAppStyles from '../hooks/useAppStyles';
@@ -61,7 +62,7 @@ const NewsCard = ({ item, onPress, isPremium = false }) => {
               )}
               {!!newscomment && newscomment !== '0' && (
                 <View style={st.commentRow}>
-                  <Ionicons name="chatbox" size={ms(14)} color="#637381" />
+                  <Comment size={ms(14)} color="#637381" style={{ marginRight: 2 }} />
                   <Text style={appSt.cardComment}> {newscomment}</Text>
                 </View>
               )}
