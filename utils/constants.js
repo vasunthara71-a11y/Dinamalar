@@ -82,7 +82,8 @@ export const COLORS = {
   warning: '#ff9800',
   catText: "#454F5B",
   catborder: "#DFE3E8",
-  black:"#000000"
+  black:"#000000",
+  podcast: '#9c27b0', // Purple color for podcast
 };
 
 // ─── Font Configuration ───────────────────────────────────────────────────────────────

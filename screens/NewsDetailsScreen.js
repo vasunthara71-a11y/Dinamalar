@@ -17,6 +17,7 @@ import {
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { Ionicons } from '@expo/vector-icons';
+import { Comment } from '../assets/svg/Icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import RenderHtml from 'react-native-render-html';
 
@@ -678,7 +679,7 @@ export default function NewsDetailsScreen() {
                 <View style={{ flex: 1 }} />
                 {!disableComments && (
                   <TouchableOpacity style={styles.iconAction} onPress={() => setCommentsVisible(true)}>
-                    <Ionicons name="chatbox" size={s(20)} color={COLORS.subtext} />
+                    <Comment size={s(20)} color={COLORS.subtext} style={{ marginRight: 2 }} />
                     {comments > 0 && (
                       <Text style={[styles.iconBadge, { fontSize: sf(10) }]}>{comments}</Text>
                     )}
@@ -813,7 +814,7 @@ export default function NewsDetailsScreen() {
                               <Text style={[styles.relatedNewsTimeText, { fontSize: sf(10) }]}>{relDate}</Text>
                               {relCommentCount > 0 && (
                                 <View style={styles.relatedNewsCommentRow}>
-                                  <Ionicons name="chatbox" size={s(14)} color="#637381" />
+                                  <Comment size={s(14)} color="#637381" style={{ marginRight: 2 }} />
                                   <Text style={[styles.relatedNewsCommentText, { fontSize: sf(12) }]}> {relCommentCount}</Text>
                                 </View>
                               )}

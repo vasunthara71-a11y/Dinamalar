@@ -22,7 +22,7 @@ import { ms } from 'react-native-size-matters';
 import { SvgXml, SvgUri } from 'react-native-svg';
 import DistrictDrawer from './DistrictDrawer';
 import TEXT_STYLES from '../utils/textStyles';
-
+import { SignOut, Home, RightArrow, Calendar, Joshiyam, Aanmigam, Varavaram, Inaippumalar, Photo, UlagaTamilar, Special, Kovil, Cinema, UllurSeithigal, DinamDinam, District, Malargal, Light } from '../assets/svg/Icons';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 const DRAWER_W = SCREEN_W;
@@ -360,7 +360,7 @@ if (title === 'ஆன்மீகம்' || id === 'anmegam' || link === '/anmeg
             />
             {/* ☀ Light pill */}
             <View style={ds.themeToggle}>
-              <Ionicons name="sunny-outline" size={s(22)} color={P.grey700} />
+              <Light color={P.grey700} size={s(22)} />
               <Text style={{ fontFamily: FONTS.muktaMalar, fontSize: 16, color: P.grey700, marginLeft: s(3) }}>
                 Light
               </Text>
@@ -382,10 +382,9 @@ if (title === 'ஆன்மீகம்' || id === 'anmegam' || link === '/anmeg
               <Text style={{ fontFamily: FONTS.muktaMalar.semibold, fontSize: ms(16), color: P.grey700 }}>
                 Sign Up
               </Text>
-              <Ionicons name="exit-outline" size={s(16)} color={P.grey700} />
+              <SignOut color={P.grey700} size={16} />
             </TouchableOpacity>
           </View>
-
 
           {loading ? (
             <View style={ds.loaderWrap}>
@@ -405,7 +404,7 @@ if (title === 'ஆன்மீகம்' || id === 'anmegam' || link === '/anmeg
                   onPress={() => { navigation?.navigate('MainTabs', { screen: 'Home' }); onClose(); }}
                   activeOpacity={0.7}
                 >
-                  <Ionicons name="home-outline" size={s(20)} color={P.grey800} style={{ marginRight: s(15) }} />
+                  <Home color={P.grey800} size={20} style={{ marginRight: s(12) }} />
                   <Text style={{ fontFamily: FONTS.muktaMalar.semibold, fontSize: ms(17), color: P.grey700 }}>
                     முகப்பு
                   </Text>
@@ -423,9 +422,7 @@ if (title === 'ஆன்மீகம்' || id === 'anmegam' || link === '/anmeg
                     onPress={() => handleMenuItemPress(item)}
                     activeOpacity={0.7}
                   >
-                    <Text style={{ fontSize: 16, color: P.primary, fontFamily: FONTS.muktaMalar.semibold, marginRight: s(8), lineHeight: 22 }}>
-                      »
-                    </Text>
+                    <RightArrow color={P.primary} size={16} style={{ marginRight: s(8) }} />
                     <Text style={{ fontFamily: FONTS.muktaMalar.semibold, fontSize: ms(17), color: "#454F5B", flex: 1 }} numberOfLines={1}>
                       {item.Title || item.title || item.name || ''}
                     </Text>
@@ -440,9 +437,7 @@ if (title === 'ஆன்மீகம்' || id === 'anmegam' || link === '/anmeg
                     onPress={() => handleMenuItemPress(item)}
                     activeOpacity={0.7}
                   >
-                    <Text style={{ fontSize: 25, color: P.primary, fontFamily: FONTS.muktaMalar.bold, marginRight: s(8), lineHeight: ms(22) }}>
-                      »
-                    </Text>
+                    <RightArrow color={P.primary} size={25} style={{ marginRight: s(8) }} />
                     <Text style={{ fontFamily: FONTS.muktaMalar.semibold, fontSize: ms(25), color: P.grey800, flex: 1 }} numberOfLines={1}>
                       {item.Title || item.title || item.name || ''}
                     </Text>
@@ -463,17 +458,20 @@ if (title === 'ஆன்மீகம்' || id === 'anmegam' || link === '/anmeg
                     const itemId = String(item.id || '');
                     const iconUri = item.Icon || item.icon || '';
 
-                    const isDinamDinam = itemTitle === 'தினம் தினம்';
+                    const isDinamDinam = itemTitle === 'தினம் தினம்'||itemId === 'dinamdinam' || itemLink === '/dinamdinam';
                     const isJoshiyam = itemTitle === 'ஜோசியம்' || itemId === 'astrology' || itemLink === '/joshiyam';
                     const isNri = itemTitle === 'உலக தமிழர்' || itemId === 'nrimain' || itemLink === '/nrimain';
                     const isSpecial = itemTitle === 'ஸ்பெஷல்' || itemId === 'special ' || itemLink === '/specialmain';
-                    const isweekly = itemTitle === 'வாராவாரம்' || itemId === 'weekly' || itemLink === '/weekly';
-                    const isSpritual = itemTitle === 'ஆன்மீகம்' || itemId === 'anmegam' || itemLink === '/anmegam';
+                    const isweekly = itemTitle === 'வாராவாரம்' || itemId === 'varavaram' || itemLink === '/varavaram';
+                    const isSpritual = itemTitle === 'ஆன்மீகம்' || itemId === 'anmigam' || itemLink === '/anmegam';
                     const isCalendar = itemTitle === 'காலண்டர்' || itemId === 'calendar' || itemLink === '/calendar';
                     const isMalargal = itemTitle === 'மலர்கள்' || itemId === 'malargal' || itemLink === '/malargal';
                     const isPhoto = itemTitle === 'போட்டோ' || itemId === 'photo' || itemLink === '/photodata';
                     const isDistrict = itemTitle === 'மாவட்டங்கள்' || itemId === 'district' || itemLink === '/district';
-
+                    const isKovil = itemTitle === 'கோயில்கள்' || itemId === 'temple' || itemLink === '/temple';
+                    const isCinema = itemTitle === 'சினிமா' || itemId === 'cinema' || itemLink === '/cinema';
+                    const isLight = itemTitle === 'ஒளி' || itemId === 'light' || itemLink === '/light';
+ 
                     let subItems = rawSub;
                     if (isDinamDinam && dinamDinamSubcats && dinamDinamSubcats.length > 0) {
                       subItems = dinamDinamSubcats;
@@ -525,17 +523,46 @@ if (title === 'ஆன்மீகம்' || id === 'anmegam' || link === '/anmeg
                         >
                           {/* Icon box — fixed 36px width, centered */}
                           <View style={ds.menu2IconBox}>
-                            {iconUri ? (
-                              <MenuIcon uri={iconUri} size={s(18)} />
-                            ) : (
-                              <Ionicons name={getIconName(index)} size={s(20)} color={P.grey800} />
-                            )}
+                            {isDinamDinam ? (
+                              <DinamDinam color={P.grey800} size={s(20)} />
+                            ) : isJoshiyam ? (
+                              <Joshiyam color={P.grey800} size={s(20)} />
+                            ) : isweekly ? (
+                              <Varavaram color={P.grey800} size={s(20)} />
+                            ) : isNri ? (
+                              <UlagaTamilar color={P.grey800} size={s(20)} />
+                            ) : isSpecial ? (
+                              <Special color={P.grey800} size={s(20)} />
+                            ) : isKovil ? (
+                              <Kovil color={P.grey800} size={s(20)} />
+                            ) : isCalendar ? (
+                              <Calendar color={P.grey800} size={s(20)} />
+                            ) : isSpritual ? (
+                              <Aanmigam color={P.grey800} size={s(20)} />
+                            ) : isMalargal ? (
+                              <Malargal color={P.grey800} size={s(20)} />
+                            ) : isPhoto ? (
+                              <Photo color={P.grey800} size={s(20)} />
+                            ) : isDistrict ? (
+                              <District color={P.grey800} size={s(20)} />
+                            ) : isCinema ? (
+                              <Cinema color={P.grey800} size={s(20)} />
+                            ) : isKovil ? (
+                              <Kovil color={P.grey800} size={s(20)} />
+                            ) : isLight ? (
+                              <Light color={P.grey800} size={s(20)} />
+                            ) : null}
                           </View>
 
                           {/* Title — flex:1 pushes chevron to right edge */}
                           <Text
-                            style={{ fontFamily: FONTS.muktaMalar.semibold, fontSize: ms(16), color: P.grey800, flex: 1 }}
-                            numberOfLines={1}
+                            style={{
+                              fontFamily: FONTS.muktaMalar.semibold,
+                              fontSize: ms(16),
+                              color: P.grey800,
+                              flex: 1,
+                            }}
+                            numberOfLines={2}
                           >
                             {itemTitle}
                           </Text>
@@ -676,7 +703,7 @@ const ds = StyleSheet.create({
   signUpBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: s(6),
+    // gap: s(6),
     alignSelf: 'flex-start',
     borderWidth: 1,
     borderColor: P.grey300,
@@ -720,9 +747,9 @@ const ds = StyleSheet.create({
     backgroundColor: P.white,
   },
   menu2IconBox: {
-    width: s(28),
+    // width: s(28),
     alignItems: 'center',
-    marginRight: s(10),
+    marginRight: s(12),
   },
 
   // ── Sub-items ────────────────────────────────────────────────────────────

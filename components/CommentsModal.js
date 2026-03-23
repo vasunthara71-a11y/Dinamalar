@@ -15,6 +15,7 @@ import {
   Image,
 } from 'react-native';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { Comment, CommentForChat } from '../assets/svg/Icons';
 import { CDNApi, mainApi, u38Api } from '../config/api';
 import { COLORS, FONTS } from '../utils/constants';
 import { s, vs, ms, scaledSizes } from '../utils/scaling';
@@ -59,7 +60,7 @@ function CommentItem({ item, index }) {
             {dislikes > 0 && <Text style={[cs.actionTxt, { fontSize: sf(11) }]}>{dislikes}</Text>}
           </TouchableOpacity>
           <TouchableOpacity style={cs.actionBtn}>
-            <Ionicons name="chatbubble-outline" size={sf(13)} color="#888" />
+            <Comment size={sf(13)} color="#888" style={{ marginRight: 2 }} />
             <Text style={[cs.actionTxt, { fontSize: sf(11) }]}>பதில்</Text>
           </TouchableOpacity>
         </View>
@@ -122,7 +123,7 @@ function EmptyComments() {
   const { sf } = useFontSize();
   return (
     <View style={em.wrap}>
-      <Ionicons name="chatbubbles-outline" size={sf(52)} color="#ddd" />
+      <Comment size={sf(52)} color="#ddd" />
       <Text style={[em.title, { fontSize: sf(16) }]}>கருத்துகள் இல்லை</Text>
       <Text style={[em.sub, { fontSize: sf(13) }]}>முதல் கருத்தை பதிவிடுங்கள்!</Text>
     </View>
@@ -255,7 +256,7 @@ export default function CommentsModal({ visible, onClose, newsId, newsTitle, com
             {/* Header */}
             <View style={modal.header}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: s(5) }}>
-                <MaterialIcons name='comment' size={22} />
+                <CommentForChat size={22} color="#333" />
                 <Text style={[modal.headerTitle, { fontSize: vs(16) }]}>வாசகர்கள் கருத்துகள்</Text>
                 {totalCount > 0 && (
                   <Text style={[modal.headerCount, { fontSize: vs(16) }]}>( {totalCount} )</Text>
