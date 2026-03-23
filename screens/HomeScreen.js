@@ -28,12 +28,14 @@ import CategoryTab from '../components/CategoryTab';
 import { SvgUri } from 'react-native-svg';
 import FooterMenu from '../components/FooterMenu';
 import { Ionicons } from '@expo/vector-icons';
+import { Comment, Shorts } from '../assets/svg/Icons';
 import { useNavigation } from '@react-navigation/native';
 import { useFontSize } from '../context/FontSizeContext';
 import LocationDrawer from '../components/LocationDrawer';
 import TopMenuStrip from '../components/TopMenuStrip';
 import AppHeaderComponent from '../components/AppHeaderComponent';
 import DinamalarCalendar from '../components/DinamalarCalendar';
+import SimplePodcastPlayer from '../components/SimplePodcastPlayer';
 
 // ─── Share Market Card ────────────────────────────────────────────────
 function ShareMarketCard({ commodity }) {
@@ -192,11 +194,11 @@ const TABOOLA_PUBLISHER_ID = 'mdinamalarcom';
 // ─── Play Icon (same as VideosScreen) ───────────────────────────────────────────
 const PlayIcon = ({ size = 52 }) => (
   <View style={[tvCardSt.playCircle, { width: size, height: size, borderRadius: size / 2 }]} >
-    <View style={[tvCardSt.playTriangle, { 
-      borderTopWidth: size * 0.22, 
-      borderBottomWidth: size * 0.22, 
-      borderLeftWidth: size * 0.36, 
-      marginLeft: size * 0.07 
+    <View style={[tvCardSt.playTriangle, {
+      borderTopWidth: size * 0.22,
+      borderBottomWidth: size * 0.22,
+      borderLeftWidth: size * 0.36,
+      marginLeft: size * 0.07
     }]} />
   </View>
 );
@@ -612,9 +614,7 @@ function ShortsCard({ item, onPress }) {
 
         {hasVideo && (
           <View style={shortsSt.playOverlay}>
-            <View style={shortsSt.playButton}>
-              <Ionicons name="play" size={s(12)} color="#fff" />
-            </View>
+            <Shorts size={s(12)} color="#fff" />
           </View>
         )}
       </View>
@@ -730,7 +730,7 @@ function NewsCard({ item, onPress, isSocialMedia = false, isPremium = false }) {
         <View style={NewsCardStyles.contentContainer}>
           {!!title && !isSocialMedia && (
             <Text style={[NewsCardStyles.title, { fontSize: sf(13), lineHeight: sf(22) }]} numberOfLines={3}>
-               {title}
+              {title}
             </Text>
           )}
 
@@ -738,14 +738,14 @@ function NewsCard({ item, onPress, isSocialMedia = false, isPremium = false }) {
             <View style={NewsCardStyles.catPill}>
               <Text style={[NewsCardStyles.catText, { fontSize: sf(12) }]}>
                 {category}
-               </Text>
+              </Text>
             </View>
           )}
 
           <View style={NewsCardStyles.metaRow}>
             <Text style={[NewsCardStyles.timeText, { fontSize: sf(13) }]}>
-                {ago}   
-                </Text>
+              {ago}
+            </Text>
             <View style={NewsCardStyles.metaRight}>
               {hasAudio && (
                 <View style={NewsCardStyles.audioIcon}>
@@ -755,7 +755,7 @@ function NewsCard({ item, onPress, isSocialMedia = false, isPremium = false }) {
 
               {!!newscomment && newscomment !== '0' && (
                 <View style={NewsCardStyles.commentRow}>
-                  <Ionicons name="chatbox" size={s(15)} color={PALETTE.grey700} />
+                  <Comment size={s(15)} color={PALETTE.grey700} style={{ marginRight: 2 }} />
                   <Text style={[NewsCardStyles.commentText, { fontSize: sf(12) }]}> {newscomment}</Text>
                 </View>
               )}
@@ -822,7 +822,7 @@ function DinaMalarTVCard({ item, onVideoPress }) {
             <View style={NewsCardStyles.metaRight}>
               {!!newscomment && newscomment !== '0' && (
                 <View style={NewsCardStyles.commentRow}>
-                  <Ionicons name="chatbox" size={s(14)} color={PALETTE.grey700} />
+                  <Comment size={s(14)} color={PALETTE.grey700} style={{ marginRight: 2 }} />
                   <Text style={[NewsCardStyles.commentText, { fontSize: sf(11) }]}> {newscomment}</Text>
                 </View>
               )}
@@ -1195,6 +1195,8 @@ export default function HomeScreen() {
   const [selectedDistrict, setSelectedDistrict] = useState('உள்ளூர்');
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [commodity, setCommodity] = useState(null);
+  const [podcastData, setPodcastData] = useState([]);
+  const [sections, setSections] = useState([]);
 
   const flatListRef = useRef(null);
 
@@ -1271,7 +1273,6 @@ export default function HomeScreen() {
       }
 
       if (panguRes.status === 'fulfilled') {
-        const d = homeRes.value?.data;
         if (panguRes.value?.data?.length > 0) {
           sections.push({ title: panguRes.value?.data?.[0]?.title || 'பாங்கு சன்னை', data: panguRes.value.data });
         }
@@ -1363,6 +1364,7 @@ export default function HomeScreen() {
 
 
 
+
         if (Array.isArray(d?.webstories) && d.webstories[0]?.data?.length > 0)
           sections.push({ title: d.webstories[0].title || 'வெப் ஸ்டோரிகள்', data: d.webstories[0].data, type: 'shorts' });
         else if (d?.webstories?.data?.length > 0)
@@ -1392,8 +1394,33 @@ export default function HomeScreen() {
           sections.push({ title: premiumTitle, data: d.premium_stories.data });
         }
 
-        if (d?.audio?.[0]?.data?.length > 0)
+        if (d?.audio?.[0]?.data?.length > 0) {
           sections.push({ title: d.audio[0].title || 'ஆடியே', data: d.audio[0].data });
+          setPodcastData(d.audio[0].data);  // ← only this is new
+        } else {
+          // Manual test data if API doesn't have audio data
+          console.log('No audio data from API, using manual test data');
+          const manualTestData = [
+            {
+              "newsid": 58927,
+              "newstitle": "தினமலர் மாலை 5 மணி செய்திகள் - 21 March 2026",
+              "audio": "https://d.dinamalar.com/sm/upload/alexa/Podcast_05_21032026.mp3",
+              "newsdate": "2026-03-21 16:54:13",
+              "standarddate": "மார் 21, 2026",
+              "date": "21-03-2026",
+              "time": "16:54",
+              "images": "",
+              "ago": "12 minutes ago",
+              "nmcomment": 0,
+              "maincat": "",
+              "maincatid": "",
+              "slug": "",
+              "reacturl": ""
+            }
+          ];
+          sections.push({ title: 'ஆடியே', data: manualTestData });
+          setPodcastData(manualTestData);
+        }
 
         // -- Pangu Sannathai Section ---------------------------------
         if (d?.anmegasinthanai?.data?.length > 0)
@@ -2248,6 +2275,7 @@ export default function HomeScreen() {
           />
         }
       />
+      <SimplePodcastPlayer data={podcastData} />
 
       {showScrollTop && (
         <TouchableOpacity style={styles.scrollTopBtn} onPress={scrollToTop} activeOpacity={0.85}>

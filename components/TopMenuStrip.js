@@ -10,17 +10,18 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SvgUri, SvgXml } from 'react-native-svg';
-import { COLORS } from '../utils/constants';
+import { COLORS, FONTS } from '../utils/constants';
 import { scaledSizes, s, vs, ms } from '../utils/scaling';
 import { useFontSize } from '../context/FontSizeContext';
 import axios from 'axios';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const MENU_API_URL = 'https://api-st-cdn.dinamalar.com/menuindex1';
 
 // ─── Module-level cache — persists across screen mounts/remounts ──────────────
 let _cachedMenuItems = null;
-let _isFetching      = false;
-const _listeners     = [];
+let _isFetching = false;
+const _listeners = [];
 
 function subscribeToCacheUpdate(cb) {
   _listeners.push(cb);
@@ -39,7 +40,7 @@ async function fetchMenuOnce() {
   }
   _isFetching = true;
   try {
-    const res  = await axios.get(MENU_API_URL);
+    const res = await axios.get(MENU_API_URL);
     // API: { headermenu: [ { Title, Link, Icon, ... } ] }
     const data = res?.data?.headermenu || [];
     _cachedMenuItems = data;
@@ -83,8 +84,8 @@ function MenuIcon({ uri }) {
 export default function TopMenuStrip({ onMenuPress, onNotification, notifCount = 0, navigation }) {
   const { sf } = useFontSize();
 
-  const [menuItems,  setMenuItems]  = useState(_cachedMenuItems || []);
-  const [loading,    setLoading]    = useState(_cachedMenuItems === null);
+  const [menuItems, setMenuItems] = useState(_cachedMenuItems || []);
+  const [loading, setLoading] = useState(_cachedMenuItems === null);
   const [activeMenu, setActiveMenu] = useState(null);
 
   useEffect(() => {
@@ -106,7 +107,7 @@ export default function TopMenuStrip({ onMenuPress, onNotification, notifCount =
 
   const handlePress = (item) => {
     const title = item.Title || item.title || '';
-    const link  = item.Link  || item.link  || '';
+    const link = item.Link || item.link || '';
     const lower = link.toLowerCase();
 
     setActiveMenu(title);
@@ -114,7 +115,7 @@ export default function TopMenuStrip({ onMenuPress, onNotification, notifCount =
     // ── Only dinamalartv / videos navigates in-app ────────────────────────
     const isDinamalartv =
       lower.includes('dinamalartv') ||
-      lower.includes('videodata')   ||
+      lower.includes('videodata') ||
       lower.includes('/videos');
 
     if (isDinamalartv) {
@@ -163,12 +164,12 @@ export default function TopMenuStrip({ onMenuPress, onNotification, notifCount =
         style={{ flex: 1 }}
       >
         {menuItems.map((item, index) => {
-          const title   = item.Title || item.title || '';
-          const iconUri = item.Icon  || item.icon  || '';
+          const title = item.Title || item.title || '';
+          const iconUri = item.Icon || item.icon || '';
           const isActive = activeMenu === title;
 
           return (
-            <View key={`menu_${index}`}>
+            <React.Fragment key={`menu_${index}`}>
               <TouchableOpacity
                 style={[styles.menuItem, isActive && styles.menuItemActive]}
                 onPress={() => handlePress(item)}
@@ -177,17 +178,19 @@ export default function TopMenuStrip({ onMenuPress, onNotification, notifCount =
                 <MenuIcon uri={iconUri} />
                 <Text style={[
                   styles.menuLabel,
-                  { fontSize: ms(12) },
+                  { fontSize: ms(14) },
                   isActive && styles.menuLabelActive,
                 ]}>
                   {title}
                 </Text>
               </TouchableOpacity>
-              {/* Add vertical separator except for last item */}
               {index < menuItems.length - 1 && (
-                <View style={styles.separator} />
+                <LinearGradient
+                  colors={['transparent', COLORS.primary, 'transparent']}
+                  style={styles.separator}
+                />
               )}
-            </View>
+            </React.Fragment>
           );
         })}
       </ScrollView>
@@ -210,7 +213,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#fff',
     paddingHorizontal: s(0),
-    paddingVertical: vs(8),
+    // paddingVertical: vs(8),
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
@@ -225,23 +228,25 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: s(8),
-    paddingVertical: vs(6),
+    // paddingVertical: vs(6),
     borderRadius: s(20),
     marginHorizontal: s(5),
     borderColor: 'transparent',
   },
   menuItemActive: {
-    borderColor: COLORS.primary + '40',
-    backgroundColor: COLORS.primary + '10',
+    // borderColor: COLORS.primary + '40',
+    // backgroundColor: COLORS.primary + '10',
   },
   menuLabel: {
     color: COLORS.text,
-    fontWeight: '500',
+    // fontWeight: '500',
     marginLeft: s(6),
+    fontFamily:FONTS.muktaMalar.regular,
+    fontSize: ms(14),
   },
   menuLabelActive: {
-    color: COLORS.primary,
-    fontWeight: '700',
+    // color: COLORS.primary,
+    // fontWeight: '700',
   },
   notifButton: {
     padding: ms(5),
@@ -253,9 +258,9 @@ const styles = StyleSheet.create({
     top: s(4),
     right: s(4),
     backgroundColor: '#e53935',
-    borderRadius: s(10),
-    minWidth: s(20),
-    height: s(20),
+    borderRadius: s(7.5),
+    minWidth: s(15),
+    height: s(15),
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: s(4),
@@ -277,4 +282,11 @@ const styles = StyleSheet.create({
     borderRadius: s(20),
     backgroundColor: '#f0f0f0',
   },
+ separator: {
+  width: 1.5,
+  height: vs(15),
+  alignSelf: 'center',
+  borderRadius: 1,
+  opacity: 0.7,
+},
 });

@@ -27,6 +27,7 @@ import RasiDetailScreen from '../screens/RasiDetailScreen';
 import PhotoDetailsScreen from '../screens/PhotoDetailsScreen';
 import ShortNewsSwiperScreen from '../screens/ShortNewsSwiperScreen';
 import VideoDetailScreen from '../screens/VideoDetailScreen';
+import PodcastPlayer from '../screens/PodcastPlayer';
   
 const Stack = createNativeStackNavigator();
 
@@ -76,6 +77,7 @@ const AppNavigator = () => {
         <Stack.Screen name='PhotoDetailsScreen' component={PhotoDetailsScreen}/>
         <Stack.Screen name='ShortNewsSwiperScreen' component={ShortNewsSwiperScreen}/>
         <Stack.Screen name='VideoDetailScreen' component={VideoDetailScreen}/>
+        <Stack.Screen name='PodcastPlayer' component={PodcastPlayer}/>
       </Stack.Navigator>
     </NavigationContainer>
   );
