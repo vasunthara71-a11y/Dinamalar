@@ -123,7 +123,7 @@ function LocationDrawer({ isVisible, onClose, onSelectDistrict, selectedDistrict
                 <TouchableOpacity
                   key={`${district.id || i}-${district.title}`}
                   style={[st.item, isActive && st.itemActive]}
-                  onPress={() => { onSelectDistrict(district); onClose(); }}
+                  onPress={() => { onSelectDistrict(district.title); onClose(); }}
                   activeOpacity={0.6}
                 >
                   {/* Large filled blue location pin — matches screenshot */}
@@ -211,7 +211,7 @@ const st = StyleSheet.create({
   item: {
     flexDirection:     'row',
     alignItems:        'center',
-    paddingHorizontal: s(16),
+    paddingHorizontal: s(12),
     paddingVertical:   vs(7),        // tall rows — matches screenshot
     backgroundColor:   P.white,
   },

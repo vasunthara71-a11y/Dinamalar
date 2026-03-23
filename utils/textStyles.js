@@ -38,7 +38,7 @@ export const TEXT_STYLES = {
   titles: {
     large: {
       fontSize: ms(18),
-      fontFamily: FONTS.muktaMalar.bold,
+      fontFamily: FONTS.anek.bold,
       color: COLORS.text,
       lineHeight: ms(26),
     },

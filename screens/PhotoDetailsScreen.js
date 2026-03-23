@@ -12,7 +12,7 @@ import {
   Share,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { u38Api } from '../config/api';
+import { CDNApi } from '../config/api';
 import { COLORS, FONTS } from '../utils/constants';
 import { s, vs, ms } from '../utils/scaling';
 import TEXT_STYLES from '../utils/textStyles';
@@ -30,12 +30,22 @@ export default function PhotoDetailsScreen({ route, navigation }) {
     try {
       setLoading(true);
       setError(null);
-      const response = await u38Api.get('/photodata');
+      const response = await CDNApi.get('/photodata');
       const data = response?.data || [];
       
-      // Handle different data structures
+      console.log('[PhotoDetailsScreen] API response keys:', Object.keys(data || {}));
+      
+      // Handle the actual API response structure
       let photos = [];
-      if (Array.isArray(data)) {
+      if (data?.indraiyephoto?.data && Array.isArray(data.indraiyephoto.data)) {
+        photos = data.indraiyephoto.data;
+      } else if (data?.pogaimadam?.data && Array.isArray(data.pogaimadam.data)) {
+        photos = data.pogaimadam.data;
+      } else if (data?.cartoons?.data && Array.isArray(data.cartoons.data)) {
+        photos = data.cartoons.data;
+      } else if (data?.nri?.data && Array.isArray(data.nri.data)) {
+        photos = data.nri.data;
+      } else if (Array.isArray(data)) {
         photos = data;
       } else if (data?.data && Array.isArray(data.data)) {
         photos = data.data;
@@ -47,6 +57,8 @@ export default function PhotoDetailsScreen({ route, navigation }) {
       
       setPhotoData(photos);
       console.log('[PhotoDetailsScreen] fetched photos:', photos.length);
+      console.log('[PhotoDetailsScreen] first photo:', photos[0]);
+      console.log('[PhotoDetailsScreen] photoData state will be set to:', photos);
     } catch (err) {
       console.error('[PhotoDetailsScreen] fetch error:', err?.message);
       setError('புகைப்படங்களை ஏற்ற முடியவில்லை');
@@ -54,6 +66,11 @@ export default function PhotoDetailsScreen({ route, navigation }) {
       setLoading(false);
     }
   }, []);
+
+  // Add debugging for photoData state
+  useEffect(() => {
+    console.log('[PhotoDetailsScreen] photoData state changed:', photoData.length, photoData);
+  }, [photoData]);
 
   useEffect(() => {
     fetchPhotoData();
@@ -153,9 +170,11 @@ export default function PhotoDetailsScreen({ route, navigation }) {
           <View style={styles.emptyContainer}>
             <Ionicons name="images-outline" size={s(48)} color={COLORS.subtext} />
             <Text style={styles.emptyText}>புகைப்படங்கள் இல்லை</Text>
+            <Text style={styles.debugText}>Debug: photoData.length = {photoData.length}</Text>
           </View>
         ) : (
           <View style={styles.photosGrid}>
+            <Text style={styles.debugText}>Debug: Rendering {photoData.length} photos</Text>
             {photoData.map((photo, index) => (
               <View key={index} style={styles.photoCard}>
                 <TouchableOpacity
@@ -219,7 +238,7 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: s(16),
+    paddingHorizontal: s(12),
     paddingVertical: vs(12),
     backgroundColor: '#fff',
     borderBottomWidth: 1,
@@ -234,7 +253,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     flex: 1,
     fontSize: ms(18),
-    fontFamily: FONTS.semiBold || FONTS.bold,
+    fontFamily: FONTS.muktaMalar.semibold || FONTS.bold,
     color: COLORS.text,
     fontWeight: '700',
     textAlign: 'center',
@@ -282,7 +301,7 @@ const styles = StyleSheet.create({
   retryText: {
     color: '#fff',
     fontSize: ms(14),
-    fontFamily: FONTS.semiBold,
+    fontFamily: FONTS.muktaMalar.semibold,
     fontWeight: '600',
   },
   emptyContainer: {
@@ -296,6 +315,15 @@ const styles = StyleSheet.create({
     fontSize: ms(16),
     color: COLORS.subtext,
     fontFamily: FONTS.regular,
+  },
+  debugText: {
+    fontSize: ms(12),
+    color: '#999',
+    fontFamily: FONTS.regular,
+    backgroundColor: '#f0f0f0',
+    padding: s(4),
+    borderRadius: s(4),
+    marginTop: vs(8),
   },
   photosGrid: {
     flexDirection: 'row',
@@ -340,7 +368,7 @@ const styles = StyleSheet.create({
   },
   photoTitle: {
     fontSize: ms(14),
-    fontFamily: FONTS.semiBold,
+    fontFamily: FONTS.muktaMalar.semibold,
     color: COLORS.text,
     fontWeight: '600',
     marginBottom: vs(4),

@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
+import { s, vs } from 'react-native-size-matters';
 
 // ─── Global sf fallback for emergency situations ───────────────────────────────
 // This prevents "Property 'sf' doesn't exist" errors during initialization
@@ -28,10 +29,10 @@ if (typeof window !== 'undefined') {
 
 const FONT_SCALES = {
   small:      0.875, // 14px from base 16px
-  normal:     1.0,   // 16px from base 16px  
-  large:      1.25,  // 20px from base 16px
+  normal:     1.25,   // 16px from base 16px  
+  large:      1.35,  // 20px from base 16px
   extraLarge: 1.5,   // 24px from base 16px
-  huge:       1.625, // 26px from base 16px
+  // huge:       1.625, // 26px from base 16px
 };
 
 // Tamil labels for font sizes
@@ -40,7 +41,7 @@ const FONT_SIZE_LABELS = {
   normal:     'இயல்பு',      // 16px
   large:      'பெரிய',      // 20px
   extraLarge: 'மிகப் பெரிய', // 24px
-  huge:       'மிகப் பெரிய', // 26px
+  // huge:       'மிகப் பெரிய', // 26px
 };
 
 export const THEME_COLORS = {

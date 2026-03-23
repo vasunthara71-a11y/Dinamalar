@@ -11,7 +11,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { s, vs } from '../utils/scaling';
 import axios from 'axios';
-import { FONTS } from '../utils/constants';
+import { COLORS, FONTS } from '../utils/constants';
 import { ms } from 'react-native-size-matters';
 import { useFontSize } from '../context/FontSizeContext';
 
@@ -26,7 +26,7 @@ const CategoryTab = ({
   onCategoryPress,
   trendingTags = [],
 }) => {
-  // const { ms } = useFontSize(); // Add font scaling
+  const { sf } = useFontSize(); // Add font scaling
   
   const [specialTodayData, setSpecialTodayData] = useState([]);
   const [loadingSpecial, setLoadingSpecial] = useState(false);
@@ -87,7 +87,7 @@ const CategoryTab = ({
         <View style={st.row}>
           {/* Icon box — square, white bg, gray border, blue icon */}
           <View style={st.iconBox}>
-            <Ionicons name="trending-up" size={ms(15)} color="#096dd2" />
+            <Ionicons name="trending-up" size={ms(25)} color="#096dd2" />
           </View>
 
           <ScrollView
@@ -106,7 +106,7 @@ const CategoryTab = ({
                   onPress={() => handleRow1Press(tag)}
                   activeOpacity={0.7}
                 >
-                  <Text style={[st.pillText, isActive && st.pillTextActive, { fontSize: ms(11) }]}>
+                  <Text style={[st.pillText, isActive && st.pillTextActive,  ]}>
                     {tag.name}
                   </Text>
                 </TouchableOpacity>
@@ -126,7 +126,7 @@ const CategoryTab = ({
         <View style={st.row}>
           {/* Icon box — calendar, same style */}
           <View style={st.iconBox}>
-            <Ionicons name="calendar-clear-outline" size={ms(15)} color="#096dd2" />
+            <Ionicons name="calendar-clear" size={ms(25)} color="#096dd2" />
           </View>
 
           <ScrollView
@@ -149,7 +149,7 @@ const CategoryTab = ({
                     onPress={() => handleRow2Press(item, index)}
                     activeOpacity={0.7}
                   >
-                    <Text style={[st.pillText, isActive && st.pillTextActive,{ fontSize: ms(11) }]}>
+                    <Text style={[st.pillText, isActive && st.pillTextActive ]}>
                       {item.key}
                     </Text>
                   </TouchableOpacity>
@@ -213,31 +213,33 @@ const st = StyleSheet.create({
     borderRadius:    ms(20),       // fully rounded pill
     paddingHorizontal: ms(14),
     paddingVertical: vs(5),
-    backgroundColor: '#eeeeee',   // pure white — matches screenshot
+    // backgroundColor: '#eeeeee',   // pure white — matches screenshot
     alignItems:      'center',
     justifyContent:  'center',
+    backgroundColor:COLORS.bg
   },
 
   // Active pill — blue bg, blue border
-  pillActive: {
-    backgroundColor: '#096dd2',
-    borderColor:     '#096dd2',
-  },
+  // pillActive: {
+  //   backgroundColor: '#096dd2',
+  //   borderColor:     '#096dd2',
+  // },
 
   // Pill text — near-black — matches screenshot dark text on white pill
   pillText: {
     fontFamily: FONTS.muktaMalar.medium,
-    fontSize:   ms(14),
-    color:      '#212B36',        // GREY[800] — near-black, matches screenshot
+    fontSize:   ms(13),
+    color:      COLORS.text,       // GREY[800] — near-black, matches screenshot
     textAlign:  'center',
+    fontWeight:"600"
   },
 
   // Active text — white
-  pillTextActive: {
-    fontFamily: FONTS.muktaMalar.bold,
-    color:      '#FFFFFF',
-    fontSize:   ms(14),
-  },
+  // pillTextActive: {
+  //   fontFamily: FONTS.muktaMalar.bold,
+  //   color:      '#FFFFFF',
+  //   fontSize:   ms(14),
+  // },
 
   // Thin divider between row 1 and row 2
   rowDivider: {

@@ -15,11 +15,12 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { u38Api } from '../config/api';
+import { CDNApi } from '../config/api';
 import { s, vs, ms, scaledSizes } from '../utils/scaling';
 import { COLORS, FONTS, NewsCard as NewsCardStyles } from '../utils/constants';
 import UniversalHeaderComponent from '../components/UniversalHeaderComponent';
 import AppHeaderComponent from '../components/AppHeaderComponent';
+import { useFontSize } from '../context/FontSizeContext';
 import { mvs } from 'react-native-size-matters';
 import TEXT_STYLES from '../utils/textStyles';
 
@@ -60,31 +61,35 @@ function SkeletonCard() {
   );
 }
 const sk = StyleSheet.create({
-  card:  { backgroundColor: '#fff', marginBottom: vs(8) },
+  card: { backgroundColor: '#fff', marginBottom: vs(8) },
   image: { width: '100%', height: vs(200), backgroundColor: '#e8e8e8' },
-  body:  { padding: s(12) },
-  line:  { height: vs(12), backgroundColor: '#e8e8e8', borderRadius: s(4), marginBottom: vs(6), width: '90%' },
+  body: { padding: s(12) },
+  line: { height: vs(12), backgroundColor: '#e8e8e8', borderRadius: s(4), marginBottom: vs(6), width: '90%' },
 });
 
 // ─── Section Title ─────────────────────────────────────────────────────────────
 function SectionTitle({ title }) {
+  const { sf } = useFontSize();
   return (
     <View style={st.wrap}>
-      <Text style={st.text}>{title}</Text>
+      <Text style={[st.text, { fontSize: sf(16) }]}>{title}</Text>
       <View style={st.underline} />
     </View>
   );
 }
 const st = StyleSheet.create({
-  wrap:      { marginBottom: vs(8), marginTop: vs(2) },
-  text:      { fontSize: scaledSizes.font.lg, fontFamily: FONTS.muktaMalar.bold, color: '#1a1a1a', marginBottom: vs(4) },
-  underline: { height: vs(2), width: s(40), backgroundColor: COLORS.primary },
+  wrap: { marginBottom: vs(8), marginTop: vs(2) },
+  text: { fontSize: scaledSizes.font.lg, fontFamily: FONTS.muktaMalar.bold, color: '#1a1a1a', marginBottom: vs(4) },
+  underline: { height: vs(5), width: s(40), backgroundColor: COLORS.primary },
 });
 
 // ─── News Card ────────────────────────────────────────────────────────
 // News Card (sub-tab full-width — image 3 style)
 // ─────────────────────────────────────────────────────────────────────
 function NewsCard({ item, onPress }) {
+  const { sf } = useFontSize();
+  const [imageError, setImageError] = useState(false);
+  
   const imageUri =
     item.largeimages || item.images || item.image || item.thumbnail || item.thumb ||
     'https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_default.jpg?im=Resize,width=400';
@@ -102,31 +107,42 @@ function NewsCard({ item, onPress }) {
 
         {/* Image with horizontal padding */}
         <View style={NewsCardStyles.imageWrap}>
-          <Image source={{ uri: imageUri }} style={NewsCardStyles.image} resizeMode="contain" />
+          {imageError ? (
+            <View style={NewsCardStyles.imageErrorContainer}>
+              <Ionicons name="image-outline" size={s(40)} color="#ccc" />
+            </View>
+          ) : (
+            <Image 
+              source={{ uri: imageUri }} 
+              style={NewsCardStyles.image} 
+              resizeMode="contain"
+              onError={() => setImageError(true)}
+            />
+          )}
         </View>
 
         {/* Content */}
         <View style={NewsCardStyles.contentContainer}>
           {!!title && (
-            <Text style={NewsCardStyles.title} numberOfLines={3}>{title}</Text>
+            <Text style={[NewsCardStyles.title, { fontSize: sf(14), lineHeight: sf(22) }]} numberOfLines={3}>{title}</Text>
           )}
 
           {/* Category pill — gray, matches screenshot */}
           {!!category && (
             <View style={NewsCardStyles.catPill}>
-              <Text style={NewsCardStyles.catText}>{category}</Text>
+              <Text style={[NewsCardStyles.catText, { fontSize: sf(12) }]}>{category}</Text>
             </View>
           )}
 
           {/* Meta row */}
           <View style={NewsCardStyles.metaRow}>
-            <Text style={NewsCardStyles.timeText}>{ago}</Text>
+            <Text style={[NewsCardStyles.timeText, { fontSize: sf(12) }]}>{ago}</Text>
             <View style={NewsCardStyles.metaRight}>
-              
+
               {!!newscomment && newscomment !== '0' && (
                 <View style={NewsCardStyles.commentRow}>
                   <Ionicons name="chatbox" size={s(14)} color={PALETTE.grey700} />
-                  <Text style={NewsCardStyles.commentText}> {newscomment}</Text>
+                  <Text style={[NewsCardStyles.commentText, { fontSize: sf(12) }]}> {newscomment}</Text>
                 </View>
               )}
               {hasAudio && (
@@ -147,6 +163,7 @@ function NewsCard({ item, onPress }) {
 
 // ─── District Picker Modal ────────────────────────────────────────────────────
 function DistrictPicker({ visible, districts, selectedId, onSelect, onClose }) {
+  const { sf } = useFontSize();
   return (
     <Modal
       visible={visible}
@@ -158,7 +175,7 @@ function DistrictPicker({ visible, districts, selectedId, onSelect, onClose }) {
       <TouchableOpacity style={dp.backdrop} activeOpacity={1} onPress={onClose}>
         <View style={dp.sheet}>
           <View style={dp.header}>
-            <Text style={dp.headerTitle}>மாவட்டம் தேர்வு செய்க</Text>
+            <Text style={[dp.headerTitle, { fontSize: sf(16) }]}>மாவட்டம் தேர்வு செய்க</Text>
             <TouchableOpacity onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
               <Ionicons name="close" size={s(20)} color="#333" />
             </TouchableOpacity>
@@ -173,7 +190,7 @@ function DistrictPicker({ visible, districts, selectedId, onSelect, onClose }) {
                   onPress={() => onSelect(d)}
                   activeOpacity={0.7}
                 >
-                  <Text style={[dp.rowText, isSelected && dp.rowTextActive]}>
+                  <Text style={[dp.rowText, isSelected && dp.rowTextActive,{fontSize: sf(14)}]}>
                     {d.title}
                   </Text>
                   {isSelected && (
@@ -206,7 +223,7 @@ const dp = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: s(16),
+    paddingHorizontal: s(12),
     paddingVertical: vs(14),
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
@@ -216,43 +233,48 @@ const dp = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: s(16),
+    paddingHorizontal: s(12),
     paddingVertical: vs(12),
     borderBottomWidth: 1,
     borderBottomColor: '#f8f8f8',
   },
-  rowActive:    { backgroundColor: '#c7e8ff' },
-  rowText:     TEXT_STYLES.body.large,
-  rowTextActive:{ fontFamily: FONTS.muktaMalar.bold, color: COLORS.primary },
+  rowActive: { backgroundColor: '#cae9ff' },
+  rowText: {
+    fontFamily: FONTS.muktaMalar.medium,
+    color: COLORS.text,
+    lineHeight: ms(22),
+  },
+  rowTextActive: { fontFamily: FONTS.muktaMalar.bold, color: COLORS.primary },
 });
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 export default function DistrictNewsScreen() {
   const navigation = useNavigation();
-  const route      = useRoute();
+  const route = useRoute();
 
-  const initialDistrictId    = route?.params?.districtId    || null;
+  const initialDistrictId = route?.params?.districtId || null;
   const initialDistrictTitle = route?.params?.districtTitle || null;
 
-  const [districts,      setDistricts]      = useState([]);
+  const [districts, setDistricts] = useState([]);
   const [activeDistrict, setActiveDistrict] = useState(null);
-  const [pickerVisible,  setPickerVisible]  = useState(false);
+  const [pickerVisible, setPickerVisible] = useState(false);
 
-  const [allSections,  setAllSections]  = useState([]);
+  const [allSections, setAllSections] = useState([]);
   const [districtNews, setDistrictNews] = useState([]);
-  const [page,         setPage]         = useState(1);
-  const [lastPage,     setLastPage]     = useState(1);
-  const [tabLoading,   setTabLoading]   = useState(false);
-  const [loadMore,     setLoadMore]     = useState(false);
+  const [page, setPage] = useState(1);
+  const [lastPage, setLastPage] = useState(1);
+  const [tabLoading, setTabLoading] = useState(false);
+  const [loadMore, setLoadMore] = useState(false);
 
-  const [initLoading,   setInitLoading]   = useState(true);
-  const [refreshing,    setRefreshing]    = useState(false);
+  const [initLoading, setInitLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
 
-  const [isDrawerVisible,         setIsDrawerVisible]         = useState(false);
+  const [isDrawerVisible, setIsDrawerVisible] = useState(false);
   const [isLocationDrawerVisible, setIsLocationDrawerVisible] = useState(false);
 
   const flatListRef = useRef(null);
+  const { sf } = useFontSize();
 
   const handleScroll = useCallback((e) => {
     setShowScrollTop(e.nativeEvent.contentOffset.y > 300);
@@ -265,8 +287,8 @@ export default function DistrictNewsScreen() {
   // ── Fetch /district (All tab) ─────────────────────────────────────────────
   const fetchAll = useCallback(async () => {
     try {
-      const res  = await u38Api.get('/district');
-      const d    = res?.data;
+      const res = await CDNApi.get('/district');
+      const d = res?.data;
       const tabs = d?.subcatlist || [];
       setDistricts(tabs);
 
@@ -287,8 +309,9 @@ export default function DistrictNewsScreen() {
         }
       }
 
-      // Default: All tab (tabs[0] has no id)
-      setActiveDistrict(tabs[0] || null);
+      // Default to Chennai district instead of All tab
+      const chennaiDistrict = tabs.find(t => t.title && (t.title.includes('சென்னை') || t.title.toLowerCase().includes('chennai')));
+      setActiveDistrict(chennaiDistrict || tabs[0] || null);
     } catch (e) {
       console.error('DistrictNewsScreen fetchAll error:', e?.message);
     } finally {
@@ -302,26 +325,26 @@ export default function DistrictNewsScreen() {
   // ── Extract news list from ANY response shape ─────────────────────────────
   const extractList = (d) => (
     d?.districtlisting?.data ||   // Chennai, Namakkal, most districts
-    d?.newlist?.data         ||
-    d?.newslist?.data        ||
-    d?.districtlist?.data    ||
-    d?.districtNews?.data    ||
-    d?.news?.data            ||
-    d?.data?.data            ||
-    d?.data                  ||
-    d?.list                  ||
+    d?.newlist?.data ||
+    d?.newslist?.data ||
+    d?.districtlist?.data ||
+    d?.districtNews?.data ||
+    d?.news?.data ||
+    d?.data?.data ||
+    d?.data ||
+    d?.list ||
     []
   ).filter(Boolean);
 
   const extractLastPage = (d) => (
     d?.districtlisting?.last_page ||
-    d?.newlist?.last_page         ||
-    d?.newslist?.last_page        ||
-    d?.districtlist?.last_page    ||
-    d?.districtNews?.last_page    ||
-    d?.news?.last_page            ||
-    d?.data?.last_page            ||
-    d?.last_page                  ||
+    d?.newlist?.last_page ||
+    d?.newslist?.last_page ||
+    d?.districtlist?.last_page ||
+    d?.districtNews?.last_page ||
+    d?.news?.last_page ||
+    d?.data?.last_page ||
+    d?.last_page ||
     1
   );
 
@@ -336,10 +359,10 @@ export default function DistrictNewsScreen() {
       const url = `${district.link}${sep}page=${pg}`;
       console.log('DistrictNews fetch:', url);
 
-      const res  = await u38Api.get(url);
-      const d    = res?.data;
+      const res = await CDNApi.get(url);
+      const d = res?.data;
       const list = extractList(d);
-      const lp   = extractLastPage(d);
+      const lp = extractLastPage(d);
 
       console.log(`District ${district.title}: found ${list.length} items`);
 
@@ -398,7 +421,7 @@ export default function DistrictNewsScreen() {
 
   const goToArticle = (item) => {
     const category = item.maincat || item.categrorytitle || item.ctitle || item.maincategory || '';
-    
+
     // Debug: Log all available category fields
     console.log('=== DistrictNews goToArticle DEBUG ===');
     console.log('Item:', item);
@@ -408,59 +431,59 @@ export default function DistrictNewsScreen() {
     console.log('maincategory:', item.maincategory);
     console.log('Final category:', category);
     console.log('===================================');
-    
+
     // Handle special category navigation - more flexible matching
     const categoryLower = category.toLowerCase().trim();
-    
+
     // Tharpothaiya - expanded with all possible variations
-    if (categoryLower.includes('தர்போதைய') || categoryLower.includes('tharpothaiya') || 
-        categoryLower.includes('தர்போதைய செய்திகள்') || categoryLower.includes('தர்போதையா') ||
-        categoryLower.includes('தற்போதைய') || categoryLower.includes('தற்போதைய செய்தி') ||
-        categoryLower.includes('தர்போதையா') || categoryLower.includes('தர்போதையா செய்தி')) {
+    if (categoryLower.includes('தர்போதைய') || categoryLower.includes('tharpothaiya') ||
+      categoryLower.includes('தர்போதைய செய்திகள்') || categoryLower.includes('தர்போதையா') ||
+      categoryLower.includes('தற்போதைய') || categoryLower.includes('தற்போதைய செய்தி') ||
+      categoryLower.includes('தர்போதையா') || categoryLower.includes('தர்போதையா செய்தி')) {
       console.log('🎯 MATCH: Tharpothaiya - Navigating to TharpothaiyaSeithigalScreen');
       navigation?.navigate('TharpothaiyaSeithigalScreen');
       return;
     }
-    
+
     // Varthagam/Business - expanded variations
-    if (categoryLower.includes('வர்த்தகம்') || categoryLower.includes('varthagam') || 
-        categoryLower.includes('business') || categoryLower.includes('வணிகம்') ||
-        categoryLower.includes('வர்த்தகம்') || categoryLower.includes('வணிகம்')) {
+    if (categoryLower.includes('வர்த்தகம்') || categoryLower.includes('varthagam') ||
+      categoryLower.includes('business') || categoryLower.includes('வணிகம்') ||
+      categoryLower.includes('வர்த்தகம்') || categoryLower.includes('வணிகம்')) {
       console.log('🎯 MATCH: Varthagam - Navigating to VarthagamScreen');
       navigation?.navigate('VarthagamScreen');
       return;
     }
-    
+
     // Dinam Dinam - expanded variations
-    if (categoryLower.includes('தினம் தினம்') || categoryLower.includes('dinamdinam') || 
-        categoryLower.includes('தினம்தினம்') || categoryLower.includes('தினம் தினம்')) {
+    if (categoryLower.includes('தினம் தினம்') || categoryLower.includes('dinamdinam') ||
+      categoryLower.includes('தினம்தினம்') || categoryLower.includes('தினம் தினம்')) {
       console.log('🎯 MATCH: Dinam Dinam - Navigating to DinamDinamScreen');
       navigation?.navigate('DinamDinamScreen');
       return;
     }
-    
+
     // Sports - expanded variations
-    if (categoryLower.includes('விளையாட்டு') || categoryLower.includes('sports') || 
-        categoryLower.includes('விளையாட்டுகள்') || categoryLower.includes('sport') ||
-        categoryLower.includes('விளையாட்டு') || categoryLower.includes('விளையாட்டுகள்')) {
+    if (categoryLower.includes('விளையாட்டு') || categoryLower.includes('sports') ||
+      categoryLower.includes('விளையாட்டுகள்') || categoryLower.includes('sport') ||
+      categoryLower.includes('விளையாட்டு') || categoryLower.includes('விளையாட்டுகள்')) {
       console.log('🎯 MATCH: Sports - Navigating to SportsScreen');
       navigation?.navigate('SportsScreen');
       return;
     }
-    
+
     // Tamil Nadu - expanded variations
-    if (categoryLower.includes('தமிழ்நாடு') || categoryLower.includes('tamil nadu') || 
-        categoryLower.includes('tamilnadu') || categoryLower.includes('தமிழ்நாடு') ||
-        categoryLower.includes('தமிழ்நாடு') || categoryLower.includes('தமிழ்நாடு')) {
+    if (categoryLower.includes('தமிழ்நாடு') || categoryLower.includes('tamil nadu') ||
+      categoryLower.includes('tamilnadu') || categoryLower.includes('தமிழ்நாடு') ||
+      categoryLower.includes('தமிழ்நாடு') || categoryLower.includes('தமிழ்நாடு')) {
       console.log('🎯 MATCH: Tamil Nadu - Navigating to TamilNaduScreen');
       navigation?.navigate('TamilNaduScreen');
       return;
     }
-    
+
     // Default to NewsDetailsScreen for regular news
     console.log('❌ NO MATCH: Default navigation to NewsDetailsScreen');
     navigation.navigate('NewsDetailsScreen', {
-      newsId:   item.newsid || item.id,
+      newsId: item.newsid || item.id,
       newsItem: item,
     });
   };
@@ -475,7 +498,7 @@ export default function DistrictNewsScreen() {
         setIsLocationDrawerVisible(false);
         return;
       }
-      
+
       // Navigate to DistrictNewsScreen with the selected district
       // This will work whether we're on DistrictNewsScreen or another screen
       navigation.navigate('DistrictNewsScreen', {
@@ -500,8 +523,8 @@ export default function DistrictNewsScreen() {
     return districtNews.map((item) => ({ type: 'news', item }));
   };
 
-  const flatData    = buildFlatData();
-  const isLoading   = initLoading || tabLoading;
+  const flatData = buildFlatData();
+  const isLoading = initLoading || tabLoading;
   const headerTitle = (!isAllTab && activeDistrict?.title)
     ? activeDistrict.title
     : 'உள்ளூர்';
@@ -540,10 +563,9 @@ export default function DistrictNewsScreen() {
         />
       </UniversalHeaderComponent>
 
-      {/* ── Page Title Row ── */}
       <View style={styles.pageTitleRow}>
         <View style={styles.pageTitleLeft}>
-          <Text style={styles.pageTitle}>{headerTitle}</Text>
+          <Text style={[styles.pageTitle, { fontSize: sf(18) }]}>{headerTitle}</Text>
           <View style={styles.pageTitleUnderline} />
         </View>
 
@@ -552,12 +574,11 @@ export default function DistrictNewsScreen() {
           onPress={() => setPickerVisible(true)}
           activeOpacity={0.8}
         >
-          <Text style={styles.pickerBtnText}>உள்ளூர் செய்திகள்</Text>
-          <Ionicons name="chevron-down" size={s(14)} color={COLORS.primary} />
+          <Text style={[styles.pickerBtnText, { fontSize: sf(10) }]}>உள்ளூர் செய்திகள்</Text>
+          <Ionicons name="chevron-down" size={s(14)} color={COLORS.text} />
         </TouchableOpacity>
       </View>
 
-      {/* ── Content ── */}
       {isLoading ? (
         <FlatList
           data={[1, 2, 3, 4]}
@@ -594,7 +615,7 @@ export default function DistrictNewsScreen() {
           ListEmptyComponent={
             <View style={styles.emptyWrap}>
               <Ionicons name="location-outline" size={s(48)} color="#ccc" />
-              <Text style={styles.emptyText}>செய்திகள் இல்லை</Text>
+              <Text style={[styles.emptyText, { fontSize: sf(15) }]}>செய்திகள் இல்லை</Text>
             </View>
           }
           ListFooterComponent={
@@ -638,44 +659,48 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: s(14),
+    paddingHorizontal: s(12),
     paddingTop: vs(14),
     paddingBottom: vs(10),
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
   },
-  pageTitleLeft: {},
+  pageTitleLeft: {
+    alignItems: 'flex-start',
+  },
   pageTitle: {
-    fontSize: scaledSizes.font.lg,
+    fontSize: sf(18),
     fontFamily: FONTS.muktaMalar.bold,
     color: '#1a1a1a',
-    marginBottom: vs(3),
+    // marginBottom: vs(3),
   },
   pageTitleUnderline: {
-    height: vs(2),
-    width: s(40),
+    height: vs(3),
+    width: '50%',
     backgroundColor: COLORS.primary,
   },
   pickerBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: s(4),
-    borderWidth: 1,
-    borderColor: COLORS.primary,
+    // borderWidth: 1,
+    borderColor: COLORS.text,
     // borderRadius: s(4),
     paddingHorizontal: s(5),
     paddingVertical: vs(5),
+    backgroundColor: '#e9e9e9',
   },
   pickerBtnText: {
-    fontSize: ms(10),
+    fontSize: ms(12),
     fontFamily: FONTS.muktaMalar.regular,
-    color: COLORS.primary,
+    color: COLORS.text,
+    fontWeight:'700'
   },
-  list:        { flex: 1 },
+  list: { flex: 1 },
   listContent: { paddingTop: vs(6), paddingBottom: vs(30) },
   sectionWrap: {
-    paddingHorizontal: s(14),
+    paddingHorizontal: s(12),
     paddingTop: vs(16),
     paddingBottom: vs(4),
     backgroundColor: '#f2f2f2',
@@ -684,7 +709,7 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
     paddingVertical: vs(80), gap: vs(12),
   },
-  emptyText:    { fontSize: ms(15), fontFamily: FONTS.muktaMalar.semiBold, color: '#aaa' },
+  emptyText: { fontSize: ms(15), fontFamily: FONTS.muktaMalar.semibold, color: '#aaa' },
   footerLoader: { paddingVertical: vs(20), alignItems: 'center' },
   scrollTopBtn: {
     position: 'absolute',

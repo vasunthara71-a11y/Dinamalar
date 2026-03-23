@@ -1,8 +1,27 @@
 import axios from 'axios';
 
+// ─── Simple Request Cache ───────────────────────────────────────────────────────
+const requestCache = new Map();
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+const getCachedData = (key) => {
+  const cached = requestCache.get(key);
+  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+    return cached.data;
+  }
+  return null;
+};
+
+const setCachedData = (key, data) => {
+  requestCache.set(key, {
+    data,
+    timestamp: Date.now()
+  });
+};
+
 // ─── API Base URLs ────────────────────────────────────────────────────────
 export const API_BASE_URLS = {
-  MAIN: 'https://dmrapi.dinamalar.com',
+  MAIN: 'https://api-st-cdn.dinamalar.com',
   // DMR_API: 'https://dmrapi.dinamalar.com',
   U38: 'https://u38.dinamalar.com',
   OPEN_API: 'https://openapi-st-cdn.dinamalar.com',
@@ -31,6 +50,7 @@ export const API_ENDPOINTS = {
   AUDIO: '/audio',
   VIDEO_MAIN: '/videomain',
   VIDEO_DETAIL: '/videodetail',
+  SHORTS: '/shorts',
 
   // Category Specific
   VARthagam: '/varthagamdata',
@@ -53,6 +73,7 @@ export const API_ENDPOINTS = {
 
   // NRI APIs
   NRI: '/nri',
+  NRI_MAIN: '/nrimain',
   NRI_ENGLISH: '/nri?lang=en',
   NRITAMILCAT: '/nricategory?lang=ta&cat',
   NRIENGCAT: '/nricategory?lang=en&cat',
@@ -107,6 +128,13 @@ export const API_ENDPOINTS = {
   SPECIALCATLIST: '/specialcatlist',
   EDITOR_CHOICE: '/editorchoice',
   TODAY_SPECIAL: '/todayspecial',
+
+  // Static Pages
+  CONTACT_US: '/contactus',
+  COPYRIGHT: '/copyright',
+  PRIVACY_POLICY: '/privacypolicy',
+  TERMS_CONDITIONS: '/termsconditions',
+  ABOUT_US: '/aboutus',
 
   // Web Stories
   WEBSTORY: '/webstoriesupdate',
@@ -305,38 +333,52 @@ export const u38Api = axios.create({
 
 export const CDNApi = axios.create({
   baseURL:API_BASE_URLS.CDN,
-  timeout:12000,
-  headers:{'Content-Type':'application/json'},
+  timeout:15000, // Reduced to 15s for faster failure detection
+  headers:{
+    'Content-Type':'application/json',
+    'Accept': 'application/json',
+    'Accept-Encoding': 'gzip, deflate, br', // Enable compression
+    'Connection': 'keep-alive' // Connection pooling
+  },
 });
 
-// Add request interceptor for debugging
+// Add request interceptor with caching
 CDNApi.interceptors.request.use(
    (config) => {
-    console.log('=== API REQUEST DEBUG ===');
-    console.log('URL:', config.baseURL + config.url);
-    console.log('Method:', config.method);
-    console.log('Headers:', config.headers);
-    console.log('========================');
+    // Check cache for GET requests
+    if (config.method === 'get') {
+      const cacheKey = `${config.baseURL}${config.url}`;
+      const cachedData = getCachedData(cacheKey);
+      if (cachedData) {
+        // Return cached data immediately
+        config.adapter = () => Promise.resolve({
+          data: cachedData,
+          status: 200,
+          statusText: 'OK',
+          headers: {},
+          config,
+          request: {},
+        });
+      }
+    }
     return config;
   },
   (error) => {
-    console.error('API Request Error:', error);
     return Promise.reject(error);
   }
-)
+);
 
-
-u38Api.interceptors.request.use(
-  (config) => {
-    console.log('=== API REQUEST DEBUG ===');
-    console.log('URL:', config.baseURL + config.url);
-    console.log('Method:', config.method);
-    console.log('Headers:', config.headers);
-    console.log('========================');
-    return config;
+// Add response caching interceptor
+CDNApi.interceptors.response.use(
+  (response) => {
+    // Cache successful GET responses
+    if (response.config.method === 'get' && response.status === 200) {
+      const cacheKey = `${response.config.baseURL}${response.config.url}`;
+      setCachedData(cacheKey, response.data);
+    }
+    return response;
   },
   (error) => {
-    console.error('API Request Error:', error);
     return Promise.reject(error);
   }
 );
@@ -379,11 +421,11 @@ export const api = {
   // Core APIs
   getHome: () => mainApi.get(API_ENDPOINTS.HOME),
   getMenu: () => mainApi.get(API_ENDPOINTS.MENU),
-  getMenuU38: () => u38Api.get(API_ENDPOINTS.MENU), // u38 server menu
-  getLatestMain: (page = 1) => dmrApi.get(`${API_ENDPOINTS.LATEST_MAIN}?page=${page}`),
+  getMenuU38: () => mainApi.get(API_ENDPOINTS.MENU), // u38 server menu
+  getLatestMain: (page = 1) => mainApi.get(`${API_ENDPOINTS.LATEST_MAIN}?page=${page}`),
   getFlash: () => mainApi.get(API_ENDPOINTS.FLASH),
   getDetail: (newsId) => mainApi.get(`${API_ENDPOINTS.DETAIL}?newsid=${newsId}`),
-  getLatestNotify: () => u38Api.get(API_ENDPOINTS.LATEST_NOTIFY),
+  getLatestNotify: () => mainApi.get(API_ENDPOINTS.LATEST_NOTIFY),
 
   // Content APIs
   getNewsData: (cat, scat) => mainApi.get(`${API_ENDPOINTS.NEWS_DATA}?cat=${cat}${scat ? `&scat=${scat}` : ''}`),
@@ -428,7 +470,7 @@ export const api = {
   getTempleMain: () => mainApi.get(API_ENDPOINTS.TEMPLE_MAIN),
   getTempleListing: (id) => mainApi.get(`${API_ENDPOINTS.TEMPLE_LISTING}?id=${id}`),
   getTempleMainEng: () => mainApi.get(API_ENDPOINTS.TEMPLEMAINENG),
-  getJoshiyam: () => u38Api.get(API_ENDPOINTS.JOSHIYAM),
+  getJoshiyam: () => mainApi.get(API_ENDPOINTS.JOSHIYAM),
   getKadalthamarai: () => mainApi.get(API_ENDPOINTS.KADAL_THAMARAI),
   getAnmegam: () => mainApi.get(API_ENDPOINTS.ANMEGAM),
   getAnmegamain: () => mainApi.get(API_ENDPOINTS.ANMEGAMAIN),
@@ -439,6 +481,7 @@ export const api = {
 
   // NRI APIs
   getNri: () => mainApi.get(API_ENDPOINTS.NRI),
+  getNriMain: () => mainApi.get(API_ENDPOINTS.NRI_MAIN),
   getNriEnglish: () => mainApi.get(API_ENDPOINTS.NRI_ENGLISH),
   getNriTamilCat: (cat) => mainApi.get(`${API_ENDPOINTS.NRITAMILCAT}${cat}`),
   getNriEngCat: (cat) => mainApi.get(`${API_ENDPOINTS.NRIENGCAT}${cat}`),
@@ -493,6 +536,13 @@ export const api = {
   getSpecialCatList: () => mainApi.get(API_ENDPOINTS.SPECIALCATLIST),
   getEditorChoice: () => mainApi.get(API_ENDPOINTS.EDITOR_CHOICE),
   getTodaySpecial: () => mainApi.get(API_ENDPOINTS.TODAY_SPECIAL),
+
+  // Static Pages
+  getContactUs: () => mainApi.get(API_ENDPOINTS.CONTACT_US),
+  getCopyright: () => mainApi.get(API_ENDPOINTS.COPYRIGHT),
+  getPrivacyPolicy: () => mainApi.get(API_ENDPOINTS.PRIVACY_POLICY),
+  getTermsConditions: () => mainApi.get(API_ENDPOINTS.TERMS_CONDITIONS),
+  getAboutUs: () => mainApi.get(API_ENDPOINTS.ABOUT_US),
 
   // Web Stories
   getWebStory: () => mainApi.get(API_ENDPOINTS.WEBSTORY),
@@ -596,18 +646,18 @@ export const api = {
 // ─── Network Connectivity Test ───────────────────────────────────────────────────────
 export const testNetworkConnectivity = async () => {
   try {
-    console.log('=== NETWORK CONNECTIVITY TEST ===');
-    console.log('Testing: https://dmrapi.dinamalar.com/home');
+    // console.log('=== NETWORK CONNECTIVITY TEST ===');
+    // console.log('Testing: https://dmrapi.dinamalar.com/home');
 
     const response = await axios.get('https://dmrapi.dinamalar.com/home', {
       timeout: 5000,
       headers: { 'Content-Type': 'application/json' }
     });
 
-    console.log('✅ Network connectivity OK');
-    console.log('Response status:', response.status);
-    console.log('Response data type:', typeof response.data);
-    console.log('==============================');
+    // console.log('✅ Network connectivity OK');
+    // console.log('Response status:', response.status);
+    // console.log('Response data type:', typeof response.data);
+    // console.log('==============================');
     return true;
   } catch (error) {
     console.error('❌ Network connectivity FAILED');
@@ -618,7 +668,7 @@ export const testNetworkConnectivity = async () => {
 
     // Try alternative test
     try {
-      console.log('Trying alternative test: https://httpbin.org/get');
+      // console.log('Trying alternative test: https://httpbin.org/get');
       const altResponse = await axios.get('https://httpbin.org/get', { timeout: 3000 });
       console.log('✅ Internet connectivity OK, but API server might be down');
       return false;

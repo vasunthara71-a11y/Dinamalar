@@ -2,12 +2,23 @@
 import React from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { s, vs } from '../utils/scaling';
+import { Comment } from '../assets/svg/Icons';
+import { s, vs, ms } from '../utils/scaling';
 import { FONTS } from '../utils/constants';
 import useAppStyles from '../hooks/useAppStyles';
 
-const NewsCard = ({ item, onPress }) => {
+const NewsCard = ({ item, onPress, isPremium = false, hideCategory = false }) => {
   const { styles: appSt } = useAppStyles(); // ← font styles, always fresh
+
+  // Debug premium detection
+  if (isPremium) {
+    console.log(' PREMIUM CARD DETECTED:', item.newstitle || item.title);
+  }
+
+  // Debug hideCategory
+  if (hideCategory) {
+    console.log(' HIDE CATEGORY ENABLED FOR:', item.newstitle || item.title);
+  }
 
   const imageUri =
     item.largeimages || item.images || item.image || item.thumbnail || item.thumb ||
@@ -16,7 +27,15 @@ const NewsCard = ({ item, onPress }) => {
   const title       = item.newstitle || item.title || item.videotitle || item.name || '';
   const category    = item.maincat || item.categrorytitle || item.ctitle || item.maincategory || '';
   const ago         = item.ago || item.time_ago || '';
-  const newscomment = item.newscomment || item.commentcount || '';
+  const newscomment = item.newscomment || item.commentcount || item.comments || '';
+
+  // Debug comment data
+  console.log('COMMENT DEBUG for:', title);
+  console.log('- newscomment:', item.newscomment);
+  console.log('- commentcount:', item.commentcount);
+  console.log('- comments:', item.comments);
+  console.log('- final newscomment:', newscomment);
+
   const hasAudio    = item.audio === 1 || item.audio === '1' || item.audio === true ||
     (typeof item.audio === 'string' && item.audio.length > 1 && item.audio !== '0');
 
@@ -35,11 +54,21 @@ const NewsCard = ({ item, onPress }) => {
             </Text>
           )}
 
-          {!!category && (
-            <View style={st.catPill}>
-              <Text style={[st.catBase, appSt.cardCategory]}>{category}</Text>
+          {/* Category Row - Only show if hideCategory is false */}
+          {!hideCategory ? (
+            <View style={st.categoryRow}>
+              {!!category && (
+                <View style={st.catPill}>
+                  <Text style={[st.catBase, appSt.cardCategory]}>{category}</Text>
+                </View>
+              )}
+              {isPremium && (
+                <View style={st.premiumPill}>
+                  <Text style={[st.premiumBase, appSt.cardCategory]}>பிரீமியம்</Text>
+                </View>
+              )}
             </View>
-          )}
+          ) : null}
 
           <View style={st.metaRow}>
             <Text style={appSt.cardTime}>{ago}</Text>
@@ -49,7 +78,7 @@ const NewsCard = ({ item, onPress }) => {
               )}
               {!!newscomment && newscomment !== '0' && (
                 <View style={st.commentRow}>
-                  <Ionicons name="chatbox" size={ms(14)} color="#637381" />
+                  <Comment size={ms(14)} color="#637381" style={{ marginRight: 2 }} />
                   <Text style={appSt.cardComment}> {newscomment}</Text>
                 </View>
               )}
@@ -96,6 +125,25 @@ const st = StyleSheet.create({
   },
   catBase: {
     fontFamily: FONTS.muktaMalar.regular,
+  },
+  categoryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: vs(8),
+    flexWrap: 'wrap',
+  },
+  premiumPill: {
+    backgroundColor: '#FFD700',
+    borderWidth: 1,
+    borderColor: '#FFB300',
+    borderRadius: ms(4),
+    paddingHorizontal: ms(8),
+    paddingVertical: vs(3),
+    marginLeft: ms(6),
+  },
+  premiumBase: {
+    fontFamily: FONTS.muktaMalar.bold,
+    color: '#8B4513',
   },
   metaRow: {
     flexDirection:  'row',

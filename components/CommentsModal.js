@@ -14,8 +14,9 @@ import {
   Animated,
   Image,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { mainApi, u38Api } from '../config/api';
+import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { Comment, CommentForChat } from '../assets/svg/Icons';
+import { CDNApi, mainApi, u38Api } from '../config/api';
 import { COLORS, FONTS } from '../utils/constants';
 import { s, vs, ms, scaledSizes } from '../utils/scaling';
 import FontSizeControl from './FontSizeControl';
@@ -24,14 +25,14 @@ import { useFontSize } from '../context/FontSizeContext';
 // ─── Single Comment Row ───────────────────────────────────────────────────────
 function CommentItem({ item, index }) {
   const { sf } = useFontSize();
-  const name     = item.name         || item.username || 'பயனர்';
-  const text     = item.comments     || item.comment  || item.text || '';
-  const ago      = item.ago          || item.standarddate || item.date || '';
-  const likes    = parseInt(item.com_like    || 0);
+  const name = item.name || item.username || 'பயனர்';
+  const text = item.comments || item.comment || item.text || '';
+  const ago = item.ago || item.standarddate || item.date || '';
+  const likes = parseInt(item.com_like || 0);
   const dislikes = parseInt(item.com_dislike || 0);
-  const avatar   = item.images       || item.avatar   || '';
+  const avatar = item.images || item.avatar || '';
 
-  const colors  = ['#e53935','#8e24aa','#1e88e5','#00897b','#f4511e','#6d4c41'];
+  const colors = ['#e53935', '#8e24aa', '#1e88e5', '#00897b', '#f4511e', '#6d4c41'];
   const bgColor = colors[(name.charCodeAt(0) || index) % colors.length];
   const initials = name.charAt(0).toUpperCase();
 
@@ -59,7 +60,7 @@ function CommentItem({ item, index }) {
             {dislikes > 0 && <Text style={[cs.actionTxt, { fontSize: sf(11) }]}>{dislikes}</Text>}
           </TouchableOpacity>
           <TouchableOpacity style={cs.actionBtn}>
-            <Ionicons name="chatbubble-outline" size={sf(13)} color="#888" />
+            <Comment size={sf(13)} color="#888" style={{ marginRight: 2 }} />
             <Text style={[cs.actionTxt, { fontSize: sf(11) }]}>பதில்</Text>
           </TouchableOpacity>
         </View>
@@ -71,7 +72,7 @@ function CommentItem({ item, index }) {
 const cs = StyleSheet.create({
   row: {
     flexDirection: 'row',
-    paddingHorizontal: s(16),
+    paddingHorizontal: s(12),
     paddingVertical: vs(12),
     borderBottomWidth: 1,
     borderBottomColor: '#f5f5f5',
@@ -110,11 +111,11 @@ function CommentSkeleton() {
   );
 }
 const sk = StyleSheet.create({
-  row:    { flexDirection: 'row', padding: s(16), borderBottomWidth: 1, borderBottomColor: '#f5f5f5' },
+  row: { flexDirection: 'row', padding: s(16), borderBottomWidth: 1, borderBottomColor: '#f5f5f5' },
   avatar: { width: s(36), height: s(36), borderRadius: s(18), backgroundColor: '#eee', marginRight: s(10) },
-  body:   { flex: 1, gap: vs(6) },
-  name:   { width: s(80), height: vs(12), backgroundColor: '#eee', borderRadius: s(4) },
-  line:   { width: '90%', height: vs(10), backgroundColor: '#f2f2f2', borderRadius: s(4) },
+  body: { flex: 1, gap: vs(6) },
+  name: { width: s(80), height: vs(12), backgroundColor: '#eee', borderRadius: s(4) },
+  line: { width: '90%', height: vs(10), backgroundColor: '#f2f2f2', borderRadius: s(4) },
 });
 
 // ─── Empty State ──────────────────────────────────────────────────────────────
@@ -122,16 +123,16 @@ function EmptyComments() {
   const { sf } = useFontSize();
   return (
     <View style={em.wrap}>
-      <Ionicons name="chatbubbles-outline" size={sf(52)} color="#ddd" />
+      <Comment size={sf(52)} color="#ddd" />
       <Text style={[em.title, { fontSize: sf(16) }]}>கருத்துகள் இல்லை</Text>
       <Text style={[em.sub, { fontSize: sf(13) }]}>முதல் கருத்தை பதிவிடுங்கள்!</Text>
     </View>
   );
 }
 const em = StyleSheet.create({
-  wrap:  { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: vs(60) },
+  wrap: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: vs(60) },
   title: { fontSize: ms(16), fontFamily: FONTS.muktaMalar.bold, color: '#aaa', marginTop: vs(12) },
-  sub:   { fontSize: ms(13), fontFamily: FONTS.muktaMalar.regular, color: '#ccc', marginTop: vs(6) },
+  sub: { fontSize: ms(13), fontFamily: FONTS.muktaMalar.regular, color: '#ccc', marginTop: vs(6) },
 });
 
 // ─── Extract helpers ──────────────────────────────────────────────────────────
@@ -140,24 +141,30 @@ const em = StyleSheet.create({
 // Each comment: { id, name, city, images, comments, com_like, com_dislike, ago, standarddate, reply: [] }
 function extractComments(d) {
   if (!d) return [];
-  // ✅ CONFIRMED path: top-level comments.data
-  const raw = d?.comments?.data || [];
-  return Array.isArray(raw) ? raw.filter(Boolean) : [];
+  // Shape 1: { comments: { data: [...] } }
+  if (Array.isArray(d?.comments?.data)) return d.comments.data.filter(Boolean);
+  // Shape 2: { data: [...] }
+  if (Array.isArray(d?.data)) return d.data.filter(Boolean);
+  // Shape 3: { comments: [...] }
+  if (Array.isArray(d?.comments)) return d.comments.filter(Boolean);
+  // Shape 4: top-level array
+  if (Array.isArray(d)) return d.filter(Boolean);
+  return [];
 }
 
 function extractLastPage(d) {
-  return d?.comments?.last_page || 1;
+  return d?.comments?.last_page || d?.last_page || d?.meta?.last_page || 1;
 }
 
 // ─── Main CommentsModal ───────────────────────────────────────────────────────
 export default function CommentsModal({ visible, onClose, newsId, newsTitle, commentCount = 0 }) {
   const { sf } = useFontSize();
-  const [comments,    setComments]    = useState([]);
-  const [loading,     setLoading]     = useState(false);
-  const [page,        setPage]        = useState(1);
-  const [lastPage,    setLastPage]    = useState(1);
+  const [comments, setComments] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(1);
+  const [lastPage, setLastPage] = useState(1);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [inputText,   setInputText]   = useState('');
+  const [inputText, setInputText] = useState('');
 
   const slideAnim = useRef(new Animated.Value(300)).current;
 
@@ -171,30 +178,37 @@ export default function CommentsModal({ visible, onClose, newsId, newsTitle, com
     }
   }, [visible]);
 
-  // ── Fetch — u38Api /detaildata?newsid=ID (CONFIRMED: comments at d.comments.data)
+  // ── Fetch — Use dedicated /comments endpoint
+
   const fetchComments = useCallback(async (id, pg = 1, append = false) => {
     if (!id) return;
     pg === 1 ? setLoading(true) : setLoadingMore(true);
 
     try {
+      // detaildata always uses newsid — videoid values ARE the newsid
       const url = `/detaildata?newsid=${id}&page=${pg}`;
-      const res = await mainApi.get(url);
-      const d   = res?.data;
+      console.log('[CommentsModal] fetching:', url);
+      const res = await CDNApi.get(url);
+      console.log('[CommentsModal] base URL used:', CDNApi.defaults?.baseURL);
+      console.log('[CommentsModal] status:', res?.status);
+      console.log('[CommentsModal] comments data length:', res?.data?.comments?.data?.length); const d = res?.data;
 
       const list = extractComments(d);
-      const lp   = extractLastPage(d);
-
+      const lp = extractLastPage(d);
       setLastPage(lp);
       setPage(pg);
       setComments(prev => append ? [...prev, ...list] : list);
     } catch (e) {
-      console.error('[CommentsModal] error:', e?.message, e?.response?.status);
+      console.error('[CommentsModal] error:', e?.message);
       setComments([]);
     } finally {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, []);
+  }, []); // no deps needed — URL is fixed
+
+
+
   useEffect(() => {
     if (visible && newsId) {
       setComments([]);
@@ -208,7 +222,7 @@ export default function CommentsModal({ visible, onClose, newsId, newsTitle, com
       setLastPage(1);
       setInputText('');
     }
-  }, [visible, newsId]);
+  }, [visible, newsId, fetchComments]); // ← add idType here too
 
   const handleLoadMore = () => {
     if (loadingMore || page >= lastPage) return;
@@ -241,10 +255,11 @@ export default function CommentsModal({ visible, onClose, newsId, newsTitle, com
 
             {/* Header */}
             <View style={modal.header}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: s(10) }}>
-                <Text style={[modal.headerTitle, { fontSize: sf(18) }]}>கருத்துகள்</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: s(5) }}>
+                <CommentForChat size={22} color="#333" />
+                <Text style={[modal.headerTitle, { fontSize: vs(16) }]}>வாசகர்கள் கருத்துகள்</Text>
                 {totalCount > 0 && (
-                  <Text style={[modal.headerCount, { fontSize: sf(18) }]}>{totalCount}</Text>
+                  <Text style={[modal.headerCount, { fontSize: vs(16) }]}>( {totalCount} )</Text>
                 )}
               </View>
               <TouchableOpacity
@@ -318,7 +333,7 @@ export default function CommentsModal({ visible, onClose, newsId, newsTitle, com
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const modal = StyleSheet.create({
-  overlay:  { flex: 1, justifyContent: 'flex-end' },
+  overlay: { flex: 1, justifyContent: 'flex-end' },
   backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.5)' },
   sheet: {
     backgroundColor: '#fff',
@@ -330,14 +345,16 @@ const modal = StyleSheet.create({
   handleWrap: { alignItems: 'center', paddingTop: vs(10), paddingBottom: vs(4) },
   handle: { width: s(36), height: vs(4), borderRadius: s(2), backgroundColor: '#ddd' },
   header: {
-    flexDirection: 'row', alignItems: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: s(16), paddingTop: vs(8), paddingBottom: vs(12),
+    paddingHorizontal: s(12), paddingTop: vs(8), paddingBottom: vs(12),
+
   },
-  headerTitle: { fontSize: scaledSizes.font.xl, fontFamily: FONTS.muktaMalar.bold, color: '#1a1a1a' },
-  headerCount: { fontSize: scaledSizes.font.xl, fontFamily: FONTS.muktaMalar.regular, color: '#888' },
+  headerTitle: { fontFamily: FONTS.muktaMalar.semibold, color: '#1a1a1a' },
+  headerCount: { fontFamily: FONTS.muktaMalar.semibold, color: COLORS.black },
   closeBtn: { padding: s(4) },
-  divider:  { height: 1, backgroundColor: '#f0f0f0' },
+  divider: { height: 1, backgroundColor: '#f0f0f0' },
   inputWrap: {
     borderTopWidth: 1, borderTopColor: '#f0f0f0',
     paddingHorizontal: s(12), paddingVertical: vs(10),

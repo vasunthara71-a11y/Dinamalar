@@ -14,13 +14,14 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { u38Api } from '../config/api';
+import { CDNApi } from '../config/api';
 import { s, vs, ms, scaledSizes } from '../utils/scaling';
 import { COLORS, FONTS, NewsCard } from '../utils/constants';
 import UniversalHeaderComponent from '../components/UniversalHeaderComponent';
 import AppHeaderComponent from '../components/AppHeaderComponent';
 import { mvs } from 'react-native-size-matters';
 import TEXT_STYLES from '../utils/textStyles';
+import { useFontSize } from '../context/FontSizeContext';
 
 const PALETTE = {
   primary: '#096dd2',
@@ -57,24 +58,35 @@ const sk = StyleSheet.create({
 
 // ─── Section Title ────────────────────────────────────────────────────────────
 function SectionTitle({ title }) {
+  const { sf } = useFontSize();
   return (
     <View style={st.wrap}>
-      <Text style={st.text}>{title}</Text>
+      <Text style={[st.text, { fontSize: sf(16) }]}>{title}</Text>
       <View style={st.underline} />
     </View>
   );
 }
 const st = StyleSheet.create({
-  wrap: {
-    marginBottom: vs(8),
-    marginTop: vs(2),
+  wrap: { 
+    paddingTop: vs(14), 
+    paddingBottom: vs(10),
   },
-  text: TEXT_STYLES.titles.sectionTitles,
-  underline: { height: vs(4), width: s(40), backgroundColor: COLORS.primary },
+
+  text: {
+    fontFamily: FONTS.muktaMalar.bold,
+    color: COLORS.text,
+  },
+
+  underline: {
+    height: vs(3),
+    width: s(60),
+    backgroundColor: COLORS.primary,
+   },
 });
 
 // ─── News Card (same as HomeScreen) ────────────────────────────────────────────────────────
 function SportsNewsCard({ item, onPress }) {
+  const { sf } = useFontSize();
   const imageUri =
     item.images ||
     item.largeimages ||
@@ -100,25 +112,25 @@ function SportsNewsCard({ item, onPress }) {
         {/* Content */}
         <View style={NewsCard.contentContainer}>
           {!!title && (
-            <Text style={NewsCard.title} numberOfLines={3}>{title}</Text>
+            <Text style={[NewsCard.title, { fontSize: sf(14), lineHeight: sf(22) }]} numberOfLines={3}>{title}</Text>
           )}
 
           {/* Category pill — gray, matches screenshot */}
-          {!!category && (
+          {/* {!!category && (
             <View style={NewsCard.catPill}>
-              <Text style={NewsCard.catText}>{category}</Text>
+              <Text style={[NewsCard.catText, { fontSize: sf(12) }]}>{category}</Text>
             </View>
-          )}
+          )} */}
 
           {/* Meta row */}
           <View style={NewsCard.metaRow}>
-            <Text style={NewsCard.timeText}>{ago}</Text>
+            <Text style={[NewsCard.timeText, { fontSize: sf(12) }]}>{ago}</Text>
             <View style={NewsCard.metaRight}>
               
               {!!newscomment && newscomment !== '0' && (
                 <View style={NewsCard.commentRow}>
                   <Ionicons name="chatbox" size={s(14)} color={PALETTE.grey700} />
-                  <Text style={NewsCard.commentText}> {newscomment}</Text>
+                  <Text style={[NewsCard.commentText, { fontSize: sf(12) }]}> {newscomment}</Text>
                 </View>
               )}
               {hasAudio && (
@@ -139,6 +151,7 @@ function SportsNewsCard({ item, onPress }) {
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 export default function SportsScreen() {
+  const { sf } = useFontSize();
   const navigation = useNavigation();
 
   const [subTabs, setSubTabs] = useState([]);
@@ -175,7 +188,7 @@ export default function SportsScreen() {
   const fetchAll = useCallback(async () => {
     try {
       console.log('SportsScreen: fetching /sports');
-      const res = await u38Api.get('/sports');
+      const res = await CDNApi.get('/sports');
       const d = res?.data;
 
       // subcatlist → tabs
@@ -206,7 +219,7 @@ export default function SportsScreen() {
       const sep = tab.link.includes('?') ? '&' : '?';
       const url = `${tab.link}${sep}page=${pg}`;
       console.log('SportsScreen tab fetch:', url);
-      const res = await u38Api.get(url);
+      const res = await CDNApi.get(url);
       const d = res?.data;
 
       // Sub-tab endpoints return newsdata structure:
@@ -369,8 +382,11 @@ export default function SportsScreen() {
 
       {/* ── Page Title ── */}
       <View style={styles.pageTitleWrap}>
-        <Text style={styles.pageTitle}>விளையாட்டு</Text>
+        <Text style={[styles.pageTitle, { fontSize: sf(16) }]}>
+          {isAllTab ? 'விளையாட்டு' : (activeTab?.title || 'விளையாட்டு')}
+        </Text>
       </View>
+      
 
       {/* ── Tabs from subcatlist ── */}
       {subTabs.length > 0 && (
@@ -393,7 +409,7 @@ export default function SportsScreen() {
                   onPress={() => handleTabPress(tab)}
                   activeOpacity={0.8}
                 >
-                  <Text style={[styles.tabText, isActive && styles.tabTextActive]}>
+                  <Text style={[styles.tabText, isActive && styles.tabTextActive, { fontSize: ms(16) }]}>
                     {tab.title}
                   </Text>
                 </TouchableOpacity>
@@ -441,7 +457,7 @@ export default function SportsScreen() {
           ListEmptyComponent={
             <View style={styles.emptyWrap}>
               <Ionicons name="football-outline" size={s(48)} color="#ccc" />
-              <Text style={styles.emptyText}>செய்திகள் இல்லை</Text>
+              <Text style={[styles.emptyText, { fontSize: sf(14) }]}>செய்திகள் இல்லை</Text>
             </View>
           }
           ListFooterComponent={
@@ -489,17 +505,25 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: s(2),
   },
-  tabsContent: { paddingHorizontal: s(4), alignItems: 'center' },
+  tabsContent: { paddingHorizontal: s(20), alignItems: 'center' },
   tab: {
-    paddingHorizontal: s(14),
+    paddingHorizontal: s(12),
     paddingVertical: vs(12),
     marginHorizontal: s(2),
     borderBottomWidth: vs(3),
     borderBottomColor: 'transparent',
   },
   tabActive: { borderBottomColor: COLORS.primary },
-  tabText: TEXT_STYLES.tabs.small,
-  tabTextActive: TEXT_STYLES.tabs.smallActive,
+  tabText: {
+    fontSize: ms(16),
+    fontFamily: FONTS.muktaMalar.medium,
+    color: COLORS.black,
+  },
+  tabTextActive: {
+    fontSize: ms(13),
+    fontFamily: FONTS.muktaMalar.bold,
+    color: COLORS.primary,
+  },
   tabsBottomLine: { height: StyleSheet.hairlineWidth, backgroundColor: '#e0e0e0' },
 
   list: { flex: 1 },
@@ -508,9 +532,9 @@ const styles = StyleSheet.create({
   // Section header sits on the grey background between white news cards
   sectionWrap: {
     paddingHorizontal: s(14),
-    paddingTop: vs(16),
+    // paddingTop: vs(16),
     paddingBottom: vs(4),
-    backgroundColor: '#f2f2f2',
+    backgroundColor: '#ffffff',
   },
 
   emptyWrap: {

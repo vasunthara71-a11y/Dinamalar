@@ -1,24 +1,27 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
   ScrollView,
   TouchableOpacity,
-  ActivityIndicator,
   StyleSheet,
   Image,
+  Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SvgUri, SvgXml } from 'react-native-svg';
-import { mainApi, API_ENDPOINTS } from '../config/api';
-import { COLORS } from '../utils/constants';
-import { scaledSizes } from '../utils/scaling';
+import { COLORS, FONTS } from '../utils/constants';
+import { scaledSizes, s, vs, ms } from '../utils/scaling';
 import { useFontSize } from '../context/FontSizeContext';
+import axios from 'axios';
+import { LinearGradient } from 'expo-linear-gradient';
+
+const MENU_API_URL = 'https://api-st-cdn.dinamalar.com/menuindex1';
 
 // ─── Module-level cache — persists across screen mounts/remounts ──────────────
 let _cachedMenuItems = null;
-let _isFetching      = false;
-const _listeners     = [];
+let _isFetching = false;
+const _listeners = [];
 
 function subscribeToCacheUpdate(cb) {
   _listeners.push(cb);
@@ -29,19 +32,16 @@ function subscribeToCacheUpdate(cb) {
 }
 
 async function fetchMenuOnce() {
-  // Already cached — return immediately
   if (_cachedMenuItems !== null) return _cachedMenuItems;
-
-  // Already in flight — wait for it
   if (_isFetching) {
     return new Promise((resolve) => {
       const unsub = subscribeToCacheUpdate((items) => { unsub(); resolve(items); });
     });
   }
-
   _isFetching = true;
   try {
-    const res  = await mainApi.get(API_ENDPOINTS.MENU);
+    const res = await axios.get(MENU_API_URL);
+    // API: { headermenu: [ { Title, Link, Icon, ... } ] }
     const data = res?.data?.headermenu || [];
     _cachedMenuItems = data;
     _listeners.forEach(cb => cb(data));
@@ -59,69 +59,88 @@ async function fetchMenuOnce() {
 // ─── Menu Icon ────────────────────────────────────────────────────────────────
 function MenuIcon({ uri }) {
   if (!uri) {
-    return <Ionicons name="radio-outline" size={scaledSizes.icon.md} color={COLORS.primary} />;
+    return <Ionicons name="radio-outline" size={20} color={COLORS.primary} />;
   }
-
   if (uri.includes('<svg') && uri.includes('</svg>')) {
-    return (
-      <SvgXml xml={uri} width={scaledSizes.icon.md} height={scaledSizes.icon.md} />
-    );
+    return <SvgXml xml={uri} width={20} height={20} />;
   }
-
   if (uri.endsWith('.svg') || uri.includes('.svg?')) {
-    return (
-      <SvgUri uri={uri} width={scaledSizes.icon.md} height={scaledSizes.icon.md} />
-    );
+    return <SvgUri uri={uri} width={20} height={20} />;
   }
-
   if (uri.startsWith('http')) {
     return (
       <Image
         source={{ uri }}
-        style={{ width: scaledSizes.icon.md, height: scaledSizes.icon.md }}
+        style={{ width: 20, height: 20 }}
         resizeMode="contain"
         fadeDuration={0}
       />
     );
   }
-
-  return <Ionicons name="radio-outline" size={scaledSizes.icon.md} color={COLORS.text} />;
+  return <Ionicons name="radio-outline" size={20} color={COLORS.text} />;
 }
 
 // ─── Top Menu Strip ───────────────────────────────────────────────────────────
-export default function TopMenuStrip({ onMenuPress, onNotification, notifCount = 0 }) {
+export default function TopMenuStrip({ onMenuPress, onNotification, notifCount = 0, navigation }) {
   const { sf } = useFontSize();
 
-  // Use cached data immediately if available — no loading flash
-  const [menuItems,   setMenuItems]   = useState(_cachedMenuItems || []);
-  const [loading,     setLoading]     = useState(_cachedMenuItems === null);
-  const [activeMenu,  setActiveMenu]  = useState(null);
+  const [menuItems, setMenuItems] = useState(_cachedMenuItems || []);
+  const [loading, setLoading] = useState(_cachedMenuItems === null);
+  const [activeMenu, setActiveMenu] = useState(null);
 
   useEffect(() => {
-    // If already cached, nothing to do
     if (_cachedMenuItems !== null) {
       setMenuItems(_cachedMenuItems);
       setLoading(false);
       return;
     }
-
-    // Subscribe in case another instance is already fetching
     const unsub = subscribeToCacheUpdate((items) => {
       setMenuItems(items);
       setLoading(false);
     });
-
     fetchMenuOnce().then((items) => {
       setMenuItems(items);
       setLoading(false);
     });
-
     return unsub;
   }, []);
 
   const handlePress = (item) => {
-    setActiveMenu(item.Title || item.title);
-    onMenuPress && onMenuPress(item);
+    const title = item.Title || item.title || '';
+    const link = item.Link || item.link || '';
+    const lower = link.toLowerCase();
+
+    setActiveMenu(title);
+
+    // ── Only dinamalartv / videos navigates in-app ────────────────────────
+    const isDinamalartv =
+      lower.includes('dinamalartv') ||
+      lower.includes('videodata') ||
+      lower.includes('/videos');
+
+    if (isDinamalartv) {
+      if (onMenuPress) {
+        // HomeScreen handles its own navigation via onMenuPress
+        onMenuPress(item);
+      } else if (navigation) {
+        navigation.navigate('VideoScreen', { catName: title });
+      }
+      return;
+    }
+
+    // ── Everything else → open in device browser (Chrome on Android) ──────
+    let url = link;
+
+    // Relative path → prepend base domain
+    if (url && !url.startsWith('http')) {
+      url = `https://www.dinamalar.com${url.startsWith('/') ? '' : '/'}${url}`;
+    }
+
+    if (url) {
+      Linking.openURL(url).catch(err =>
+        console.warn('TopMenuStrip: Could not open URL:', url, err)
+      );
+    }
   };
 
   if (loading) {
@@ -145,25 +164,39 @@ export default function TopMenuStrip({ onMenuPress, onNotification, notifCount =
         style={{ flex: 1 }}
       >
         {menuItems.map((item, index) => {
-          const isActive = activeMenu === (item.Title || item.title);
+          const title = item.Title || item.title || '';
+          const iconUri = item.Icon || item.icon || '';
+          const isActive = activeMenu === title;
+
           return (
-            <TouchableOpacity
-              key={index}
-              style={[styles.menuItem, isActive && styles.menuItemActive]}
-              onPress={() => handlePress(item)}
-              activeOpacity={0.7}
-            >
-              <MenuIcon uri={item.Icon || item.icon} />
-              <Text style={[styles.menuLabel, { fontSize: sf(12) }, isActive && styles.menuLabelActive]}>
-                {item.Title || item.title}
-              </Text>
-            </TouchableOpacity>
+            <React.Fragment key={`menu_${index}`}>
+              <TouchableOpacity
+                style={[styles.menuItem, isActive && styles.menuItemActive]}
+                onPress={() => handlePress(item)}
+                activeOpacity={0.7}
+              >
+                <MenuIcon uri={iconUri} />
+                <Text style={[
+                  styles.menuLabel,
+                  { fontSize: ms(14) },
+                  isActive && styles.menuLabelActive,
+                ]}>
+                  {title}
+                </Text>
+              </TouchableOpacity>
+              {index < menuItems.length - 1 && (
+                <LinearGradient
+                  colors={['transparent', COLORS.primary, 'transparent']}
+                  style={styles.separator}
+                />
+              )}
+            </React.Fragment>
           );
         })}
       </ScrollView>
 
       <TouchableOpacity style={styles.notifButton} onPress={onNotification} activeOpacity={0.7}>
-        <Ionicons name="notifications-outline" size={scaledSizes.icon.lg} color={COLORS.text} />
+        <Ionicons name="notifications" size={s(24)} color={COLORS.primary} />
         {notifCount > 0 && (
           <View style={styles.notifBadge}>
             <Text style={styles.notifBadgeText}>{notifCount > 99 ? '99+' : notifCount}</Text>
@@ -179,10 +212,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#fff',
-    // borderBottomWidth: 1,
-    // borderBottomColor: '#e8e8e8',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingHorizontal: s(0),
+    // paddingVertical: vs(8),
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
@@ -191,66 +222,71 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     alignItems: 'center',
-    paddingRight: 12,
+    paddingRight: s(12),
   },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    marginHorizontal: 4,
-    // backgroundColor: '#f8f8f8',
-    // borderWidth: 1,
+    paddingHorizontal: s(8),
+    // paddingVertical: vs(6),
+    borderRadius: s(20),
+    marginHorizontal: s(5),
     borderColor: 'transparent',
   },
   menuItemActive: {
-    borderColor: COLORS.primary + '40',
-    backgroundColor: COLORS.primary + '10',
+    // borderColor: COLORS.primary + '40',
+    // backgroundColor: COLORS.primary + '10',
   },
   menuLabel: {
     color: COLORS.text,
-    fontWeight: '500',
-    marginLeft: 6,
+    // fontWeight: '500',
+    marginLeft: s(6),
+    fontFamily:FONTS.muktaMalar.regular,
+    fontSize: ms(14),
   },
   menuLabelActive: {
-    color: COLORS.primary,
-    fontWeight: '700',
+    // color: COLORS.primary,
+    // fontWeight: '700',
   },
   notifButton: {
-    padding: 8,
-    borderRadius: 8,
+    padding: ms(5),
+    borderRadius: s(8),
     position: 'relative',
   },
   notifBadge: {
     position: 'absolute',
-    top: 4,
-    right: 4,
+    top: s(4),
+    right: s(4),
     backgroundColor: '#e53935',
-    borderRadius: 10,
-    minWidth: 20,
-    height: 20,
+    borderRadius: s(7.5),
+    minWidth: s(15),
+    height: s(15),
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 4,
+    paddingHorizontal: s(4),
   },
   notifBadgeText: {
     color: '#fff',
-    fontSize: 10,
+    fontSize: ms(12),
     fontWeight: '700',
   },
-
-  // Skeleton while loading first time only
   skeletonRow: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
-    gap: 8,
+    gap: s(8),
   },
   skeletonChip: {
-    width: 80,
-    height: 30,
-    borderRadius: 20,
+    width: s(80),
+    height: s(30),
+    borderRadius: s(20),
     backgroundColor: '#f0f0f0',
   },
+ separator: {
+  width: 1.5,
+  height: vs(15),
+  alignSelf: 'center',
+  borderRadius: 1,
+  opacity: 0.7,
+},
 });

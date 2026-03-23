@@ -14,10 +14,11 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { u38Api } from '../config/api';
+import { CDNApi } from '../config/api';
 import { s, vs, ms, scaledSizes } from '../utils/scaling';
 import { COLORS, FONTS } from '../utils/constants';
 import { TEXT_STYLES } from '../utils/textStyles';
+import { useFontSize } from '../context/FontSizeContext';
 import UniversalHeaderComponent from '../components/UniversalHeaderComponent';
 import AppHeaderComponent from '../components/AppHeaderComponent';
 import { mvs } from 'react-native-size-matters';
@@ -44,20 +45,27 @@ const sk = StyleSheet.create({
 
 // ─── Section Title ────────────────────────────────────────────────────────────
 function SectionTitle({ title }) {
+  const { sf } = useFontSize();
   return (
     <View style={st.wrap}>
-      <Text style={st.text}>{title}</Text>
+      <Text style={[st.text, { fontSize: sf(18) }]}>{title}</Text>
       <View style={st.line} />
     </View>
   );
 }
 const st = StyleSheet.create({
-  wrap: { marginBottom: vs(10), marginTop: vs(4) },
+  wrap: {
+    paddingTop: vs(14),
+    paddingBottom: vs(10),
+  },
 
-  text: TEXT_STYLES.titles.sectionTitles,
+  text: {
+    fontFamily: FONTS.muktaMalar.bold,
+    color: COLORS.text,
+  },
 
   line: {
-    height: vs(2),
+    height: vs(3),
     width: s(60),
     backgroundColor: COLORS.primary,
   },
@@ -65,6 +73,7 @@ const st = StyleSheet.create({
 
 // ─── Gold / Silver Card ───────────────────────────────────────────────────────
 function GoldSilverCard({ commodity }) {
+  const { sf } = useFontSize();
   const meta = commodity?.data?.[0] || {};
   const gold = commodity?.gold || [];
   const silver = commodity?.silver || [];
@@ -76,7 +85,7 @@ function GoldSilverCard({ commodity }) {
     const isUp = change === 'increase';
     return (
       <View style={gc.diffRow}>
-        <Text style={[gc.diffText, { color: isUp ? '#16a34a' : '#dc2626' }]}>
+        <Text style={[gc.diffText, { color: isUp ? '#16a34a' : '#dc2626', fontSize: sf(11) }]}>
           {isUp ? '+' : ''}{diff}
         </Text>
         <Ionicons
@@ -93,8 +102,8 @@ function GoldSilverCard({ commodity }) {
       <View style={gc.header}>
         <Text style={gc.icon}>🪙</Text>
         <View>
-          <Text style={gc.title}>{meta.goldtitle || ''}</Text>
-          <Text style={gc.date}>{meta.golddate || ''}</Text>
+          <Text style={[gc.title, { fontSize: sf(13) }]}>{meta.goldtitle || ''}</Text>
+          <Text style={[gc.date, { fontSize: sf(11) }]}>{meta.golddate || ''}</Text>
         </View>
       </View>
       <View style={gc.row}>
@@ -102,8 +111,8 @@ function GoldSilverCard({ commodity }) {
           <React.Fragment key={i}>
             {i > 0 && <View style={gc.divider} />}
             <View style={gc.col}>
-              <Text style={gc.label}>{labelMap[item.gtype] || item.gtype}</Text>
-              <Text style={gc.value}>{item.rate}</Text>
+              <Text style={[gc.label, { fontSize: sf(11) }]}>{labelMap[item.gtype] || item.gtype}</Text>
+              <Text style={[gc.value, { fontSize: sf(14) }]}>{item.rate}</Text>
               {renderDiff(item.diff, item.change)}
             </View>
           </React.Fragment>
@@ -136,7 +145,7 @@ const gc = StyleSheet.create({
   title: {
     fontSize: ms(13),
     color: COLORS.text,
-    fontFamily: FONTS.muktaMalar.semiBold,
+    fontFamily: FONTS.muktaMalar.semibold,
   },
 
   date: {
@@ -185,6 +194,7 @@ const gc = StyleSheet.create({
 
 // ─── Fuel Card ────────────────────────────────────────────────────────────────
 function FuelCard({ commodity }) {
+  const { sf } = useFontSize();
   const meta = commodity?.data?.[0] || {};
   const fuel = commodity?.fuel?.[0] || {};
   if (!fuel.petrol && !fuel.diesel) return null;
@@ -194,19 +204,19 @@ function FuelCard({ commodity }) {
       <View style={fc.header}>
         <Text style={fc.icon}>⛽</Text>
         <View>
-          <Text style={fc.title}>{meta.fueltitle || 'பெட்ரோல் & டீசல் விலை ( ₹ )'}</Text>
-          <Text style={fc.date}>{fuel.date || meta.fueldate || ''}</Text>
+          <Text style={[fc.title, { fontSize: sf(13) }]}>{meta.fueltitle || 'பெட்ரோல் & டீசல் விலை ( ₹ )'}</Text>
+          <Text style={[fc.date, { fontSize: sf(11) }]}>{fuel.date || meta.fueldate || ''}</Text>
         </View>
       </View>
       <View style={fc.row}>
         <View style={fc.col}>
-          <Text style={fc.label}>பெட்ரோல்</Text>
-          <Text style={fc.value}>{fuel.petrol}</Text>
+          <Text style={[fc.label, { fontSize: sf(11) }]}>பெட்ரோல்</Text>
+          <Text style={[fc.value, { fontSize: sf(20) }]}>{fuel.petrol}</Text>
         </View>
         <View style={fc.divider} />
         <View style={fc.col}>
-          <Text style={fc.label}>டீசல்</Text>
-          <Text style={fc.value}>{fuel.diesel}</Text>
+          <Text style={[fc.label, { fontSize: sf(11) }]}>டீசல்</Text>
+          <Text style={[fc.value, { fontSize: sf(20) }]}>{fuel.diesel}</Text>
         </View>
       </View>
     </View>
@@ -238,6 +248,7 @@ const fc = StyleSheet.create({
 
 // ─── Share Market Card ────────────────────────────────────────────────────────
 function ShareMarketCard({ commodity }) {
+  const { sf } = useFontSize();
   const markets = commodity?.sharemarket || [];
   if (!markets.length) return null;
 
@@ -245,7 +256,7 @@ function ShareMarketCard({ commodity }) {
     <View style={sm.wrap}>
       <View style={sm.header}>
         <Text style={sm.icon}>📈</Text>
-        <Text style={sm.title}>பங்கு சந்தை</Text>
+        <Text style={[sm.title, { fontSize: sf(13) }]}>பங்கு சந்தை</Text>
       </View>
       <View style={sm.row}>
         {markets.map((m, i) => {
@@ -254,10 +265,10 @@ function ShareMarketCard({ commodity }) {
             <React.Fragment key={i}>
               {i > 0 && <View style={sm.divider} />}
               <View style={sm.col}>
-                <Text style={sm.label}>{m.stype?.toUpperCase()}</Text>
-                <Text style={sm.value}>{m.value}</Text>
+                <Text style={[sm.label, { fontSize: sf(12) }]}>{m.stype?.toUpperCase()}</Text>
+                <Text style={[sm.value, { fontSize: sf(15) }]}>{m.value}</Text>
                 <View style={sm.diffRow}>
-                  <Text style={[sm.diffText, { color: isUp ? '#16a34a' : '#dc2626' }]}>
+                  <Text style={[sm.diffText, { color: isUp ? '#16a34a' : '#dc2626', fontSize: sf(11) }]}>
                     {m.diff}
                   </Text>
                   <Ionicons
@@ -266,7 +277,7 @@ function ShareMarketCard({ commodity }) {
                     color={isUp ? '#16a34a' : '#dc2626'}
                   />
                 </View>
-                <Text style={sm.dateText}>{m.date}</Text>
+                <Text style={[sm.dateText, { fontSize: sf(10) }]}>{m.date}</Text>
               </View>
             </React.Fragment>
           );
@@ -309,13 +320,8 @@ function MoreLink({ label, onPress }) {
     </TouchableOpacity>
   );
 }
-const ml = StyleSheet.create({
-  wrap: { alignItems: 'flex-end', paddingVertical: vs(6), paddingHorizontal: s(2) },
-  text: { fontSize: ms(12), color: COLORS.primary, fontWeight: '600' },
-});
-
-// ─── News Card ────────────────────────────────────────────────────────────────
 function NewsCard({ item, onPress }) {
+  const { sf } = useFontSize();
   const imageUri =
     item.images || item.largeimages || item.image || item.thumbnail ||
     'https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_default.jpg?im=Resize,width=400';
@@ -337,10 +343,10 @@ function NewsCard({ item, onPress }) {
         )}
       </View>
       <View style={nc.content}>
-        <Text style={nc.title} numberOfLines={3}>{title}</Text>
+        <Text style={[nc.title, { fontSize: sf(14), lineHeight: sf(22) }]} numberOfLines={3}>{title}</Text>
         {!!category && (
-          <View style={nc.catWrap}>
-            <Text style={nc.catText}>{category}</Text>
+          <View style={nc.catPill}>
+            <Text style={[nc.catText, { fontSize: sf(12) }]}>{category}</Text>
           </View>
         )}
         <View style={nc.meta}>
@@ -350,11 +356,11 @@ function NewsCard({ item, onPress }) {
             color={COLORS.subtext}
             style={{ marginRight: s(3) }}
           /> */}
-          <Text style={nc.metaText}>{ago}</Text>
+          <Text style={[nc.timeText, { fontSize: sf(12) }]}>{ago}</Text>
           {!!item.newscomment && item.newscomment !== '0' && (
             <View style={nc.commentWrap}>
               <Ionicons name="chatbox" size={s(12)} color={COLORS.subtext} />
-              <Text style={nc.metaText}> {item.newscomment}</Text>
+              <Text style={[nc.timeText, { fontSize: sf(12) }]}> {item.newscomment}</Text>
             </View>
           )}
         </View>
@@ -382,23 +388,74 @@ const nc = StyleSheet.create({
     height: '100%',
   },
 
-  content: TEXT_STYLES.newsCard.content,
+  playOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
 
-  title: TEXT_STYLES.newsCard.title,
+  playBtn: {
+    width: s(40),
+    height: s(40),
+    borderRadius: s(20),
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
 
-  catWrap: TEXT_STYLES.newsCard.catWrap,
+  content: {
+    paddingHorizontal: s(10),
+    paddingTop: vs(10),
+    paddingBottom: vs(15),
+  },
 
-  catText: TEXT_STYLES.newsCard.category,
+  title: {
+    fontFamily: FONTS.muktaMalar.bold,
+    color: COLORS.text,
+    lineHeight: ms(23),
+    marginBottom: vs(8),
+  },
 
-  meta: TEXT_STYLES.CommentDateContainer,
+  catPill: {
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderColor: '#DFE3E8',
+    paddingHorizontal: s(10),
+    paddingVertical: s(3),
+    marginBottom: vs(10),
+  },
 
-  metaText: TEXT_STYLES.newsCard.meta,
+  catText: {
+    fontFamily: FONTS.muktaMalar.bold,
+    color: '#454F5B',
+  },
 
-  commentWrap: TEXT_STYLES.newsCard.commentWrap,
+  meta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+
+  timeText: {
+    fontFamily: FONTS.muktaMalar.regular,
+    fontSize: ms(12),
+    color: COLORS.subtext,
+  },
+
+  commentWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
 });
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 export default function VarthagamScreen() {
+  const { sf } = useFontSize();
   const navigation = useNavigation();
 
   const [subTabs, setSubTabs] = useState([]);
@@ -432,7 +489,7 @@ export default function VarthagamScreen() {
   // ── Fetch /varthagam ──────────────────────────────────────────────────────
   const fetchAll = useCallback(async () => {
     try {
-      const res = await u38Api.get('/varthagam');
+      const res = await CDNApi.get('/varthagam');
       const d = res?.data;
       const tabs = (d?.subcatlist || []).filter(t => t.id !== 'commodity');
       setSubTabs(tabs);
@@ -455,7 +512,7 @@ export default function VarthagamScreen() {
     try {
       const sep = tab.link.includes('?') ? '&' : '?';
       const url = `${tab.link}${sep}page=${pg}`;
-      const res = await u38Api.get(url);
+      const res = await CDNApi.get(url);
       const d = res?.data;
       const list = (
         d?.newlist?.data ||
@@ -595,7 +652,9 @@ export default function VarthagamScreen() {
 
       {/* ── Page Title ── */}
       <View style={styles.pageTitleWrap}>
-        <Text style={styles.pageTitle}>வர்த்தகம்</Text>
+        <Text style={[styles.pageTitle, { fontSize: sf(18) }]}>
+          {activeTab && activeTab.title !== 'All' ? activeTab.title : 'வர்த்தகம்'}
+        </Text>
       </View>
 
       {/* ── Sub Tabs ── */}
@@ -614,21 +673,22 @@ export default function VarthagamScreen() {
                 : index === 0;
               return (
                 <TouchableOpacity
-                  key={`tab-${tab.id || index}`}
+                  key={`tab-${tab.id || index}-${index}`}
                   style={styles.tab}
                   onPress={() => handleTabPress(tab)}
                   activeOpacity={0.8}
                 >
-                  <Text style={[styles.tabText, isActive && styles.tabTextActive]}>
+                  <Text style={[styles.tabText, isActive && styles.tabTextActive, { fontSize: sf(13) }]}>
                     {tab.title}
                   </Text>
                   {isActive && <View style={styles.tabUnderline} />}
                 </TouchableOpacity>
+
               );
             })}
           </ScrollView>
           {/* bottom red line same as TharpothaiyaSeithigalScreen */}
-          <View style={styles.tabsRedLine} />
+          {/* <View style={styles.tabsBottomLine} /> */}
         </View>
       )}
 
@@ -670,7 +730,7 @@ export default function VarthagamScreen() {
           ListEmptyComponent={
             <View style={styles.emptyWrap}>
               <Ionicons name="bar-chart-outline" size={s(48)} color={COLORS.subtext} />
-              <Text style={styles.emptyText}>செய்திகள் இல்லை</Text>
+              <Text style={[styles.emptyText, { fontSize: sf(15), color: COLORS.subtext }]}>செய்திகள் இல்லை</Text>
             </View>
           }
           ListFooterComponent={
@@ -710,7 +770,7 @@ const styles = StyleSheet.create({
   pageTitle: {
     fontSize: ms(18),
     color: COLORS.text,
-    fontFamily: FONTS.muktaMalar.bold,
+    fontFamily: FONTS.anek.bold,
   },
   // ── Tabs ──
   tabsWrap: {
@@ -718,26 +778,32 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
   },
-  tabsRedLine: {
-    height: vs(3),
-    // backgroundColor: COLORS.primary,
+  tabsBottomLine: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: COLORS.primary,
   },
   tabsContent: { paddingHorizontal: s(8) },
   tab: {
-    paddingHorizontal: s(14),
+    paddingHorizontal: s(12),
     paddingVertical: vs(12),
     marginHorizontal: s(2),
-    alignItems: 'center',
-    position: 'relative',
+    borderBottomWidth: vs(3),
+    borderBottomColor: 'transparent',
   },
-  tabText: { fontSize: ms(13), color: COLORS.subtext, fontWeight: '600' },
-  tabTextActive: { color: COLORS.text, fontWeight: '700' },
+  tabText: {
+    fontSize: ms(16),
+    color: COLORS.grey700,
+    fontWeight: '500',
+    fontFamily: FONTS.muktaMalar.regular,
+  },
+  // tabTextActive: { color: COLORS.text, fontWeight: '700', fontFamily: FONTS.muktaMalar.regular, },
   tabUnderline: {
     position: 'absolute',
-    bottom: 0, left: s(6), right: s(6),
-    height: vs(3),
+    bottom: 0,
+    left: s(6),
+    right: s(6),
+    height: vs(4),
     backgroundColor: COLORS.primary,
-    borderRadius: s(2),
   },
 
   list: { flex: 1 },

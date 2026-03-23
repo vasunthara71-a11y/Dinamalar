@@ -15,14 +15,14 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { mainApi, u38Api, API_ENDPOINTS } from '../config/api';
+import { mainApi, CDNApi, API_ENDPOINTS } from '../config/api';
 import { COLORS, FONTS } from '../utils/constants';
 import { s, vs, scaledSizes } from '../utils/scaling';
 import { ms } from 'react-native-size-matters';
 import { SvgXml, SvgUri } from 'react-native-svg';
 import DistrictDrawer from './DistrictDrawer';
 import TEXT_STYLES from '../utils/textStyles';
-
+import { SignOut, Home, RightArrow, Calendar, Joshiyam, Aanmigam, Varavaram, Inaippumalar, Photo, UlagaTamilar, Special, Kovil, Cinema, UllurSeithigal, DinamDinam, District, Malargal, Light } from '../assets/svg/Icons';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 const DRAWER_W = SCREEN_W;
@@ -51,8 +51,6 @@ const LINK_ROUTE_MAP = [
   { match: ['subscription'], screen: 'SubscriptionScreen' },
   { match: ['thirukural'], screen: 'ThirukkuralScreen' },
   { match: ['kadal'], screen: 'KadalThamaraiScreen' },
-  { match: ['cinema'], screen: 'CategoryNewsScreen' },
-  { match: ['temple', 'kovilgal'], screen: 'CategoryNewsScreen' },
 ];
 
 const resolveScreenFromLink = (link = '') => {
@@ -139,7 +137,10 @@ const isValidSubItem = (sub) => {
 const isValidMenuItem = (item) => {
   const t = (item?.Title || item?.title || item?.name || '').trim();
   const isMundaiyaPathipugal = t === 'முன்னைய பாதிபுகள்' || t === 'முன்னைய பாடல்கள்' || t.toLowerCase().includes('mundaiya') || t.toLowerCase().includes('pathipugal');
-  return t.length > 0 && !isMundaiyaPathipugal;
+  const isTemple = t === 'கோவில்கள்' || t === 'கோவில்' || t === 'Temple' ||
+    t.toLowerCase().includes('temple') ||
+    t.toLowerCase().includes('kovil') || t.toLowerCase().includes('கோவில்');
+  return t.length > 0 && !isMundaiyaPathipugal && !isTemple;
 };
 
 const isValidMenu2Item = (item) => {
@@ -160,7 +161,6 @@ const THARPOTHAIYA_TAB_MAP = [
   { titles: ['உலகம்'], catIds: ['34'], tabTitle: 'உலகம்' },
   { titles: ['Premium', 'பிரீமியம்', 'ப்ரீமியம்'], catIds: ['651'], tabTitle: 'பிரீமியம்' },
   { titles: ['விளையாட்டு', 'Sports'], catIds: [], tabTitle: '__sports__' },
-  { titles: ['சினிமா', 'Cinema'], catIds: [], tabTitle: '__cinema__' },
   { titles: ['வர்த்தகம்', 'Business'], catIds: [], tabTitle: '__varthagam__' },
   { titles: ['நேரலை', 'Timeline', 'Latest'], catIds: ['latestmain'], tabTitle: '__timeline__' },
 ];
@@ -222,7 +222,7 @@ const DrawerMenu = ({ isVisible, onClose, onMenuPress, navigation }) => {
 
     const fetchDinamDinamSubcats = async () => {
       try {
-        const res = await u38Api.get('/dinamdinam');
+        const res = await CDNApi.get('/dinamdinam');
         setDinamDinamSubcats(res?.data?.subcatlist || []);
       } catch (e) {
         console.error('DinamDinam subcats fetch error:', e?.message);
@@ -259,7 +259,6 @@ const DrawerMenu = ({ isVisible, onClose, onMenuPress, navigation }) => {
       if (titleMatch || catMatch) {
         if (entry.tabTitle === '__timeline__') navigation?.navigate('TimelineScreen');
         else if (entry.tabTitle === '__sports__') navigation?.navigate('SportsScreen');
-        else if (entry.tabTitle === '__cinema__') navigation?.navigate('CategoryNewsScreen', { catName: title });
         else if (entry.tabTitle === '__varthagam__') navigation?.navigate('VarthagamScreen');
         else if (entry.tabTitle === '__tamilnadu__') navigation?.navigate('TamilNaduScreen');
         else if (entry.tabTitle === '__india__') navigation?.navigate('CategoryNewsScreen', { catName: 'இந்தியா', catId: '100' });
@@ -290,9 +289,9 @@ const DrawerMenu = ({ isVisible, onClose, onMenuPress, navigation }) => {
       const matchedSubcat = dinamDinamSubcats.find(sc => sc.link === link || (sc.id && item.id && String(sc.id) === String(item.id)));
       if (matchedSubcat) { navigation?.navigate('CommonSectionScreen', { screenTitle: 'தினம் தினம்', apiEndpoint: '/dinamdinam', allTabLink: '/dinamdinam', initialTabId: matchedSubcat.id || null, initialTabLink: matchedSubcat.link || '', initialTabTitle: matchedSubcat.title || title }); onClose(); return; }
     }
-    if (title === 'வராவாரம்' || id === 'varavaram' || link === '/varavaram' || link.includes('varavaram')) { navigation?.navigate('CommonSectionScreen', { screenTitle: 'வராவாரம்', apiEndpoint: 'https://u38.dinamalar.com/varavaram', allTabLink: 'https://u38.dinamalar.com/varavaram', initialTabId: 'all' }); onClose(); return; }
-    const isVaravaramParent = parentTitle === 'வராவாரம்' || parentId === 'varavaram' || parentLink === '/varavaram';
-    if (isVaravaramParent) { navigation?.navigate('CommonSectionScreen', { screenTitle: 'வராவாரம்', apiEndpoint: 'https://u38.dinamalar.com/varavaram', allTabLink: 'https://u38.dinamalar.com/varavaram', initialTabId: id || 'all', initialTabLink: link || '', initialTabTitle: title || '' }); onClose(); return; }
+    if (title === 'வாராவாரம்' || id === 'varavaram' || link === '/varavaram' || link.includes('varavaram')) { navigation?.navigate('CommonSectionScreen', { screenTitle: 'வாராவாரம்', apiEndpoint: 'https://api-st-cdn.dinamalar.com/varavaram', allTabLink: 'https://api-st-cdn.dinamalar.com/varavaram', initialTabId: 'all' }); onClose(); return; }
+    const isVaravaramParent = parentTitle === 'வாராவாரம்' || parentId === 'varavaram' || parentLink === '/varavaram';
+    if (isVaravaramParent) { navigation?.navigate('CommonSectionScreen', { screenTitle: 'வராவாரம்', apiEndpoint: 'https://api-st-cdn.dinamalar.com/varavaram', allTabLink: 'https://api-st-cdn.dinamalar.com/varavaram', initialTabId: id || 'all', initialTabLink: link || '', initialTabTitle: title || '' }); onClose(); return; }
     if (title === 'ஜோசியம்' || id === 'astrology' || link === '/joshiyam' || link.includes('joshiyam')) { navigation?.navigate('CommonSectionScreen', { screenTitle: 'ஜோசியம்', apiEndpoint: '/joshiyam', allTabLink: '/joshiyam', initialTabId: 'all', initialTabLink: '/joshiyam', initialTabTitle: 'அனைத்தும்' }); onClose(); return; }
     const isJoshiyamParent = isJoshiyamItem(parentTitle, parentLink, parentId);
     if (isJoshiyamParent || isJoshiyamItem('', link, id)) { navigation?.navigate('CommonSectionScreen', { screenTitle: 'ஜோசியம்', apiEndpoint: '/joshiyam', allTabLink: '/joshiyam', initialTabId: id || item.etitle || 'all', initialTabLink: link || '', initialTabTitle: title || '' }); onClose(); return; }
@@ -302,8 +301,10 @@ const DrawerMenu = ({ isVisible, onClose, onMenuPress, navigation }) => {
     if (title === 'ஸ்பெஷல்' || id === 'special' || link === '/specialmain' || link.includes('specialmain')) { navigation?.navigate('CommonSectionScreen', { screenTitle: 'ஸ்பெஷல்', apiEndpoint: '/specialmain', allTabLink: '/specialmain', initialTabId: 'All', initialTabLink: '/specialmain', initialTabTitle: 'அனைத்தும்' }); onClose(); return; }
     const isSpecialParent = parentTitle === 'ஸ்பெஷல்' || parentId === 'special' || parentLink === '/specialmain';
     if (isSpecialParent || link.includes('specialcatlist') || link.includes('speciallist')) { navigation?.navigate('CommonSectionScreen', { screenTitle: 'ஸ்பெஷல்', apiEndpoint: '/specialmain', allTabLink: '/specialmain', initialTabId: id || item.etitle || 'all', initialTabLink: link || '', initialTabTitle: title || '' }); onClose(); return; }
-    if (title === 'ஆன்மீகம்' || id === 'anmegam' || link === '/anmegam' || link.includes('anmegam')) { navigation?.navigate('CommonSectionScreen', { screenTitle: 'ஆன்மீகம்', apiEndpoint: '/anmegam', allTabLink: '/anmegam' }); onClose(); return; }
-    const isAnmegamParent = parentTitle === 'ஆன்மீகம்' || parentId === 'anmegam' || parentLink === '/anmegam';
+if (title === 'ஆன்மீகம்' || id === 'anmegam' || link === '/anmegam') {
+  navigation?.navigate('CommonSectionScreen', { screenTitle: 'ஆன்மீகம்', apiEndpoint: '/anmegam', allTabLink: '/anmegam' });
+  onClose(); return;
+}    const isAnmegamParent = parentTitle === 'ஆன்மீகம்' || parentId === 'anmegam' || parentLink === '/anmegam';
     if (isAnmegamParent) { navigation?.navigate('CommonSectionScreen', { screenTitle: 'ஆன்மீகம்', apiEndpoint: '/anmegam', allTabLink: '/anmegam', initialTabId: id || '', initialTabLink: link || '', initialTabTitle: title || '' }); onClose(); return; }
     if (title === 'காலண்டர்' || id === 'calendar' || link === '/calendar' || link.includes('calendar')) { navigation?.navigate('CommonSectionScreen', { screenTitle: 'காலண்டர்', apiEndpoint: '/calendar', allTabLink: '/calendar' }); onClose(); return; }
     const isCalendarParent = parentTitle === 'காலண்டர்' || parentId === 'calendar' || parentLink === '/calendar';
@@ -311,9 +312,9 @@ const DrawerMenu = ({ isVisible, onClose, onMenuPress, navigation }) => {
     if (title === 'மலர்கள்' || id === 'malargal' || link === '/malargal' || link.includes('malargal')) { navigation?.navigate('CommonSectionScreen', { screenTitle: 'மலர்கள்', apiEndpoint: '/malargal', allTabLink: '/malaragal' }); onClose(); return; }
     const isMalargalParent = parentTitle === 'மலர்கள்' || parentId === 'malargal' || parentLink === '/malargal';
     if (isMalargalParent) { navigation?.navigate('CommonSectionScreen', { screenTitle: 'மலர்கள்', apiEndpoint: '/malargal', allTabLink: '/malaragal', initialTabId: id || '', initialTabLink: link || '', initialTabTitle: title || '' }); onClose(); return; }
-    if (title === 'போட்டோ' || id === 'photo' || link === '/photo' || link.includes('photo')) { navigation?.navigate('CommonSectionScreen', { screenTitle: 'போட்டோ', apiEndpoint: 'https://u38.dinamalar.com/photodata', allTabLink: 'https://u38.dinamalar.com/photodata' }); onClose(); return; }
+    if (title === 'போட்டோ' || id === 'photo' || link === '/photo' || link.includes('photo')) { navigation?.navigate('CommonSectionScreen', { screenTitle: 'போட்டோ', apiEndpoint: 'https://api-st-cdn.dinamalar.com/photodata', allTabLink: 'https://api-st-cdn.dinamalar.com/photodata' }); onClose(); return; }
     const isPhotoParent = parentTitle === 'போட்டோ' || parentId === 'photo' || parentLink === '/photo';
-    if (isPhotoParent) { navigation?.navigate('CommonSectionScreen', { screenTitle: 'போட்டோ', apiEndpoint: 'https://u38.dinamalar.com/photodata', allTabLink: 'https://u38.dinamalar.com/photodata', initialTabId: id || '', initialTabLink: link || '', initialTabTitle: title || '' }); onClose(); return; }
+    if (isPhotoParent) { navigation?.navigate('CommonSectionScreen', { screenTitle: 'போட்டோ', apiEndpoint: 'https://api-st-cdn.dinamalar.com/photodata', allTabLink: 'https://api-st-cdn.dinamalar.com/photodata', initialTabId: id || '', initialTabLink: link || '', initialTabTitle: title || '' }); onClose(); return; }
     if (title === 'மாவட்டங்கள்' || id === 'district' || link === '/district' || link.includes('district')) { navigation?.navigate('CommonSectionScreen', { screenTitle: 'மாவட்டங்கள்', apiEndpoint: '/district', allTabLink: '/district' }); onClose(); return; }
     const isdistrictParent = parentTitle === 'மாவட்டங்கள்' || parentId === 'district' || parentLink === '/district';
     if (isdistrictParent) { navigation?.navigate('CommonSectionScreen', { screenTitle: 'மாவட்டங்கள்', apiEndpoint: '/district', allTabLink: '/district', initialTabId: id || '', initialTabLink: link || '', initialTabTitle: title || '' }); onClose(); return; }
@@ -359,8 +360,8 @@ const DrawerMenu = ({ isVisible, onClose, onMenuPress, navigation }) => {
             />
             {/* ☀ Light pill */}
             <View style={ds.themeToggle}>
-              <Ionicons name="sunny-outline" size={s(12)} color="#f5a623" />
-              <Text style={{ fontFamily: FONTS.muktaMalar.bold, fontSize: 14, color: P.grey700, marginLeft: s(3) }}>
+              <Light color={P.grey700} size={s(22)} />
+              <Text style={{ fontFamily: FONTS.muktaMalar, fontSize: 16, color: P.grey700, marginLeft: s(3) }}>
                 Light
               </Text>
             </View>
@@ -371,22 +372,19 @@ const DrawerMenu = ({ isVisible, onClose, onMenuPress, navigation }) => {
               hitSlop={{ top: 14, bottom: 14, left: 14, right: 14 }}
               activeOpacity={0.7}
             >
-              <Ionicons name="close" size={s(20)} color={P.grey800} />
+              <Ionicons name="close" size={s(30)} color={P.grey700} />
             </TouchableOpacity>
           </View>
 
           {/* ── Sign Up ────────────────────────────────────────────────── */}
           <View style={ds.signUpWrap}>
             <TouchableOpacity style={ds.signUpBtn} activeOpacity={0.8}>
-              <Text style={{ fontFamily: FONTS.muktaMalar.bold, fontSize: 14, color: P.grey800 }}>
+              <Text style={{ fontFamily: FONTS.muktaMalar.semibold, fontSize: ms(16), color: P.grey700 }}>
                 Sign Up
               </Text>
-              <Ionicons name="arrow-forward" size={s(13)} color={P.grey700} />
+              <SignOut color={P.grey700} size={16} />
             </TouchableOpacity>
           </View>
-
-          {/* ── Divider under sign up ──────────────────────────────────── */}
-          <View style={ds.topDivider} />
 
           {loading ? (
             <View style={ds.loaderWrap}>
@@ -403,14 +401,18 @@ const DrawerMenu = ({ isVisible, onClose, onMenuPress, navigation }) => {
                 {/* Home row */}
                 <TouchableOpacity
                   style={ds.homeRow}
-                  onPress={() => { navigation?.navigate('HomeScreen'); onClose(); }}
+                  onPress={() => { navigation?.navigate('MainTabs', { screen: 'Home' }); onClose(); }}
                   activeOpacity={0.7}
                 >
-                  <Ionicons name="home-outline" size={s(20)} color={P.grey800} style={{ marginRight: s(10) }} />
-                  <Text style={{ fontFamily: FONTS.muktaMalar.bold, fontSize: ms(16), color: P.grey800 }}>
+                  <Home color={P.grey800} size={20} style={{ marginRight: s(12) }} />
+                  <Text style={{ fontFamily: FONTS.muktaMalar.semibold, fontSize: ms(17), color: P.grey700 }}>
                     முகப்பு
                   </Text>
                 </TouchableOpacity>
+
+
+                {/* ── Divider under sign up ──────────────────────────────────── */}
+                <View style={ds.topDivider} />
 
                 {/* menu1 rows */}
                 {validMenu1.map((item, index) => (
@@ -420,10 +422,8 @@ const DrawerMenu = ({ isVisible, onClose, onMenuPress, navigation }) => {
                     onPress={() => handleMenuItemPress(item)}
                     activeOpacity={0.7}
                   >
-                    <Text style={{ fontSize: 16, color: P.primary, fontFamily: FONTS.muktaMalar.bold, marginRight: s(8), lineHeight: 22 }}>
-                      »
-                    </Text>
-                    <Text style={{ fontFamily: FONTS.muktaMalar.bold, fontSize: ms(16), color: "#454F5B", flex: 1 }} numberOfLines={1}>
+                    <RightArrow color={P.primary} size={16} style={{ marginRight: s(8) }} />
+                    <Text style={{ fontFamily: FONTS.muktaMalar.semibold, fontSize: ms(17), color: "#454F5B", flex: 1 }} numberOfLines={1}>
                       {item.Title || item.title || item.name || ''}
                     </Text>
                   </TouchableOpacity>
@@ -437,10 +437,8 @@ const DrawerMenu = ({ isVisible, onClose, onMenuPress, navigation }) => {
                     onPress={() => handleMenuItemPress(item)}
                     activeOpacity={0.7}
                   >
-                    <Text style={{ fontSize: 25, color: P.primary, fontFamily: FONTS.muktaMalar.bold, marginRight: s(8), lineHeight: ms(22) }}>
-                      »
-                    </Text>
-                    <Text style={{ fontFamily: FONTS.muktaMalar.bold, fontSize: ms(25), color: P.grey800, flex: 1 }} numberOfLines={1}>
+                    <RightArrow color={P.primary} size={25} style={{ marginRight: s(8) }} />
+                    <Text style={{ fontFamily: FONTS.muktaMalar.semibold, fontSize: ms(25), color: P.grey800, flex: 1 }} numberOfLines={1}>
                       {item.Title || item.title || item.name || ''}
                     </Text>
                   </TouchableOpacity>
@@ -460,17 +458,20 @@ const DrawerMenu = ({ isVisible, onClose, onMenuPress, navigation }) => {
                     const itemId = String(item.id || '');
                     const iconUri = item.Icon || item.icon || '';
 
-                    const isDinamDinam = itemTitle === 'தினம் தினம்';
+                    const isDinamDinam = itemTitle === 'தினம் தினம்'||itemId === 'dinamdinam' || itemLink === '/dinamdinam';
                     const isJoshiyam = itemTitle === 'ஜோசியம்' || itemId === 'astrology' || itemLink === '/joshiyam';
                     const isNri = itemTitle === 'உலக தமிழர்' || itemId === 'nrimain' || itemLink === '/nrimain';
                     const isSpecial = itemTitle === 'ஸ்பெஷல்' || itemId === 'special ' || itemLink === '/specialmain';
-                    const isweekly = itemTitle === 'வாராவாரம்' || itemId === 'weekly' || itemLink === '/weekly';
-                    const isSpritual = itemTitle === 'ஆன்மிகம்' || itemId === 'anmigam' || itemLink === '/anmegam';
+                    const isweekly = itemTitle === 'வாராவாரம்' || itemId === 'varavaram' || itemLink === '/varavaram';
+                    const isSpritual = itemTitle === 'ஆன்மீகம்' || itemId === 'anmigam' || itemLink === '/anmegam';
                     const isCalendar = itemTitle === 'காலண்டர்' || itemId === 'calendar' || itemLink === '/calendar';
                     const isMalargal = itemTitle === 'மலர்கள்' || itemId === 'malargal' || itemLink === '/malargal';
                     const isPhoto = itemTitle === 'போட்டோ' || itemId === 'photo' || itemLink === '/photodata';
                     const isDistrict = itemTitle === 'மாவட்டங்கள்' || itemId === 'district' || itemLink === '/district';
-
+                    const isKovil = itemTitle === 'கோயில்கள்' || itemId === 'temple' || itemLink === '/temple';
+                    const isCinema = itemTitle === 'சினிமா' || itemId === 'cinema' || itemLink === '/cinema';
+                    const isLight = itemTitle === 'ஒளி' || itemId === 'light' || itemLink === '/light';
+ 
                     let subItems = rawSub;
                     if (isDinamDinam && dinamDinamSubcats && dinamDinamSubcats.length > 0) {
                       subItems = dinamDinamSubcats;
@@ -500,8 +501,8 @@ const DrawerMenu = ({ isVisible, onClose, onMenuPress, navigation }) => {
                       subItems = !rawSub.find(s => s.link === '/malargal' || s.title === 'All')
                         ? [{ title: 'All', link: '/malargal', id: 'all', etitle: 'all' }, ...rawSub] : rawSub;
                     } else if (isPhoto && rawSub.length > 0) {
-                      subItems = !rawSub.find(s => s.link === 'https://u38.dinamalar.com/photodata' || s.title === 'All')
-                        ? [{ title: 'All', link: 'https://u38.dinamalar.com/photodata', id: 'all', etitle: 'all' }, ...rawSub] : rawSub;
+                      subItems = !rawSub.find(s => s.link === 'https://api-st-cdn.dinamalar.com/photodata' || s.title === 'All')
+                        ? [{ title: 'All', link: 'https://api-st-cdn.dinamalar.com/photodata', id: 'all', etitle: 'all' }, ...rawSub] : rawSub;
                     } else if (isDistrict && rawSub.length > 0) {
                       subItems = !rawSub.find(s => s.link === '/district' || s.title === 'All')
                         ? [{ title: 'All', link: '/district', id: 'all', etitle: 'all' }, ...rawSub] : rawSub;
@@ -522,17 +523,46 @@ const DrawerMenu = ({ isVisible, onClose, onMenuPress, navigation }) => {
                         >
                           {/* Icon box — fixed 36px width, centered */}
                           <View style={ds.menu2IconBox}>
-                            {iconUri ? (
-                              <MenuIcon uri={iconUri} size={s(18)} />
-                            ) : (
-                              <Ionicons name={getIconName(index)} size={s(20)} color={P.grey800} />
-                            )}
+                            {isDinamDinam ? (
+                              <DinamDinam color={P.grey800} size={s(20)} />
+                            ) : isJoshiyam ? (
+                              <Joshiyam color={P.grey800} size={s(20)} />
+                            ) : isweekly ? (
+                              <Varavaram color={P.grey800} size={s(20)} />
+                            ) : isNri ? (
+                              <UlagaTamilar color={P.grey800} size={s(20)} />
+                            ) : isSpecial ? (
+                              <Special color={P.grey800} size={s(20)} />
+                            ) : isKovil ? (
+                              <Kovil color={P.grey800} size={s(20)} />
+                            ) : isCalendar ? (
+                              <Calendar color={P.grey800} size={s(20)} />
+                            ) : isSpritual ? (
+                              <Aanmigam color={P.grey800} size={s(20)} />
+                            ) : isMalargal ? (
+                              <Malargal color={P.grey800} size={s(20)} />
+                            ) : isPhoto ? (
+                              <Photo color={P.grey800} size={s(20)} />
+                            ) : isDistrict ? (
+                              <District color={P.grey800} size={s(20)} />
+                            ) : isCinema ? (
+                              <Cinema color={P.grey800} size={s(20)} />
+                            ) : isKovil ? (
+                              <Kovil color={P.grey800} size={s(20)} />
+                            ) : isLight ? (
+                              <Light color={P.grey800} size={s(20)} />
+                            ) : null}
                           </View>
 
                           {/* Title — flex:1 pushes chevron to right edge */}
                           <Text
-                            style={{ fontFamily: FONTS.muktaMalar.bold, fontSize: ms(16), color: P.grey800, flex: 1 }}
-                            numberOfLines={1}
+                            style={{
+                              fontFamily: FONTS.muktaMalar.semibold,
+                              fontSize: ms(16),
+                              color: P.grey800,
+                              flex: 1,
+                            }}
+                            numberOfLines={2}
                           >
                             {itemTitle}
                           </Text>
@@ -541,8 +571,8 @@ const DrawerMenu = ({ isVisible, onClose, onMenuPress, navigation }) => {
                           {hasSub && (
                             <Ionicons
                               name={isExpanded ? 'chevron-up' : 'chevron-down'}
-                              size={s(14)}
-                              color={P.grey500}
+                              size={s(11)}
+                              color={P.grey700}
                               style={{ marginLeft: s(6) }}
                             />
                           )}
@@ -564,9 +594,9 @@ const DrawerMenu = ({ isVisible, onClose, onMenuPress, navigation }) => {
                                   <Text
                                     style={{
                                       flex: 1,
-                                      fontFamily: isAllRow ? FONTS.muktaMalar.bold : FONTS.muktaMalar.bold,
-                                      fontSize: ms(14),
-                                      color: isAllRow ? P.primary : P.grey600,
+                                      fontFamily: isAllRow ? FONTS.muktaMalar.semibold : FONTS.muktaMalar.regular,
+                                      fontSize: ms(16),
+                                      color: isAllRow ? P.primary : P.grey800,
                                       marginLeft: ms(10)
 
                                     }}
@@ -574,7 +604,7 @@ const DrawerMenu = ({ isVisible, onClose, onMenuPress, navigation }) => {
                                   >
                                     {subTitle}
                                   </Text>
-                                  <Ionicons name="chevron-forward" size={s(14)} color={isAllRow ? P.primary : P.grey500} />
+                                  <Ionicons name="chevron-forward" size={s(12)} color={isAllRow ? P.primary : P.grey700} />
                                 </TouchableOpacity>
                               );
                             })}
@@ -656,14 +686,14 @@ const ds = StyleSheet.create({
     borderWidth: 1,
     borderColor: P.grey300,
     borderRadius: s(20),
-    paddingHorizontal: s(10),
+    paddingHorizontal: s(12),
     paddingVertical: vs(4),
   },
 
   closeBtn: {
     width: s(30), height: s(30),
     borderRadius: s(15),
-    backgroundColor: P.grey200,
+    // backgroundColor: P.grey200,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -673,13 +703,14 @@ const ds = StyleSheet.create({
   signUpBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: s(6),
+    // gap: s(6),
     alignSelf: 'flex-start',
     borderWidth: 1,
     borderColor: P.grey300,
     borderRadius: s(6),
     paddingHorizontal: s(14),
     paddingVertical: vs(6),
+    justifyContent: "space-around"
   },
 
   topDivider: { height: 1, backgroundColor: P.border },
@@ -698,7 +729,7 @@ const ds = StyleSheet.create({
   menuRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: s(16),
+    paddingHorizontal: s(12),
     paddingVertical: vs(6),
     backgroundColor: P.white,
   },
@@ -716,9 +747,9 @@ const ds = StyleSheet.create({
     backgroundColor: P.white,
   },
   menu2IconBox: {
-    width: s(28),
+    // width: s(28),
     alignItems: 'center',
-    marginRight: s(10),
+    marginRight: s(12),
   },
 
   // ── Sub-items ────────────────────────────────────────────────────────────
@@ -740,7 +771,7 @@ const ds = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: P.border,
     paddingTop: vs(12),
-    paddingHorizontal: s(16),
+    paddingHorizontal: s(12),
     alignItems: 'center',
   },
   followRow: {
