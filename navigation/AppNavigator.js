@@ -28,6 +28,7 @@ import PhotoDetailsScreen from '../screens/PhotoDetailsScreen';
 import ShortNewsSwiperScreen from '../screens/ShortNewsSwiperScreen';
 import VideoDetailScreen from '../screens/VideoDetailScreen';
 import PodcastPlayer from '../screens/PodcastPlayer';
+import CommodityScreen from '../screens/CommodityScreen';
   
 const Stack = createNativeStackNavigator();
 
@@ -78,6 +79,8 @@ const AppNavigator = () => {
         <Stack.Screen name='ShortNewsSwiperScreen' component={ShortNewsSwiperScreen}/>
         <Stack.Screen name='VideoDetailScreen' component={VideoDetailScreen}/>
         <Stack.Screen name='PodcastPlayer' component={PodcastPlayer}/>
+        <Stack.Screen name='CommodityScreen' component={CommodityScreen}/>
+        
       </Stack.Navigator>
     </NavigationContainer>
   );

@@ -68,10 +68,14 @@ const FALLBACK = [
   { title: 'விருதுநகர்',     id: 'virudhunagar' },
 ];
 
-function LocationDrawer({ isVisible, onClose, onSelectDistrict, selectedDistrict }) {
-  const { sf } = useFontSize();
+function LocationDrawer({ isVisible, onClose, onSelectDistrict = () => {}, selectedDistrict }) {  const { sf } = useFontSize();
   const [districts, setDistricts] = useState([]);
   const [loading,   setLoading]   = useState(true);
+
+  // Default function to prevent errors
+  const defaultSelectDistrict = (district) => {
+    console.log('Default selectDistrict called with:', district);
+  };
 
   useEffect(() => {
     if (!isVisible) return;
@@ -123,7 +127,10 @@ function LocationDrawer({ isVisible, onClose, onSelectDistrict, selectedDistrict
                 <TouchableOpacity
                   key={`${district.id || i}-${district.title}`}
                   style={[st.item, isActive && st.itemActive]}
-                  onPress={() => { onSelectDistrict(district.title); onClose(); }}
+                 onPress={() => {
+  onSelectDistrict(district);
+  onClose();
+}}
                   activeOpacity={0.6}
                 >
                   {/* Large filled blue location pin — matches screenshot */}
