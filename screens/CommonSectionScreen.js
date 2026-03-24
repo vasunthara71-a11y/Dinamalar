@@ -1368,67 +1368,67 @@ export default function CommonSectionScreen() {
   );
 
   // ── Tab press ──────────────────────────────────────────────────────────────
- const handleTabPress = (tab) => {
-  setRasiDetailItem(null);
+  const handleTabPress = (tab) => {
+    setRasiDetailItem(null);
 
-  const pressedIsAll = !!tab._isAllTab || tab.link === allTabLink;
+    const pressedIsAll = !!tab._isAllTab || tab.link === allTabLink;
 
-  // ✅ 1. NRI country sub-tab clicked → filter articles for that country
-  if (tab._isNriCountryTab && Array.isArray(tab._countryArticles)) {
-    setAllSections([{
-      title: tab.title,
-      id: tab.title,
-      data: tab._countryArticles,
-      _isNriSection: true,
-    }]);
-    setActiveTab(prev => ({
-      ...prev,
-      _isAllTab: true,
-      _isNriSubTab: true,
-      _nriCountryTab: tab.title,   // ✅ mark which country is active
-    }));
-    return;  // ✅ return early — no fetch needed
-  }
+    // ✅ 1. NRI country sub-tab clicked → filter articles for that country
+    if (tab._isNriCountryTab && Array.isArray(tab._countryArticles)) {
+      setAllSections([{
+        title: tab.title,
+        id: tab.title,
+        data: tab._countryArticles,
+        _isNriSection: true,
+      }]);
+      setActiveTab(prev => ({
+        ...prev,
+        _isAllTab: true,
+        _isNriSubTab: true,
+        _nriCountryTab: tab.title,   // ✅ mark which country is active
+      }));
+      return;  // ✅ return early — no fetch needed
+    }
 
-  // ✅ 2. NRI country All tab → restore original subcatlist + sections
-  if (tab._isAllTab && tab.link === '/nrimain' && activeTab?._isNriSubTab) {
-    setInitLoading(true);
-    setAllSections([]);
-    setTabNews([]);
-    setTabPage(1);
-    setTabLastPage(1);
-    fetchAll();
-    return;
-  }
+    // ✅ 2. NRI country All tab → restore original subcatlist + sections
+    if (tab._isAllTab && tab.link === '/nrimain' && activeTab?._isNriSubTab) {
+      setInitLoading(true);
+      setAllSections([]);
+      setTabNews([]);
+      setTabPage(1);
+      setTabLastPage(1);
+      fetchAll();
+      return;
+    }
 
-  // ✅ 3. NRI main All tab → reload original sections
-  if (apiEndpoint === '/nrimain' && pressedIsAll) {
-    const alreadyActive = tabIsAll(activeTab) && !activeTab._isNriSubTab;
-    if (alreadyActive) return;
-    setInitLoading(true);
-    setAllSections([]);
-    setTabNews([]);
-    setTabPage(1);
-    setTabLastPage(1);
-    fetchAll();
-    return;
-  }
+    // ✅ 3. NRI main All tab → reload original sections
+    if (apiEndpoint === '/nrimain' && pressedIsAll) {
+      const alreadyActive = tabIsAll(activeTab) && !activeTab._isNriSubTab;
+      if (alreadyActive) return;
+      setInitLoading(true);
+      setAllSections([]);
+      setTabNews([]);
+      setTabPage(1);
+      setTabLastPage(1);
+      fetchAll();
+      return;
+    }
 
-  // ✅ 4. NRI sub-tab (உலக தமிழர், Nri news etc) → fetch and group by country
-  if (apiEndpoint === '/nrimain' && !pressedIsAll) {
-    const nextTab = {
-      ...tab,
-      _isAllTab: false,
-      _isNriSubTab: false,
-      _nriTabTitle: tab.title,
-    };
-    setActiveTab(nextTab);
-    flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
-    setTabLoading(true);
-    setTabNews([]); setTabPage(1); setTabLastPage(1);
-    fetchTabNews(nextTab, 1, false);
-    return;
-  }
+    // ✅ 4. NRI sub-tab (உலக தமிழர், Nri news etc) → fetch and group by country
+    if (apiEndpoint === '/nrimain' && !pressedIsAll) {
+      const nextTab = {
+        ...tab,
+        _isAllTab: false,
+        _isNriSubTab: false,
+        _nriTabTitle: tab.title,
+      };
+      setActiveTab(nextTab);
+      flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
+      setTabLoading(true);
+      setTabNews([]); setTabPage(1); setTabLastPage(1);
+      fetchTabNews(nextTab, 1, false);
+      return;
+    }
 
     // ── /anmegam parent → clicking இந்து/இஸ்லாம் etc → push /anmegammain screen
     if (
@@ -1774,35 +1774,35 @@ export default function CommonSectionScreen() {
   const isLoading = initLoading || tabLoading;
   const isRasiTab = !isAllTab && RASI_TAB_IDS.includes(String(activeTab?.id));
 
- const isTabActive = (tab) => {
-  if (!activeTab) return false;
+  const isTabActive = (tab) => {
+    if (!activeTab) return false;
 
-  // ✅ NRI screen
-  if (apiEndpoint === '/nrimain') {
-    if (activeTab._isNriSubTab) {
-      // ✅ Country sub-tabs showing — highlight correct tab
-      if (activeTab._nriCountryTab) {
-        // A specific country tab is selected
-        return tab.title === activeTab._nriCountryTab && tab._isNriCountryTab;
+    // ✅ NRI screen
+    if (apiEndpoint === '/nrimain') {
+      if (activeTab._isNriSubTab) {
+        // ✅ Country sub-tabs showing — highlight correct tab
+        if (activeTab._nriCountryTab) {
+          // A specific country tab is selected
+          return tab.title === activeTab._nriCountryTab && tab._isNriCountryTab;
+        }
+        // ✅ Just entered sub-tab view (no country selected yet) → highlight All
+        if (tab._isAllTab || tab.link === '/nrimain') return true;
+        return false;
       }
-      // ✅ Just entered sub-tab view (no country selected yet) → highlight All
-      if (tab._isAllTab || tab.link === '/nrimain') return true;
-      return false;
+      // All tab active — match by link
+      return tab.link === '/nrimain' || tab.link === allTabLink;
     }
-    // All tab active — match by link
-    return tab.link === '/nrimain' || tab.link === allTabLink;
-  }
 
-  if (apiEndpoint.includes('anmegammainlist')) {
-    if (tab.link === allTabLink || (tab.link?.includes('anmegammain') && !tab.link?.includes('anmegammainlist'))) {
-      return false;
+    if (apiEndpoint.includes('anmegammainlist')) {
+      if (tab.link === allTabLink || (tab.link?.includes('anmegammain') && !tab.link?.includes('anmegammainlist'))) {
+        return false;
+      }
+      return tab.link === apiEndpoint;
     }
-    return tab.link === apiEndpoint;
-  }
 
-  if (tabIsAll(tab) || tab.link === allTabLink) return tabIsAll(activeTab);
-  return String(activeTab.id) === String(tab.id);
-};
+    if (tabIsAll(tab) || tab.link === allTabLink) return tabIsAll(activeTab);
+    return String(activeTab.id) === String(tab.id);
+  };
 
   // ─── Image with Fallback ─────────────────────────────────────────────────────
   function ImageWithFallback({ source, style, resizeMode = 'cover', iconSize = 40 }) {
@@ -2016,8 +2016,7 @@ export default function CommonSectionScreen() {
         setIsDrawerVisible={setIsDrawerVisible}
         isLocationDrawerVisible={isLocationDrawerVisible}
         setIsLocationDrawerVisible={setIsLocationDrawerVisible}
-        handleSelectDistrict={handleSelectDistrict}
-      >
+        onSelectDistrict={handleSelectDistrict}      >
         <AppHeaderComponent
           onSearch={goToSearch}
           onMenu={() => setIsDrawerVisible(true)}
@@ -2031,10 +2030,10 @@ export default function CommonSectionScreen() {
         <Text style={[styles.pageTitle, { fontSize: sf(16), fontFamily: FONTS.anek.bold }]}>
           {console.log('[NRI Page Title] apiEndpoint:', apiEndpoint, 'activeTab:', activeTab, '_nriCountryTab:', activeTab?._nriCountryTab, '_nriTabTitle:', activeTab?._nriTabTitle)}
           {apiEndpoint === '/nrimain'
-            ? (activeTab?._nriCountryTab 
-                ? activeTab.title  // Show country tab title (America, Singapore, etc)
-                : (activeTab?._nriTabTitle || screenTitle)  // _nriTabTitle set immediately on tap, no flash
-              )
+            ? (activeTab?._nriCountryTab
+              ? activeTab.title  // Show country tab title (America, Singapore, etc)
+              : (activeTab?._nriTabTitle || screenTitle)  // _nriTabTitle set immediately on tap, no flash
+            )
             : (screenTitle === 'தினம் தினம்' || screenTitle === 'வாராவாரம்' || screenTitle === 'ஜோசியம்' || screenTitle === 'உலக தமிழர்' || screenTitle === 'ஸ்பெஷல்' || screenTitle === 'ஆன்மீகம்' || screenTitle === 'காலண்டர்' || screenTitle === 'போட்டோ' || screenTitle === 'விளையாட்டு' || screenTitle === 'வர்த்தகம்')
               ? (isAllTab ? screenTitle : (activeTab?.title || screenTitle))
               : screenTitle

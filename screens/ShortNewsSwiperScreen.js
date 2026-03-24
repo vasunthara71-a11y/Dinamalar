@@ -110,66 +110,68 @@ function ShortNewsCard({ item, onFullDetail }) {
                         <Image source={{ uri: insetImage }} style={pageSt.insetImage} resizeMode="cover" />
                     </View> */}
                 </View>
+            </TouchableOpacity>
 
-                {/* White content — matches HomeScreen ShortNewsCard exactly */}
-                <View style={pageSt.contentCard}>
+            {/* White content — matches HomeScreen ShortNewsCard exactly */}
+            <View style={pageSt.contentCard}>
 
-                    {/* Title */}
-                    <Text style={[pageSt.title, { fontSize: sf(16), lineHeight: sf(22) }]} numberOfLines={3}>
-                        {title}
-                    </Text>
+                {/* Title */}
+                <Text style={[pageSt.title, { fontSize: sf(16), lineHeight: sf(22) }]} numberOfLines={3}>
+                    {title}
+                </Text>
 
-                    {/* Category pill + time + audio */}
-                    <View style={pageSt.metaRow}>
-                        {!!category && (
-                            <View style={pageSt.catPill}>
-                                <Text style={[pageSt.catText, { fontSize: sf(11) }]}>{category}</Text>
-                            </View>
-                        )}
-                        <View style={pageSt.metaRight}>
-                            {!!ago && (
-                                <Text style={[pageSt.agoText, { fontSize: sf(11) }]}>{ago}</Text>
-                            )}
-                            {hasAudio && (
-                                <Ionicons name="volume-medium-outline" size={s(15)} color={PALETTE.grey500} />
-                            )}
-                            {hasComments && (
-                                <Ionicons name="chatbox" size={s(15)} color={PALETTE.grey500} />
-                            )}
+                {/* Category pill + time + audio */}
+                <View style={pageSt.metaRow}>
+                    {!!category && (
+                        <View style={pageSt.catPill}>
+                            <Text style={[pageSt.catText, { fontSize: sf(11) }]}>{category}</Text>
                         </View>
-                    </View>
-
-                    {/* Description */}
-                    {!!desc && (
-                        <Text style={[pageSt.desc, { fontSize: sf(13), lineHeight: sf(20) }]} numberOfLines={6}>
-                            {desc.trim()}
-                        </Text>
                     )}
-
-                    {/* ── Bottom bar: share | swipe up | முழு விவரம் ─────────────────── */}
-                    <View style={pageSt.bottomBar}>
-
-                        <TouchableOpacity onPress={handleShare} activeOpacity={0.7} style={pageSt.shareBtn}>
-                            <Ionicons name="share-social-outline" size={s(22)} color={PALETTE.grey600} />
-                        </TouchableOpacity>
-
-                        <View style={pageSt.swipeHint}>
-                            <Ionicons name="chevron-up" size={s(15)} color={PALETTE.grey500} style={{ marginBottom: -vs(6) }} />
-                            <Ionicons name="chevron-up" size={s(15)} color={PALETTE.grey300} />
-                            <Text style={[pageSt.swipeText, { fontSize: sf(10) }]}>Swipe up</Text>
-                        </View>
-
-                        <TouchableOpacity
-                            onPress={() => onFullDetail?.(item)}
-                            activeOpacity={0.8}
-                            style={pageSt.detailBtn}
-                        >
-                            <Text style={[pageSt.detailBtnText, { fontSize: sf(13) }]}>முழு விவரம்</Text>
-                        </TouchableOpacity>
-
+                    <View style={pageSt.metaRight}>
+                        {!!ago && (
+                            <Text style={[pageSt.agoText, { fontSize: sf(11) }]}>{ago}</Text>
+                        )}
+                        {hasAudio && (
+                            <Ionicons name="volume-medium-outline" size={s(15)} color={PALETTE.grey500} />
+                        )}
+                        {hasComments && (
+                            <Ionicons name="chatbox" size={s(15)} color={PALETTE.grey500} />
+                        )}
                     </View>
                 </View>
-            </TouchableOpacity>
+
+                {/* Description */}
+                {!!desc && (
+                    <Text style={[pageSt.desc, { fontSize: sf(13), lineHeight: sf(20) }]} numberOfLines={6}>
+                        {desc.trim()}
+                    </Text>
+                )}
+
+
+
+                {/* ── Bottom bar: share | swipe up | முழு விவரம் ─────────────────── */}
+                <View style={pageSt.bottomBar}>
+
+                    <TouchableOpacity onPress={handleShare} activeOpacity={0.7} style={pageSt.shareBtn}>
+                        <Ionicons name="share-social-outline" size={s(22)} color={PALETTE.grey600} />
+                    </TouchableOpacity>
+
+                    <View style={pageSt.swipeHint}>
+                        <Ionicons name="chevron-up" size={s(15)} color={PALETTE.grey500} style={{ marginBottom: -vs(6) }} />
+                        <Ionicons name="chevron-up" size={s(15)} color={PALETTE.grey300} />
+                        <Text style={[pageSt.swipeText, { fontSize: sf(10) }]}>Swipe up</Text>
+                    </View>
+
+                    <TouchableOpacity
+                        onPress={() => onFullDetail?.(item)}
+                        activeOpacity={0.8}
+                        style={pageSt.detailBtn}
+                    >
+                        <Text style={[pageSt.detailBtnText, { fontSize: sf(13) }]}>முழு விவரம்</Text>
+                    </TouchableOpacity>
+
+                </View>
+            </View>
         </View>
     );
 }
@@ -284,11 +286,13 @@ export default function ShortNewsSwiperScreen() {
         <Ionicons name="arrow-back" size={s(22)} color={PALETTE.grey800} />
       </TouchableOpacity> */}
 
-            <Image
-                source={{ uri: 'https://stat.dinamalar.com/new/2025/images/dinamalar-pavala-vizha-logo-day.png' }}
-                style={screenSt.logo}
-                resizeMode="contain"
-            />
+            <TouchableOpacity onPress={() => navigation.navigate('MainTabs')}>
+                <Image
+                    source={{ uri: 'https://stat.dinamalar.com/new/2025/images/dinamalar-pavala-vizha-logo-day.png' }}
+                    style={screenSt.logo}
+                    resizeMode="contain"
+                />
+            </TouchableOpacity>
 
             <Text style={[screenSt.headerTitle, { fontSize: ms(15) }]}>ஷார்ட் நியூஸ்</Text>
         </View>
@@ -391,13 +395,13 @@ const pageSt = StyleSheet.create({
         // paddingTop:       vs(16),
         // paddingBottom:    vs(16),
         justifyContent: 'center',
-        bottom: ms(50)
+        bottom: ms(100)
     },
 
     // Floating card — not full width, rounded corners
     card: {
         backgroundColor: PALETTE.white,
-        borderRadius: s(16),
+        // borderRadius: s(16),
         overflow: 'hidden',   // clips image corners + inset circle
         elevation: 5,
         shadowColor: '#000',
@@ -436,10 +440,19 @@ const pageSt = StyleSheet.create({
 
     // White content area
     contentCard: {
+
+        marginHorizontal: s(10),         // side margins so it doesn't touch screen edges
+        marginTop: vs(-20),              // negative margin pulls it UP over the image
         backgroundColor: PALETTE.white,
         paddingHorizontal: s(14),
-        paddingTop: vs(14),
-        paddingBottom: vs(12),
+        paddingVertical: vs(12),
+        // Subtle shadow to lift it above the image
+        elevation: 4,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: vs(2) },
+        shadowOpacity: 0.12,
+        shadowRadius: s(4),
+
     },
 
     title: {
@@ -457,8 +470,8 @@ const pageSt = StyleSheet.create({
     metaRight: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap:ms(20)
-     },
+        gap: ms(20)
+    },
     catPill: {
         borderWidth: 1,
         borderColor: PALETTE.grey400,

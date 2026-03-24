@@ -9,6 +9,7 @@ import useAppStyles from '../hooks/useAppStyles';
 
 const NewsCard = ({ item, onPress, isPremium = false, hideCategory = false }) => {
   const { styles: appSt } = useAppStyles(); // ← font styles, always fresh
+  const [imageError, setImageError] = React.useState(false);
 
   // Debug premium detection
   if (isPremium) {
@@ -24,10 +25,22 @@ const NewsCard = ({ item, onPress, isPremium = false, hideCategory = false }) =>
     item.largeimages || item.images || item.image || item.thumbnail || item.thumb ||
     'https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_default.jpg?im=Resize,width=400';
 
+  const handleImageError = () => {
+    setImageError(true);
+  };
+
   const title       = item.newstitle || item.title || item.videotitle || item.name || '';
   const category    = item.maincat || item.categrorytitle || item.ctitle || item.maincategory || '';
   const ago         = item.ago || item.time_ago || '';
   const newscomment = item.newscomment || item.commentcount || item.comments || '';
+  const newsdescription = item.newsdescription || item.description || '';
+  
+  // Debug description data
+  console.log('NEWS CARD - Description for:', title);
+  console.log('- newsdescription:', item.newsdescription);
+  console.log('- description:', item.description);
+  console.log('- final newsdescription:', newsdescription);
+  console.log('- hideCategory:', hideCategory);
 
   // Debug comment data
   console.log('COMMENT DEBUG for:', title);
@@ -44,7 +57,19 @@ const NewsCard = ({ item, onPress, isPremium = false, hideCategory = false }) =>
       <TouchableOpacity onPress={onPress} activeOpacity={0.88}>
 
         <View style={st.imageWrap}>
-          <Image source={{ uri: imageUri }} style={st.image} resizeMode="contain" />
+          {imageError ? (
+            <View style={[st.image, st.imageErrorContainer]}>
+              <Ionicons name="image-outline" size={ms(40)} color="#9CA3AF" />
+              <Text style={[st.imageErrorText, appSt.cardCategory]}>Image Not Available</Text>
+            </View>
+          ) : (
+            <Image 
+              source={{ uri: imageUri }} 
+              style={st.image} 
+              resizeMode="contain" 
+              onError={handleImageError}
+            />
+          )}
         </View>
 
         <View style={st.content}>
@@ -52,6 +77,25 @@ const NewsCard = ({ item, onPress, isPremium = false, hideCategory = false }) =>
             <Text style={[st.titleBase, appSt.cardTitle]} numberOfLines={3}>
               {title}
             </Text>
+          )}
+
+          {/* Description - Show if available */}
+          {!!newsdescription && (
+            <View>
+              <Text style={[st.descriptionText, appSt.cardDescription]} numberOfLines={2}>
+                {newsdescription}
+              </Text>
+              <Text style={{fontSize: 10, color: 'red'}}>DEBUG: Description showing</Text>
+            </View>
+          )}
+          
+          {/* Debug: Always show if description exists */}
+          {!!newsdescription && (
+            <View style={{backgroundColor: '#f0f0f0', padding: 4}}>
+              <Text style={{fontSize: 10, color: 'blue'}}>DEBUG: Description exists but hidden: {hideCategory ? 'YES' : 'NO'}</Text>
+              <Text style={{fontSize: 10, color: 'blue'}}>DEBUG: Description length: {newsdescription.length}</Text>
+              <Text style={{fontSize: 10, color: 'blue'}}>DEBUG: Description: {newsdescription.substring(0, 50)}...</Text>
+            </View>
           )}
 
           {/* Category Row - Only show if hideCategory is false */}
@@ -106,12 +150,34 @@ const st = StyleSheet.create({
     height: vs(200),
     backgroundColor: '#F4F6F8',
   },
+  imageErrorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: ms(4),
+  },
+  imageErrorText: {
+    marginTop: vs(8),
+    fontSize: ms(12),
+    color: '#9CA3AF',
+    textAlign: 'center',
+  },
   content: {
     padding: ms(12),
   },
   titleBase: {
     fontFamily:   FONTS.muktaMalar.bold,
     marginBottom: vs(6),
+  },
+  descriptionText: {
+    fontFamily: FONTS.muktaMalar.regular,
+    fontSize: ms(13),
+    color: '#6B7280',
+    lineHeight: vs(18),
+    marginBottom: vs(8),
   },
   catPill: {
     alignSelf:         'flex-start',

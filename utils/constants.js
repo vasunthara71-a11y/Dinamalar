@@ -148,9 +148,7 @@ export const FONTS = {
         marginHorizontal: s(12),
         marginTop: vs(5),
         overflow: 'hidden',
-        backgroundColor: PALETTE.grey200,
-        
-        
+        // backgroundColor: PALETTE.grey200,     
       },
       image: {
         width: '100%',
@@ -185,6 +183,26 @@ export const FONTS = {
         textTransform: 'uppercase',
         letterSpacing: 0.5,
       },
+      degree360Tag: {
+        position: 'absolute',
+        right: s(0),
+        backgroundColor: PALETTE.primary,
+        paddingHorizontal: s(10),
+        paddingVertical: s(6),
+        zIndex: 10,
+        elevation: 5,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 4,
+      },
+      degree360TagText: {
+        fontFamily: FONTS.muktaMalar.bold,
+        fontSize: ms(12),
+        color: PALETTE.white,
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+      },
       contentContainer: {
         paddingHorizontal: s(12),
         paddingTop: vs(10),
@@ -197,6 +215,13 @@ export const FONTS = {
         lineHeight: ms(23),
         marginBottom: vs(8),
         // fontWeight:"600"
+      },
+      description: {
+        fontFamily: FONTS.muktaMalar.regular,
+        fontSize: ms(12),
+        color: PALETTE.grey600,
+        lineHeight: ms(18),
+        marginBottom: vs(8),
       },
       catPill: {
         alignSelf: 'flex-start',
@@ -245,12 +270,50 @@ export const FONTS = {
         backgroundColor: PALETTE.grey200,
         marginHorizontal: s(12),
       },
-  
-    };
-
-// ─── Font Styles for Tamil Text ───────────────────────────────────────────────────────
-export const FONT_STYLES = {
-  // Tamil API data styles
+      sectionTitleContainer: {
+        backgroundColor: PALETTE.primary,
+        paddingHorizontal: s(8),
+        paddingVertical: s(4),
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+      },
+      sectionTitle: {
+        fontFamily: FONTS.muktaMalar.bold,
+        color: '#FFFFFF',
+        fontSize: ms(12),
+      },
+      bannerOverlay: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.6)',
+        paddingHorizontal: s(12),
+        paddingVertical: vs(8),
+        alignItems: 'center',
+        justifyContent: 'center',
+      },
+      bannerContentContainer: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: vs(12),
+        marginBottom: vs(8),
+      },
+      bannerTitle: {
+        fontFamily: FONTS.muktaMalar.bold,
+        fontSize: ms(16),
+        color: PALETTE.grey800,
+        textAlign: 'center',
+        marginBottom: vs(4),
+      },
+      bannerDate: {
+        fontFamily: FONTS.muktaMalar.regular,
+        fontSize: ms(12),
+        color: PALETTE.grey600,
+        textAlign: 'center',
+      },
   tamil: {
     fontFamily: 'MuktaMalar',
     fontSize: 14,
