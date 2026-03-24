@@ -1831,12 +1831,17 @@ export default function HomeScreen() {
       // Update state for render usage
       if (commodityData) setCommodity(commodityData);
 
+      // Initialize cinema variables
+      let cinemaNews = [];
+      let cinemaVideos = [];
+
       if (homeRes.status === 'fulfilled') {
         const d = homeRes.value?.data;
 
         setBreakingNews(
           d?.breaking_news || d?.breakingnews || d?.ticker_text || d?.ticker || ''
         );
+        // ... (rest of the code remains the same)
         setTaboolaAds(d?.taboola_ads?.mobile || null);
 
         const sections = [];
@@ -2226,10 +2231,10 @@ export default function HomeScreen() {
         console.log('Photos raw data from home API:', d?.photos);
         console.log('Photos response from separate API:', photosRes);
         console.log('All available keys in home data:', Object.keys(d || {}));
-        
+
         // Use photos from home API based on your provided data structure
         let photoItems = [];
-        
+
         if (d?.photos?.data?.length > 0) {
           d.photos.data.forEach(photoSection => {
             if (photoSection?.data?.length > 0) {
@@ -2251,7 +2256,7 @@ export default function HomeScreen() {
             }
           });
         }
-        
+
         // Also try separate API as backup
         if (photosRes?.status === 'fulfilled' && photosRes.value?.data?.length > 0) {
           photosRes.value.data.forEach(item => {
@@ -2270,10 +2275,10 @@ export default function HomeScreen() {
             }
           });
         }
-          
+
         console.log('Total photo items collected:', photoItems.length);
         console.log('Sample photo item:', photoItems[0]);
-        
+
         if (photoItems.length > 0) {
           sections.push({
             title: 'புகைகள்',
@@ -2283,12 +2288,34 @@ export default function HomeScreen() {
           });
         }
 
-        // ── Books ─────────────────────────────────────────────────────────────
+        // ── Books ─────────────────────────────────────────────────────
+        console.log('Books raw data:', d?.books);
         if (d?.books?.data?.length > 0) {
+          console.log('Books data array:', d.books.data);
+          console.log('Sample book item:', d.books.data[0]);
+          // Transform books data to match NewsCard expected format
+
+
+          const booksItems = d.books.data.slice(0, 4).map(item => ({  // ← slice 4 instead of 2
+            newsid: item.bookid || item.id,
+            newstitle: item.bookname || item.title || '',
+            images: item.Timages || item.images || '',  // ← Timages first!
+            largeimages: item.Timages || item.images || '',
+            maincat: 'புத்தகங்கள்',
+            ago: '',
+            slug: item.link || item.oldlink || '',
+            external_link: item.link || item.oldlink || '',
+            price: item.price || '',
+            authorname: item.authorname || '',
+            publish: item.publish || '',
+            bookname: item.bookname || ''
+          }));
+
           sections.push({
             title: d.books.title || 'புத்தகங்கள்',
-            data: d.books.data.slice(0, 2),
-            isBooksSection: true // Flag to identify books section
+            data: booksItems,
+            isBooksSection: true,
+            type: 'books'  // ← add type
           });
         }
 
@@ -2304,11 +2331,27 @@ export default function HomeScreen() {
           if (d?.cinema?.data) cinemaNews = d.cinema.data.slice(0, 2);
           if (d?.cinema?.video) cinemaVideos = d.cinema.video.slice(0, 2);
         }
+
         if (cinemaNews.length > 0 || cinemaVideos.length > 0) {
           sections.push({
             title: 'சினிமா',
             data: [...cinemaNews, ...cinemaVideos],
-            hasVideos: cinemaVideos.length > 0
+            hideDescription: true // Hide descriptions like Aanmegam
+          });
+        }
+
+        if (cinemaNews.length > 0 || cinemaVideos.length > 0) {
+          const cinemaVimarsanam = cinemaRes.status === 'fulfilled'
+            ? (cinemaRes.value?.data?.vimarsanam || [])
+            : (cinemaRes2.status === 'fulfilled'
+              ? (cinemaRes2.value?.data?.vimarsanam || [])
+              : (d?.cinema?.vimarsanam || []));
+
+          sections.push({
+            title: 'சினிமா',
+            data: [...cinemaNews, ...cinemaVideos],
+            vimarsanam: cinemaVimarsanam.slice(0, 5), // ← add this
+            hideDescription: true
           });
         }
 
@@ -2320,7 +2363,11 @@ export default function HomeScreen() {
           d?.weekly_malar?.data ||
           d?.weekmalar?.data || null;
         if (weeklyMalarData?.length > 0) {
-          sections.push({ title: 'வாரமலர்', data: weeklyMalarData.slice(0, 1) });
+          sections.push({
+            title: 'வாரமலர்',
+            data: weeklyMalarData.slice(0, 1),
+            hideDescription: true // Hide descriptions like Aanmegam
+          });
         }
 
 
@@ -2393,7 +2440,7 @@ export default function HomeScreen() {
           console.log('Possible web/story keys:', possibleKeys);
         }
 
-     
+
 
         // ── Aanmigam ───────────────────────────────────────────────────────
         if (d?.anmegasinthanai?.data?.length > 0) {
@@ -2718,260 +2765,327 @@ export default function HomeScreen() {
                     })}
                   </ScrollView>
                 </View>
-              ) : section.type === 'photos' ? (
+              ) : section.type === 'books' ? (
                 <View key={`sec-${si}`}>
                   <SectionHeader title={section.title} />
                   <ScrollView
                     horizontal
                     showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={{ paddingHorizontal: s(12), paddingVertical: vs(8) }}
+                    contentContainerStyle={{ paddingHorizontal: s(12), paddingVertical: vs(8), gap: s(12) }}
                   >
                     {section.data?.map((item, i) => {
-                      const imageUri = item.images || item.largeimages || item.image || item.thumbnail || item.thumb || 'https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_default.jpg?im=Resize,width=400';
-                      const title = item.newstitle || item.title || '';
+                      const imageUri = item.images || item.largeimages ||
+                        'https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_default.jpg?im=Resize,width=300';
+                      const bookTitle = item.bookname || item.newstitle || '';
+                      const price = item.price || '';
 
                       return (
                         <TouchableOpacity
-                          key={`photo-${i}-${item.newsid || item.id || i}`}
+                          key={`book-${i}-${item.newsid || i}`}
                           style={{
-                            width: s(156),
-                            marginRight: s(12),
-                            backgroundColor: PALETTE.white,
-                            borderRadius: s(8),
-                            overflow: 'hidden'
+                            width: s(160),
+                            alignItems: 'center',
+                            // backgroundColor: PALETTE.white,
+                            // borderWidth: 1,
+                            // borderColor: PALETTE.grey200,
+                            // padding: s(8),
+                            borderRadius: s(4),
                           }}
                           onPress={() => {
-                            const link = item.link || item.slug || '';
-                            if (link && (link.startsWith('http://') || link.startsWith('https://'))) {
-                              Linking.openURL(link).catch(() => console.log('Failed to open link'));
+                            const link = item.external_link || item.slug || '';
+                            if (link.startsWith('http')) {
+                              Linking.openURL(link).catch(console.warn);
                             }
                           }}
                           activeOpacity={0.85}
                         >
-                          <View style={{ position: 'relative' }}>
-                            <Image
-                              source={{ uri: imageUri }}
+                          <Image
+                            source={{ uri: imageUri }}
+                            style={{ width: s(180), height: vs(200), borderRadius: s(4) }}
+                            resizeMode="contain"
+                          />
+                          <Text
+                            style={{
+                              fontFamily: FONTS.muktaMalar.semibold,
+                              fontSize: ms(14),
+                              color: PALETTE.grey800,
+                              textAlign: 'center',
+                              marginTop: vs(8),
+                            }}
+                            numberOfLines={2}
+                          >
+                            {bookTitle}
+                          </Text>
+                          {!!price && (
+                            <Text
                               style={{
-                                width: '100%',
-                                height: vs(250),
-                                resizeMode: 'cover',
-                              }}
-                            />
-                            <View
-                              style={{
-                                position: 'absolute',
-                                bottom: 0,
-                                left: 0,
-                                right: 0,
-                                paddingVertical: vs(10),
-                                paddingHorizontal: s(8),
-                                backgroundColor: 'rgba(0,0,0,0.5)',
+                                fontFamily: FONTS.muktaMalar.semibold,
+                                fontSize: ms(15),
+                                color: PALETTE.grey600,
+                                marginTop: vs(4),
                               }}
                             >
-                              <Text
-                                style={{
-                                  fontFamily: FONTS.muktaMalar.semibold,
-                                  fontSize: ms(14),
-                                  color: '#FFFFFF',
-                                  lineHeight: ms(18),
-                                }}
-                              >
-                                {title}
-                              </Text>
-                            </View>
-                          </View>
+                              {price}
+                            </Text>
+                          )}
                         </TouchableOpacity>
                       );
                     })}
                   </ScrollView>
-                </View>
-              ) : section.type === 'video' ? (
-                <DinaMalarTVSection
-                  key={`sec-${si}`}
-                  data={section.data}
-                  onVideoPress={(item) => {
-                    // Check if this is a live item and navigate to VideosScreen with live tab
-                    if (item.maincat === 'live') {
-                      navigation?.navigate('VideosScreen', {
-                        initialTabKey: 'live'
-                      });
-                    } else {
-                      navigation?.navigate('VideoDetailScreen', {
-                        videoId: item.videoid || item.id || item.newsid,
-                        video: item,
-                      });
-                    }
-                  }}
-                />
+                </View>) : section.type === 'photos' ? (
+                  <View key={`sec-${si}`}>
+                    <SectionHeader title={section.title} />
+                    <ScrollView
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      contentContainerStyle={{ paddingHorizontal: s(12), paddingVertical: vs(8) }}
+                    >
+                      {section.data?.map((item, i) => {
+                        const imageUri = item.images || item.largeimages || item.image || item.thumbnail || item.thumb || 'https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_default.jpg?im=Resize,width=400';
+                        const title = item.newstitle || item.title || '';
 
-                // -- Cinema Videos (simple video cards) ---------------------------
-              ) : section.type === 'cinema-video' ? (
-                <View key={`sec-${si}`} style={{ paddingHorizontal: s(12), marginTop: vs(10) }}>
-                  <SectionHeader title={section.title} />
-                  {section.data?.map((item, i) => (
-                    <DinaMalarTVCard
-                      key={`cinema-video-${i}-${item.id || item.videoid || i}`}
-                      item={item}
-                      onVideoPress={() => {
+                        return (
+                          <TouchableOpacity
+                            key={`photo-${i}-${item.newsid || item.id || i}`}
+                            style={{
+                              width: s(156),
+                              marginRight: s(12),
+                              backgroundColor: PALETTE.white,
+                              borderRadius: s(8),
+                              overflow: 'hidden'
+                            }}
+                            onPress={() => {
+                              const link = item.link || item.slug || '';
+                              if (link && (link.startsWith('http://') || link.startsWith('https://'))) {
+                                Linking.openURL(link).catch(() => console.log('Failed to open link'));
+                              }
+                            }}
+                            activeOpacity={0.85}
+                          >
+                            <View style={{ position: 'relative' }}>
+                              <Image
+                                source={{ uri: imageUri }}
+                                style={{
+                                  width: '100%',
+                                  height: vs(250),
+                                  resizeMode: 'cover',
+                                }}
+                              />
+                              <View
+                                style={{
+                                  position: 'absolute',
+                                  bottom: 0,
+                                  left: 0,
+                                  right: 0,
+                                  paddingVertical: vs(10),
+                                  paddingHorizontal: s(8),
+                                  backgroundColor: 'rgba(0,0,0,0.5)',
+                                }}
+                              >
+                                <Text
+                                  style={{
+                                    fontFamily: FONTS.muktaMalar.semibold,
+                                    fontSize: ms(14),
+                                    color: '#FFFFFF',
+                                    lineHeight: ms(18),
+                                  }}
+                                >
+                                  {title}
+                                </Text>
+                              </View>
+                            </View>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </ScrollView>
+                  </View>
+                ) : section.type === 'video' ? (
+                  <DinaMalarTVSection
+                    key={`sec-${si}`}
+                    data={section.data}
+                    onVideoPress={(item) => {
+                      // Check if this is a live item and navigate to VideosScreen with live tab
+                      if (item.maincat === 'live') {
+                        navigation?.navigate('VideosScreen', {
+                          initialTabKey: 'live'
+                        });
+                      } else {
                         navigation?.navigate('VideoDetailScreen', {
                           videoId: item.videoid || item.id || item.newsid,
                           video: item,
                         });
-                      }}
-                    />
-                  ))}
-                </View>
-
-                // -- Commodity (Gold/Silver/Fuel) ------------------------------
-              ) : section.isCommodity ? (
-                <TouchableOpacity key={`sec-${si}`}
-                  onPress={() => navigation?.navigate('CommodityScreen')}
-                  activeOpacity={0.9}
-                >
-                  <View style={{ paddingHorizontal: s(12), marginTop: vs(10) }}>
-                    <GoldSilverCard commodity={commodity} />
-                  </View>
-                </TouchableOpacity>
-
-              ) : section.isFuel ? (
-                <TouchableOpacity key={`sec-${si}`}
-                  onPress={() => navigation?.navigate('CommodityScreen')}
-                  activeOpacity={0.9}
-                >
-                  <View style={{ paddingHorizontal: s(12), marginTop: vs(4) }}>
-                    <FuelCard commodity={commodity} />
-                  </View>
-                </TouchableOpacity>
-
-              ) : section.isShareMarket ? (
-                <TouchableOpacity key={`sec-${si}`}
-                  onPress={() => navigation?.navigate('CommodityScreen')}
-                  activeOpacity={0.9}
-                >
-                  <View style={{ paddingHorizontal: s(12), marginTop: vs(4), marginBottom: vs(10) }}>
-                    <ShareMarketCard commodity={commodity} />
-                  </View>
-                </TouchableOpacity>
-              ) : section.type === 'district' ? (
-                <View key={`sec-${si}`}>
-                  <SectionHeader title={section.title} />
-                  <DistrictNewsSection
-                    districts={section.data}
-                    districtTabData={section.districtTabData}
-                    onPress={(district) => {
-                      navigation?.navigate('DistrictNewsScreen', {
-                        districtId: district.id,
-                        districtName: district.title,
-                        districtData: district
-                      });
+                      }
                     }}
-                    sectionTitle={section.title}
                   />
-                </View>
 
-                // -- Banner News ----------------------------------------------
-              ) : section.isBanner ? (
-                <View key={`sec-${si}`}  >
-                  <SectionHeader title={section.title} />
-                  {section.data?.map((item, i) => {
-                    const isPremiumStory = section.title?.toLowerCase().includes('பிரத்யேகச் செய்திகள்') || section.title?.toLowerCase().includes('premium') || section.title?.toLowerCase().includes('பிரீமியம்');
-
-                    return (
-                      <NewsCard
-                        key={`banner-${si}-${i}-${item.newsid || item.id || i}`}
+                  // -- Cinema Videos (simple video cards) ---------------------------
+                ) : section.type === 'cinema-video' ? (
+                  <View key={`sec-${si}`} style={{ paddingHorizontal: s(12), marginTop: vs(10) }}>
+                    <SectionHeader title={section.title} />
+                    {section.data?.map((item, i) => (
+                      <DinaMalarTVCard
+                        key={`cinema-video-${i}-${item.id || item.videoid || i}`}
                         item={item}
-                        isPremium={isPremiumStory}
-                        hideCategory={true}
-                        hideDescription={true}
-                        onPress={() => {
-                          const link = item.slug || item.link || item.url || item.weburl;
-                          if (link && (link.startsWith('http://') || link.startsWith('https://'))) {
-                            Linking.openURL(link).catch(() => goToArticle(item));
-                          } else if (item.newsid) {
-                            goToArticle(item);
-                          } else {
-                            console.log('No valid navigation target for banner item');
-                          }
+                        onVideoPress={() => {
+                          navigation?.navigate('VideoDetailScreen', {
+                            videoId: item.videoid || item.id || item.newsid,
+                            video: item,
+                          });
                         }}
                       />
-                    );
-                  })}
-                </View>
+                    ))}
+                  </View>
 
-                // -- Cartoons ----------------------------------------------
-              ) : section.isCartoons ? (
-                <View key={`sec-${si}`}>
-                  <SectionHeader title={section.title} />
-                  {section.data?.map((item, i) => {
-                    return (
-                      <NewsCard
-                        key={`cartoon-${si}-${i}-${item.eventid || item.id || i}`}
-                        item={{
-                          ...item,
-                          newscomment: typeof item.comments === 'number' ? item.comments : item.newscomment,
-                        }}
-                        hideCategory={true}
-                        isCartoon={true}
-                        hideDescription={true}
-                        onPress={() => {
-                          const link = item.slug || item.link || item.url || item.weburl;
-                          if (link && (link.startsWith('http://') || link.startsWith('https://'))) {
-                            Linking.openURL(link).catch(() => goToArticle(item));
-                          } else if (item.eventid || item.newsid) {
-                            goToArticle(item);
-                          }
-                        }}
-                      />
-                    );
-                  })}
-                </View>
+                  // -- Commodity (Gold/Silver/Fuel) ------------------------------
+                ) : section.isCommodity ? (
+                  <TouchableOpacity key={`sec-${si}`}
+                    onPress={() => navigation?.navigate('CommodityScreen')}
+                    activeOpacity={0.9}
+                  >
+                    <View style={{ paddingHorizontal: s(12), marginTop: vs(10) }}>
+                      <GoldSilverCard commodity={commodity} />
+                    </View>
+                  </TouchableOpacity>
 
-                // -- Premium Stories ----------------------------------------------
-              ) : section.isPremium ? (
-                <View key={`sec-${si}`}  >
-                  <SectionHeader title={section.title} />
-                  {section.data?.map((item, i) => {
-                    const isPremiumStory = section.title?.toLowerCase().includes('பிரத்யேகச் செய்திகள்') || section.title?.toLowerCase().includes('premium') || section.title?.toLowerCase().includes('பிரீமியம்');
+                ) : section.isFuel ? (
+                  <TouchableOpacity key={`sec-${si}`}
+                    onPress={() => navigation?.navigate('CommodityScreen')}
+                    activeOpacity={0.9}
+                  >
+                    <View style={{ paddingHorizontal: s(12), marginTop: vs(4) }}>
+                      <FuelCard commodity={commodity} />
+                    </View>
+                  </TouchableOpacity>
 
-                    return (
-                      <NewsCard
-                        key={`premium-${si}-${i}-${item.newsid || item.id || i}`}
-                        item={{
-                          ...item,
-                          newscomment: typeof item.newscomments === 'number' ? item.newscomments : item.newscomment,
-                        }}
-                        isPremium={isPremiumStory}
-                        hideCategory={false}
-                        hideDescription={true}
-                        onPress={() => {
-                          const link = item.slug || item.link || item.url || item.weburl;
-                          if (link && (link.startsWith('http://') || link.startsWith('https://'))) {
-                            Linking.openURL(link).catch(() => goToArticle(item));
-                          } else if (item.newsid) {
-                            goToArticle(item);
-                          } else {
-                            console.log('No valid navigation target for premium item');
-                          }
-                        }}
-                      />
-                    );
-                  })}
-                </View>
+                ) : section.isShareMarket ? (
+                  <TouchableOpacity key={`sec-${si}`}
+                    onPress={() => navigation?.navigate('CommodityScreen')}
+                    activeOpacity={0.9}
+                  >
+                    <View style={{ paddingHorizontal: s(12), marginTop: vs(4), marginBottom: vs(10) }}>
+                      <ShareMarketCard commodity={commodity} />
+                    </View>
+                  </TouchableOpacity>
+                ) : section.type === 'district' ? (
+                  <View key={`sec-${si}`}>
+                    <SectionHeader title={section.title} />
+                    <DistrictNewsSection
+                      districts={section.data}
+                      districtTabData={section.districtTabData}
+                      onPress={(district) => {
+                        navigation?.navigate('DistrictNewsScreen', {
+                          districtId: district.id,
+                          districtName: district.title,
+                          districtData: district
+                        });
+                      }}
+                      sectionTitle={section.title}
+                    />
+                  </View>
 
-                // -- Regular news ------------------------------------------------
-              ) : section.type === 'josiyam' ? (
-                <JoshiyamSection
-                  key={`sec-${si}`}
-                  josiyamData={section.josiyamRaw}
-                  onSeeMore={() => navigation?.navigate('JoshiyamScreen')}
-                />
-              ) : section.showDistrictDropdown ? (
-                <TodayEventsCard
-                  key={`sec-${si}`}
-                  section={section}
-                  navigation={navigation}
-                />
-              ) : (
+                  // -- Banner News ----------------------------------------------
+                ) : section.isBanner ? (
+                  <View key={`sec-${si}`}  >
+                    <SectionHeader title={section.title} />
+                    {section.data?.map((item, i) => {
+                      const isPremiumStory = section.title?.toLowerCase().includes('பிரத்யேகச் செய்திகள்') || section.title?.toLowerCase().includes('premium') || section.title?.toLowerCase().includes('பிரீமியம்');
+
+                      return (
+                        <NewsCard
+                          key={`banner-${si}-${i}-${item.newsid || item.id || i}`}
+                          item={item}
+                          isPremium={isPremiumStory}
+                          hideCategory={true}
+                          hideDescription={true}
+                          onPress={() => {
+                            const link = item.slug || item.link || item.url || item.weburl;
+                            if (link && (link.startsWith('http://') || link.startsWith('https://'))) {
+                              Linking.openURL(link).catch(() => goToArticle(item));
+                            } else if (item.newsid) {
+                              goToArticle(item);
+                            } else {
+                              console.log('No valid navigation target for banner item');
+                            }
+                          }}
+                        />
+                      );
+                    })}
+                  </View>
+
+                  // -- Cartoons ----------------------------------------------
+                ) : section.isCartoons ? (
+                  <View key={`sec-${si}`}>
+                    <SectionHeader title={section.title} />
+                    {section.data?.map((item, i) => {
+                      return (
+                        <NewsCard
+                          key={`cartoon-${si}-${i}-${item.eventid || item.id || i}`}
+                          item={{
+                            ...item,
+                            newscomment: typeof item.comments === 'number' ? item.comments : item.newscomment,
+                          }}
+                          hideCategory={true}
+                          isCartoon={true}
+                          hideDescription={true}
+                          onPress={() => {
+                            const link = item.slug || item.link || item.url || item.weburl;
+                            if (link && (link.startsWith('http://') || link.startsWith('https://'))) {
+                              Linking.openURL(link).catch(() => goToArticle(item));
+                            } else if (item.eventid || item.newsid) {
+                              goToArticle(item);
+                            }
+                          }}
+                        />
+                      );
+                    })}
+                  </View>
+
+                  // -- Premium Stories ----------------------------------------------
+                ) : section.isPremium ? (
+                  <View key={`sec-${si}`}  >
+                    <SectionHeader title={section.title} />
+                    {section.data?.map((item, i) => {
+                      const isPremiumStory = section.title?.toLowerCase().includes('பிரத்யேகச் செய்திகள்') || section.title?.toLowerCase().includes('premium') || section.title?.toLowerCase().includes('பிரீமியம்');
+
+                      return (
+                        <NewsCard
+                          key={`premium-${si}-${i}-${item.newsid || item.id || i}`}
+                          item={{
+                            ...item,
+                            newscomment: typeof item.newscomments === 'number' ? item.newscomments : item.newscomment,
+                          }}
+                          isPremium={isPremiumStory}
+                          hideCategory={false}
+                          hideDescription={true}
+                          onPress={() => {
+                            const link = item.slug || item.link || item.url || item.weburl;
+                            if (link && (link.startsWith('http://') || link.startsWith('https://'))) {
+                              Linking.openURL(link).catch(() => goToArticle(item));
+                            } else if (item.newsid) {
+                              goToArticle(item);
+                            } else {
+                              console.log('No valid navigation target for premium item');
+                            }
+                          }}
+                        />
+                      );
+                    })}
+                  </View>
+
+                  // -- Regular news ------------------------------------------------
+                ) : section.type === 'josiyam' ? (
+                  <JoshiyamSection
+                    key={`sec-${si}`}
+                    josiyamData={section.josiyamRaw}
+                    onSeeMore={() => navigation?.navigate('JoshiyamScreen')}
+                  />
+                ) : section.showDistrictDropdown ? (
+                  <TodayEventsCard
+                    key={`sec-${si}`}
+                    section={section}
+                    navigation={navigation}
+                  />
+                ) : (
                 <View key={`sec-${si}`}>
                   <SectionHeader title={section.title} />
                   {section.data?.map((item, i) => {
@@ -2979,8 +3093,7 @@ export default function HomeScreen() {
                     const isVideoItem = item.video || item.videoid || item.videotitle || item.y_path;
                     const isCinemaSection = section.title?.toLowerCase().includes('சினிமா');
                     const isVaramalarSection = section.title?.toLowerCase().includes('வாரமலர்');
-                    const isBooksSection = section.isBooksSection || section.title?.toLowerCase().includes('புத்தகங்கள்');
-                    console.log('Section title:', section.title, 'Is premium:', isPremiumStory, 'Is video:', isVideoItem, 'Is varamalar:', isVaramalarSection, 'Is books:', isBooksSection);
+                    // const isBooksSection = section.isBooksSection || section.title?.toLowerCase().includes('புத்தகங்கள்');
 
                     // Custom varamalar card with title below category
                     if (isVaramalarSection) {
@@ -3024,42 +3137,42 @@ export default function HomeScreen() {
                     }
 
                     // Custom books card with special layout
-                    if (isBooksSection) {
-                      const { sf } = useFontSize();
-                      const imageUri = item.images || item.Timages || item.largeimages || item.image || item.thumbnail || item.thumb || 'https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_default.jpg?im=Resize,width=400';
-                      const bookTitle = item.bookname || item.title || item.newstitle || '';
-                      const author = item.authorname || '';
-                      const publisher = item.publish || '';
-                      const price = item.price || '';
+                    // if (isBooksSection) {
+                    //   const { sf } = useFontSize();
+                    //   const imageUri = item.images || item.Timages || item.largeimages || item.image || item.thumbnail || item.thumb || 'https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_default.jpg?im=Resize,width=400';
+                    //   const bookTitle = item.bookname || item.title || item.newstitle || '';
+                    //   const author = item.authorname || '';
+                    //   const publisher = item.publish || '';
+                    //   const price = item.price || '';
 
-                      return (
-                        <View key={`books-${si}-${i}-${item.bookid || item.id || i}`} style={[NewsCardStyles.wrap,]}>
-                          <TouchableOpacity onPress={() => {
-                            const link = item.link || item.oldlink || '';
-                            if (link && (link.startsWith('http://') || link.startsWith('https://'))) {
-                              Linking.openURL(link).catch(() => console.log('Failed to open link'));
-                            }
-                          }} activeOpacity={0.88}>
-                            <View style={NewsCardStyles.imageWrap}>
-                              <Image
-                                source={{ uri: imageUri }}
-                                style={NewsCardStyles.image}
-                                resizeMode="contain"
-                              />
-                            </View>
-                            <View style={NewsCardStyles.contentContainer}>
-                              {!!bookTitle && (
-                                <Text style={[NewsCardStyles.title, { fontSize: sf(14), lineHeight: sf(22), marginBottom: 5, textAlign: "center" }]} numberOfLines={2}>{bookTitle}</Text>
-                              )}
-                              {!!price && (
-                                <Text style={[NewsCardStyles.title, { fontSize: sf(14), color: PALETTE.grey600, fontFamily: FONTS.muktaMalar.bold, marginBottom: 0, textAlign: "center" }]}>{price}</Text>
-                              )}
-                            </View>
-                          </TouchableOpacity>
-                          <View style={NewsCardStyles.divider} />
-                        </View>
-                      );
-                    }
+                    //   return (
+                    //     <View key={`books-${si}-${i}-${item.bookid || item.id || i}`} style={[NewsCardStyles.wrap,]}>
+                    //       <TouchableOpacity onPress={() => {
+                    //         const link = item.link || item.oldlink || '';
+                    //         if (link && (link.startsWith('http://') || link.startsWith('https://'))) {
+                    //           Linking.openURL(link).catch(() => console.log('Failed to open link'));
+                    //         }
+                    //       }} activeOpacity={0.88}>
+                    //         <View style={NewsCardStyles.imageWrap}>
+                    //           <Image
+                    //             source={{ uri: imageUri }}
+                    //             style={NewsCardStyles.image}
+                    //             resizeMode="contain"
+                    //           />
+                    //         </View>
+                    //         <View style={NewsCardStyles.contentContainer}>
+                    //           {!!bookTitle && (
+                    //             <Text style={[NewsCardStyles.title, { fontSize: sf(14), lineHeight: sf(22), marginBottom: 5, textAlign: "center" }]} numberOfLines={2}>{bookTitle}</Text>
+                    //           )}
+                    //           {!!price && (
+                    //             <Text style={[NewsCardStyles.title, { fontSize: sf(14), color: PALETTE.grey600, fontFamily: FONTS.muktaMalar.bold, marginBottom: 0, textAlign: "center" }]}>{price}</Text>
+                    //           )}
+                    //         </View>
+                    //       </TouchableOpacity>
+                    //       <View style={NewsCardStyles.divider} />
+                    //     </View>
+                    //   );
+                    // }
 
 
                     // Render video card for cinema videos
