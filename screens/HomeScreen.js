@@ -1303,23 +1303,62 @@ function DinaMalarTVSection({ data, onVideoPress }) {
           <Text style={[tvSecSt.sectionTitle, { fontSize: sf(16) }]}>தினமலர் டிவி</Text>
           <View style={tvSecSt.titleUnderline} />
         </View>
+        
+        <View style={tvStyles.container}>
+          {/* YouTube Red Box */}
+          <View style={tvStyles.youtubeBox}>
+
+            {/* Play Icon */}
+            <View style={tvStyles.playBox}>
+              <Ionicons name="play" size={s(16)} color="#FFFFFF" />
+            </View>
+
+            {/* YouTube Text */}
+            <Text style={tvStyles.youtubeText}>YouTube</Text>
+            {/* <View style={tvStyles.subscriberBox}> */}
+              <Text style={tvStyles.subscriberText}>3M</Text>
+            {/* </View> */}
+          </View>
+
+          {/* Subscribers Badge */}
+
+
+        </View>
       </View>
 
       {/* Tabs — UI only, navigate to VideosScreen on press */}
       <View style={tvSecSt.tabBar}>
-        {TV_TABS.map(tab => (
-          <TouchableOpacity
-            key={tab.key}
-            style={tvSecSt.tab}
-            onPress={() => navigation?.navigate('VideosScreen', { initialTabKey: tab.key })}
-            activeOpacity={0.7}
-          >
-            <Text style={[tvSecSt.tabText, { fontSize: sf(13) }]}>
-              {tab.ta}
-            </Text>
-          </TouchableOpacity>
+        {TV_TABS.map((tab, index) => (
+          <React.Fragment key={tab.key}>
+            <TouchableOpacity
+              style={tvSecSt.tab}
+              onPress={() => navigation?.navigate('VideosScreen', { initialTabKey: tab.key })}
+              activeOpacity={0.7}
+            >
+              <Text style={[tvSecSt.tabText, { fontSize: sf(13) }]}>
+                {tab.ta}
+              </Text>
+            </TouchableOpacity>
+            {/* Add vertical separator except for last tab */}
+            {index < TV_TABS.length - 1 && (
+              <View style={{
+                width: 1,
+                height: vs(20),
+                backgroundColor: PALETTE.grey300,
+                marginHorizontal: s(4),
+              }} />
+            )}
+          </React.Fragment>
         ))}
       </View>
+
+      {/* Category separator line below tabs */}
+      <View style={{
+        height: 1,
+        backgroundColor: PALETTE.grey300,
+        marginHorizontal: s(12),
+        marginVertical: vs(2),
+      }} />
 
       {/* Show all videos below tabs */}
       {allItems.length > 0
@@ -1366,7 +1405,8 @@ const tvSecSt = StyleSheet.create({
     paddingBottom: vs(6),
     gap: s(8),
     justifyContent: "center",
-    alignItems: "center"
+    alignItems: "center",
+    paddingTop:ms(8)
   },
   tab: {
     flexDirection: 'row',
@@ -1374,9 +1414,9 @@ const tvSecSt = StyleSheet.create({
     paddingHorizontal: s(12),
     paddingVertical: vs(2),
     borderRadius: s(5),
-    borderWidth: 1,
-    borderColor: PALETTE.grey200 || '#e0e0e0',
-    backgroundColor: '#f5f5f5',
+    // borderWidth: 1,
+    // borderColor: PALETTE.grey200 || '#e0e0e0',
+    // backgroundColor: '#f5f5f5',
     // gap: s(4),
   },
   tabActive: {
@@ -1397,6 +1437,7 @@ const tvSecSt = StyleSheet.create({
     borderRadius: s(4),
     backgroundColor: '#ff3b30',
   },
+
 });
 
 const tvCardSt = StyleSheet.create({
@@ -1607,6 +1648,49 @@ function DistrictNewsSection({ districts, onPress, districtTabData }) {
     </View >
   );
 }
+
+const tvStyles = StyleSheet.create({
+  container: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: s(8),
+  },
+  youtubeBox: {
+    backgroundColor: '#FF0000',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: s(8),
+    paddingVertical: s(4),
+    borderRadius: s(4),
+    justifyContent:"center"
+  },
+  playBox: {
+    marginRight: s(4),
+  },
+  playIcon: {
+    color: '#FFFFFF',
+    fontSize: sf(12),
+  },
+  youtubeText: {
+    color: '#FFFFFF',
+    fontSize: ms(12),
+    fontFamily: FONTS.anek.semiBold,
+    fontWeight:"600"
+  },
+  subscriberBox: {
+    backgroundColor: PALETTE.grey200,
+    paddingHorizontal: s(6),
+    paddingVertical: s(2),
+    borderRadius: s(4),
+  },
+  subscriberText: {
+    color: PALETTE.white,
+    fontSize: ms(15),
+    fontFamily: FONTS.muktaMalar.bold,
+    marginLeft:ms(5)
+  },
+});
+
 const districtSt = StyleSheet.create({
   wrapper: {
     backgroundColor: PALETTE.grey100,
@@ -3201,7 +3285,8 @@ export default function HomeScreen() {
                       section.title?.includes('உலக தமிழர் செய்திகள்') ||
                       section.title?.includes('ஸ்பெஷல்') ||
                       section.title?.includes('வாரமலர்') ||
-                      section.isPremium;
+                      section.title?.includes('எடிட்டர் லைக்ஸ்')
+                    section.isPremium;
 
                     console.log('Section:', section.title, 'shouldHideDescription:', shouldHideDescription);
 

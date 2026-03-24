@@ -182,13 +182,14 @@ const st = StyleSheet.create({
   // White panel — right side, ~75% width matches screenshot
   panel: {
     width:           '75%',
-    height:          '100%',
+    height:          '85%',
     backgroundColor: P.white,
     shadowColor:     '#000',
     shadowOffset:    { width: -4, height: 0 },
     shadowOpacity:   0.18,
     shadowRadius:    12,
     elevation:       20,
+    top: 80
   },
 
   // ── Header ──────────────────────────────────────────────────────────────────
@@ -197,8 +198,8 @@ const st = StyleSheet.create({
     alignItems:       'center',
     justifyContent:   'space-between',
     paddingHorizontal: s(20),
-    paddingTop:       Platform.OS === 'android' ? vs(22) : vs(58),
-    paddingBottom:    vs(20),
+    paddingTop:       Platform.OS === 'android' ? vs(15) : vs(58),
+    paddingBottom:    vs(7),
   },
 
   // Blue bold title — matches screenshot exactly
