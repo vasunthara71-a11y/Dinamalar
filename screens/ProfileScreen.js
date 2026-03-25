@@ -8,6 +8,7 @@ import {
   Switch,
 } from 'react-native';
 import Slider from '@react-native-community/slider';
+import { useNavigation } from '@react-navigation/native';
 import { useFontSize } from '../context/FontSizeContext';
 import { COLORS, FONTS } from '../utils/constants';
 
@@ -349,9 +350,14 @@ const nr = StyleSheet.create({
 
 // ─── Main ProfileScreen ───────────────────────────────────────────────────────
 const ProfileScreen = () => {
+  const navigation = useNavigation();
   const [notifications, setNotifications] = React.useState(true);
   const [darkMode, setDarkMode] = React.useState(false);
   const { sf } = useFontSize();
+
+  const goToBookmarks = () => {
+    navigation.navigate('BookmarkListScreen');
+  };
 
   return (
     <ScrollView style={styles.container}>
@@ -375,7 +381,7 @@ const ProfileScreen = () => {
       {/* ── Saved News ── */}
       <View style={styles.section}>
         <Text style={[styles.sectionTitle, { fontSize: sf(16) }]}>சேமித்த செய்திகள்</Text>
-        <TouchableOpacity style={styles.menuItem}>
+        <TouchableOpacity style={styles.menuItem} onPress={goToBookmarks}>
           <Text style={[styles.menuText, { fontSize: sf(16) }]}>புக்மார்க் செய்தவை</Text>
           <Text style={[styles.arrow, { fontSize: sf(20) }]}>›</Text>
         </TouchableOpacity>

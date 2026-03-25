@@ -20,6 +20,8 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { FONTS } from '../utils/constants';
 import { ms, s, vs } from '../utils/scaling';
 import { useFontSize } from '../context/FontSizeContext';
+import CommentsModal from '../components/CommentsModal';
+import { Comment } from '../assets/svg/Icons';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -42,7 +44,7 @@ const API_URL = 'https://api-st-cdn.dinamalar.com/shortnews';
 // snapToInterval handles the snapping, pagingEnabled removed to avoid conflict
 const PAGE_H = SCREEN_HEIGHT;
 // ─── Single swipe page ────────────────────────────────────────────────────────
-function ShortNewsCard({ item, onFullDetail }) {
+function ShortNewsCard({ item, onFullDetail, onComments }) {
     const { sf } = useFontSize();
 
     const mainImage =
@@ -129,13 +131,15 @@ function ShortNewsCard({ item, onFullDetail }) {
                     )}
                     <View style={pageSt.metaRight}>
                         {!!ago && (
-                            <Text style={[pageSt.agoText, { fontSize: sf(11) }]}>{ago}</Text>
+                            <Text style={[pageSt.agoText, { fontSize: sf(13) }]}>{ago}</Text>
                         )}
                         {hasAudio && (
                             <Ionicons name="volume-medium-outline" size={s(15)} color={PALETTE.grey500} />
                         )}
                         {hasComments && (
-                            <Ionicons name="chatbox" size={s(15)} color={PALETTE.grey500} />
+                            <TouchableOpacity onPress={() => onComments?.(item)} activeOpacity={0.7}>
+                                <Comment size={s(15)} color={PALETTE.grey500} />
+                            </TouchableOpacity>
                         )}
                     </View>
                 </View>
@@ -207,6 +211,8 @@ export default function ShortNewsSwiperScreen() {
     const [loading, setLoading] = useState(true);   // always fetch API
     const [error, setError] = useState(null);
     const [curIndex, setCurIndex] = useState(0);
+    const [isCommentsOpen, setIsCommentsOpen] = useState(false);
+    const [selectedNewsItem, setSelectedNewsItem] = useState(null);
 
     const listRef = useRef(null);
 
@@ -260,9 +266,14 @@ export default function ShortNewsSwiperScreen() {
         });
     }, [navigation]);
 
+    const handleComments = useCallback((item) => {
+        setSelectedNewsItem(item);
+        setIsCommentsOpen(true);
+    }, []);
+
     const renderItem = useCallback(({ item }) => (
-        <ShortNewsCard item={item} onFullDetail={handleFullDetail} />
-    ), [handleFullDetail]);
+        <ShortNewsCard item={item} onFullDetail={handleFullDetail} onComments={handleComments} />
+    ), [handleFullDetail, handleComments]);
 
     const keyExtractor = useCallback((item, i) =>
         `sn-${item.newsid || item.id || i}`, []);
@@ -379,6 +390,14 @@ export default function ShortNewsSwiperScreen() {
           {curIndex + 1} / {data.length}
         </Text>
       </View> */}
+
+            <CommentsModal
+                visible={isCommentsOpen}
+                onClose={() => setIsCommentsOpen(false)}
+                newsId={selectedNewsItem?.newsid || selectedNewsItem?.id}
+                newsTitle={selectedNewsItem?.newstitle || selectedNewsItem?.title}
+                commentCount={selectedNewsItem?.newscomment || selectedNewsItem?.comment_count || 0}
+            />
 
         </View>
     );
