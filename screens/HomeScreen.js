@@ -1898,7 +1898,7 @@ export default function HomeScreen() {
         fetchShortNews(),
         CDNApi.get(API_ENDPOINTS.SHORTS),
         CDNApi.get(API_ENDPOINTS.VARthagam),
-        axios.get('https://u38.dinamalar.com/varavaram'),
+        axios.get('https://api-st-cdn.dinamalar.com/varavaram'),
         CDNApi.get(API_ENDPOINTS.JOSHIYAM),
         CDNApi.get(API_ENDPOINTS.DISTRICT),
         api.getPremium(),
@@ -2092,7 +2092,7 @@ export default function HomeScreen() {
                   newstitle: item.newstitle,
                   images: item.images,
                   largeimages: item.images,
-                  maincat: '', // No category for kovil items
+                  maincat: 'கோயில்கள்', // Set category for proper detection
                   ago: item.standarddate || item.ago || '', // Use actual date
                   slug: item.link || '',
                   external_link: item.link,
@@ -2134,7 +2134,7 @@ export default function HomeScreen() {
                   newstitle: item.tname, // Use tname as title since newstitle is null
                   images: item.images,
                   largeimages: item.images,
-                  maincat: '', // No category for kovil items
+                  maincat: '360° கோயில்கள்', // Set category for proper detection
                   ago: item.standarddate || item.ago || '', // Use actual date
                   slug: item.link || '',
                   external_link: item.link,
@@ -2639,8 +2639,8 @@ export default function HomeScreen() {
       categoryLower.includes('ஆண்மேகம்')) {
       navigation?.navigate('CommonSectionScreen', {
         screenTitle: 'ஆன்மிகம்',
-        apiEndpoint: 'https://u38.dinamalar.com/anmegam',
-        allTabLink: 'https://u38.dinamalar.com/anmegam'
+        apiEndpoint: 'https://api-st-cdn.dinamalar.com/anmegam',
+        allTabLink: 'https://api-st-cdn.dinamalar.com/anmegam'
       });
       return;
     }
@@ -2663,9 +2663,56 @@ export default function HomeScreen() {
       categoryLower.includes('உலகத் தமிழர்')) {
       navigation?.navigate('CommonSectionScreen', {
         screenTitle: 'உலக தமிழர் செய்திகள்',
-        apiEndpoint: 'https://u38.dinamalar.com/ulnga-thamizhar-seidhigal',
-        allTabLink: 'https://u38.dinamalar.com/ulnga-thamizhar-seidhigal'
+        apiEndpoint: 'https://api-st-cdn.dinamalar.com/ulnga-thamizhar-seidhigal',
+        allTabLink: 'https://api-st-cdn.dinamalar.com/ulnga-thamizhar-seidhigal'
       });
+      return;
+    }
+
+    if (categoryLower.includes('கார்டூன்ஸ்') || categoryLower.includes('cartoon') ||
+      categoryLower.includes('கார்டூன்ஸ்') || categoryLower.includes('cartoons')) {
+      navigation?.navigate('CommonSectionScreen', {
+        screenTitle: 'கார்டூன்கள்',
+        apiEndpoint: 'https://api-st-cdn.dinamalar.com/cartoon',
+        allTabLink: 'https://api-st-cdn.dinamalar.com/cartoon'
+      });
+      return;
+    }
+
+    if (categoryLower.includes('கார்டு') || categoryLower.includes('card') ||
+      categoryLower.includes('கார்டுகள்') || categoryLower.includes('cards')) {
+      navigation?.navigate('CommonSectionScreen', {
+        screenTitle: 'கார்டுகள்',
+        apiEndpoint: 'https://api-st-cdn.dinamalar.com/cards',
+        allTabLink: 'https://api-st-cdn.dinamalar.com/cards'
+      });
+      return;
+    }
+
+    // Handle Kovilgal categories - open in browser
+    console.log('goToArticle category check:', { category, categoryLower, item: { newsid: item.newsid, newstitle: item.newstitle, link: item.link } });
+    
+    if (categoryLower.includes('கோயில்') || categoryLower.includes('kovil') ||
+      categoryLower.includes('temple') || categoryLower.includes('கோயில்கள்') ||
+      categoryLower.includes('தினம் ஒரு கோயில்') || categoryLower.includes('dinamorukovil') ||
+      categoryLower.includes('360') || categoryLower.includes('temple360') ||
+      categoryLower.includes('360°') || categoryLower.includes('360 கோயில்') ||
+      // Additional checks for Kovilgal items with empty maincat
+      (item.external_link && (item.external_link.includes('temple.dinamalar.com') || item.external_link.includes('templelisting'))) ||
+      (item.link && (item.link.includes('temple.dinamalar.com') || item.link.includes('templelisting'))) ||
+      (item.slug && item.slug.includes('templelisting')) ||
+      (item.newstitle && item.newstitle.includes('கோயில்')) ||
+      (item.tname && item.tname.includes('கோயில்')) ||
+      (item.is360Degree === true)) {
+      console.log('Kovilgal item detected, opening in browser');
+      const link = item.link || item.slug || item.external_link || '';
+      if (link && (link.startsWith('http://') || link.startsWith('https://'))) {
+        Linking.openURL(link).catch(() => console.log('Failed to open Kovilgal URL'));
+      } else if (link && link.startsWith('/')) {
+        Linking.openURL(`https://www.dinamalar.com${link}`).catch(() => console.log('Failed to open Kovilgal URL'));
+      } else {
+        console.log('No valid URL found for Kovilgal item:', { category: category, link });
+      }
       return;
     }
 
@@ -2756,7 +2803,7 @@ export default function HomeScreen() {
                   <ShortNewsSection
                     title={section.title}
                     data={section.data}
-                    onPress={goToShort}
+                    onPress={() => navigation?.navigate('ShortNewsSwiperScreen')}
                     onSeeMore={() => navigation?.navigate('ShortNewsSwiperScreen')}
                   />
                 </View>
@@ -2783,13 +2830,8 @@ export default function HomeScreen() {
                             borderRadius: s(8),
                             overflow: 'hidden'
                           }}
-                          onPress={() => {
-                            const link = item.link || item.slug || '';
-                            if (link && (link.startsWith('http://') || link.startsWith('https://'))) {
-                              Linking.openURL(link).catch(() => console.log('Failed to open link'));
-                            }
-                          }}
-                          activeOpacity={0.85}
+                          onPress={() => navigation?.navigate('ShortNewsSwiperScreen')}
+                          activeOpacity={0.88}
                         >
                           <View style={{ position: 'relative' }}>
                             <Image
@@ -3112,12 +3154,12 @@ export default function HomeScreen() {
                           isCartoon={true}
                           hideDescription={true}
                           onPress={() => {
-                            const link = item.slug || item.link || item.url || item.weburl;
-                            if (link && (link.startsWith('http://') || link.startsWith('https://'))) {
-                              Linking.openURL(link).catch(() => goToArticle(item));
-                            } else if (item.eventid || item.newsid) {
-                              goToArticle(item);
-                            }
+                            // Navigate to CommonSectionScreen for cartoons
+                            navigation?.navigate('CommonSectionScreen', {
+                              screenTitle: 'கார்டூன்கள்',
+                              apiEndpoint: '/cartoons',
+                              allTabLink: '/cartoons'
+                            });
                           }}
                         />
                       );
@@ -3354,6 +3396,26 @@ export default function HomeScreen() {
                               screenTitle: 'ஜோசியம்',
                               apiEndpoint: '/joshiyam',
                               allTabLink: '/joshiyam'
+                            });
+                            return;
+                          }
+
+                          if (sectionTitle.includes('கார்ட்ஸ்') || sectionTitle.includes('cards') ||
+                            sectionTitle.includes('கார்டு') || sectionTitle.includes('card')) {
+                            navigation?.navigate('CommonSectionScreen', {
+                              screenTitle: 'கார்டுகள்',
+                              apiEndpoint: 'https://api-st-cdn.dinamalar.com/cards',
+                              allTabLink: 'https://api-st-cdn.dinamalar.com/cards'
+                            });
+                            return;
+                          }
+
+                          if (sectionTitle.includes('கார்டூன்ஸ்') || sectionTitle.includes('cartoons') ||
+                            sectionTitle.includes('கார்டூன்') || sectionTitle.includes('cartoon')) {
+                            navigation?.navigate('CommonSectionScreen', {
+                              screenTitle: 'கார்டூன்கள்',
+                              apiEndpoint: '/cartoons',
+                              allTabLink: '/cartoons'
                             });
                             return;
                           }

@@ -353,3 +353,50 @@ export const PhotoGallery = ({ color = 'currentColor', size = 25, style = {} }) 
     <Path d="M19 2H6c-1.206 0-3 .799-3 3v14c0 2.201 1.794 3 3 3h15v-2H6.012C5.55 19.988 5 19.806 5 19s.55-.988 1.012-1H21V4c0-1.103-.897-2-2-2zm0 14H5V5c0-.806.55-.988 1-1h13v12z" />
   </Svg>
 );
+
+export const SpecialCalendar = ({ color = '#096dd2', size = 22, style = {} }) => (
+  <Svg
+    stroke={color}
+    fill={color}
+    strokeWidth="0"
+    viewBox="0 0 512 512"
+    height={size}
+    width={size}
+    xmlns="http://www.w3.org/2000/svg"
+    style={style}
+  >
+    <Path d="M32 456a24 24 0 0024 24h400a24 24 0 0024-24V176H32zm80-238.86a9.14 9.14 0 019.14-9.14h109.72a9.14 9.14 0 019.14 9.14v109.72a9.14 9.14 0 01-9.14 9.14H121.14a9.14 9.14 0 01-9.14-9.14zM456 64h-55.92V32h-48v32H159.92V32h-48v32H56a23.8 23.8 0 00-24 23.77V144h448V87.77A23.8 23.8 0 00456 64z" />
+  </Svg>
+);
+
+export const Bookmark = ({ color = 'currentColor', size = 30, style = {} }) => (
+  <Svg
+    stroke={color}
+    fill={color}
+    strokeWidth="0"
+    viewBox="0 0 24 24"
+    height={size}
+    width={size}
+    xmlns="http://www.w3.org/2000/svg"
+    style={style}
+  >
+    <Path fill="none" d="M0 0h24v24H0z" />
+    <Path d="M17 11v6.97l-5-2.14-5 2.14V5h6V3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V11h-2zm4-4h-2v2h-2V7h-2V5h2V3h2v2h2v2z" />
+  </Svg>
+);
+
+export const BookmarkSaved = ({ color = 'currentColor', size = 30, style = {} }) => (
+  <Svg
+    stroke={color}
+    fill={color}
+    strokeWidth="0"
+    viewBox="0 0 24 24"
+    height={size}
+    width={size}
+    xmlns="http://www.w3.org/2000/svg"
+    style={style}
+  >
+    <Path fill="none" d="M0 0h24v24H0z" />
+    <Path d="M19 21l-7-3-7 3V5c0-1.1.9-2 2-2h7a5.002 5.002 0 005 7.9V21zM17.83 9L15 6.17l1.41-1.41 1.41 1.41 3.54-3.54 1.41 1.41L17.83 9z" />
+  </Svg>
+);

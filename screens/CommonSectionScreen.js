@@ -1110,7 +1110,7 @@ const isPhotoScreen = (endpoint) =>
   endpoint?.includes('photodata') ||
   endpoint?.includes('photoitem') ||
   endpoint?.includes('photodetails') ||   // ✅ ADD
-  endpoint?.includes('getsocialmedia') ;
+  endpoint?.includes('getsocialmedia');
 
 // Add this helper near the top of CommonSectionScreen:
 const normalizePhotoEndpoint = (link = '') => {
@@ -1385,17 +1385,17 @@ export default function CommonSectionScreen() {
       let list = [];
 
       // ── Handle webstorieslisting sub-tab ──────────────────────────────────
-if (tab.link?.includes('webstorieslisting')) {
-  list = Array.isArray(d?.newlist?.data) ? d.newlist.data : extractList(d).filter(Boolean);
-  const lp = d?.newlist?.pagination?.last_page || extractLastPage(d) || 1;
-  setTabLastPage(lp);
-  setTabNews(prev => append ? [...prev, ...list] : list);
-  setTabPage(pg);
-  setTabLoading(false);
-  setTabLoadMore(false);
-  setRefreshing(false);
-  return;
-}
+      if (tab.link?.includes('webstorieslisting')) {
+        list = Array.isArray(d?.newlist?.data) ? d.newlist.data : extractList(d).filter(Boolean);
+        const lp = d?.newlist?.pagination?.last_page || extractLastPage(d) || 1;
+        setTabLastPage(lp);
+        setTabNews(prev => append ? [...prev, ...list] : list);
+        setTabPage(pg);
+        setTabLoading(false);
+        setTabLoadMore(false);
+        setRefreshing(false);
+        return;
+      }
 
       if (isRasiSubTab && d?.newlist?.[0]?.data) {
         list = d.newlist[0].data;
@@ -1475,13 +1475,22 @@ if (tab.link?.includes('webstorieslisting')) {
   }, [apiEndpoint]);
 
 
-  
+
 
   // ── Fetch main endpoint ────────────────────────────────────────────────────
   const fetchAll = useCallback(async () => {
     try {
       const api = mainApi; // Always use mainApi
-      const res = await api.get(apiEndpoint);
+      
+      // Handle special case for cartoons - redirect to photodata API
+      let actualEndpoint = apiEndpoint;
+      if (apiEndpoint === '/cartoons'|| apiEndpoint === 'https://api-st-cdn.dinamalar.com/cartoons') {
+        actualEndpoint = 'https://api-st-cdn.dinamalar.com/photodata';
+      } else if (apiEndpoint === '/cards' || apiEndpoint === 'https://api-st-cdn.dinamalar.com/cards') {
+        actualEndpoint = 'https://api-st-cdn.dinamalar.com/photodata';
+      }
+      
+      const res = await api.get(actualEndpoint);
       const d = res?.data;
 
       if (typeof d === 'string' && d.includes('<html')) {
@@ -1532,22 +1541,22 @@ if (tab.link?.includes('webstorieslisting')) {
       }
 
       // ── Handle /webstoriesupdate ──────────────────────────────────────────────
-if (apiEndpoint.includes('webstoriesupdate') || apiEndpoint.includes('webstorieslisting')) {
-  const rawTabs = d?.subcatlist || [];
+      if (apiEndpoint.includes('webstoriesupdate') || apiEndpoint.includes('webstorieslisting')) {
+        const rawTabs = d?.subcatlist || [];
         setSubTabs(normalizedTabs);
         setActiveTab(normalizedTabs.length > 0
-  ? { ...normalizedTabs[0], _isAllTab: true }
-  : { title: 'All', id: 'webstories', link: '/webstoriesupdate', _isAllTab: true }
-);
+          ? { ...normalizedTabs[0], _isAllTab: true }
+          : { title: 'All', id: 'webstories', link: '/webstoriesupdate', _isAllTab: true }
+        );
         const listData = Array.isArray(d?.newlist?.data) ? d.newlist.data : [];
         const lp = d?.newlist?.pagination?.last_page || 1;
         setAllSections([{ title: '', id: 'webstories', data: listData }]);
         setTabLastPage(lp);
         setTaboolaAds(d?.taboola_ads?.mobile || null);
         setActiveTab(normalizedTabs.length > 0
-  ? { ...normalizedTabs[0], _isAllTab: true }
-  : { title: 'All', id: 'webstories', link: '/webstoriesupdate', _isAllTab: true }
-);
+          ? { ...normalizedTabs[0], _isAllTab: true }
+          : { title: 'All', id: 'webstories', link: '/webstoriesupdate', _isAllTab: true }
+        );
         return;
       }
 
@@ -1577,6 +1586,51 @@ if (apiEndpoint.includes('webstoriesupdate') || apiEndpoint.includes('webstories
         setSubTabs(tabs);
         setAllSections(photoSections);
         setTaboolaAds(d?.taboola_ads?.mobile || null);
+        
+        // Handle initial tab selection for photodata
+        if (initialTabId && initialTabId !== 'all') {
+          const preselected = tabs.find(t => String(t.id) === String(initialTabId));
+          if (preselected) {
+            setActiveTab({ ...preselected, _isAllTab: false });
+            setTabLoading(true);
+            fetchTabNews(preselected, 1, false);
+            return;
+          }
+        }
+        
+        // Special case: if original endpoint was /cartoons, select cartoons tab
+        if (apiEndpoint === '/cartoons' || apiEndpoint === 'https://api-st-cdn.dinamalar.com/cartoons') {
+          const cartoonsTab = tabs.find(t => String(t.id) === '5002');
+          if (cartoonsTab) {
+            setActiveTab({ ...cartoonsTab, _isAllTab: false });
+            setTabLoading(true);
+            fetchTabNews(cartoonsTab, 1, false);
+            return;
+          }
+        }
+        
+        // Special case: if original endpoint was /cards, select cards tab
+        if (apiEndpoint === '/cards' || apiEndpoint === 'https://api-st-cdn.dinamalar.com/cards') {
+          const cardsTab = tabs.find(t => String(t.id) === 'socialcards');
+          if (cardsTab) {
+            setActiveTab({ ...cardsTab, _isAllTab: false });
+            setTabLoading(true);
+            fetchTabNews(cardsTab, 1, false);
+            return;
+          }
+        }
+        
+        // Special case: if original endpoint was /nri, select nri album tab
+        if (apiEndpoint === '/nri' || apiEndpoint.includes('nri') || apiEndpoint.includes('5003')) {
+          const nriTab = tabs.find(t => String(t.id) === '5003');
+          if (nriTab) {
+            setActiveTab({ ...nriTab, _isAllTab: false });
+            setTabLoading(true);
+            fetchTabNews(nriTab, 1, false);
+            return;
+          }
+        }
+        
         setActiveTab({ title: 'Photo', link: apiEndpoint, _isAllTab: true });
         return;
       }
@@ -1597,6 +1651,15 @@ if (apiEndpoint.includes('webstoriesupdate') || apiEndpoint.includes('webstories
         }]);
         setTabLastPage(lp);
         setTaboolaAds(d?.taboola_ads?.mobile || null);
+        if (initialTabId && initialTabId !== 'all') {
+          const preselected = tabs.find(t => String(t.id) === String(initialTabId));
+          if (preselected) {
+            setActiveTab({ ...preselected, _isAllTab: false });
+            setTabLoading(true);
+            fetchTabNews(preselected, 1, false);
+            return;
+          }
+        }
         setActiveTab({ title: 'Photo', link: apiEndpoint, _isAllTab: true });
         return;
       }
@@ -1965,15 +2028,15 @@ if (apiEndpoint.includes('webstoriesupdate') || apiEndpoint.includes('webstories
     }
 
     // ── Webstories sub-tab → pressing All goes back to webstoriesupdate ──
-if (apiEndpoint.includes('webstorieslisting') && pressedIsAll) {
-  navigation.push('CommonSectionScreen', {
-    screenTitle: screenTitle,
-    apiEndpoint: '/webstoriesupdate',
-    allTabLink: '/webstoriesupdate',
-    useFullUrl: false,
-  });
-  return;
-}
+    if (apiEndpoint.includes('webstorieslisting') && pressedIsAll) {
+      navigation.push('CommonSectionScreen', {
+        screenTitle: screenTitle,
+        apiEndpoint: '/webstoriesupdate',
+        allTabLink: '/webstoriesupdate',
+        useFullUrl: false,
+      });
+      return;
+    }
 
     // ── /anmegammainlist → clicking "All" tab → push /anmegammain screen
     // ✅ MUST be before alreadyActive check — otherwise blocked when activeTab._isAllTab=true
@@ -2693,15 +2756,15 @@ if (apiEndpoint.includes('webstorieslisting') && pressedIsAll) {
         </Text>
       </View>
 
-       {/* ── Tabs ── */}
+      {/* ── Tabs ── */}
       {subTabs.length > 0 && (
-(apiEndpoint?.includes('webstoriesupdate') || apiEndpoint?.includes('webstorieslisting')) ? (          <WebstoriesDropdown
-            subTabs={subTabs}
-            activeTab={activeTab}
-            isAllTab={isAllTab}
-            allTabLink={allTabLink}
-            handleTabPress={handleTabPress}
-          />
+        (apiEndpoint?.includes('webstoriesupdate') || apiEndpoint?.includes('webstorieslisting')) ? (<WebstoriesDropdown
+          subTabs={subTabs}
+          activeTab={activeTab}
+          isAllTab={isAllTab}
+          allTabLink={allTabLink}
+          handleTabPress={handleTabPress}
+        />
         ) : (
           <View style={styles.tabsWrap}>
             <ScrollView

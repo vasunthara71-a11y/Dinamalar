@@ -17,7 +17,7 @@ import {
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { Ionicons } from '@expo/vector-icons';
-import { Comment } from '../assets/svg/Icons';
+import { Comment, Bookmark, BookmarkSaved } from '../assets/svg/Icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import RenderHtml from 'react-native-render-html';
 
@@ -28,6 +28,7 @@ import { COLORS, FONTS } from '../utils/constants';
 import { s, vs, scaledSizes } from '../utils/scaling';
 import { ms } from 'react-native-size-matters';
 import UniversalHeaderComponent from '../components/UniversalHeaderComponent';
+import { addBookmark, removeBookmark, isBookmarked } from '../utils/storage';
 import AppHeaderComponent from '../components/AppHeaderComponent';
 import CommentsModal from '../components/CommentsModal';
 import { useFontSize } from '../context/FontSizeContext';
@@ -553,6 +554,36 @@ export default function NewsDetailsScreen() {
     }
   }, [newsId, newsItem]);
 
+  // Check bookmark status when detail changes
+  useEffect(() => {
+    const checkBookmarkStatus = async () => {
+      if (detail) {
+        const isSaved = await isBookmarked(detail);
+        setBookmarked(isSaved);
+      }
+    };
+    checkBookmarkStatus();
+  }, [detail]);
+
+  // Handle bookmark toggle
+  const handleBookmarkToggle = async () => {
+    if (!detail) return;
+    
+    if (bookmarked) {
+      const success = await removeBookmark(detail);
+      if (success) {
+        setBookmarked(false);
+        alert('புக்மார்க் நீக்கப்பட்டது');
+      }
+    } else {
+      const success = await addBookmark(detail);
+      if (success) {
+        setBookmarked(true);
+        alert('புக்மார்க் சேமிக்கப்பட்டது');
+      }
+    }
+  };
+
   useEffect(() => { fetchDetail(); }, [fetchDetail]);
   useEffect(() => { if (detail) triggerPulse(); }, [detail]);
 
@@ -679,18 +710,24 @@ export default function NewsDetailsScreen() {
                 <View style={{ flex: 1 }} />
                 {!disableComments && (
                   <TouchableOpacity style={styles.iconAction} onPress={() => setCommentsVisible(true)}>
-                    <Comment size={s(20)} color={COLORS.subtext} style={{ marginRight: 2 }} />
+                    <Comment size={s(15)} color={COLORS.subtext} style={{ marginRight: 2 }} />
                     {comments > 0 && (
                       <Text style={[styles.iconBadge, { fontSize: sf(10) }]}>{comments}</Text>
                     )}
                   </TouchableOpacity>
                 )}
-                <TouchableOpacity style={styles.iconAction} onPress={() => setBookmarked(p => !p)}>
-                  <Ionicons
-                    name={bookmarked ? 'bookmark' : 'bookmark-outline'}
-                    size={s(20)}
-                    color={bookmarked ? COLORS.primary : COLORS.subtext}
-                  />
+                <TouchableOpacity style={styles.iconAction} onPress={handleBookmarkToggle}>
+                  {bookmarked ? (
+                    <BookmarkSaved
+                      size={s(20)}
+                      color={COLORS.primary}
+                    />
+                  ) : (
+                    <Bookmark
+                      size={s(20)}
+                      color={COLORS.subtext}
+                    />
+                  )}
                 </TouchableOpacity>
               </View>
 
