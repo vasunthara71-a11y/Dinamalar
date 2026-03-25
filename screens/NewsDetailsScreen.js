@@ -635,12 +635,12 @@ export default function NewsDetailsScreen() {
 
           {hasPrev && (
             <TouchableOpacity style={styles.edgeBtnLeft} onPress={() => navigateToNews('prev')} activeOpacity={0.7}>
-              <Ionicons name="chevron-back" size={s(30)} color={COLORS.subtext} />
+              <Ionicons name="chevron-back" size={s(30)} color={COLORS.white} />
             </TouchableOpacity>
           )}
           {hasNext && (
             <TouchableOpacity style={styles.edgeBtnRight} onPress={() => navigateToNews('next')} activeOpacity={0.7}>
-              <Ionicons name="chevron-forward" size={s(30)} color={COLORS.subtext} />
+              <Ionicons name="chevron-forward" size={s(30)} color={COLORS.white} />
             </TouchableOpacity>
           )}
 
@@ -670,7 +670,7 @@ export default function NewsDetailsScreen() {
               onScroll={handleScroll}
             >
               {/* Title */}
-              <Text style={[styles.title, { fontSize: sf(16), lineHeight: sf(22) }]}>
+              <Text style={[styles.title, { fontSize: sf(17), lineHeight: sf(24) }]}>
                 {title}
                 </Text>
 
@@ -937,7 +937,7 @@ const styles = StyleSheet.create({
     borderRadius: ms(10),
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: "#dfdfdf"
+    backgroundColor: 'rgba(0,0,0,0.45)',
   },
   edgeBtnRight: {
     position: 'absolute', right: 0, top: '45%',
@@ -946,7 +946,7 @@ const styles = StyleSheet.create({
     height: ms(60),
     borderRadius: ms(10),
     justifyContent: 'center', alignItems: 'center',
-    backgroundColor: "#dfdfdf"
+    backgroundColor: 'rgba(0,0,0,0.45)',
   },
   scrollContent: {
     paddingBottom: vs(20)
@@ -954,7 +954,7 @@ const styles = StyleSheet.create({
   },
   title: {
     color: COLORS.text, paddingHorizontal: s(12),
-     fontFamily: FONTS.muktaMalar.semibold,
+     fontFamily: FONTS.muktaMalar.bold,
     paddingTop: vs(12)
   },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: s(8), paddingHorizontal: s(12), marginBottom: vs(12) },

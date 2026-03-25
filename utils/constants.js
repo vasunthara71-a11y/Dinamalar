@@ -245,7 +245,7 @@ export const FONTS = {
       timeText: {
         fontFamily: FONTS.muktaMalar.regular,
         fontSize: ms(14),
-        color: PALETTE.black,
+        color: PALETTE.grey600,
       },
       metaRight: {
         flexDirection: 'row',
