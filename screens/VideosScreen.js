@@ -792,8 +792,10 @@ const VideosScreen = ({ navigation, route }) => {
 
   // ── Comment press handler ─────────────────────────────────────────────────────
   const handleCommentsPress = (video) => {
-    setSelectedVideo(video);
-    setCommentsVisible(true);
+    navigation?.navigate('VideoDetailScreen', { 
+      video: video,
+      fromScreen: 'VideosScreen'
+    });
   };
 
   const hasActiveFilter = !!selectedFilter || !!selectedDistrict;

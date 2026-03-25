@@ -637,12 +637,12 @@ const VideoDetailScreen = ({ navigation, route }) => {
               {!!video?.ctitle && <View style={S.catPill}><Text style={[S.catTxt, { fontSize: sf(10) }]}>{video.ctitle}</Text></View>}
             </View>
             <View style={S.metaRight}>
-              {commentCount > 0 && (
+              {/* {commentCount > 0 && ( */}
                 <TouchableOpacity style={S.metaBtn} onPress={() => setIsCommentsOpen(true)} activeOpacity={0.8}>
                   <Ionicons name="chatbox" size={ms(18)} color={PALETTE.grey600} />
-                  <Text style={{ fontSize: sf(11), color: PALETTE.grey600, marginLeft: s(3) }}>{commentCount}</Text>
+                  {/* <Text style={{ fontSize: sf(11), color: PALETTE.grey600, marginLeft: s(3) }}>{commentCount}</Text> */}
                 </TouchableOpacity>
-              )}
+              {/* )} */}
               <TouchableOpacity style={S.metaBtn} onPress={() => setBookmarked(b => !b)} activeOpacity={0.8}>
                 <Ionicons name={bookmarked ? 'bookmark' : 'bookmark-outline'} size={ms(18)} color={bookmarked ? PALETTE.primary : PALETTE.grey600} />
               </TouchableOpacity>

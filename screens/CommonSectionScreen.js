@@ -14,6 +14,8 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Comment } from '../assets/svg/Icons';
+import CommentsModal from '../components/CommentsModal';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import { CDNApi, mainApi } from '../config/api';
 import { ms, s, vs } from '../utils/scaling';
@@ -134,6 +136,7 @@ const PALETTE = {
 
 import UniversalHeaderComponent from '../components/UniversalHeaderComponent';
 import AppHeaderComponent from '../components/AppHeaderComponent';
+import { PhotoGallery } from '../assets/svg/Icons';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Constants
@@ -698,6 +701,314 @@ function InlineVideoPlayer({ url, style }) {
   );
 }
 
+// ─── Photo Card — full-width image + title below (matches dinamalar website) ──
+function PhotoCard({ item, onPress, sf, isAllTab, isSocialCard = false }) {
+  const [imageError, setImageError] = useState(false);
+  const [isCommentsModalVisible, setIsCommentsModalVisible] = useState(false);
+
+  const imageUri =
+    item.largeimages ||
+    item.images ||
+    item.image ||
+    item.thumbnail ||
+    'https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_default.jpg?im=Resize,width=400';
+
+  const title =
+    item.newstitle || item.title || item.footnote || item.name || '';
+  const date =
+    item.date || item.standarddate || item.date || item.time_date || '';
+  const cat =
+    item.maincat || item.categrorytitle || item.ctitle || '';
+  const commentCount =
+    parseInt(item.newscomment || item.nmcomment || item.commentcount || 0);
+
+  return (
+    <>
+      <TouchableOpacity
+        activeOpacity={0.88}
+        onPress={onPress}
+        style={pc.card}
+      >
+        {/* Title above image - only for card data (not Today Photo, NRI Album, etc.) */}
+        {/* {!!title && !isAllTab && (
+          <Text
+            style={[NewsCardStyles.title, { fontSize: sf(13), lineHeight: sf(22), paddingHorizontal: ms(12), paddingBottom: vs(8) }]}
+            numberOfLines={3}
+          >
+            {title}
+          </Text>
+        )} */}
+
+        {/* Full-width image */}
+        <View style={[pc.imageWrap, isSocialCard && pc.imageWrapSocial]}>
+          {imageError || !imageUri ? (
+            <View style={pc.imagePlaceholder}>
+              <Image
+                source={{ uri: 'https://stat.dinamalar.com/new/2025/images/dinamalar-pavala-vizha-logo-day.png' }}
+                style={pc.placeholderLogo}
+                resizeMode="contain"
+              />
+            </View>
+          ) : (
+            <Image
+              source={{ uri: imageUri }}
+              style={pc.image}
+              resizeMode="contain"
+              onError={() => setImageError(true)}
+            />
+          )}
+
+          {(isAllTab || !isSocialCard) && (isAllTab ? (
+            // Gallery icon for All tab
+            <TouchableOpacity
+              style={pc.photoGalleryIcon}
+              onPress={onPress}
+              activeOpacity={0.8}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <PhotoGallery width={s(22)} height={s(22)} />
+            </TouchableOpacity>
+          ) : (
+            // Expand icon for sub tabs
+            <TouchableOpacity
+              style={pc.expandBtn}
+              onPress={onPress}
+              activeOpacity={0.8}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons name="expand-outline" size={s(18)} color="#fff" />
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Content below image */}
+        <View style={pc.content}>
+          {!!title && (
+            <Text
+              style={[NewsCardStyles.title, { fontSize: sf(13), lineHeight: sf(22), paddingHorizontal: ms(12), paddingBottom: vs(8) }]}
+              numberOfLines={3}
+            >
+              {title}
+            </Text>
+          )}
+
+          {/* Meta row: date + comments */}
+          <View style={pc.metaRow}>
+            {!!date && (
+              <View style={pc.dateRow}>
+                <Ionicons name="calendar-outline" size={s(15)} color={PALETTE.grey500} />
+                <Text style={[NewsCardStyles.timeText, { fontSize: sf(13), color: PALETTE.grey600 }]}> {date}</Text>
+              </View>
+            )}
+            {!isAllTab && (
+              <TouchableOpacity
+                style={pc.commentBtn}
+                onPress={() => {
+                  setIsCommentsModalVisible(true);
+                }}
+                activeOpacity={0.8}
+              >
+                <Comment size={s(15)} color={PALETTE.grey500} />
+                {/* <Text style={[pc.commentText, { fontSize: sf(11) }]}> {commentCount}</Text> */}
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {/* Share buttons row - only show for non-photo tabs */}
+          {!isAllTab && (
+            <View style={pc.shareRow}>
+              {[
+                {
+                  icon: 'logo-facebook',
+                  bg: '#1877F2',
+                  onPress: () => Linking.openURL(
+                    `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
+                      item.slug ? `https://www.dinamalar.com${item.slug}` : 'https://www.dinamalar.com'
+                    )}`
+                  ),
+                },
+                {
+                  icon: 'logo-twitter',
+                  bg: '#000000',
+                  onPress: () => Linking.openURL(
+                    `https://twitter.com/intent/tweet?url=${encodeURIComponent(
+                      item.slug ? `https://www.dinamalar.com${item.slug}` : 'https://www.dinamalar.com'
+                    )}`
+                  ),
+                },
+                {
+                  icon: 'logo-whatsapp',
+                  bg: '#25D366',
+                  onPress: () => Linking.openURL(
+                    `whatsapp://send?text=${encodeURIComponent(
+                      `${title} ${item.slug ? `https://www.dinamalar.com${item.slug}` : ''}`
+                    )}`
+                  ),
+                },
+                {
+                  icon: 'paper-plane-outline',
+                  bg: '#2AABEE',
+                  onPress: () => Linking.openURL(
+                    `https://t.me/share/url?url=${encodeURIComponent(
+                      item.slug ? `https://www.dinamalar.com${item.slug}` : 'https://www.dinamalar.com'
+                    )}`
+                  ),
+                },
+                {
+                  icon: 'copy-outline',
+                  bg: PALETTE.grey400,
+                  onPress: async () => {
+                    try {
+                      const url = item.slug
+                        ? `https://www.dinamalar.com${item.slug}`
+                        : 'https://www.dinamalar.com';
+                      await Share.share({ message: `${title}\n${url}` });
+                    } catch (_) { }
+                  },
+                },
+              ].map((btn, i) => (
+                <TouchableOpacity
+                  key={i}
+                  style={[pc.shareCircle, { backgroundColor: btn.bg }]}
+                  onPress={btn.onPress}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name={btn.icon} size={s(15)} color="#fff" />
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+        </View>
+
+        <View style={pc.divider} />
+      </TouchableOpacity>
+      <CommentsModal
+        visible={isCommentsModalVisible}
+        onClose={() => setIsCommentsModalVisible(false)}
+        photoId={item?.eventid || item?.id}
+        photoTitle={title || item?.footnote || ''}
+      />
+    </>
+  )
+}
+
+const pc = StyleSheet.create({
+  imageWrap: {
+    width: '100%',
+    height: vs(220),
+    backgroundColor: PALETTE.grey200,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  imageWrapSocial: {
+    height: vs(300),
+  },
+  card: {
+    paddingHorizontal: ms(12),
+  },
+  image: { width: '100%', height: '100%' },
+  imagePlaceholder: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#f0f0f0',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  placeholderLogo: { width: s(180), height: vs(60), opacity: 0.25 },
+  expandBtn: {
+    position: 'absolute',
+    bottom: vs(15),
+    right: s(10),
+    width: s(32),
+    height: s(32),
+    borderRadius: s(16),
+    backgroundColor: 'rgba(0,0,0,0.70)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  photoGalleryIcon: {
+    position: 'absolute',
+    bottom: vs(10),
+    right: s(10),
+    backgroundColor: '#fff',
+    padding: s(4),
+    borderRadius: s(3),
+    opacity: 0.8,
+    zIndex: 999,
+  },
+  content: {
+    paddingHorizontal: s(6),
+    paddingTop: vs(10),
+    paddingBottom: vs(4),
+    gap: vs(6),
+  },
+  title: {
+    fontFamily: FONTS.muktaMalar.semibold,
+    color: PALETTE.grey800,
+    fontWeight: '700',
+  },
+  catPill: {
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderColor: PALETTE.grey400,
+    paddingHorizontal: s(8),
+    paddingVertical: vs(2),
+  },
+  catText: {
+    color: PALETTE.grey600,
+    fontWeight: '600',
+    fontFamily: FONTS.muktaMalar.regular,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  dateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  date: {
+    color: PALETTE.grey500,
+    fontFamily: FONTS.muktaMalar.medium,
+  },
+  commentRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  commentBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: s(6),
+    paddingVertical: vs(4),
+    // paddingHorizontal: s(10),
+    backgroundColor: 'transparent',
+  },
+  commentText: {
+    color: PALETTE.grey500,
+    fontFamily: FONTS.muktaMalar.regular,
+  },
+  shareRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: s(10),
+    paddingTop: vs(4),
+    paddingBottom: vs(8),
+    borderTopWidth: 1,
+    borderTopColor: PALETTE.grey200,
+    marginTop: vs(4),
+    justifyContent: "center"
+  },
+  shareCircle: {
+    width: s(34),
+    height: s(34),
+    // borderRadius: s(17),
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  divider: { height: vs(8), backgroundColor: PALETTE.grey200 },
+});
+
 // ─────────────────────────────────────────────────────────────────────────────
 // News Card (same as HomeScreen)
 // ─────────────────────────────────────────────────────────────────────────────
@@ -711,7 +1022,7 @@ function NewsCard({ item, onPress, sectionTitle = '' }) {
   const title = item.newstitle || item.title || item.videotitle ||
     item.footnote || item.name || '';
   const category = item.maincat || item.categrorytitle || item.ctitle || item.maincategory || sectionTitle || '';
-  const ago = item.ago || item.time_ago || item.standarddate || item.date || '';
+  const date = item.date || item.time_date || item.standarddate || item.date || '';
   const newscomment = item.newscomment || item.commentcount || item.nmcomment || item.comments?.total || '';
   const hasAudio = item.audio === 1 || item.audio === '1' || item.audio === true ||
     (typeof item.audio === 'string' && item.audio.length > 1 && item.audio !== '0');
@@ -739,7 +1050,7 @@ function NewsCard({ item, onPress, sectionTitle = '' }) {
           )}
 
           <View style={NewsCardStyles.metaRow}>
-            <Text style={[NewsCardStyles.timeText, { fontSize: sf(13) }]}>{ago}</Text>
+            <Text style={[NewsCardStyles.timeText, { fontSize: sf(13) }]}>{date}</Text>
             <View style={NewsCardStyles.metaRight}>
               {hasAudio && (
                 <View style={NewsCardStyles.audioIcon}>
@@ -794,6 +1105,146 @@ function extractLastPage(d) {
 }
 
 const tabIsAll = (tab) => !!tab?._isAllTab;
+
+const isPhotoScreen = (endpoint) =>
+  endpoint?.includes('photodata') ||
+  endpoint?.includes('photoitem') ||
+  endpoint?.includes('photodetails') ||   // ✅ ADD
+  endpoint?.includes('getsocialmedia') ;
+
+// Add this helper near the top of CommonSectionScreen:
+const normalizePhotoEndpoint = (link = '') => {
+  return link
+    .replace('/photoitem?', '/photodetails?')
+    .replace('/photoitem ', '/photodetails ');
+};
+
+// ─── Webstories Dropdown ─────────────────
+const WebstoriesDropdown = ({ subTabs, activeTab, isAllTab, allTabLink, handleTabPress }) => {
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const activeTabTitle = (isAllTab || activeTab?.id === 'webstories')
+    ? 'All'
+    : (activeTab?.title || 'All');
+
+  return (
+    <View style={{ backgroundColor: '#fff', zIndex: 999, elevation: 999 }}>
+      <View style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'flex-end',
+        paddingHorizontal: s(12),
+        paddingVertical: vs(6),
+        borderBottomWidth: 1,
+        borderBottomColor: '#eee',
+      }}>
+        <TouchableOpacity
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            borderWidth: 1,
+            borderColor: '#ddd',
+            paddingHorizontal: s(12),
+            paddingVertical: vs(6),
+            gap: s(8),
+            backgroundColor: '#fff',
+            minWidth: s(130),
+          }}
+          onPress={() => setDropdownOpen(prev => !prev)}
+          activeOpacity={0.8}
+        >
+          <Text style={{
+            fontSize: ms(14),
+            fontFamily: FONTS.muktaMalar.medium,
+            color: '#111',
+            flex: 1,
+          }}>
+            {activeTabTitle}
+          </Text>
+          <Ionicons
+            name={dropdownOpen ? 'chevron-up' : 'chevron-down'}
+            size={s(16)}
+            color="#555"
+          />
+        </TouchableOpacity>
+      </View>
+
+      {dropdownOpen && (
+        <View style={{
+          position: 'absolute',
+          top: vs(44),
+          right: s(12),
+          backgroundColor: '#fff',
+          borderWidth: 1,
+          borderColor: '#ddd',
+          minWidth: s(180),
+          zIndex: 1000,
+          elevation: 10,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: vs(2) },
+          shadowOpacity: 0.15,
+          shadowRadius: s(4),
+        }}>
+          {/* All option */}
+          <TouchableOpacity
+            style={{
+              paddingHorizontal: s(16),
+              paddingVertical: vs(12),
+              borderBottomWidth: 1,
+              borderBottomColor: '#f0f0f0',
+              backgroundColor: (isAllTab || activeTab?.id === 'webstories') ? '#f0f6ff' : '#fff',
+            }}
+            onPress={() => {
+              setDropdownOpen(false);
+              const allTab = subTabs.find(t => t.id === 'webstories' || t._isAllTab);
+              if (allTab) handleTabPress({ ...allTab, _isAllTab: true });
+            }}
+          >
+            <Text style={{
+              fontSize: ms(15),
+              fontFamily: FONTS.muktaMalar.medium,
+              color: (isAllTab || activeTab?.id === 'webstories') ? COLORS.primary : '#111',
+            }}>
+              All
+            </Text>
+          </TouchableOpacity>
+
+          {/* Category options — skip All tab itself */}
+          {subTabs
+            .filter(t => t.id !== 'webstories' && !t._isAllTab)
+            .map((tab, index, arr) => {
+              const isActive = !isAllTab &&
+                activeTab?.id !== 'webstories' &&
+                String(activeTab?.id) === String(tab.id);
+              return (
+                <TouchableOpacity
+                  key={`wdd-${tab.id ?? index}`}
+                  style={{
+                    paddingHorizontal: s(16),
+                    paddingVertical: vs(12),
+                    borderBottomWidth: index < arr.length - 1 ? 1 : 0,
+                    borderBottomColor: '#f0f0f0',
+                    backgroundColor: isActive ? '#f0f6ff' : '#fff',
+                  }}
+                  onPress={() => {
+                    setDropdownOpen(false);
+                    handleTabPress(tab);
+                  }}
+                >
+                  <Text style={{
+                    fontSize: ms(15),
+                    fontFamily: FONTS.muktaMalar.medium,
+                    color: isActive ? COLORS.primary : '#111',
+                  }}>
+                    {tab.title}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+        </View>
+      )}
+    </View>
+  );
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Main Screen
@@ -853,7 +1304,7 @@ export default function CommonSectionScreen() {
         let url = tab.link?.startsWith('//') ? tab.link.slice(1) : tab.link;
         const sep = url.includes('?') ? '&' : '?';
         const fullUrl = `${url}${sep}page=${pg}`;
-        const res = await CDNApi.get(fullUrl);
+        const res = await mainApi.get(fullUrl);
         const d = res?.data;
 
         const allArticles = extractList(d).filter(Boolean);
@@ -911,11 +1362,11 @@ export default function CommonSectionScreen() {
       return;
     }
 
-
     if (!tab?.link || tabIsAll(tab)) return;
     try {
       const isRasiSubTab = RASI_TAB_IDS.includes(String(tab.id));
       const isPhotoSubTab = tab.link?.includes('photoitem') ||
+        tab.link?.includes('photodetails') ||   // ✅ ADD THIS
         tab.link?.includes('getsocialmedia') ||
         tab.link?.includes('webstories');
 
@@ -928,10 +1379,23 @@ export default function CommonSectionScreen() {
       }
       const sep = url.includes('?') ? '&' : '?';
       const fullUrl = `${url}${sep}page=${pg}`;
-      const res = await CDNApi.get(fullUrl);
+      const res = await mainApi.get(fullUrl);
       const d = res?.data;
 
       let list = [];
+
+      // ── Handle webstorieslisting sub-tab ──────────────────────────────────
+if (tab.link?.includes('webstorieslisting')) {
+  list = Array.isArray(d?.newlist?.data) ? d.newlist.data : extractList(d).filter(Boolean);
+  const lp = d?.newlist?.pagination?.last_page || extractLastPage(d) || 1;
+  setTabLastPage(lp);
+  setTabNews(prev => append ? [...prev, ...list] : list);
+  setTabPage(pg);
+  setTabLoading(false);
+  setTabLoadMore(false);
+  setRefreshing(false);
+  return;
+}
 
       if (isRasiSubTab && d?.newlist?.[0]?.data) {
         list = d.newlist[0].data;
@@ -963,8 +1427,13 @@ export default function CommonSectionScreen() {
         list = extractList(d).filter(Boolean);
 
       } else if (isPhotoSubTab) {
-        list = d?.data ||
-          d?.newlist?.data ||
+        list =
+          (Array.isArray(d?.newlist?.data) && d.newlist.data.length > 0
+            ? d.newlist.data.filter(i => !i.type)
+            : null) ||
+          (Array.isArray(d?.morephotos?.data) && d.morephotos.data.length > 0
+            ? d.morephotos.data.filter(i => !i.type)
+            : null) ||
           d?.indraiyephoto?.data ||
           d?.pogaimadam?.data ||
           d?.cartoons?.data ||
@@ -1005,10 +1474,13 @@ export default function CommonSectionScreen() {
     }
   }, [apiEndpoint]);
 
+
+  
+
   // ── Fetch main endpoint ────────────────────────────────────────────────────
   const fetchAll = useCallback(async () => {
     try {
-      const api = useFullUrl ? mainApi : CDNApi;
+      const api = mainApi; // Always use mainApi
       const res = await api.get(apiEndpoint);
       const d = res?.data;
 
@@ -1016,7 +1488,7 @@ export default function CommonSectionScreen() {
         setHtmlContent(d);
         setAllSections([]);
         setSubTabs([]);
-        setActiveTab({ title: 'அனைத்தும்', link: apiEndpoint, _isAllTab: true });
+        setActiveTab({ title: 'All', link: apiEndpoint, _isAllTab: true });
         return;
       }
       setHtmlContent(null);
@@ -1059,6 +1531,26 @@ export default function CommonSectionScreen() {
         return;
       }
 
+      // ── Handle /webstoriesupdate ──────────────────────────────────────────────
+if (apiEndpoint.includes('webstoriesupdate') || apiEndpoint.includes('webstorieslisting')) {
+  const rawTabs = d?.subcatlist || [];
+        setSubTabs(normalizedTabs);
+        setActiveTab(normalizedTabs.length > 0
+  ? { ...normalizedTabs[0], _isAllTab: true }
+  : { title: 'All', id: 'webstories', link: '/webstoriesupdate', _isAllTab: true }
+);
+        const listData = Array.isArray(d?.newlist?.data) ? d.newlist.data : [];
+        const lp = d?.newlist?.pagination?.last_page || 1;
+        setAllSections([{ title: '', id: 'webstories', data: listData }]);
+        setTabLastPage(lp);
+        setTaboolaAds(d?.taboola_ads?.mobile || null);
+        setActiveTab(normalizedTabs.length > 0
+  ? { ...normalizedTabs[0], _isAllTab: true }
+  : { title: 'All', id: 'webstories', link: '/webstoriesupdate', _isAllTab: true }
+);
+        return;
+      }
+
       // ── Handle photodata API shape ────────────────────────────────────────
       if (apiEndpoint.includes('photodata') || d?.indraiyephoto || d?.pogaimadam || d?.cartoons) {
         const photoSections = [];
@@ -1085,7 +1577,7 @@ export default function CommonSectionScreen() {
         setSubTabs(tabs);
         setAllSections(photoSections);
         setTaboolaAds(d?.taboola_ads?.mobile || null);
-        setActiveTab({ title: 'அனைத்தும்', link: apiEndpoint, _isAllTab: true });
+        setActiveTab({ title: 'Photo', link: apiEndpoint, _isAllTab: true });
         return;
       }
 
@@ -1105,7 +1597,7 @@ export default function CommonSectionScreen() {
         }]);
         setTabLastPage(lp);
         setTaboolaAds(d?.taboola_ads?.mobile || null);
-        setActiveTab({ title: 'அனைத்தும்', link: apiEndpoint, _isAllTab: true });
+        setActiveTab({ title: 'Photo', link: apiEndpoint, _isAllTab: true });
         return;
       }
 
@@ -1130,7 +1622,7 @@ export default function CommonSectionScreen() {
         setSubTabs(tabs);
         setAllSections(sections);
         setTaboolaAds(d?.taboola_ads?.mobile || null);
-        setActiveTab({ title: 'அனைத்தும்', link: apiEndpoint, _isAllTab: true });
+        setActiveTab({ title: 'Photo', link: apiEndpoint, _isAllTab: true });
         return;
       }
 
@@ -1170,7 +1662,7 @@ export default function CommonSectionScreen() {
         setSubTabs(tabs);
         setAllSections(anmegamSections);
         setTaboolaAds(d?.taboola_ads?.mobile || null);
-        setActiveTab({ title: 'அனைத்தும்', link: apiEndpoint, _isAllTab: true });
+        setActiveTab({ title: 'Photo', link: apiEndpoint, _isAllTab: true });
 
         // ✅ FIX: if initialTabLink is set (e.g. Islam from drawer), push directly to that child screen
         if (initialTabLink && initialTabLink !== '/anmegam' && initialTabLink !== allTabLink) {
@@ -1346,7 +1838,7 @@ export default function CommonSectionScreen() {
       if (tabs.length > 0) {
         setActiveTab({ ...tabs[0], _isAllTab: true });
       } else if (finalSections.length > 0) {
-        setActiveTab({ title: 'அனைத்தும்', link: apiEndpoint, _isAllTab: true });
+        setActiveTab({ title: 'All', link: apiEndpoint, _isAllTab: true });
       }
     } catch (e) {
       console.error(`[fetchAll/${apiEndpoint}] error:`, e?.message);
@@ -1371,8 +1863,7 @@ export default function CommonSectionScreen() {
   const handleTabPress = (tab) => {
     setRasiDetailItem(null);
 
-    const pressedIsAll = !!tab._isAllTab || tab.link === allTabLink;
-
+    const pressedIsAll = !!tab._isAllTab || tab.link === allTabLink || (tab.id === 'webstories' && (apiEndpoint?.includes('webstoriesupdate') || apiEndpoint?.includes('webstorieslisting')));
     // ✅ 1. NRI country sub-tab clicked → filter articles for that country
     if (tab._isNriCountryTab && Array.isArray(tab._countryArticles)) {
       setAllSections([{
@@ -1462,6 +1953,28 @@ export default function CommonSectionScreen() {
       return;
     }
 
+    // ── Webstories tab from photo section → navigate to webstories screen ──
+    if (apiEndpoint.includes('photodata') && tab.id === 'webstories') {
+      navigation.push('CommonSectionScreen', {
+        screenTitle: 'வெப்ஸ்டோரிஸ்',
+        apiEndpoint: '/webstoriesupdate',
+        allTabLink: '/webstoriesupdate',
+        useFullUrl: false,
+      });
+      return;
+    }
+
+    // ── Webstories sub-tab → pressing All goes back to webstoriesupdate ──
+if (apiEndpoint.includes('webstorieslisting') && pressedIsAll) {
+  navigation.push('CommonSectionScreen', {
+    screenTitle: screenTitle,
+    apiEndpoint: '/webstoriesupdate',
+    allTabLink: '/webstoriesupdate',
+    useFullUrl: false,
+  });
+  return;
+}
+
     // ── /anmegammainlist → clicking "All" tab → push /anmegammain screen
     // ✅ MUST be before alreadyActive check — otherwise blocked when activeTab._isAllTab=true
     if (
@@ -1482,6 +1995,14 @@ export default function CommonSectionScreen() {
     const alreadyActive = activeTab
       ? (tabIsAll(tab) ? tabIsAll(activeTab) : String(activeTab.id) === String(tab.id))
       : false;
+
+    // For photo endpoints, always refresh All tab data to ensure sections are restored
+    if (pressedIsAll && (apiEndpoint.includes('photodata') || apiEndpoint.includes('photoitem'))) {
+      setTabNews([]); setTabPage(1); setTabLastPage(1);
+      fetchAll();
+      return;
+    }
+
     if (alreadyActive) return;
 
     const nextTab = { ...tab, _isAllTab: pressedIsAll };
@@ -1490,6 +2011,12 @@ export default function CommonSectionScreen() {
 
     if (pressedIsAll) {
       setTabNews([]); setTabPage(1); setTabLastPage(1);
+      // For photo endpoints, we need to fetch all to restore photo sections
+      if (apiEndpoint.includes('photodata') || apiEndpoint.includes('photoitem')) {
+        fetchAll();
+      } else {
+        fetchAll();
+      }
       return;
     }
     setTabLoading(true);
@@ -1511,25 +2038,18 @@ export default function CommonSectionScreen() {
     fetchTabNews(activeTab, tabPage + 1, true);
   };
 
-  // ── Navigation ─────────────────────────────────────────────────────────────
   const goToArticle = (item) => {
-    // ✅ NRI All tab → clicking article → navigate to its section tab
-    if (apiEndpoint === '/nrimain' && isAllTab && !activeTab?._isNriSubTab) {
-      // Find which subcatlist tab matches this article's section
-      const targetTab = subTabs.find(t =>
-        String(t.id) === String(item.maincategory) ||  // e.g. 'nri', 'otherstatenews'
-        String(t.id) === String(item.key?.toLowerCase()) ||
-        t.title === item.key
-      );
-      if (targetTab) {
-        handleTabPress(targetTab);
-        return;
-      }
-    }
 
-    // ✅ NRI sub-tab active OR direct NRI navigation → go to details
-    if (apiEndpoint.includes('nrimain') || apiEndpoint.includes('/nri') ||
-      apiEndpoint.includes('otherstatenews')) {
+    // ── 1. NRI ─────────────────────────────────────────────────────────────────
+    if (apiEndpoint === '/nrimain' || apiEndpoint.includes('/nri') || apiEndpoint.includes('otherstatenews')) {
+      if (apiEndpoint === '/nrimain' && isAllTab && !activeTab?._isNriSubTab) {
+        const targetTab = subTabs.find(t =>
+          String(t.id) === String(item.maincategory) ||
+          String(t.id) === String(item.key?.toLowerCase()) ||
+          t.title === item.key
+        );
+        if (targetTab) { handleTabPress(targetTab); return; }
+      }
       navigation.navigate('NewsDetailsScreen', {
         newsId: item.newsid || item.id,
         newsItem: item,
@@ -1539,49 +2059,7 @@ export default function CommonSectionScreen() {
       return;
     }
 
-    // ── NRI All tab card navigation ─────────────────────────────────────────────
-    if (apiEndpoint === '/nrimain' && isAllTab && item._isNriSection) {
-      // Find the corresponding sub-tab for this NRI section
-      const targetTab = subTabs.find(tab =>
-        String(tab.id) === String(item.sectionId) ||
-        tab.title === item.sectionTitle ||
-        tab.link === item.sectionLink
-      );
-
-      if (targetTab) {
-        handleTabPress(targetTab);
-        return;
-      }
-    }
-
-    if (apiEndpoint.includes('nrimain') || apiEndpoint.includes('/nri') ||
-      apiEndpoint.includes('otherstatenews')) {
-      navigation.navigate('NewsDetailsScreen', {
-        newsId: item.newsid || item.id,
-        newsItem: item,
-        slug: item.slug || item.reacturl || '',
-        disableComments: false,
-      });
-      return;
-    }
-    if (apiEndpoint.includes('anmegammain') && !apiEndpoint.includes('anmegammainlist')) {
-      const targetTab = subTabs.find(t =>
-        String(t.id) === String(item.maincatid) ||
-        t.title === item.categrorytitle ||
-        t.title === item.maincat
-      );
-      if (targetTab && targetTab.link?.includes('anmegammainlist')) {
-        navigation.push('CommonSectionScreen', {
-          screenTitle: targetTab.title,
-          apiEndpoint: targetTab.link,
-          allTabLink: apiEndpoint,
-          useFullUrl: false,
-        });
-        return;
-      }
-    }
-
-    // ✅ on /anmegammainlist screen → clicking article → go to NewsDetailsScreen directly
+    // ── 2. Anmegam ─────────────────────────────────────────────────────────────
     if (apiEndpoint.includes('anmegammainlist')) {
       navigation.navigate('NewsDetailsScreen', {
         newsId: item.newsid || item.id,
@@ -1592,103 +2070,132 @@ export default function CommonSectionScreen() {
       return;
     }
 
-    // ── Handle photodata section items → navigate to their sub-tab ──────────
-    const isPhotoEndpoint = apiEndpoint.includes('photodata') ||
+    if (apiEndpoint.includes('anmegammain') && !apiEndpoint.includes('anmegammainlist')) {
+      const targetTab = subTabs.find(t =>
+        String(t.id) === String(item.maincatid) ||
+        t.title === item.categrorytitle ||
+        t.title === item.maincat
+      );
+      if (targetTab?.link?.includes('anmegammainlist')) {
+        navigation.push('CommonSectionScreen', {
+          screenTitle: targetTab.title,
+          apiEndpoint: targetTab.link,
+          allTabLink: apiEndpoint,
+          useFullUrl: false,
+        });
+        return;
+      }
+    }
+
+    if (item._isCategoryCard && apiEndpoint.includes('anmegam')) {
+      const targetTab = subTabs.find(t =>
+        String(t.id) === String(item.maincatid) ||
+        t.link === item.link ||
+        t.title === item.title
+      );
+      if (targetTab) { handleTabPress(targetTab); return; }
+    }
+
+    // ── 3. Photo ────────────────────────────────────────────────────────────────
+    const isPhotoEndpoint =
+      apiEndpoint.includes('photodata') ||
+      apiEndpoint.includes('photodetails') ||
+      apiEndpoint.includes('photoitem') ||
       allSections.some(s => PHOTO_SECTION_IDS.includes(String(s.id)));
 
-    if (item._isCategoryCard && apiEndpoint.includes('anmegam')) {
-      const targetTab = subTabs.find(t =>
-        String(t.id) === String(item.maincatid) ||
-        t.link === item.link ||
-        t.title === item.title
-      );
-      if (targetTab) { handleTabPress(targetTab); return; }
-    }
+    if (isPhotoEndpoint) {
+      // top10 / mostcommented items are news articles — send to NewsDetailsScreen
+      const isNewsItem =
+        item.maincategory === 'seithigal' ||
+        !!item.newstitle ||
+        String(item.maincatid) === '100' ||
+        String(item.maincatid) === '89';
 
-    if (item._isCategoryCard && apiEndpoint.includes('anmegam')) {
-      const targetTab = subTabs.find(t =>
-        String(t.id) === String(item.maincatid) ||
-        t.link === item.link ||
-        t.title === item.title
-      );
-      if (targetTab) { handleTabPress(targetTab); return; }
-    }
+      // if (isNewsItem) {
+      //   navigation.navigate('NewsDetailsScreen', {
+      //     newsId: item.newsid || item.id,
+      //     newsItem: item,
+      //     slug: item.slug || item.reacturl || '',
+      //     disableComments: false,
+      //   });
+      //   return;
+      // }
 
-    if (isPhotoEndpoint && isAllTab) {
-      const sectionId = item.maincatid || item.category;
+      // Sub-tab already active — use its link directly
+      if (!isAllTab && activeTab?.link) {
+        navigation.navigate('PhotoDetailsScreen', {
+          screenTitle: activeTab?.title || 'போட்டோ',
+          photoItem: item,
+          apiEndpoint: normalizePhotoEndpoint(activeTab.link),
+          isFromAllTab: false,
+        });
+        return;
+      }
 
-      // Map section IDs to sub-tab links
-      const photoTabMap = {
-        '81': '/photoitem?cat=81',
-        '5001': '/photoitem?cat=5001',
-        '5002': '/photoitem?cat=5002',
-        '5003': '/photoitem?cat=5003',
+      // All tab — check if this is a "today" section item, if so navigate to today tab instead
+      if (isAllTab) {
+        const todaySectionId = '81'; // Today photo section ID
+        const itemSectionId = matchedSection?.id || String(item.maincatid || item.category || '');
+
+        // If clicking on today photo section from All tab, navigate to today tab instead
+        if (itemSectionId === todaySectionId) {
+          const todayTab = subTabs.find(t => String(t.id) === todaySectionId);
+          if (todayTab) {
+            handleTabPress(todayTab);
+            return;
+          }
+        }
+      }
+
+      // All tab — map section ID → correct /photodetails endpoint
+      const photoEndpointMap = {
+        '81': '/photodetails?cat=81',
+        '5001': '/photodetails?cat=5001',
+        '5002': '/photodetails?cat=5002',
+        '5003': '/photodetails?cat=5003',
       };
 
-      const targetLink = photoTabMap[String(sectionId)];
-      if (targetLink) {
-        const targetTab = subTabs.find(t =>
-          t.link === targetLink || String(t.id) === String(sectionId)
-        );
-        if (targetTab) {
-          handleTabPress(targetTab);
-          return;
-        }
+      // Find which section this item belongs to
+      const matchedSection = allSections.find(s =>
+        (s.data || []).some(d =>
+          d === item ||
+          (d.eventid && d.eventid === item.eventid) ||
+          (d.id && d.id === item.id)
+        )
+      );
+
+      const sectionId = matchedSection?.id || String(item.maincatid || item.category || '');
+      const photoEndpoint = photoEndpointMap[sectionId];
+
+      // Fallback by maincat title
+      const titleToId = {
+        'இன்றைய போட்டோ': '81',
+        'புகைப்பட ஆல்பம்': '5001',
+        'கார்ட்டூன்ஸ்': '5002',
+        'NRI ஆல்பம்': '5003',
+      };
+      const fallbackId = titleToId[item.maincat || ''];
+      if (fallbackId) {
+        navigation.navigate('PhotoDetailsScreen', {
+          screenTitle: item.maincat || 'போட்டோ',
+          photoItem: item,
+          apiEndpoint: `/photodetails?cat=${fallbackId}`,
+          isFromAllTab: isAllTab,
+        });
+        return;
       }
 
-      // ── NRI article navigation ─────────────────────────────────────────────────
-      if (apiEndpoint.includes('nrimain') || apiEndpoint.includes('/nri') || apiEndpoint.includes('otherstatenews')) {
-        const detailLink = item.link || '';
-        if (detailLink.includes('nridetail')) {
-          navigation.navigate('NewsDetailsScreen', {
-            newsId: item.newsid || item.id,
-            newsItem: item,
-            slug: item.slug || item.reacturl || '',
-            disableComments: false,
-          });
-          return;
-        }
-        if (detailLink.includes('otherstatenewsdetail')) {
-          navigation.navigate('NewsDetailsScreen', {
-            newsId: item.newsid || item.id,
-            newsItem: item,
-            slug: item.slug || item.reacturl || '',
-            disableComments: false,
-          });
-          return;
-        }
-      }
-
-      // Fallback: match by maincat title
-      if (item.maincat) {
-        const targetTab = subTabs.find(t => t.title === item.maincat);
-        if (targetTab) {
-          handleTabPress(targetTab);
-          return;
-        }
-      }
-
-      // Fallback: match by maincategory
-      if (item.maincategory) {
-        const targetTab = subTabs.find(t =>
-          (t.title || '').toLowerCase().includes((item.maincategory || '').toLowerCase()) ||
-          (item.maincategory || '').toLowerCase().includes((t.title || '').toLowerCase())
-        );
-        if (targetTab) {
-          handleTabPress(targetTab);
-          return;
-        }
-      }
+      // Last resort — match sub-tab by section id
+      const targetTab = subTabs.find(t => String(t.id) === String(sectionId));
+      if (targetTab) { handleTabPress(targetTab); return; }
     }
 
-    // ── existing joshiyam logic ──────────────────────────────────────────────
-    const isJoshiyamEndpoint = apiEndpoint === '/joshiyam';
-    if (isJoshiyamEndpoint && isAllTab) {
+    // ── 4. Joshiyam ────────────────────────────────────────────────────────────
+    if (apiEndpoint === '/joshiyam' && isAllTab) {
       let targetTab = null;
-      if (item.maincatid) {
+      if (item.maincatid)
         targetTab = subTabs.find(t => String(t.id) === String(item.maincatid));
-        if (targetTab && item.maincat && targetTab.title !== item.maincat) targetTab = null;
-      }
+      if (targetTab && item.maincat && targetTab.title !== item.maincat) targetTab = null;
       if (!targetTab && item.maaincatid)
         targetTab = subTabs.find(t => String(t.id) === String(item.maaincatid));
       if (!targetTab && item.maincat)
@@ -1701,18 +2208,18 @@ export default function CommonSectionScreen() {
         });
       if (!targetTab && item.link)
         targetTab = subTabs.find(t => t.link === item.link && t.link !== allTabLink && !t._isAllTab);
-
       if (targetTab && targetTab.link !== allTabLink && !targetTab._isAllTab) {
         handleTabPress(targetTab);
         return;
       }
     }
 
+    // ── 5. Default ─────────────────────────────────────────────────────────────
     navigation.navigate('NewsDetailsScreen', {
       newsId: item.newsid || item.id || item.eventid || item.rasiid || item.nid,
       newsItem: item,
       slug: item.slug || item.reacturl || '',
-      disableComments: apiEndpoint?.includes('api-st-cdn.dinamalar.com/varavaram'),
+      disableComments: apiEndpoint?.includes('varavaram'),
     });
   };
 
@@ -1776,6 +2283,14 @@ export default function CommonSectionScreen() {
 
   const isTabActive = (tab) => {
     if (!activeTab) return false;
+
+    // ── Webstories ────────────────────────────────────────────────────────
+    if (apiEndpoint.includes('webstoriesupdate')) {
+      const tabIsWebAll = tab.id === 'webstories' || tab.link === '/webstoriesupdate';
+      const activeIsAll = tabIsAll(activeTab) || activeTab?.id === 'webstories';
+      if (tabIsWebAll) return activeIsAll;
+      return !activeIsAll && String(activeTab.id) === String(tab.id);
+    }
 
     // ✅ NRI screen
     if (apiEndpoint === '/nrimain') {
@@ -1894,7 +2409,7 @@ export default function CommonSectionScreen() {
       item.largeimages || item.images || item.image ||
       'https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_default.jpg?im=Resize,width=400';
     const title = item.newstitle || item.title || '';
-    const ago = item.ago || item.time_ago || item.standarddate || item.date || '';
+    const date = item.date || item.time_date || item.standarddate || item.date || '';
 
     return (
       <TouchableOpacity onPress={onPress} activeOpacity={0.88} style={anc.wrap}>
@@ -1909,8 +2424,8 @@ export default function CommonSectionScreen() {
           {!!title && (
             <Text style={[NewsCardStyles.title, { fontSize: sf(13), lineHeight: sf(22) }]} numberOfLines={3}>{title}</Text>
           )}
-          {!!ago && (
-            <Text style={[NewsCardStyles.timeText, { fontSize: sf(13) }]}>{ago}</Text>
+          {!!date && (
+            <Text style={[NewsCardStyles.timeText, { fontSize: sf(14) }]}>{date}</Text>
           )}
           <View style={anc.divider} />
         </View>
@@ -1928,7 +2443,7 @@ export default function CommonSectionScreen() {
       fontWeight: '700',
       marginTop: vs(8),
     },
-    ago: {
+    date: {
       fontSize: ms(12),
       fontFamily: FONTS.muktaMalar.regular,
       color: '#888',
@@ -1991,6 +2506,143 @@ export default function CommonSectionScreen() {
     if (row.type === 'rasi' || row.type === 'individualRasi')
       return <RasiCard item={row.item} onPress={() => goToRasiDetails(row.item)} />;
 
+    // Compute isPhoto locally inside renderItem — has full access to state
+    const isPhoto =
+      isPhotoScreen(apiEndpoint) ||
+      isPhotoScreen(activeTab?.link) ||
+      allSections.some(s => PHOTO_SECTION_IDS.includes(String(s.id)));
+
+    // Check if this is webstories
+    const isWebstories = apiEndpoint?.includes('webstories') ||
+      activeTab?.link?.includes('webstories') ||
+      row.item?.category === 'webstories' ||
+      row.item?.category === 'webstory';
+
+    if (row.type === 'news' && isWebstories) {
+      const imageUri = row.item.images || row.item.largeimages || row.item.image || row.item.thumbnail || row.item.thumb || 'https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_default.jpg?im=Resize,width=400';
+      const title = row.item.newstitle || row.item.title || '';
+      const category = row.item.categrorytitle || '';
+
+      return (
+        <TouchableOpacity
+          key={`webstory-${row.item?.newsid || row.item?.id || row._idx}`}
+          style={{
+            width: '48%',
+            marginHorizontal: '1%',
+            marginBottom: s(8),
+            backgroundColor: PALETTE.white,
+            borderRadius: s(20),
+            overflow: 'hidden'
+          }}
+          onPress={() => {
+            // For webstories, use Linkedurl field to open in browser
+            const linkedUrl = row.item.Linkedurl || row.item.link || row.item.slug || '';
+            if (linkedUrl && (linkedUrl.startsWith('http://') || linkedUrl.startsWith('https://'))) {
+              Linking.openURL(linkedUrl).catch(() => console.log('Failed to open Linkedurl'));
+            } else if (row.item.reacturl) {
+              // Fallback to reacturl if Linkedurl not available
+              const fullUrl = row.item.reacturl.startsWith('http')
+                ? row.item.reacturl
+                : `https://www.dinamalar.com${row.item.reacturl}`;
+              Linking.openURL(fullUrl).catch(() => console.log('Failed to open webstory URL'));
+            } else {
+              goToArticle(row.item);
+            }
+          }}
+          activeOpacity={0.85}
+        >
+          <View style={{ position: 'relative' }}>
+            <Image
+              source={{ uri: imageUri }}
+              style={{
+                width: '100%',
+                height: vs(250),
+                resizeMode: 'cover',
+              }}
+            />
+            {/* Category tag */}
+            {category && (
+              <View style={{
+                position: 'absolute',
+                top: s(0),
+                left: s(0),
+                backgroundColor: PALETTE.primary,
+                paddingHorizontal: s(8),
+                paddingVertical: s(8),
+              }}>
+                <Text style={{
+                  fontFamily: FONTS.muktaMalar.semibold,
+                  fontSize: ms(12),
+                  color: '#FFFFFF',
+                  lineHeight: ms(16),
+                }}>
+                  {category}
+                </Text>
+              </View>
+            )}
+            {/* Gallery icon */}
+            <TouchableOpacity
+              style={{
+                position: 'absolute',
+                top: s(8),
+                right: s(8),
+                backgroundColor: 'rgba(0,0,0,0.5)',
+                padding: s(6),
+                borderRadius: s(20),
+              }}
+              onPress={() => {
+                const link = row.item.link || row.item.slug || '';
+                if (link && (link.startsWith('http://') || link.startsWith('https://'))) {
+                  Linking.openURL(link).catch(() => console.log('Failed to open link'));
+                } else if (row.item.reacturl) {
+                  // Open webstory detail URL in browser
+                  const fullUrl = row.item.reacturl.startsWith('http')
+                    ? row.item.reacturl
+                    : `https://www.dinamalar.com${row.item.reacturl}`;
+                  Linking.openURL(fullUrl).catch(() => console.log('Failed to open webstory URL'));
+                } else {
+                  goToArticle(row.item);
+                }
+              }}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="images-outline" size={s(14)} color="#fff" />
+            </TouchableOpacity>
+            {/* Carousel indicators */}
+            <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, paddingVertical: vs(10), paddingHorizontal: s(8), backgroundColor: 'rgba(0,0,0,0.4)' }}>
+              {/* Carousel dots — rendered first so they appear above the bg but below no other element */}
+
+              <Text style={{ fontFamily: FONTS.muktaMalar.semibold, fontSize: ms(14), color: '#FFFFFF', lineHeight: ms(22) }}>
+                {title}
+              </Text>
+              <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: s(6), paddingTop: ms(8) }}>
+                {[0, 1, 2, 3, 4, 5, 6, 7].map((index) => (
+                  <View
+                    key={`dot-${index}`}
+                    style={{
+                      width: s(13), height: s(2), borderRadius: (0.5),
+                      backgroundColor: 'rgba(255,255,255,0.5)',
+                    }}
+                  />
+                ))}
+              </View>
+            </View>
+          </View>
+        </TouchableOpacity>
+      );
+    }
+
+    if (row.type === 'news' && isPhoto)
+      return (
+        <PhotoCard
+          item={row.item}
+          onPress={() => goToArticle(row.item)}
+          sf={sf}
+          isAllTab={isAllTab}
+          isSocialCard={activeTab?.link?.includes('getsocialmedia') || apiEndpoint?.includes('getsocialmedia')}
+        />
+      );
+
     return <NewsCard
       item={row.item}
       onPress={() => goToArticle(row.item)}
@@ -2041,32 +2693,41 @@ export default function CommonSectionScreen() {
         </Text>
       </View>
 
-      {/* ── Tabs ── */}
+       {/* ── Tabs ── */}
       {subTabs.length > 0 && (
-        <View style={styles.tabsWrap}>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.tabsContent}
-          >
-            {subTabs.map((tab, index) => {
-              const active = isTabActive(tab);
-              return (
-                <TouchableOpacity
-                  key={`tab-${tab.id != null ? tab.id : 'all-' + index}`}
-                  style={[styles.tab, active && styles.tabActive]}
-                  onPress={() => handleTabPress(tab)}
-                  activeOpacity={0.8}
-                >
-                  <Text style={[styles.tabText, active && styles.tabTextActive, { fontSize: ms(16) }]}>
-                    {tab.title || ''}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-          <View style={styles.tabsBottomLine} />
-        </View>
+(apiEndpoint?.includes('webstoriesupdate') || apiEndpoint?.includes('webstorieslisting')) ? (          <WebstoriesDropdown
+            subTabs={subTabs}
+            activeTab={activeTab}
+            isAllTab={isAllTab}
+            allTabLink={allTabLink}
+            handleTabPress={handleTabPress}
+          />
+        ) : (
+          <View style={styles.tabsWrap}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.tabsContent}
+            >
+              {subTabs.map((tab, index) => {
+                const active = isTabActive(tab);
+                return (
+                  <TouchableOpacity
+                    key={`tab-${tab.id != null ? tab.id : 'all-' + index}`}
+                    style={[styles.tab, active && styles.tabActive]}
+                    onPress={() => handleTabPress(tab)}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={[styles.tabText, active && styles.tabTextActive, { fontSize: ms(16) }]}>
+                      {tab.title || ''}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+            <View style={styles.tabsBottomLine} />
+          </View>
+        )
       )}
 
       {/* ── Content ── */}
@@ -2144,12 +2805,14 @@ export default function CommonSectionScreen() {
             <RefreshControl refreshing={refreshing} onRefresh={handleRefresh}
               colors={[COLORS.primary]} tintColor={COLORS.primary} />
           }
+          key={(apiEndpoint?.includes('webstories') || activeTab?.link?.includes('webstories')) ? 'webstories-grid' : 'single-column'}
+          numColumns={apiEndpoint?.includes('webstories') || activeTab?.link?.includes('webstories') ? 2 : 1}
           ListHeaderComponent={
             taboolaAds?.midmain ? (
               <TaboolaWidget
                 pageUrl={`https://www.dinamalar.com${apiEndpoint}`}
                 mode={taboolaAds.midmain.mode}
-                container={taboolaAds.midmain.container}
+                container={`${taboolaAds.midmain.container}_header`}
                 placement={taboolaAds.midmain.placement}
                 targetType="mix"
               />
@@ -2228,5 +2891,48 @@ const styles = StyleSheet.create({
     position: 'absolute', bottom: vs(20), right: s(16),
     backgroundColor: COLORS.primary, padding: s(10), borderRadius: s(30),
     elevation: 4, shadowColor: '#000', shadowOffset: { width: 0, height: vs(2) }, shadowOpacity: 0.2, shadowRadius: s(4),
+  },
+
+  // Webstories styles
+  webstoriesContainer: {
+    paddingHorizontal: s(12),
+    paddingVertical: vs(6),
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  webstoryCard: {
+    width: '48%',
+    marginHorizontal: '1%',
+    marginBottom: s(8),
+    backgroundColor: '#FFFFFF',
+    borderRadius: s(20),
+    overflow: 'hidden',
+  },
+  webstoryImage: {
+    width: '100%',
+    height: vs(250),
+    resizeMode: 'cover',
+  },
+  webstoryTitleOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingVertical: vs(8),
+    paddingHorizontal: s(6),
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  webstoryTitle: {
+    fontFamily: FONTS.muktaMalar.semibold,
+    fontSize: ms(12),
+    color: '#FFFFFF',
+    lineHeight: ms(16),
+  },
+  webstoryDecorativeLine: {
+    position: 'absolute',
+    bottom: vs(6),
+    height: 1,
+    backgroundColor: 'rgba(255,255,255,0.3)',
   },
 });
