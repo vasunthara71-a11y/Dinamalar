@@ -7,15 +7,20 @@ import {
     Text,
     TouchableOpacity,
     Image,
-    StyleSheet,
     Modal,
     FlatList,
+    StyleSheet,
+    Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import RenderHtml from 'react-native-render-html';
 import { useNavigation } from '@react-navigation/native';
-import { ms, s, vs } from '../utils/scaling';
-import { FONTS } from '../utils/constants';
 import { useFontSize } from '../context/FontSizeContext';
+import { FONTS } from '../utils/constants';
+import { ms, s, vs } from 'react-native-size-matters';
+
+// ── Screen Width ───────────────────────────────────────────────
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 // ── Palette ──────────────────────────────────────────────────────────────────
 const PALETTE = {
@@ -289,8 +294,11 @@ export default function JoshiyamSection({ josiyamData, onSeeMore }) {
                 style={jSt.videoCard}
                 onPress={() =>
                     navigation?.navigate('CommonSectionScreen', {
-                        rasiId: selectedRasi.id,
-                        rasiName: selectedRasi.ta,
+                        screenTitle: 'ஜோசியம்',
+                        apiEndpoint: '/joshiyam',
+                        allTabLink: '/joshiyam',
+                        initialTabId: selectedRasi.id,
+                        initialTabLink: selectedRasi.id,
                     })
                 }
                 activeOpacity={0.9}

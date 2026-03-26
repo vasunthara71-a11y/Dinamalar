@@ -678,14 +678,19 @@ const districtDropdownSt = StyleSheet.create({
 });
 
 // --- Section Header -----------------------------------------------------------
-function SectionHeader({ title }) {
+function SectionHeader({ title, onSeeMore }) {
   const { sf } = useFontSize();
 
   return (
-    <View style={styles.sectionHeader}>
+    <TouchableOpacity
+      style={styles.sectionHeader}
+      onPress={onSeeMore}
+      activeOpacity={0.8}
+      disabled={!onSeeMore}
+    >
       <Text style={[styles.sectionTitle, { fontSize: sf(18) }]}>{title}</Text>
       <View style={styles.sectionUnderline} />
-    </View>
+    </TouchableOpacity>
   );
 }
 
@@ -1179,6 +1184,37 @@ function DinaMalarTVCard({ item, onVideoPress }) {
   const category = item.maincat || item.categrorytitle || item.ctitle || item.maincategory || '';
   const ago = item.ago || item.time_ago || '';
   const newscomment = item.newscomment || item.commentcount || item.nmcomment || item.comments?.total || '';
+  const duration = item.duration || item.video_duration || item.length || '';
+
+  // Format duration display
+  const formatDuration = (durationStr) => {
+    if (!durationStr) return '';
+    
+    // If duration is in seconds, convert to MM:SS format
+    if (typeof durationStr === 'number') {
+      const minutes = Math.floor(durationStr / 60);
+      const seconds = durationStr % 60;
+      return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    }
+    
+    // If duration is already in MM:SS or HH:MM:SS format, return as is
+    if (typeof durationStr === 'string' && durationStr.includes(':')) {
+      return durationStr;
+    }
+    
+    // Try to parse as number if it's a string
+    const numDuration = parseInt(durationStr);
+    if (!isNaN(numDuration)) {
+      const minutes = Math.floor(numDuration / 60);
+      const seconds = numDuration % 60;
+      return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    }
+    
+    return durationStr;
+  };
+
+  const formattedDuration = formatDuration(duration);
+
   return (
     <View style={NewsCardStyles.wrap}>
       <TouchableOpacity onPress={onVideoPress} activeOpacity={0.88}>
@@ -1192,11 +1228,32 @@ function DinaMalarTVCard({ item, onVideoPress }) {
             <PlayIcon size={36} />
           </View>
 
-          {/* "TV" badge   top-left corner */}
-          {/* <View style={tvCardSt.badge}>
-            <Ionicons name="videocam" size={s(10)} color="#fff" style={{ marginRight: s(3) }} />
-            <Text style={tvCardSt.badgeText}>TV</Text>
-          </View> */}
+          {/* Duration badge - bottom right corner like YouTube */}
+          {formattedDuration && (
+            <View style={{
+              position: 'absolute',
+              bottom: vs(5),
+              right: s(8),
+              backgroundColor: 'rgba(0,0,0,.75)',
+              paddingHorizontal: s(6),
+              paddingVertical: vs(2),
+              borderRadius: s(3)
+            }}>
+              <Text style={{
+                color: PALETTE.white,
+                fontWeight: '700',
+                fontSize: sf(11),
+                fontFamily: FONTS?.muktaMalar?.regular || undefined
+              }}>
+                {formattedDuration}
+              </Text>
+            </View>
+          )}
+
+          {/* Live indicator - red dot for live content */}
+          {(item.maincat === 'live' || item.VCategory === '5050') && (
+            <View style={tvCardSt.liveDot} />
+          )}
         </View>
 
         {/* Text content   identical structure to NewsCard */}
@@ -1303,7 +1360,7 @@ function DinaMalarTVSection({ data, onVideoPress }) {
           <Text style={[tvSecSt.sectionTitle, { fontSize: sf(16) }]}>தினமலர் டிவி</Text>
           <View style={tvSecSt.titleUnderline} />
         </View>
-        
+
         <View style={tvStyles.container}>
           {/* YouTube Red Box */}
           <View style={tvStyles.youtubeBox}>
@@ -1316,7 +1373,7 @@ function DinaMalarTVSection({ data, onVideoPress }) {
             {/* YouTube Text */}
             <Text style={tvStyles.youtubeText}>YouTube</Text>
             {/* <View style={tvStyles.subscriberBox}> */}
-              <Text style={tvStyles.subscriberText}>3M</Text>
+            <Text style={tvStyles.subscriberText}>3M</Text>
             {/* </View> */}
           </View>
 
@@ -1406,7 +1463,7 @@ const tvSecSt = StyleSheet.create({
     gap: s(8),
     justifyContent: "center",
     alignItems: "center",
-    paddingTop:ms(8)
+    paddingTop: ms(8)
   },
   tab: {
     flexDirection: 'row',
@@ -1662,7 +1719,7 @@ const tvStyles = StyleSheet.create({
     paddingHorizontal: s(8),
     paddingVertical: s(4),
     borderRadius: s(4),
-    justifyContent:"center"
+    justifyContent: "center"
   },
   playBox: {
     marginRight: s(4),
@@ -1675,7 +1732,7 @@ const tvStyles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: ms(12),
     fontFamily: FONTS.anek.semiBold,
-    fontWeight:"600"
+    fontWeight: "600"
   },
   subscriberBox: {
     backgroundColor: PALETTE.grey200,
@@ -1687,7 +1744,7 @@ const tvStyles = StyleSheet.create({
     color: PALETTE.white,
     fontSize: ms(15),
     fontFamily: FONTS.muktaMalar.bold,
-    marginLeft:ms(5)
+    marginLeft: ms(5)
   },
 });
 
@@ -1741,13 +1798,13 @@ const districtSt = StyleSheet.create({
 
   newsImage: {
     width: '100%',
-    height: vs(220),
+    height: vs(180),
   },
 
   // Icon sits at top-left, overlapping the image
   iconOverlay: {
     position: 'absolute',
-    top: vs(-40),           // ← pulls icon UP into the header row area
+    top: vs(-35),           // ← pulls icon UP into the header row area
     // left: s(12),   
     // ← aligns with header padding
   },
@@ -1891,7 +1948,7 @@ export default function HomeScreen() {
     try {
       const [
         homeRes, shortRes, shortsRes, varthagamRes, varavaramRes,
-        joshiyamRes, districtRes, premiumRes, cinemaRes, cinemaRes2,
+        joshiyamRes, districtRes, premiumRes, cinemaRes, cinemaRes2,vimarsanamRes,
         photosRes, // Add photos API call
       ] = await Promise.allSettled([
         fetchHomeData(),
@@ -2092,7 +2149,7 @@ export default function HomeScreen() {
                   newstitle: item.newstitle,
                   images: item.images,
                   largeimages: item.images,
-                  maincat: 'கோயில்கள்', // Set category for proper detection
+                  maincat: '', // Set category for proper detection
                   ago: item.standarddate || item.ago || '', // Use actual date
                   slug: item.link || '',
                   external_link: item.link,
@@ -2134,7 +2191,7 @@ export default function HomeScreen() {
                   newstitle: item.tname, // Use tname as title since newstitle is null
                   images: item.images,
                   largeimages: item.images,
-                  maincat: '360° கோயில்கள்', // Set category for proper detection
+                  maincat: '', // Set category for proper detection
                   ago: item.standarddate || item.ago || '', // Use actual date
                   slug: item.link || '',
                   external_link: item.link,
@@ -2407,9 +2464,6 @@ export default function HomeScreen() {
         if (cinemaRes.status === 'fulfilled' && cinemaRes.value?.data) {
           cinemaNews = cinemaRes.value.data?.slice(0, 2) || [];
           cinemaVideos = cinemaRes.value.video?.slice(0, 2) || [];
-        } else if (cinemaRes2.status === 'fulfilled' && cinemaRes2.value?.data) {
-          cinemaNews = cinemaRes2.value.data?.slice(0, 2) || [];
-          cinemaVideos = cinemaRes2.value.video?.slice(0, 2) || [];
         }
         if (cinemaNews.length === 0 && cinemaVideos.length === 0) {
           if (d?.cinema?.data) cinemaNews = d.cinema.data.slice(0, 2);
@@ -2422,38 +2476,87 @@ export default function HomeScreen() {
             data: [...cinemaNews, ...cinemaVideos],
             hideDescription: true // Hide descriptions like Aanmegam
           });
-        }
 
-        if (cinemaNews.length > 0 || cinemaVideos.length > 0) {
-          const cinemaVimarsanam = cinemaRes.status === 'fulfilled'
-            ? (cinemaRes.value?.data?.vimarsanam || [])
-            : (cinemaRes2.status === 'fulfilled'
-              ? (cinemaRes2.value?.data?.vimarsanam || [])
-              : (d?.cinema?.vimarsanam || []));
+          if(vimarsanamRes.status === 'fulfilled' && vimarsanamRes.value?.data){
 
-          sections.push({
-            title: 'சினிமா',
-            data: [...cinemaNews, ...cinemaVideos],
-            vimarsanam: cinemaVimarsanam.slice(0, 5), // ← add this
-            hideDescription: true
-          });
+          }
+          
+          // Add cinema wrapper using first item largeimages and vimarsanam
+          const firstCinemaItem = [...cinemaNews, ...cinemaVideos][0];
+          console.log('🎬 First cinema item:', firstCinemaItem);
+          console.log('🎬 Cinema item keys:', Object.keys(firstCinemaItem || {}));
+          
+          // Handle the specific cinema data structure you provided
+          const largeImage = 'https://images.dinamalar.com/data/cini//CineGallery/VM_20240428133507000000.jpg?im=Resize,width=300';
+          const reviewText = firstCinemaItem?.vimarsanam || 
+                           firstCinemaItem?.review || 
+                           firstCinemaItem?.description ||
+                           firstCinemaItem?.newsdescription;
+          
+          console.log('🎬 Large image:', largeImage);
+          console.log('🎬 Review text length:', reviewText?.length || 0);
+          console.log('🎬 Review text preview:', reviewText?.substring(0, 100) + '...');
+          
+          if (firstCinemaItem && (largeImage || reviewText)) {
+            sections.push({
+              title: '', // No title for cinema wrapper
+              data: [{
+                newsid: 'cinema-wrapper',
+                newstitle: firstCinemaItem.title || firstCinemaItem.newstitle || 'சினிமா',
+                images: largeImage || '',
+                largeimages: largeImage || '',
+                vimarsanam: reviewText || '',
+                external_link: firstCinemaItem.link || firstCinemaItem.slug || 'https://www.dinamalar.com/cinema',
+                slug: firstCinemaItem.link || firstCinemaItem.slug || '',
+                standarddate: firstCinemaItem.standarddate || firstCinemaItem.ago || '',
+                ago: firstCinemaItem.standarddate || firstCinemaItem.ago || '',
+                maincat: '',
+                starrating: firstCinemaItem.starrating || '',
+              }],
+              type: 'cinema_review_with_image',
+              hideDescription: true,
+            });
+          }
         }
 
         // ── Weekly Malar ───────────────────────────────────────────────────
-        const weeklyMalarData =
-          d?.varamalar?.data ||
-          d?.weeklymal?.data ||
-          d?.weekmal?.data ||
-          d?.weekly_malar?.data ||
-          d?.weekmalar?.data || null;
-        if (weeklyMalarData?.length > 0) {
+        const weeklyMalarRaw = d?.varamalar;
+        
+        // First add the original varamalar data items for card display
+        if (weeklyMalarRaw?.data?.length > 0) {
           sections.push({
-            title: 'வாரமலர்',
-            data: weeklyMalarData.slice(0, 1),
-            hideDescription: true // Hide descriptions like Aanmegam
+            title: weeklyMalarRaw.title || 'வாரமலர்',
+            data: weeklyMalarRaw.data.slice(0, 1),
+            hideDescription: true,
+          });
+        } else if (weeklyMalarRaw?.data?.length > 0) {
+          // fallback to data items if no wrapper image
+          sections.push({
+            title: weeklyMalarRaw.title || 'வாரமலர்',
+            data: weeklyMalarRaw.data.slice(0, 1),
+            hideDescription: true,
           });
         }
-
+        
+        // Then add wrapper image as ipaper_image type below the news cards
+        if (weeklyMalarRaw?.wrapperimage) {
+          sections.push({
+            title: '', // No title for ipaper wrapper
+            data: [{
+              newsid: 'varamalar-wrapper',
+              newstitle: weeklyMalarRaw.title || 'வாரமலர்',
+              images: weeklyMalarRaw.wrapperimage,
+              largeimages: weeklyMalarRaw.wrapperimage,
+              external_link: weeklyMalarRaw.link || 'https://ipaper.dinamalar.com/#varamalar',
+              slug: weeklyMalarRaw.link || '',
+              standarddate: weeklyMalarRaw.standarddate || '',
+              ago: weeklyMalarRaw.standarddate || '',
+              maincat: '',
+            }],
+            type: 'ipaper_image',
+            hideDescription: true,
+          });
+        }
 
         // ── Inappu Malar ─────────────────────────────────────────────────────
         if (d?.varavaram?.length > 0) {
@@ -2554,8 +2657,27 @@ export default function HomeScreen() {
 
 
         // ── Varavaram ──────────────────────────────────────────────────────
-        if (varavaramRes.status === 'fulfilled' && varavaramRes.value?.data?.length > 0) {
-          sections.push({ title: 'வாராவாரம்', data: varavaramRes.value.data });
+        if (varavaramRes.status === 'fulfilled') {
+          const data = varavaramRes.value?.data;
+          
+          // Handle both "varavaram" and "varamalar" response structures
+          if (data?.varavaram?.data?.length > 0) {
+            // Add wrapperimage to each item for display
+            const itemsWithWrapper = data.varavaram.data.map(item => ({
+              ...item,
+              wrapperimage: data.varavaram.wrapperimage
+            }));
+            sections.push({ title: 'வாராவாரம்', data: itemsWithWrapper, wrapperimage: data.varavaram.wrapperimage });
+          } else if (data?.varamalar?.data?.length > 0) {
+            // Add wrapperimage to each item for display
+            const itemsWithWrapper = data.varamalar.data.map(item => ({
+              ...item,
+              wrapperimage: data.varamalar.wrapperimage
+            }));
+            sections.push({ title: 'வாரமலர்', data: itemsWithWrapper, wrapperimage: data.varamalar.wrapperimage });
+          } else if (data?.length > 0) {
+            sections.push({ title: 'வாராவாரம்', data: data });
+          }
         }
 
 
@@ -2603,13 +2725,23 @@ export default function HomeScreen() {
 
     if (categoryLower.includes('தினம் தினம்') || categoryLower.includes('dinamdinam') ||
       categoryLower.includes('தினம் தினம்')) {
-      navigation?.navigate('DinamDinamScreen');
+      // Navigate to the dinamdinam news item instead of DinamDinamScreen
+      navigation?.navigate('NewsDetailsScreen', {
+        newsId: item.newsid || item.id,
+        newsItem: item,
+        slug: item.slug || '',
+      });
       return;
     }
 
     if (categoryLower.includes('விளையாட்டு') || categoryLower.includes('sports') ||
       categoryLower.includes('விளையாட்டு') || categoryLower.includes('sport')) {
-      navigation?.navigate('SportsScreen');
+      // Navigate to the sports news item instead of SportsScreen
+      navigation?.navigate('NewsDetailsScreen', {
+        newsId: item.newsid || item.id,
+        newsItem: item,
+        slug: item.slug || '',
+      });
       return;
     }
 
@@ -2636,11 +2768,11 @@ export default function HomeScreen() {
     }
 
     if (categoryLower.includes('ஆன்மிகம்') || categoryLower.includes('anmegam') ||
-      categoryLower.includes('ஆண்மேகம்')) {
-      navigation?.navigate('CommonSectionScreen', {
-        screenTitle: 'ஆன்மிகம்',
-        apiEndpoint: 'https://api-st-cdn.dinamalar.com/anmegam',
-        allTabLink: 'https://api-st-cdn.dinamalar.com/anmegam'
+      categoryLower.includes('ஆன்மிகம்')) {
+      navigation?.navigate('KovilgalScreen', {
+        screenTitle: 'கோயில்கள்',
+        apiEndpoint: 'https://api-st-cdn.dinamalar.com/kovilgal',
+        allTabLink: 'https://api-st-cdn.dinamalar.com/kovilgal'
       });
       return;
     }
@@ -2654,17 +2786,6 @@ export default function HomeScreen() {
       const link = item.external_link || item.slug || item.link || 'https://ipaper.dinamalar.com/';
       Linking.openURL(link).catch(() => {
         console.log('Failed to open iPaper URL:', link);
-      });
-      return;
-    }
-
-    if (categoryLower.includes('உலக தமிழர்') || categoryLower.includes('ulnga thamizhar') ||
-      categoryLower.includes('தமிழர் செய்திகள்') || categoryLower.includes('thamizhar seidhigal') ||
-      categoryLower.includes('உலகத் தமிழர்')) {
-      navigation?.navigate('CommonSectionScreen', {
-        screenTitle: 'உலக தமிழர் செய்திகள்',
-        apiEndpoint: 'https://api-st-cdn.dinamalar.com/ulnga-thamizhar-seidhigal',
-        allTabLink: 'https://api-st-cdn.dinamalar.com/ulnga-thamizhar-seidhigal'
       });
       return;
     }
@@ -2691,7 +2812,7 @@ export default function HomeScreen() {
 
     // Handle Kovilgal categories - open in browser
     console.log('goToArticle category check:', { category, categoryLower, item: { newsid: item.newsid, newstitle: item.newstitle, link: item.link } });
-    
+
     if (categoryLower.includes('கோயில்') || categoryLower.includes('kovil') ||
       categoryLower.includes('temple') || categoryLower.includes('கோயில்கள்') ||
       categoryLower.includes('தினம் ஒரு கோயில்') || categoryLower.includes('dinamorukovil') ||
@@ -2704,7 +2825,7 @@ export default function HomeScreen() {
       (item.newstitle && item.newstitle.includes('கோயில்')) ||
       (item.tname && item.tname.includes('கோயில்')) ||
       (item.is360Degree === true)) {
-      console.log('Kovilgal item detected, opening in browser');
+      console.log('Kovilgal item detected, opening today events in browser');
       const link = item.link || item.slug || item.external_link || '';
       if (link && (link.startsWith('http://') || link.startsWith('https://'))) {
         Linking.openURL(link).catch(() => console.log('Failed to open Kovilgal URL'));
@@ -2715,6 +2836,14 @@ export default function HomeScreen() {
       }
       return;
     }
+
+    // More Kovilgal button - open today's events in browser
+    const openTodaysKovilgalEvents = () => {
+      console.log('Opening today Kovilgal events in browser');
+      Linking.openURL('https://www.dinamalar.com/kovilgal').catch(() => {
+        console.log('Failed to open Kovilgal events URL');
+      });
+    };
 
     navigation?.navigate('NewsDetailsScreen', {
       newsId: item.id || item.newsid,
@@ -2804,34 +2933,50 @@ export default function HomeScreen() {
                     title={section.title}
                     data={section.data}
                     onPress={() => navigation?.navigate('ShortNewsSwiperScreen')}
-                    onSeeMore={() => navigation?.navigate('ShortNewsSwiperScreen')}
+                  // onSeeMore={() => navigation?.navigate('WebStoriesScreen')}
                   />
                 </View>
               ) : section.type === 'webstories' ? (
                 <View key={`sec-${si}`}>
                   <SectionHeader title={section.title} />
-                  <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={{ paddingHorizontal: s(12), paddingVertical: vs(8) }}
-                  >
+                  {/* Webstories Grid Layout */}
+                  <View style={{
+                    flexDirection: 'row',
+                    flexWrap: 'wrap',
+                    paddingHorizontal: s(12),
+                    paddingVertical: vs(8),
+                  }}>
                     {section.data?.map((item, i) => {
                       const { sf } = useFontSize();
                       const imageUri = item.images || item.largeimages || item.image || item.thumbnail || item.thumb || 'https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_default.jpg?im=Resize,width=400';
                       const title = item.newstitle || item.title || '';
+                      const category = item.categrorytitle || '';
 
                       return (
                         <TouchableOpacity
-                          key={`webstory-${i}-${item.newsid || item.id || i}`}
+                          key={`webstory-${i}-${item.newsid || i}`}
                           style={{
-                            width: s(156),
-                            marginRight: s(12),
+                            width: '48%',
+                            marginHorizontal: '1%',
+                            marginBottom: s(8),
                             backgroundColor: PALETTE.white,
-                            borderRadius: s(8),
+                            borderRadius: s(20),
                             overflow: 'hidden'
                           }}
-                          onPress={() => navigation?.navigate('ShortNewsSwiperScreen')}
-                          activeOpacity={0.88}
+                          onPress={() => {
+                            // For webstories, use Linkedurl field to open in browser
+                            const linkedUrl = item.Linkedurl || item.link || item.slug || '';
+                            if (linkedUrl && (linkedUrl.startsWith('http://') || linkedUrl.startsWith('https://'))) {
+                              Linking.openURL(linkedUrl).catch(() => console.log('Failed to open Linkedurl'));
+                            } else if (item.reacturl) {
+                              // Fallback to reacturl if Linkedurl not available
+                              const fullUrl = item.reacturl.startsWith('http')
+                                ? item.reacturl
+                                : `https://www.dinamalar.com${item.reacturl}`;
+                              Linking.openURL(fullUrl).catch(() => console.log('Failed to open webstory URL'));
+                            }
+                          }}
+                          activeOpacity={0.85}
                         >
                           <View style={{ position: 'relative' }}>
                             <Image
@@ -2842,54 +2987,75 @@ export default function HomeScreen() {
                                 resizeMode: 'cover',
                               }}
                             />
-                            {/* Full image overlay */}
-                            {/* <View style={{
-                              position: 'absolute',
-                              top: 0,
-                              left: 0,
-                              right: 0,
-                              bottom: 0,
-                              backgroundColor: 'rgba(0,0,0,0.3)',
-                            }} /> */}
-                            {/* Title overlay at bottom */}
-                            <View style={{
-                              position: 'absolute',
-                              bottom: 0,
-                              left: 0,
-                              right: 0,
-                              paddingVertical: vs(10),
-                              paddingHorizontal: s(8),
-                              backgroundColor: 'rgba(0,0,0,0.5)',
-                            }}>
-                              <Text
-                                style={[{
+                            {/* Category tag */}
+                            {category && (
+                              <View style={{
+                                position: 'absolute',
+                                top: s(0),
+                                left: s(0),
+                                backgroundColor: PALETTE.primary,
+                                paddingHorizontal: s(8),
+                                paddingVertical: s(8),
+                              }}>
+                                <Text style={{
                                   fontFamily: FONTS.muktaMalar.semibold,
-                                  fontSize: ms(14),
+                                  fontSize: ms(12),
                                   color: '#FFFFFF',
-                                  lineHeight: ms(18),
-                                }]}
-                              >
-                                {title}
-                              </Text>
-                              {/* Horizontal lines below title */}
-                              {[...Array(8)].map((_, index) => (
-                                <View
-                                  key={`line-${index}`}
-                                  style={{
-                                    position: 'absolute',
-                                    bottom: vs(8),
-                                    left: s(8 + (index * 16)),
-                                    height: 1,
-                                    backgroundColor: 'rgba(255,255,255,0.3)',
-                                  }}
-                                />
-                              ))}
-                            </View>
+                                  lineHeight: ms(16),
+                                }}>
+                                  {category}
+                                </Text>
+                              </View>
+                            )}
+                            {/* Gallery icon */}
+                            <TouchableOpacity
+                              style={{
+                                position: 'absolute',
+                                top: s(8),
+                                right: s(8),
+                                backgroundColor: 'rgba(0,0,0,0.5)',
+                                padding: s(6),
+                                borderRadius: s(20),
+                              }}
+                              onPress={() => {
+                                const link = item.link || item.slug || '';
+                                if (link && (link.startsWith('http://') || link.startsWith('https://'))) {
+                                  Linking.openURL(link).catch(() => console.log('Failed to open link'));
+                                } else if (item.reacturl) {
+                                  // Open webstory detail URL in browser
+                                  const fullUrl = item.reacturl.startsWith('http')
+                                    ? item.reacturl
+                                    : `https://www.dinamalar.com${item.reacturl}`;
+                                  Linking.openURL(fullUrl).catch(() => console.log('Failed to open webstory URL'));
+                                }
+                              }}
+                              activeOpacity={0.8}
+                            >
+                              <Ionicons name="images-outline" size={s(14)} color="#fff" />
+                            </TouchableOpacity>
+                             <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, paddingVertical: vs(10), paddingHorizontal: s(8), backgroundColor: 'rgba(0,0,0,0.4)' }}>
+                                          {/* Carousel dots — rendered first so they appear above the bg but below no other element */}
+                            
+                                          <Text style={{ fontFamily: FONTS.muktaMalar.semibold, fontSize: ms(14), color: '#FFFFFF', lineHeight: ms(22) }}>
+                                            {title}
+                                          </Text>
+                                          <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: s(6), paddingTop: ms(8) }}>
+                                            {[0, 1, 2, 3, 4, 5, 6, 7].map((index) => (
+                                              <View
+                                                key={`dot-${index}`}
+                                                style={{
+                                                  width: s(13), height: s(2), borderRadius: (0.5),
+                                                  backgroundColor: 'rgba(255,255,255,0.5)',
+                                                }}
+                                              />
+                                            ))}
+                                          </View>
+                                        </View>
                           </View>
                         </TouchableOpacity>
                       );
                     })}
-                  </ScrollView>
+                  </View>
                 </View>
               ) : section.type === 'books' ? (
                 <View key={`sec-${si}`}>
@@ -3205,6 +3371,261 @@ export default function HomeScreen() {
                     josiyamData={section.josiyamRaw}
                     onSeeMore={() => navigation?.navigate('JoshiyamScreen')}
                   />
+                ) : section.type === 'ipaper_image' ? (
+                  <View key={`sec-${si}`}>
+                    {section.title && <SectionHeader title={section.title} />}
+                    {section.data?.map((item, i) => {
+                      const imageUri = item.largeimages || item.images || '';
+                      const link = item.external_link || item.slug || '';
+
+                      return (
+                        <TouchableOpacity
+                          key={`ipaper-img-${i}`}
+                          onPress={() => link && Linking.openURL(link).catch(console.warn)}
+                          activeOpacity={0.9}
+                          style={{ marginHorizontal: s(12), marginBottom: vs(12) }}
+                        >
+                          <Image
+                            source={{ uri: imageUri }}
+                            style={{
+                              width: '100%',
+                              height: vs(430),
+                              resizeMode: 'contain',
+                              backgroundColor: '#f5f5f5',
+                            }}
+                          />
+                          <View style={{ alignItems: 'center', marginTop: vs(8) }}>
+                            <Text style={{
+                              fontSize: ms(14),
+                              fontWeight: '700',
+                              color: PALETTE.textDark,
+                              fontFamily: FONTS.muktaMalar.bold,
+                              textAlign: 'center',
+                            }}>
+                              {item.newstitle || 'வாரமலர்'}
+                            </Text>
+                            {!!item.standarddate && (
+                              <Text style={{
+                                fontSize: ms(12),
+                                color: PALETTE.grey500,
+                                fontFamily: FONTS.muktaMalar.regular,
+                                marginTop: vs(4),
+                              }}>
+                                {item.standarddate}
+                              </Text>
+                            )}
+                          </View>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                ) : section.type === 'cinema_review' ? (
+                  <View key={`sec-${si}`}>
+                    {section.data?.map((item, i) => {
+                      const link = item.external_link || item.slug || '';
+                      const reviewText = item.vimarsanam || '';
+                      const starRating = item.starrating || '';
+
+                      return (
+                        <TouchableOpacity
+                          key={`cinema-review-${i}`}
+                          onPress={() => link && Linking.openURL(link).catch(console.warn)}
+                          activeOpacity={0.9}
+                          style={{ marginHorizontal: s(12), marginBottom: vs(12) }}
+                        >
+                          <View style={{
+                            backgroundColor: '#f8f9fa',
+                            borderRadius: s(8),
+                            padding: s(16),
+                            borderWidth: 1,
+                            borderColor: PALETTE.grey300,
+                          }}>
+                            <Text style={{
+                              fontSize: ms(16),
+                              fontWeight: '700',
+                              color: PALETTE.textDark,
+                              fontFamily: FONTS.muktaMalar.bold,
+                              textAlign: 'center',
+                              marginBottom: vs(8),
+                            }}>
+                              {item.newstitle}
+                            </Text>
+                            
+                            {starRating && (
+                              <View style={{
+                                flexDirection: 'row',
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                marginBottom: vs(8),
+                              }}>
+                                <Text style={{
+                                  fontSize: ms(14),
+                                  color: '#f39c12',
+                                  marginRight: s(4),
+                                }}>
+                                  ⭐
+                                </Text>
+                                <Text style={{
+                                  fontSize: ms(14),
+                                  color: PALETTE.textDark,
+                                  fontFamily: FONTS.muktaMalar.regular,
+                                }}>
+                                  {starRating}/5
+                                </Text>
+                              </View>
+                            )}
+
+                            <Text style={{
+                              fontSize: ms(13),
+                              color: PALETTE.textDark,
+                              fontFamily: FONTS.muktaMalar.regular,
+                              lineHeight: vs(20),
+                              textAlign: 'justify',
+                              maxHeight: vs(200),
+                            }} numberOfLines={8}>
+                              {reviewText.replace(/<br\/>/g, '\n').replace(/<[^>]*>/g, '')}
+                            </Text>
+
+                            {!!item.standarddate && (
+                              <Text style={{
+                                fontSize: ms(12),
+                                color: PALETTE.grey500,
+                                fontFamily: FONTS.muktaMalar.regular,
+                                textAlign: 'center',
+                                marginTop: vs(8),
+                              }}>
+                                {item.standarddate}
+                              </Text>
+                            )}
+                          </View>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                ) : section.type === 'cinema_review_with_image' ? (
+                  <View key={`sec-${si}`}>
+                    {section.data?.map((item, i) => {
+                      const link = item.external_link || item.slug || '';
+                      const imageUri = item.largeimages || item.images || '';
+                      const reviewText = item.vimarsanam || '';
+                      const starRating = item.starrating || '';
+
+                      console.log('🎬 RENDERER - Item data:', {
+                        title: item.newstitle,
+                        hasImage: !!imageUri,
+                        hasReview: !!reviewText,
+                        reviewLength: reviewText?.length || 0,
+                        starRating: starRating
+                      });
+
+                      return (
+                        <TouchableOpacity
+                          key={`cinema-review-img-${i}`}
+                          onPress={() => link && Linking.openURL(link).catch(console.warn)}
+                          activeOpacity={0.9}
+                          style={{ marginHorizontal: s(12), marginBottom: vs(12) }}
+                        >
+                          <View style={{
+                            // backgroundColor: '#f8f9fa',
+                            // borderRadius: s(8),
+                            // borderWidth: 1,
+                            // borderColor: PALETTE.grey300,
+                            overflow: 'hidden',
+                          }}>
+                            
+                            {/* Image at top */}
+                            {imageUri && (
+                              <Image
+                                source={{ uri: imageUri }}
+                                style={{
+                                  width: '100%',
+                                  height: vs(400),
+                                  resizeMode: 'contain',
+                                  backgroundColor: '#f5f5f5',
+                                }}
+                              />
+                            )}
+
+                            {/* Content below image */}
+                            <View style={{ padding: s(16) }}>
+                              {/* <Text style={{
+                                fontSize: ms(16),
+                                fontWeight: '700',
+                                color: PALETTE.textDark,
+                                fontFamily: FONTS.muktaMalar.bold,
+                                textAlign: 'center',
+                                marginBottom: vs(8),
+                              }}>
+                                {item.newstitle}
+                              </Text> */}
+                              
+                              {/* {starRating && (
+                                <View style={{
+                                  flexDirection: 'row',
+                                  justifyContent: 'center',
+                                  alignItems: 'center',
+                                  marginBottom: vs(8),
+                                }}>
+                                  <Text style={{
+                                    fontSize: ms(14),
+                                    color: '#f39c12',
+                                    marginRight: s(4),
+                                  }}>
+                                    ⭐
+                                  </Text>
+                                  <Text style={{
+                                    fontSize: ms(14),
+                                    color: PALETTE.textDark,
+                                    fontFamily: FONTS.muktaMalar.regular,
+                                  }}>
+                                    {starRating}/5
+                                  </Text>
+                                </View>
+                              )} */}
+
+                              {/* {reviewText && (
+                                <Text style={{
+                                  fontSize: ms(13),
+                                  color: PALETTE.textDark,
+                                  fontFamily: FONTS.muktaMalar.regular,
+                                  lineHeight: vs(20),
+                                  textAlign: 'justify',
+                                  maxHeight: vs(150),
+                                }} numberOfLines={6}>
+                                  {reviewText.replace(/<br\/>/g, '\n').replace(/<[^>]*>/g, '')}
+                                </Text>
+                              )} */}
+
+                              {/* Debug: Show if no review text */}
+                              {/* {!reviewText && (
+                                <Text style={{
+                                  fontSize: ms(12),
+                                  color: 'red',
+                                  fontFamily: FONTS.muktaMalar.regular,
+                                  textAlign: 'center',
+                                  fontStyle: 'italic',
+                                }}>
+                                  No review text found
+                                </Text>
+                              )} */}
+
+                              {!!item.standarddate && (
+                                <Text style={{
+                                  fontSize: ms(12),
+                                  color: PALETTE.grey500,
+                                  fontFamily: FONTS.muktaMalar.regular,
+                                  textAlign: 'center',
+                                  marginTop: vs(8),
+                                }}>
+                                  {item.standarddate}
+                                </Text>
+                              )}
+                            </View>
+                          </View>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
                 ) : section.showDistrictDropdown ? (
                   <TodayEventsCard
                     key={`sec-${si}`}
@@ -3213,7 +3634,37 @@ export default function HomeScreen() {
                   />
                 ) : (
                 <View key={`sec-${si}`}>
-                  <SectionHeader title={section.title} />
+                  <SectionHeader
+                    title={section.title}
+                    onSeeMore={
+                      section.title?.includes('உலக தமிழர் செய்திகள்') ?
+                      () => {
+                        console.log('🔍 ULAGA THAMIZAR SECTION HEADER CLICKED - Navigating to: NewsDetailsScreen');
+                        // Navigate to the first ulaga thamizar news item instead of CommonSectionScreen
+                        const ulagaThamizarData = section.data || [];
+                        if (ulagaThamizarData.length > 0) {
+                          const firstItem = ulagaThamizarData[0];
+                          console.log('📱 First item data:', { newsId: firstItem.News_ID || firstItem.newsid || firstItem.id, title: firstItem.newstitle || firstItem.title });
+                          navigation?.navigate('NewsDetailsScreen', {
+                            newsId: firstItem.News_ID || firstItem.newsid || firstItem.id,
+                            newsItem: firstItem,
+                            slug: firstItem.slug || '',
+                          });
+                        }
+                      } : section.title?.includes('சினிமா') ?
+                      () => {
+                        console.log('🎬 CINEMA SECTION HEADER CLICKED - Opening in browser');
+                        const link = 'https://www.dinamalar.com/cinema';
+                        Linking.openURL(link).catch(() => console.log('Failed to open cinema link'));
+                      } : (section.title?.includes('வாராவாரம்') || section.title?.includes('varavaram') || 
+                         section.title?.includes('வாரமலர்') || section.title?.includes('varamalar')) ?
+                      () => {
+                        console.log('📰 VARAVARAM/VARAMALAR SECTION HEADER CLICKED - Opening iPaper in browser');
+                        const link = 'https://ipaper.dinamalar.com/';
+                        Linking.openURL(link).catch(() => console.log('Failed to open varavaram iPaper link'));
+                      } : undefined
+                    }
+                  />
                   {section.data?.map((item, i) => {
                     const isPremiumStory = section.title?.toLowerCase().includes('பிரத்யேகச் செய்திகள்') || section.title?.toLowerCase().includes('premium') || section.title?.toLowerCase().includes('பிரீமியம்');
                     const isVideoItem = item.video || item.videoid || item.videotitle || item.y_path;
@@ -3224,7 +3675,12 @@ export default function HomeScreen() {
                     // Custom varamalar card with title below category
                     if (isVaramalarSection) {
                       const { sf } = useFontSize();
-                      const imageUri = item.images || item.largeimages || item.image || item.thumbnail || item.thumb || 'https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_default.jpg?im=Resize,width=400';
+                      
+                      // Use wrapperimage from section data if available, otherwise fall back to item image
+                      const wrapperImage = section.data?.[0]?.wrapperimage || section.wrapperimage;
+                      const imageUri = wrapperImage || 
+                                     item.images || item.largeimages || item.image || item.thumbnail || item.thumb || 
+                                     'https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_default.jpg?im=Resize,width=400';
                       const bookTitle = item.booktitle || item.title || item.newstitle || '';
                       const category = item.maincat || 'வாரமலர்';
                       const date = item.standarddate || item.date || item.ago || '';
@@ -3357,13 +3813,29 @@ export default function HomeScreen() {
                             return;
                           }
 
-                          if (sectionTitle.includes('வாராவாரம்') || sectionTitle.includes('varavaram')) {
-                            navigation?.navigate('CommonSectionScreen', {
-                              screenTitle: 'வாராவாரம்',
-                              apiEndpoint: 'https://api-st-cdn.dinamalar.com/varavaram',
-                              allTabLink: 'https://api-st-cdn.dinamalar.com/varavaram'
-                            });
+                          if (sectionTitle.includes('வாராவாரம்') || sectionTitle.includes('varavaram') || 
+                            sectionTitle.includes('வாரமலர்') || sectionTitle.includes('varamalar')) {
+                            // Open varavaram iPaper in browser
+                            const link = item.link || item.slug || item.external_link || 'https://ipaper.dinamalar.com/';
+                            console.log('📰 VARAVARAM/VARAMALAR iPaper CLICKED - Opening in browser:', link);
+                            Linking.openURL(link).catch(() => console.log('Failed to open varavaram iPaper link'));
                             return;
+                          }
+
+                          if (sectionTitle.includes('உலக தமிழர் செய்திகள்') || sectionTitle.includes('ulnga thamizhar') ||
+                            sectionTitle.includes('தமிழர் செய்திகள்') || sectionTitle.includes('thamizhar seidhigal') ||
+                            sectionTitle.includes('உலகத் தமிழர்')) {
+
+                            console.log('🔍 ULAGA THAMIZAR ITEM CLICKED - Navigating to: NewsDetailsScreen');
+                            console.log('📱 Clicked item data:', { newsId: item.News_ID || item.newsid || item.id, title: item.newstitle || item.title });
+
+                            // ✅ Navigate to the CLICKED item, not always the first item
+                            navigation?.navigate('NewsDetailsScreen', {
+                              newsId: item.News_ID || item.newsid || item.id || item.news_id || item.articleid,
+                              newsItem: item,
+                              slug: item.slug || '',
+                            });
+                            return; // Prevent fallback to goToArticle
                           }
 
                           if (sectionTitle.includes('வர்த்தகம்') || sectionTitle.includes('varthagam') ||
@@ -3374,13 +3846,31 @@ export default function HomeScreen() {
 
                           if (sectionTitle.includes('தினம் தினம்') || sectionTitle.includes('dinamdinam') ||
                             sectionTitle.includes('தினம் தினம்')) {
-                            navigation?.navigate('DinamDinamScreen');
+                            // Navigate to the first dinamdinam news item instead of DinamDinamScreen
+                            const dinamDinamData = section.data || [];
+                            if (dinamDinamData.length > 0) {
+                              const firstItem = dinamDinamData[0];
+                              navigation?.navigate('NewsDetailsScreen', {
+                                newsId: firstItem.newsid || firstItem.id,
+                                newsItem: firstItem,
+                                slug: firstItem.slug || '',
+                              });
+                            }
                             return;
                           }
 
                           if (sectionTitle.includes('விளையாட்டு') || sectionTitle.includes('sports') ||
                             sectionTitle.includes('விளையாட்டு')) {
-                            navigation?.navigate('SportsScreen');
+                            // Navigate to the first sports news item instead of SportsScreen
+                            const sportsData = section.data || [];
+                            if (sportsData.length > 0) {
+                              const firstItem = sportsData[0];
+                              navigation?.navigate('NewsDetailsScreen', {
+                                newsId: firstItem.newsid || firstItem.id,
+                                newsItem: firstItem,
+                                slug: firstItem.slug || '',
+                              });
+                            }
                             return;
                           }
 
@@ -3428,6 +3918,14 @@ export default function HomeScreen() {
                           //   });
                           //   return;
                           // }
+
+                          if (sectionTitle.includes('சினிமா') || sectionTitle.includes('cinema')) {
+                            // Open cinema in browser
+                            const link = item.link || item.slug || item.reacturl || 'https://www.dinamalar.com/cinema';
+                            console.log('🎬 CINEMA CLICKED - Opening in browser:', link);
+                            Linking.openURL(link).catch(() => console.log('Failed to open cinema link'));
+                            return;
+                          }
 
                           goToArticle(item);
                         }}
