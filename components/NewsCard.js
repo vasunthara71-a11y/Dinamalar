@@ -6,9 +6,24 @@ import { Comment } from '../assets/svg/Icons';
 import { s, vs, ms } from '../utils/scaling';
 import { FONTS } from '../utils/constants';
 import useAppStyles from '../hooks/useAppStyles';
+import { useFontSize } from '../context/FontSizeContext';
+import {NewsCard as NewsCardStyles} from '../utils/constants';
+ 
+// HTML decode function
+const decodeHtml = (html) => {
+  if (!html) return '';
+  return html
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, ' ');
+};
 
-const NewsCard = ({ item, onPress, isPremium = false, hideCategory = false }) => {
+const NewsCard = ({ item, onPress, onCommentPress, isSocialMedia = false, isPremium = false, hideCategory = false, isCartoon = false, sectionTitle = '', is360Degree = false, hideImage = false, hideDescription = false, isIPaper = false }) => {
   const { styles: appSt } = useAppStyles(); // ← font styles, always fresh
+  const { sf } = useFontSize(); // ← scaling function
   const [imageError, setImageError] = React.useState(false);
 
   // Debug premium detection
@@ -29,206 +44,164 @@ const NewsCard = ({ item, onPress, isPremium = false, hideCategory = false }) =>
     setImageError(true);
   };
 
-  const title       = item.newstitle || item.title || item.videotitle || item.name || '';
-  const category    = item.maincat || item.categrorytitle || item.ctitle || item.maincategory || '';
-  const ago         = item.ago || item.time_ago || '';
-  const newscomment = item.newscomment || item.commentcount || item.comments || '';
+  const title = decodeHtml(item.newstitle || item.title || item.videotitle || item.name || '');
+  const category = item.maincat || item.categrorytitle || item.ctitle || item.maincategory || '';
+  const ago = item.ago || item.time_ago || '';
+  const newscomment =
+    item.newscomment ||
+    item.newscomments ||
+    item.commentcount ||
+    item.nmcomment ||
+    item.nmcomments ||
+    item.comments?.total ||
+    (typeof item.comments === 'number' ? item.comments : null) ||
+    '';
   const newsdescription = item.newsdescription || item.description || '';
-  
-  // Debug description data
-  console.log('NEWS CARD - Description for:', title);
-  console.log('- newsdescription:', item.newsdescription);
-  console.log('- description:', item.description);
-  console.log('- final newsdescription:', newsdescription);
-  console.log('- hideCategory:', hideCategory);
 
-  // Debug comment data
-  console.log('COMMENT DEBUG for:', title);
-  console.log('- newscomment:', item.newscomment);
-  console.log('- commentcount:', item.commentcount);
-  console.log('- comments:', item.comments);
-  console.log('- final newscomment:', newscomment);
+  // // Debug description data
+  // console.log('NEWS CARD - Description for:', title);
+  // console.log('- newsdescription:', item.newsdescription);
+  // console.log('- description:', item.description);
+  // console.log('- final newsdescription:', newsdescription);
+  // console.log('- hideCategory:', hideCategory);
 
-  const hasAudio    = item.audio === 1 || item.audio === '1' || item.audio === true ||
+  // // Debug comment data
+  // console.log('COMMENT DEBUG for:', title);
+  // console.log('- newscomment:', item.newscomment);
+  // console.log('- commentcount:', item.commentcount);
+  // console.log('- comments:', item.comments);
+  // console.log('- final newscomment:', newscomment);
+
+  const hasAudio = item.audio === 1 || item.audio === '1' || item.audio === true ||
     (typeof item.audio === 'string' && item.audio.length > 1 && item.audio !== '0');
 
   return (
-    <View style={st.wrap}>
+    <View style={NewsCardStyles.wrap}>
+      
       <TouchableOpacity onPress={onPress} activeOpacity={0.88}>
 
-        <View style={st.imageWrap}>
-          {imageError ? (
-            <View style={[st.image, st.imageErrorContainer]}>
-              <Ionicons name="image-outline" size={ms(40)} color="#9CA3AF" />
-              <Text style={[st.imageErrorText, appSt.cardCategory]}>Image Not Available</Text>
-            </View>
-          ) : (
-            <Image 
-              source={{ uri: imageUri }} 
-              style={st.image} 
-              resizeMode="contain" 
-              onError={handleImageError}
-            />
-          )}
-        </View>
+        {/* Image Container - Only show if hideImage is false */}
+        {!hideImage && (
+          <View style={NewsCardStyles.imageWrap}>
+            {imageError ? (
+              <View style={[NewsCardStyles.image, NewsCardStyles.imageErrorContainer]}>
+                <Ionicons name="image-outline" size={ms(40)} color="#9CA3AF" />
+                <Text style={[NewsCardStyles.imageErrorText, appSt.cardCategory]}>Image Not Available</Text>
+              </View>
+            ) : (
+              <Image
+                source={{ uri: imageUri }}
+                style={NewsCardStyles.image}
+                resizeMode="contain"
+                onError={handleImageError}
+              />
+            )}
 
-        <View style={st.content}>
-          {!!title && (
-            <Text style={[st.titleBase, appSt.cardTitle]} numberOfLines={3}>
+            {/* Premium Tag */}
+            {isPremium && (
+              <View style={NewsCardStyles.premiumTag}>
+                <Text style={NewsCardStyles.premiumTagText}>பிரீமியம்</Text>
+              </View>
+            )}
+
+            {/* 360° Tag */}
+            {is360Degree && (
+              <View style={NewsCardStyles.degree360Tag}>
+                <Text style={NewsCardStyles.degree360TagText}>360° கோயில்கள் (தமிழ்)</Text>
+              </View>
+            )}
+
+            {/* Section Title */}
+            {sectionTitle && (
+              <View style={NewsCardStyles.sectionTitleContainer}>
+                <Text style={NewsCardStyles.sectionTitle}>{sectionTitle}</Text>
+              </View>
+            )}
+          </View>
+        )}
+
+        {/* Tags for cards without images */}
+        {hideImage && (
+          <View style={{ position: 'relative', paddingHorizontal: s(12), paddingTop: vs(10) }}>
+            {/* Premium Tag */}
+            {isPremium && (
+              <View style={[NewsCardStyles.premiumTag, { position: 'absolute', right: s(12), top: vs(10) }]}>
+                <Text style={NewsCardStyles.premiumTagText}>பிரீமியம்</Text>
+              </View>
+            )}
+
+            {/* 360° Tag */}
+            {is360Degree && (
+              <View style={[NewsCardStyles.degree360Tag, { position: 'absolute', right: s(12), top: vs(10) }]}>
+                <Text style={NewsCardStyles.degree360TagText}>360° கோயில்கள் (தமிழ்)</Text>
+              </View>
+            )}
+          </View>
+        )}
+
+        <View style={NewsCardStyles.contentContainer}>
+          {/* Banner Title and Date - Show below image for banner items */}
+          {item.isBanner && item.showCenteredTitle && (
+            <View style={NewsCardStyles.bannerContentContainer}>
+              {!!title && (
+                <Text style={NewsCardStyles.bannerTitle}>{title}</Text>
+              )}
+              {!!item.standarddate && (
+                <Text style={NewsCardStyles.bannerDate}>{item.standarddate}</Text>
+              )}
+            </View>
+          )}
+
+          {/* Regular title for non-banner items */}
+          {!!title && !isSocialMedia && !item.isBanner && (
+            <Text style={[NewsCardStyles.title, { fontSize: sf(13), lineHeight: sf(22) }]} numberOfLines={3}>
               {title}
             </Text>
           )}
 
-          {/* Description - Show if available */}
-          {!!newsdescription && (
+          {/* Show description for temple items and Dinam Dinam */}
+          {/* {!!newsdescription && !isSocialMedia && !hideDescription && (
             <View>
-              <Text style={[st.descriptionText, appSt.cardDescription]} numberOfLines={2}>
+              <Text style={[NewsCardStyles.descriptionText, appSt.cardDescription]} numberOfLines={2}>
                 {newsdescription}
               </Text>
-              <Text style={{fontSize: 10, color: 'red'}}>DEBUG: Description showing</Text>
             </View>
-          )}
-          
-          {/* Debug: Always show if description exists */}
-          {!!newsdescription && (
-            <View style={{backgroundColor: '#f0f0f0', padding: 4}}>
-              <Text style={{fontSize: 10, color: 'blue'}}>DEBUG: Description exists but hidden: {hideCategory ? 'YES' : 'NO'}</Text>
-              <Text style={{fontSize: 10, color: 'blue'}}>DEBUG: Description length: {newsdescription.length}</Text>
-              <Text style={{fontSize: 10, color: 'blue'}}>DEBUG: Description: {newsdescription.substring(0, 50)}...</Text>
+          )} */}
+
+          {!!category && !isSocialMedia && !hideCategory && !isPremium && (
+            <View style={NewsCardStyles.catPill}>
+              <Text style={[NewsCardStyles.catText, appSt.cardCategory]}>{category}</Text>
             </View>
           )}
 
-          {/* Category Row - Only show if hideCategory is false */}
-          {!hideCategory ? (
-            <View style={st.categoryRow}>
-              {!!category && (
-                <View style={st.catPill}>
-                  <Text style={[st.catBase, appSt.cardCategory]}>{category}</Text>
-                </View>
-              )}
-              {isPremium && (
-                <View style={st.premiumPill}>
-                  <Text style={[st.premiumBase, appSt.cardCategory]}>பிரீமியம்</Text>
-                </View>
-              )}
-            </View>
-          ) : null}
-
-          <View style={st.metaRow}>
+          <View style={NewsCardStyles.metaRow}>
             <Text style={appSt.cardTime}>{ago}</Text>
-            <View style={st.metaRight}>
+            <View style={NewsCardStyles.metaRight}>
               {hasAudio && (
-                <Ionicons name="volume-high" size={ms(14)} color="#637381" style={{ marginRight: s(6) }} />
+                <View style={NewsCardStyles.audioIcon}>
+                  <Ionicons name="volume-high" size={s(14)} color="#637381" />
+                </View>
               )}
               {!!newscomment && newscomment !== '0' && (
-                <View style={st.commentRow}>
-                  <Comment size={ms(14)} color="#637381" style={{ marginRight: 2 }} />
+                <TouchableOpacity 
+                  style={NewsCardStyles.commentRow}
+                  onPress={onCommentPress}
+                  activeOpacity={0.8}
+                >
+                  <Comment size={s(15)} color="#637381" style={{ marginRight: 2 }} />
                   <Text style={appSt.cardComment}> {newscomment}</Text>
-                </View>
+                </TouchableOpacity>
               )}
             </View>
           </View>
         </View>
 
       </TouchableOpacity>
-      <View style={st.divider} />
+      <View style={NewsCardStyles.divider} />
     </View>
   );
 };
 
-// Only layout/shape/color — NO fontSize anywhere in here
-const st = StyleSheet.create({
-  wrap: {
-    backgroundColor: '#fff',
-  },
-  imageWrap: {
-    paddingHorizontal: ms(12),
-    paddingTop:        vs(8),
-  },
-  image: {
-    width:  '100%',
-    height: vs(200),
-    backgroundColor: '#F4F6F8',
-  },
-  imageErrorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F9FAFB',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: ms(4),
-  },
-  imageErrorText: {
-    marginTop: vs(8),
-    fontSize: ms(12),
-    color: '#9CA3AF',
-    textAlign: 'center',
-  },
-  content: {
-    padding: ms(12),
-  },
-  titleBase: {
-    fontFamily:   FONTS.muktaMalar.bold,
-    marginBottom: vs(6),
-  },
-  descriptionText: {
-    fontFamily: FONTS.muktaMalar.regular,
-    fontSize: ms(13),
-    color: '#6B7280',
-    lineHeight: vs(18),
-    marginBottom: vs(8),
-  },
-  catPill: {
-    alignSelf:         'flex-start',
-    backgroundColor:   '#F4F6F8',
-    borderWidth:       1,
-    borderColor:       '#DFE3E8',
-    borderRadius:      ms(4),
-    paddingHorizontal: ms(8),
-    paddingVertical:   vs(3),
-    marginBottom:      vs(8),
-  },
-  catBase: {
-    fontFamily: FONTS.muktaMalar.regular,
-  },
-  categoryRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: vs(8),
-    flexWrap: 'wrap',
-  },
-  premiumPill: {
-    backgroundColor: '#FFD700',
-    borderWidth: 1,
-    borderColor: '#FFB300',
-    borderRadius: ms(4),
-    paddingHorizontal: ms(8),
-    paddingVertical: vs(3),
-    marginLeft: ms(6),
-  },
-  premiumBase: {
-    fontFamily: FONTS.muktaMalar.bold,
-    color: '#8B4513',
-  },
-  metaRow: {
-    flexDirection:  'row',
-    alignItems:     'center',
-    justifyContent: 'space-between',
-    marginTop:      vs(4),
-  },
-  metaRight: {
-    flexDirection: 'row',
-    alignItems:    'center',
-  },
-  commentRow: {
-    flexDirection: 'row',
-    alignItems:    'center',
-  },
-  divider: {
-    height:          vs(6),
-    backgroundColor: '#F4F6F8',
-  },
-});
+ 
 
 export default NewsCard;
