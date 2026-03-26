@@ -20,8 +20,7 @@ import KadalThamaraiScreen from "../screens/KadalThamaraiScreen";
 import VarthagamScreen from '../screens/VarthagamScreen';
 import SportsScreen from '../screens/SportsScreen';
 import DistrictNewsScreen from '../screens/DistrictNewsScreen';
- import DinamDinamScreen from '../screens/DinamDinamScreen';
-import JoshiyamScreen from '../screens/JoshiyamScreen';
+ import JoshiyamScreen from '../screens/JoshiyamScreen';
 import CommonSectionScreen from '../screens/CommonSectionScreen';
 import RasiDetailScreen from '../screens/RasiDetailScreen';
 import PhotoDetailsScreen from '../screens/PhotoDetailsScreen';
@@ -72,8 +71,7 @@ const AppNavigator = () => {
         <Stack.Screen name="About" component={ProfileScreen} />
         <Stack.Screen name='SportsScreen' component={SportsScreen}/>
         <Stack.Screen name='DistrictNewsScreen' component={DistrictNewsScreen}/>
-        <Stack.Screen name='DinamDinamScreen' component={DinamDinamScreen}/>
-
+ 
         <Stack.Screen name='JoshiyamScreen' component={JoshiyamScreen}/>
         <Stack.Screen name='CommonSectionScreen' component={CommonSectionScreen}/>
         <Stack.Screen name='RasiDetailScreen' component={RasiDetailScreen}/>

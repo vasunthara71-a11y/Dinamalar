@@ -354,6 +354,205 @@ function TaboolaWidget({ pageUrl, mode, container, placement }) {
   );
 }
 
+// ─── Google News Widget ───────────────────────────────────────────────────────────
+function GoogleNewsWidget() {
+  const [height, setHeight] = useState(300);
+  // add state
+
+
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+      background: #fff; 
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      padding: 12px;
+    }
+    .google-news-container {
+      width: 100%;
+      min-height: 300px;
+    }
+    .news-item {
+      border-bottom: 1px solid #f0f0f0;
+      padding: 12px 0;
+      display: flex;
+      gap: 12px;
+    }
+    .news-item:last-child {
+      border-bottom: none;
+    }
+    .news-image {
+      width: 80px;
+      height: 60px;
+      background: #f5f5f5;
+      border-radius: 4px;
+      object-fit: cover;
+    }
+    .news-content {
+      flex: 1;
+    }
+    .news-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #1a73e8;
+      margin-bottom: 4px;
+      line-height: 1.3;
+    }
+    .news-source {
+      font-size: 12px;
+      color: #5f6368;
+      margin-bottom: 2px;
+    }
+    .news-time {
+      font-size: 11px;
+      color: #9aa0a6;
+    }
+    .google-news-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid #1a73e8;
+    }
+    .google-logo {
+      width: 24px;
+      height: 24px;
+      background: #4285f4;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+      font-size: 14px;
+    }
+    .google-news-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #202124;
+    }
+  </style>
+</head>
+<body>
+  <div class="google-news-container">
+    <div class="google-news-header">
+      <div class="google-logo">G</div>
+      <div class="google-news-title">Google News</div>
+    </div>
+    
+    <div class="news-item">
+      <img class="news-image" src="https://picsum.photos/seed/news1/80/60.jpg" alt="News image">
+      <div class="news-content">
+        <div class="news-title">Breaking: Latest Technology Updates</div>
+        <div class="news-source">Tech News</div>
+        <div class="news-time">2 hours ago</div>
+      </div>
+    </div>
+    
+    <div class="news-item">
+      <img class="news-image" src="https://picsum.photos/seed/news2/80/60.jpg" alt="News image">
+      <div class="news-content">
+        <div class="news-title">Market Updates: Stocks Rise Today</div>
+        <div class="news-source">Financial Times</div>
+        <div class="news-time">4 hours ago</div>
+      </div>
+    </div>
+    
+    <div class="news-item">
+      <img class="news-image" src="https://picsum.photos/seed/news3/80/60.jpg" alt="News image">
+      <div class="news-content">
+        <div class="news-title">Sports: Championship Finals This Weekend</div>
+        <div class="news-source">Sports Daily</div>
+        <div class="news-time">6 hours ago</div>
+      </div>
+    </div>
+    
+    <div class="news-item">
+      <img class="news-image" src="https://picsum.photos/seed/news4/80/60.jpg" alt="News image">
+      <div class="news-content">
+        <div class="news-title">Weather: Clear Skies Expected Tomorrow</div>
+        <div class="news-source">Weather Channel</div>
+        <div class="news-time">8 hours ago</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function sendHeight() {
+      setTimeout(function() {
+        var h = document.body.scrollHeight;
+        if (h > 100) {
+          window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'height', value: h }));
+        }
+      }, 100);
+    }
+    
+    sendHeight();
+    setTimeout(sendHeight, 1000);
+  </script>
+</body>
+</html>`;
+
+  return (
+    <View style={[styles.googleNewsWrap, { height }]}>
+      <WebView
+        source={{ html, baseUrl: 'https://www.google.com' }}
+        style={{ width: '100%', height }}
+        scrollEnabled={false}
+        javaScriptEnabled
+        domStorageEnabled
+        onMessage={(e) => {
+          try {
+            const msg = JSON.parse(e.nativeEvent.data);
+            if (msg.type === 'height' && msg.value > 100) {
+              setHeight(prev => Math.max(prev, msg.value));
+            }
+          } catch {
+            const h = parseInt(e.nativeEvent.data, 10);
+            if (!isNaN(h) && h > 100) setHeight(prev => Math.max(prev, h));
+          }
+        }}
+        onError={(e) => console.warn('[Google News WebView error]', e.nativeEvent)}
+      />
+    </View>
+  );
+}
+
+function GoogleFollowBanner({ data }) {
+  const link = data?.link || 
+    'https://news.google.com/publications/CAAqKAgKIiJDQklTRXdnTWFnOEtEV1JwYm1GdFlXeGhjaTVqYjIwb0FBUAE?hl=ta&gl=IN&ceid=IN%3Ata';
+
+  return (
+    <TouchableOpacity
+      style={styles.googleFollowBanner}
+      onPress={() => Linking.openURL(link)}
+      activeOpacity={0.85}
+    >
+      <View style={styles.googleFollowNative}>
+        {/* Left: Google icon + text */}
+        <View style={styles.googleFollowLeft}>
+          <View style={styles.googleIconCircle}>
+            <Text style={styles.googleIconText}>G</Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.googleFollowTitle}>Google News-ல் பின்தொடரவும்</Text>
+            <Text style={styles.googleFollowSub}>தினமலர் செய்திகளை உடனுக்குடன் பெறுங்கள்</Text>
+          </View>
+        </View>
+        {/* Right: Follow button */}
+        <View style={styles.googleFollowBtn}>
+          <Text style={styles.googleFollowBtnText}>Follow</Text>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+}
+
 // ─── Swipe Hint ───────────────────────────────────────────────────────────────
 function SwipeHint({ direction }) {
   return (
@@ -421,6 +620,7 @@ export default function NewsDetailsScreen() {
   const [relatedNewsData, setRelatedNewsData] = useState([]);
   const [commentTotal, setCommentTotal] = useState(0);
   const [authorId, setAuthorId] = useState(null);
+  const [googleFollowData, setGoogleFollowData] = useState(null);
 
   // Scroll-to-top functionality
   const [showScrollTop, setShowScrollTop] = useState(false);
@@ -536,15 +736,46 @@ export default function NewsDetailsScreen() {
   // ── Fetch detail ───────────────────────────────────────────────────────────
   const fetchDetail = useCallback(async () => {
     const id = newsId || newsItem?.id || newsItem?.newsid;
+
+    // Immediately show available data without waiting for API
+    if (newsItem && !detail) {
+      setDetail(newsItem);
+      setLoading(false);
+    }
+
     if (!id) {
       if (newsItem) { setDetail(newsItem); setLoading(false); return; }
       setError('செய்தி ID கிடைக்கவில்லை');
       setLoading(false);
       return;
     }
+
+    // Only fetch if we don't have complete data or need fresh data
     try {
-      setLoading(true); setError(null);
-      const res = await mainApi.get(`/detaildata?newsid=${id}`);
+      if (!newsItem) setLoading(true);
+      setError(null);
+      
+      // Add timeout to prevent hanging - increased for NRI content
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Request timeout')), 15000) // Increased to 15 seconds
+      );
+      
+      // Try different endpoints for NRI content
+      let res;
+      try {
+        res = await Promise.race([
+          mainApi.get(`/detaildata?newsid=${id}`),
+          timeoutPromise
+        ]);
+      } catch (error) {
+        // If main endpoint fails, try NRI-specific endpoint
+        console.log('Main endpoint failed, trying NRI endpoint for ID:', id);
+        res = await Promise.race([
+          mainApi.get(`/nridetail?cat=${id}&lang=ta`),
+          timeoutPromise
+        ]);
+      }
+      
       const data = res.data;
 
       const article =
@@ -555,52 +786,59 @@ export default function NewsDetailsScreen() {
         (Array.isArray(data) ? data[0] : null) ||
         null;
 
+      // Update state in batches to reduce re-renders
+      const updates = {};
+      
       if (data?.comments?.data && Array.isArray(data.comments.data)) {
-        setNewsComments(data.comments.data);
+        updates.newsComments = data.comments.data;
       } else if (Array.isArray(data?.comments)) {
-        setNewsComments(data.comments);
+        updates.newsComments = data.comments;
       } else if (article?.comments?.data) {
-        setNewsComments(article.comments.data);
+        updates.newsComments = article.comments.data;
       } else if (Array.isArray(article?.comments)) {
-        setNewsComments(article.comments);
+        updates.newsComments = article.comments;
       } else {
-        setNewsComments([]);
+        updates.newsComments = [];
       }
 
-      setCommentTotal(parseInt(data?.comments?.total, 10) || 0);
-      setNextNews(data?.detailnews?.nextnews || null);
-      setPrevNews(data?.detailnews?.previousnews || null);
-      setRelatedNewsData(data?.detailnews?.relatednews || []);
-      setDetail(article || newsItem || null);
+      updates.commentTotal = parseInt(data?.comments?.total, 10) || 0;
+      updates.nextNews = data?.detailnews?.nextnews || null;
+      updates.prevNews = data?.detailnews?.previousnews || null;
+      updates.relatedNewsData = data?.detailnews?.relatednews || [];
+      updates.detail = article || newsItem || null;
+      updates.taboolaAds = data?.taboola_ads?.mobile || null;
+      updates.googleFollowData = data?.googlefollowus?.[0] || null;
+
+      // Apply all updates at once
+      Object.entries(updates).forEach(([key, value]) => {
+        switch(key) {
+          case 'newsComments': setNewsComments(value); break;
+          case 'commentTotal': setCommentTotal(value); break;
+          case 'nextNews': setNextNews(value); break;
+          case 'prevNews': setPrevNews(value); break;
+          case 'relatedNewsData': setRelatedNewsData(value); break;
+          case 'detail': setDetail(value); break;
+          case 'taboolaAds': setTaboolaAds(value); break;
+          case 'googleFollowData': setGoogleFollowData(value); break;
+        }
+      });
 
       // Extract author ID from the article data
-      console.log('Article data:', article);
-      console.log('Author ID:', article?.authorid);
-      console.log('Author Name:', article?.authorname);
-
-      if (article?.author_id) {
-        setAuthorId(article.author_id);
-        console.log('Set authorId from author_id:', article.author_id);
-      } else if (article?.authorid) {
-        setAuthorId(article.authorid);
-        console.log('Set authorId from authorid:', article.authorid);
-      } else if (article?.author_name || article?.authorname) {
-        // If no authorid but we have author name, we might need to handle differently
-        console.log('No authorid found, but author name exists:', article?.authorname);
+      const authorIdToSet = article?.author_id || article?.authorid;
+      if (authorIdToSet) {
+        setAuthorId(authorIdToSet);
       }
-
-      // Store mobile Taboola placements from the API
-      // data.taboola_ads.mobile → { midarticle, belowarticle }
-      setTaboolaAds(data?.taboola_ads?.mobile || null);
 
     } catch (err) {
       console.error('Detail fetch error:', err?.message);
-      setDetail(newsItem || null);
-      if (!newsItem) setError('செய்தியை ஏற்ற முடியவில்லை.');
+      if (!detail) {
+        setDetail(newsItem || null);
+        if (!newsItem) setError('செய்தியை ஏற்ற முடியவில்லை.');
+      }
     } finally {
       setLoading(false);
     }
-  }, [newsId, newsItem]);
+  }, [newsId, newsItem, detail]);
 
   // Check bookmark status when detail changes
   useEffect(() => {
@@ -792,10 +1030,12 @@ export default function NewsDetailsScreen() {
                 </TouchableOpacity>
               </View>
 
-              <View style={{paddingHorizontal:ms(12)}}>
-                <Text style={[styles.authorText,{fontSize:ms(13)}]}>{AddedDate}</Text>
-                <Text style={[styles.authorText,{fontSize:ms(13)}]}>{UpdateDate}</Text>
+              <View style={{ paddingHorizontal: ms(12) }}>
+                <Text style={[styles.authorText, { fontSize: ms(13) }]}>{AddedDate}</Text>
+                <Text style={[styles.authorText, { fontSize: ms(13) }]}>{UpdateDate}</Text>
               </View>
+              <View style={styles.rowDivider} />
+               
 
               {/* Hero image */}
               {!!image && !isVideo && !isPodcast && (
@@ -947,6 +1187,8 @@ export default function NewsDetailsScreen() {
                 </View>
               )}
 
+ {/* Replace <GoogleFollowWidget /> with: */}
+{/* <GoogleFollowBanner data={googleFollowData} /> */}
               {/* ── Taboola Below-article ───────────────────────────────────
                   After related news + tags. Uses mdinamalarcom / loader.js.
                   mode + container + placement from data.taboola_ads.mobile.belowarticle */}
@@ -1042,6 +1284,68 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: 'rgba(0,0,0,0.45)',
   },
+// In StyleSheet.create({...})
+googleFollowBanner: {
+  marginHorizontal: s(12),
+  marginVertical: vs(10),
+},
+googleFollowImage: {
+  width: '100%',
+  height: vs(60),
+},
+googleFollowNative: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  backgroundColor: '#f0f7ff',
+  borderRadius: s(10),
+  borderWidth: 1,
+  borderColor: '#d0e8ff',
+  paddingHorizontal: s(12),
+  paddingVertical: vs(10),
+  gap: s(10),
+},
+googleFollowLeft: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  gap: s(10),
+  flex: 1,
+},
+googleIconCircle: {
+  width: s(36),
+  height: s(36),
+  borderRadius: s(18),
+  backgroundColor: '#4285f4',
+  justifyContent: 'center',
+  alignItems: 'center',
+},
+googleIconText: {
+  color: '#fff',
+  fontWeight: '800',
+  fontSize: ms(18),
+},
+googleFollowTitle: {
+  fontSize: ms(13),
+  fontWeight: '700',
+  color: '#202124',
+  fontFamily: FONTS.muktaMalar.bold,
+},
+googleFollowSub: {
+  fontSize: ms(11),
+  color: '#5f6368',
+  fontFamily: FONTS.muktaMalar.regular,
+},
+googleFollowBtn: {
+  backgroundColor: '#4285f4',
+  paddingHorizontal: s(14),
+  paddingVertical: vs(6),
+  borderRadius: s(16),
+},
+googleFollowBtnText: {
+  color: '#fff',
+  fontWeight: '700',
+  fontSize: ms(12),
+},
   edgeBtnRight: {
     position: 'absolute', right: 0, top: '45%',
     zIndex: 5,
@@ -1062,10 +1366,15 @@ const styles = StyleSheet.create({
     marginBottom: vs(12)
   },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: s(8), paddingHorizontal: s(12), marginBottom: vs(12) },
-  authorText:{fontFamily: FONTS.muktaMalar.regular, fontSize: ms(14), color: PALETTE.grey600 },
+  authorText: { fontFamily: FONTS.muktaMalar.regular, fontSize: ms(14), color: PALETTE.grey600 },
   iconAction: { flexDirection: 'row', alignItems: 'center', gap: s(3), padding: s(4) },
   iconBadge: { color: PALETTE.grey600, fontWeight: '600' },
   heroWrap: { marginHorizontal: s(12), marginBottom: vs(12) },
+  rowDivider: {
+    height: 1,
+    backgroundColor: '#EBEBEB',   // matches screenshot thin gray line
+    marginHorizontal: ms(10),
+  },
   heroImage: { width: '100%', height: ms(230), backgroundColor: '#f0f0f0' },
   caption: { color: PALETTE.grey600, fontStyle: 'italic', marginTop: vs(4), textAlign: 'center' },
   videoWrap: { marginHorizontal: s(16), height: ms(200), backgroundColor: '#1a1a2e', borderRadius: s(10), justifyContent: 'center', alignItems: 'center', marginBottom: vs(12), overflow: 'hidden' },
@@ -1162,5 +1471,20 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.22,
     shadowRadius: s(4),
     zIndex: 100,
+  },
+
+  // Google Follow WebView wrapper
+  googleFollowWrap: {
+    width: '100%',
+    backgroundColor: '#ffffff',
+    overflow: 'hidden',
+    marginTop: vs(8),
+    marginBottom: vs(8),
+    borderTopWidth: 1,
+    borderTopColor: '#F4F6F8',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F4F6F8',
+    paddingTop: vs(4),
+    paddingBottom: vs(4),
   },
 });
