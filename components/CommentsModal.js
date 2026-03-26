@@ -60,7 +60,8 @@ function CommentItem({ item, index }) {
             {dislikes > 0 && <Text style={[cs.actionTxt, { fontSize: sf(11) }]}>{dislikes}</Text>}
           </TouchableOpacity>
           <TouchableOpacity style={cs.actionBtn}>
-            <Comment size={sf(13)} color="#888" style={{ marginRight: 2 }} />
+            {/* <Comment size={sf(13)} color="#888" style={{ marginRight: 2 }} /> */}
+            <Ionicons name='chatbubble-outline' color={COLORS.grey600} size={16} />
             <Text style={[cs.actionTxt, { fontSize: sf(11) }]}>பதில்</Text>
           </TouchableOpacity>
         </View>
@@ -92,7 +93,7 @@ const cs = StyleSheet.create({
   name: { fontSize: scaledSizes.font.md, fontFamily: FONTS.muktaMalar.semibold, color: '#1a1a1a', flex: 1 },
   date: { fontSize: scaledSizes.font.sm, fontFamily: FONTS.muktaMalar.regular, color: '#aaa', flexShrink: 0 },
   text: { fontSize: scaledSizes.font.md, fontFamily: FONTS.muktaMalar.regular, color: COLORS.text, lineHeight: ms(20) },
-  actions: { flexDirection: 'row', marginTop: vs(6), gap: s(14) },
+  actions: { flexDirection: 'row', marginTop: vs(6), gap: s(14) ,alignItems:"center"},
   actionBtn: { flexDirection: 'row', alignItems: 'center', gap: s(4) },
   actionTxt: { fontSize: ms(11), fontFamily: FONTS.muktaMalar.medium, color: '#888' },
 });

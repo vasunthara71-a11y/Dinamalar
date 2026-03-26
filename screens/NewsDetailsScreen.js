@@ -17,7 +17,7 @@ import {
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { Ionicons } from '@expo/vector-icons';
-import { Comment, Bookmark, BookmarkSaved } from '../assets/svg/Icons';
+import { Comment, Bookmark, BookmarkSaved, Editor } from '../assets/svg/Icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import RenderHtml from 'react-native-render-html';
 
@@ -37,6 +37,21 @@ const { width: SCREEN_W } = Dimensions.get('window');
 
 const SWIPE_THRESHOLD = 60;
 const SWIPE_VELOCITY = 0.3;
+
+// --- Palette ------------------------------------------------------------------
+const PALETTE = {
+  primary: '#096dd2',
+  grey100: '#F9FAFB',
+  grey200: '#F4F6F8',
+  grey300: '#DFE3E8',
+  grey400: '#C4CDD5',
+  grey500: '#919EAB',
+  grey600: '#637381',
+  grey700: '#637381',
+  grey800: '#212B36',
+  white: '#FFFFFF',
+};
+
 
 // ── Taboola publisher ID for mobile (from your website TaboolaScript.js) ──────
 const TABOOLA_PUBLISHER_ID = 'mdinamalarcom';
@@ -405,6 +420,7 @@ export default function NewsDetailsScreen() {
   const [prevNews, setPrevNews] = useState(null);
   const [relatedNewsData, setRelatedNewsData] = useState([]);
   const [commentTotal, setCommentTotal] = useState(0);
+  const [authorId, setAuthorId] = useState(null);
 
   // Scroll-to-top functionality
   const [showScrollTop, setShowScrollTop] = useState(false);
@@ -501,6 +517,22 @@ export default function NewsDetailsScreen() {
   const goToNotifs = () => navigation?.navigate('NotificationScreen');
   const handleSelectDistrict = (district) => setSelectedDistrict(district.title);
 
+  // Handle author navigation
+  const handleAuthorPress = () => {
+    console.log('handleAuthorPress called');
+    console.log('authorId:', authorId);
+    console.log('Author name:', Author);
+
+    if (authorId) {
+      console.log('Navigating to AuthorScreen with authorId:', authorId);
+      navigation.navigate('AuthorScreen', { authorId, authorName: Author });
+    } else {
+      console.log('No authorId available for navigation');
+      // For testing, you could navigate with a dummy ID or show an alert
+      // alert('Author information not available');
+    }
+  };
+
   // ── Fetch detail ───────────────────────────────────────────────────────────
   const fetchDetail = useCallback(async () => {
     const id = newsId || newsItem?.id || newsItem?.newsid;
@@ -541,6 +573,22 @@ export default function NewsDetailsScreen() {
       setRelatedNewsData(data?.detailnews?.relatednews || []);
       setDetail(article || newsItem || null);
 
+      // Extract author ID from the article data
+      console.log('Article data:', article);
+      console.log('Author ID:', article?.authorid);
+      console.log('Author Name:', article?.authorname);
+
+      if (article?.author_id) {
+        setAuthorId(article.author_id);
+        console.log('Set authorId from author_id:', article.author_id);
+      } else if (article?.authorid) {
+        setAuthorId(article.authorid);
+        console.log('Set authorId from authorid:', article.authorid);
+      } else if (article?.author_name || article?.authorname) {
+        // If no authorid but we have author name, we might need to handle differently
+        console.log('No authorid found, but author name exists:', article?.authorname);
+      }
+
       // Store mobile Taboola placements from the API
       // data.taboola_ads.mobile → { midarticle, belowarticle }
       setTaboolaAds(data?.taboola_ads?.mobile || null);
@@ -568,7 +616,7 @@ export default function NewsDetailsScreen() {
   // Handle bookmark toggle
   const handleBookmarkToggle = async () => {
     if (!detail) return;
-    
+
     if (bookmarked) {
       const success = await removeBookmark(detail);
       if (success) {
@@ -613,9 +661,12 @@ export default function NewsDetailsScreen() {
   const date = d.standarddate || ni.standarddate || '';
   const content = d.newsdescription || d.content || ni.content || '';
   const videoPath = d.path || ni.path || '';
+  const AddedDate = d.adddate;
+  const UpdateDate = d.updateddate;
 
   const isVideo = catKey === 'video' || videoPath?.includes('youtube');
   const isPodcast = catKey === 'podcast' || d.audio === '1' || d.audio === 1;
+  const Author = d.authorname;
 
   const comments = commentTotal > 0
     ? commentTotal
@@ -703,14 +754,24 @@ export default function NewsDetailsScreen() {
               {/* Title */}
               <Text style={[styles.title, { fontSize: sf(17), lineHeight: sf(24) }]}>
                 {title}
-                </Text>
+              </Text>
 
               {/* Meta row */}
               <View style={styles.metaRow}>
+
+                {/* Only show author container if authorId exists and is not 0 */}
+                {authorId && authorId !== 0 && (
+                  <TouchableOpacity onPress={handleAuthorPress} style={{ flexDirection: "row", alignItems: "center", gap: ms(5) }}>
+                    <Editor size={s(20)} color={PALETTE.grey500} />
+                    <Text style={styles.authorText}>{Author}</Text>
+                  </TouchableOpacity>
+                )}
                 <View style={{ flex: 1 }} />
+
+
                 {!disableComments && (
                   <TouchableOpacity style={styles.iconAction} onPress={() => setCommentsVisible(true)}>
-                    <Comment size={s(15)} color={COLORS.subtext} style={{ marginRight: 2 }} />
+                    <Comment size={s(15)} color={PALETTE.grey600} style={{ marginRight: 2 }} />
                     {comments > 0 && (
                       <Text style={[styles.iconBadge, { fontSize: sf(10) }]}>{comments}</Text>
                     )}
@@ -725,10 +786,15 @@ export default function NewsDetailsScreen() {
                   ) : (
                     <Bookmark
                       size={s(20)}
-                      color={COLORS.subtext}
+                      color={PALETTE.grey600}
                     />
                   )}
                 </TouchableOpacity>
+              </View>
+
+              <View style={{paddingHorizontal:ms(12)}}>
+                <Text style={[styles.authorText,{fontSize:ms(13)}]}>{AddedDate}</Text>
+                <Text style={[styles.authorText,{fontSize:ms(13)}]}>{UpdateDate}</Text>
               </View>
 
               {/* Hero image */}
@@ -991,15 +1057,17 @@ const styles = StyleSheet.create({
   },
   title: {
     color: COLORS.text, paddingHorizontal: s(12),
-     fontFamily: FONTS.muktaMalar.bold,
-    paddingTop: vs(12)
+    fontFamily: FONTS.muktaMalar.bold,
+    paddingTop: vs(12),
+    marginBottom: vs(12)
   },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: s(8), paddingHorizontal: s(12), marginBottom: vs(12) },
+  authorText:{fontFamily: FONTS.muktaMalar.regular, fontSize: ms(14), color: PALETTE.grey600 },
   iconAction: { flexDirection: 'row', alignItems: 'center', gap: s(3), padding: s(4) },
-  iconBadge: { color: COLORS.subtext, fontWeight: '600' },
+  iconBadge: { color: PALETTE.grey600, fontWeight: '600' },
   heroWrap: { marginHorizontal: s(12), marginBottom: vs(12) },
   heroImage: { width: '100%', height: ms(230), backgroundColor: '#f0f0f0' },
-  caption: { color: COLORS.subtext, fontStyle: 'italic', marginTop: vs(4), textAlign: 'center' },
+  caption: { color: PALETTE.grey600, fontStyle: 'italic', marginTop: vs(4), textAlign: 'center' },
   videoWrap: { marginHorizontal: s(16), height: ms(200), backgroundColor: '#1a1a2e', borderRadius: s(10), justifyContent: 'center', alignItems: 'center', marginBottom: vs(12), overflow: 'hidden' },
   ytThumb: { position: 'absolute', width: '100%', height: '100%' },
   ytPlayOverlay: { position: 'absolute', justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.35)', width: '100%', height: '100%' },
@@ -1013,7 +1081,7 @@ const styles = StyleSheet.create({
   podcastBadge: { flexDirection: 'row', alignItems: 'center', gap: s(4), backgroundColor: '#9c27b0', alignSelf: 'flex-start', paddingHorizontal: s(7), paddingVertical: vs(2), borderRadius: s(8), marginBottom: vs(6) },
   podcastBadgeTxt: { color: '#fff', fontSize: ms(8), fontWeight: '800', letterSpacing: 0.5 },
   podcastCardTitle: { fontSize: ms(13), fontWeight: '700', color: COLORS.text, lineHeight: ms(18), marginBottom: vs(4) },
-  podcastCardDate: { fontSize: ms(10), color: COLORS.subtext },
+  podcastCardDate: { fontSize: ms(10), color: PALETTE.grey600 },
   contentSection: { paddingHorizontal: s(12), marginBottom: vs(16) },
 
   // Taboola WebView wrapper
@@ -1062,7 +1130,7 @@ const styles = StyleSheet.create({
   relatedNewsCommentText: { color: '#637381' },
   relatedNewsDivider: { height: vs(6), backgroundColor: '#F4F6F8' },
   errorWrap: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: s(32) },
-  errorTxt: { color: COLORS.subtext, textAlign: 'center', marginTop: vs(12), marginBottom: vs(20) },
+  errorTxt: { color: PALETTE.grey600, textAlign: 'center', marginTop: vs(12), marginBottom: vs(20) },
   retryBtn: { backgroundColor: COLORS.primary, paddingHorizontal: s(24), paddingVertical: vs(10), borderRadius: s(8) },
   retryBtnTxt: { color: '#fff', fontWeight: '700' },
   loaderContainer: { backgroundColor: COLORS.white, paddingHorizontal: s(12), paddingTop: vs(16) },

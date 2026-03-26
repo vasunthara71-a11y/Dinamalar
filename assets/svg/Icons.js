@@ -388,15 +388,32 @@ export const Bookmark = ({ color = 'currentColor', size = 30, style = {} }) => (
 export const BookmarkSaved = ({ color = 'currentColor', size = 30, style = {} }) => (
   <Svg
     stroke={color}
-    fill={color}
+    fill="currentColor"
     strokeWidth="0"
     viewBox="0 0 24 24"
     height={size}
     width={size}
     xmlns="http://www.w3.org/2000/svg"
-    style={style}
+    style={{ fontSize: '30px', ...style }}
   >
     <Path fill="none" d="M0 0h24v24H0z" />
     <Path d="M19 21l-7-3-7 3V5c0-1.1.9-2 2-2h7a5.002 5.002 0 005 7.9V21zM17.83 9L15 6.17l1.41-1.41 1.41 1.41 3.54-3.54 1.41 1.41L17.83 9z" />
+  </Svg>
+);
+
+export const Editor = ({ color = 'currentColor', size = 18, style = {} }) => (
+  <Svg
+    stroke={color}
+    fill="currentColor"
+    strokeWidth="0"
+    viewBox="0 0 24 24"
+    height={size}
+    width={size}
+    xmlns="http://www.w3.org/2000/svg"
+    style={{ fontSize: '18px', marginRight: '3px', marginLeft: '-1px', ...style }}
+  >
+    <Path fill="none" d="M0 0h24v24H0z" />
+    <Path d="M21.731 2.269a2.625 2.625 0 00-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 000-3.712zM19.513 8.199l-3.712-3.712-8.4 8.4a5.25 5.25 0 00-1.32 2.214l-.8 2.685a.75.75 0 00.933.933l2.685-.8a5.25 5.25 0 002.214-1.32l8.4-8.4z" />
+    <Path d="M5.25 5.25a3 3 0 00-3 3v10.5a3 3 0 003 3h10.5a3 3 0 003-3V13.5a.75.75 0 00-1.5 0v5.25a1.5 1.5 0 01-1.5 1.5H5.25a1.5 1.5 0 01-1.5-1.5V8.25a1.5 1.5 0 011.5-1.5h5.25a.75.75 0 000-1.5H5.25z" />
   </Svg>
 );

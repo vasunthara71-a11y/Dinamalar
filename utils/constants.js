@@ -1,4 +1,4 @@
- const PALETTE = {
+const PALETTE = {
   primary: '#096dd2',
   grey100: '#F9FAFB',
   grey200: '#F4F6F8',
@@ -9,8 +9,8 @@
   grey700: '#454F5B',
   grey800: '#212B36',
   white: '#FFFFFF',
-  black:'#0000',
-  catText:'#454F5B'
+  black: '#0000',
+  catText: '#454F5B'
 };
 
 import palette from "../theme/palette";
@@ -38,7 +38,7 @@ export const API_BASE_URL = 'https://api-st-cdn.dinamalar.com';
 //     color: COLORS.text,
 //     lineHeight: 22,
 //   },
-  
+
 //   // Mixed content (Tamil + English)
 //   mixed: {
 //     fontFamily: 'MuktaMalar',
@@ -46,7 +46,7 @@ export const API_BASE_URL = 'https://api-st-cdn.dinamalar.com';
 //     color: COLORS.text,
 //     lineHeight: 22,
 //   },
-  
+
 //   // Headers with Tamil
 //   tamilHeader: {
 //     fontFamily: 'MuktaMalar',
@@ -55,7 +55,7 @@ export const API_BASE_URL = 'https://api-st-cdn.dinamalar.com';
 //     color: COLORS.text,
 //     lineHeight: 26,
 //   },
-  
+
 //   // Small Tamil text
 //   tamilSmall: {
 //     fontFamily: 'MuktaMalar',
@@ -65,7 +65,7 @@ export const API_BASE_URL = 'https://api-st-cdn.dinamalar.com';
 //   },
 // };
 
- 
+
 export const COLORS = {
   primary: palette.light.main,
   primaryDark: palette.light.dark,
@@ -73,6 +73,16 @@ export const COLORS = {
 
   text: palette.light.text.primary,
   subtext: palette.light.grey[600],
+  
+  primary: '#096dd2',
+  grey100: '#F9FAFB',
+  grey200: '#F4F6F8',
+  grey300: '#DFE3E8',
+  grey400: '#C4CDD5',
+  grey500: '#919EAB',
+  grey600: '#637381',
+  grey700: '#637381',
+  grey800: '#212B36',
 
   white: '#ffffff',
   bg: '#f5f5f5',
@@ -82,7 +92,7 @@ export const COLORS = {
   warning: '#ff9800',
   catText: "#454F5B",
   catborder: "#DFE3E8",
-  black:"#000000",
+  black: "#000000",
   podcast: '#9c27b0', // Purple color for podcast
 };
 
@@ -129,198 +139,198 @@ export const FONTS = {
     bold: 'MuktaMalar-Bold',
     extraBold: 'MuktaMalar-ExtraBold',
   },
- 
+
 };
- export const NewsCard = {
-      wrap: {
-        width: '100%',
-        backgroundColor: PALETTE.white,
-        position: 'relative',
-      },
-      socialMediaWrap: {
-        width: '100%',
-        // backgroundColor: PALETTE.white,
-        position: 'relative',
-        // marginVertical: vs(2),
-        // borderRadius: s(8),
-      },
-      imageWrap: {
-        marginHorizontal: s(12),
-        marginTop: vs(5),
-        overflow: 'hidden',
-        // backgroundColor: PALETTE.grey200,     
-      },
-      image: {
-        width: '100%',
-        height: vs(200),
-      },
-      imageErrorContainer: {
-        width: '100%',
-        height: vs(200),
-        backgroundColor: PALETTE.grey200,
-        justifyContent: 'center',
-        alignItems: 'center',
-      },
-      premiumTag: {
-        position: 'absolute',
-        // top: s(8),
-        right: s(0),
-        backgroundColor: PALETTE.primary,
-        paddingHorizontal: s(10),
-        paddingVertical: s(6),
-        // borderRadius: s(6),
-        zIndex: 10,
-        elevation: 5,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.3,
-        shadowRadius: 4,
-      },
-      premiumTagText: {
-        fontFamily: FONTS.muktaMalar.bold,
-        fontSize: ms(11),
-        color: PALETTE.white,
-        textTransform: 'uppercase',
-        letterSpacing: 0.5,
-      },
-      degree360Tag: {
-        position: 'absolute',
-        right: s(0),
-        backgroundColor: PALETTE.primary,
-        paddingHorizontal: s(10),
-        paddingVertical: s(6),
-        zIndex: 10,
-        elevation: 5,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.3,
-        shadowRadius: 4,
-      },
-      degree360TagText: {
-        fontFamily: FONTS.muktaMalar.bold,
-        fontSize: ms(12),
-        color: PALETTE.white,
-        textTransform: 'uppercase',
-        letterSpacing: 0.5,
-      },
-      contentContainer: {
-        paddingHorizontal: s(12),
-        paddingTop: vs(10),
-        paddingBottom: vs(15),
-      },
-      title: {
-        fontFamily: FONTS.muktaMalar.bold,
-        fontSize: ms(14),
-        color: PALETTE.grey800,
-        lineHeight: ms(23),
-        marginBottom: vs(8),
-        // fontWeight:"600"
-      },
-      description: {
-        fontFamily: FONTS.muktaMalar.regular,
-        fontSize: ms(12),
-        color: PALETTE.grey600,
-        lineHeight: ms(18),
-        marginBottom: vs(8),
-      },
-      catPill: {
-        alignSelf: 'flex-start',
-        // backgroundColor: PALETTE.grey200,
-        borderWidth: 1,
-        borderColor: PALETTE.grey300,
-         paddingHorizontal: s(8),
-        // paddingVertical: s(3),
-        marginBottom: vs(10),
-      },
-      catText: {
-        fontFamily: FONTS.muktaMalar.semibold,
-        fontSize: ms(12),
-        color: PALETTE.catText,
-      },
-      metaRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-      },
-      timeText: {
-        fontFamily: FONTS.muktaMalar.regular,
-        fontSize: ms(14),
-        color: PALETTE.grey600,
-      },
-      metaRight: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: s(8),
-      },
-      commentRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-      },
-      commentText: {
-        fontFamily: FONTS.muktaMalar.regular,
-        fontSize: ms(14),
-        color: PALETTE.grey700,
-      },
-      audioIcon: {
-        flexDirection: 'row',
-        alignItems: 'center',
-      },
-      divider: {
-        height: 1,
-        backgroundColor: PALETTE.grey200,
-        marginHorizontal: s(12),
-      },
-      sectionTitleContainer: {
-        backgroundColor: PALETTE.primary,
-        paddingHorizontal: s(8),
-        paddingVertical: s(4),
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-      },
-      sectionTitle: {
-        fontFamily: FONTS.muktaMalar.bold,
-        color: '#FFFFFF',
-        fontSize: ms(12),
-      },
-      bannerOverlay: {
-        position: 'absolute',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.6)',
-        paddingHorizontal: s(12),
-        paddingVertical: vs(8),
-        alignItems: 'center',
-        justifyContent: 'center',
-      },
-      bannerContentContainer: {
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: vs(12),
-        marginBottom: vs(8),
-      },
-      bannerTitle: {
-        fontFamily: FONTS.muktaMalar.bold,
-        fontSize: ms(16),
-        color: PALETTE.grey800,
-        textAlign: 'center',
-        marginBottom: vs(4),
-      },
-      bannerDate: {
-        fontFamily: FONTS.muktaMalar.regular,
-        fontSize: ms(12),
-        color: PALETTE.grey600,
-        textAlign: 'center',
-      },
+export const NewsCard = {
+  wrap: {
+    width: '100%',
+    backgroundColor: PALETTE.white,
+    position: 'relative',
+  },
+  socialMediaWrap: {
+    width: '100%',
+    // backgroundColor: PALETTE.white,
+    position: 'relative',
+    // marginVertical: vs(2),
+    // borderRadius: s(8),
+  },
+  imageWrap: {
+    marginHorizontal: s(12),
+    marginTop: vs(5),
+    overflow: 'hidden',
+    // backgroundColor: PALETTE.grey200,     
+  },
+  image: {
+    width: '100%',
+    height: vs(200),
+  },
+  imageErrorContainer: {
+    width: '100%',
+    height: vs(200),
+    backgroundColor: PALETTE.grey200,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  premiumTag: {
+    position: 'absolute',
+    // top: s(8),
+    right: s(0),
+    backgroundColor: PALETTE.primary,
+    paddingHorizontal: s(10),
+    paddingVertical: s(6),
+    // borderRadius: s(6),
+    zIndex: 10,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+  },
+  premiumTagText: {
+    fontFamily: FONTS.muktaMalar.bold,
+    fontSize: ms(11),
+    color: PALETTE.white,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  degree360Tag: {
+    position: 'absolute',
+    right: s(0),
+    backgroundColor: PALETTE.primary,
+    paddingHorizontal: s(10),
+    paddingVertical: s(6),
+    zIndex: 10,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+  },
+  degree360TagText: {
+    fontFamily: FONTS.muktaMalar.bold,
+    fontSize: ms(12),
+    color: PALETTE.white,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  contentContainer: {
+    paddingHorizontal: s(12),
+    paddingTop: vs(10),
+    paddingBottom: vs(15),
+  },
+  title: {
+    fontFamily: FONTS.muktaMalar.bold,
+    fontSize: ms(14),
+    color: PALETTE.grey800,
+    lineHeight: ms(23),
+    marginBottom: vs(8),
+    // fontWeight:"600"
+  },
+  description: {
+    fontFamily: FONTS.muktaMalar.regular,
+    fontSize: ms(12),
+    color: PALETTE.grey600,
+    lineHeight: ms(18),
+    marginBottom: vs(8),
+  },
+  catPill: {
+    alignSelf: 'flex-start',
+    // backgroundColor: PALETTE.grey200,
+    borderWidth: 1,
+    borderColor: PALETTE.grey300,
+    paddingHorizontal: s(8),
+    // paddingVertical: s(3),
+    marginBottom: vs(10),
+  },
+  catText: {
+    fontFamily: FONTS.muktaMalar.semibold,
+    fontSize: ms(12),
+    color: PALETTE.catText,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  timeText: {
+    fontFamily: FONTS.muktaMalar.regular,
+    fontSize: ms(14),
+    color: PALETTE.grey600,
+  },
+  metaRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: s(8),
+  },
+  commentRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  commentText: {
+    fontFamily: FONTS.muktaMalar.regular,
+    fontSize: ms(14),
+    color: PALETTE.grey700,
+  },
+  audioIcon: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  divider: {
+    height: 1,
+    backgroundColor: PALETTE.grey200,
+    marginHorizontal: s(12),
+  },
+  sectionTitleContainer: {
+    backgroundColor: PALETTE.primary,
+    paddingHorizontal: s(8),
+    paddingVertical: s(4),
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+  },
+  sectionTitle: {
+    fontFamily: FONTS.muktaMalar.bold,
+    color: '#FFFFFF',
+    fontSize: ms(12),
+  },
+  bannerOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    paddingHorizontal: s(12),
+    paddingVertical: vs(8),
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bannerContentContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: vs(12),
+    marginBottom: vs(8),
+  },
+  bannerTitle: {
+    fontFamily: FONTS.muktaMalar.bold,
+    fontSize: ms(16),
+    color: PALETTE.grey800,
+    textAlign: 'center',
+    marginBottom: vs(4),
+  },
+  bannerDate: {
+    fontFamily: FONTS.muktaMalar.regular,
+    fontSize: ms(12),
+    color: PALETTE.grey600,
+    textAlign: 'center',
+  },
   tamil: {
     fontFamily: 'MuktaMalar',
     fontSize: 14,
     color: COLORS.text,
     lineHeight: 22,
   },
-  
+
   // Mixed content (Tamil + English)
   mixed: {
     fontFamily: 'MuktaMalar',
@@ -362,7 +372,7 @@ export const FONTS = {
       color: COLORS.text,
     },
   },
-  
+
   // Headers with Tamil
   tamilHeader: {
     fontFamily: 'MuktaMalar',
@@ -416,7 +426,7 @@ export const FONTS = {
     fontSize: 12,
     color: COLORS.subtext,
   },
-  
+
   // Small Tamil text
   tamilSmall: {
     fontFamily: 'MuktaMalar',
@@ -425,5 +435,5 @@ export const FONTS = {
     lineHeight: 18,
   },
 
- 
+
 };
