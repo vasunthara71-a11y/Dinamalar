@@ -1,7 +1,7 @@
 // src/components/NewsCard.js
 import React from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { SpeakerIcon } from '../assets/svg/Icons';
 import { Comment } from '../assets/svg/Icons';
 import { s, vs, ms } from '../utils/scaling';
 import { FONTS } from '../utils/constants';
@@ -179,7 +179,7 @@ const NewsCard = ({ item, onPress, onCommentPress, isSocialMedia = false, isPrem
             <View style={NewsCardStyles.metaRight}>
               {hasAudio && (
                 <View style={NewsCardStyles.audioIcon}>
-                  <Ionicons name="volume-high" size={s(14)} color="#637381" />
+                  <SpeakerIcon size={s(14)} color="#637381" />
                 </View>
               )}
               {!!newscomment && newscomment !== '0' && (

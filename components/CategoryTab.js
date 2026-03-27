@@ -14,6 +14,7 @@ import axios from 'axios';
 import { COLORS, FONTS } from '../utils/constants';
 import { ms } from 'react-native-size-matters';
 import { useFontSize } from '../context/FontSizeContext';
+import { useNavigation } from '@react-navigation/native';
 
 // ─── Exact colors from screenshot ────────────────────────────────────────────
 // Pills:     white bg (#FFFFFF), border (#D8D8D8), text (#212B36 near-black)
@@ -27,6 +28,7 @@ const CategoryTab = ({
   trendingTags = [],
 }) => {
   const { sf } = useFontSize(); // Add font scaling
+  const navigation = useNavigation();
   
   const [specialTodayData, setSpecialTodayData] = useState([]);
   const [loadingSpecial, setLoadingSpecial] = useState(false);
@@ -63,16 +65,72 @@ const CategoryTab = ({
 
   const handleRow1Press = (tag) => {
     setRow1Active(row1Active === tag.id ? null : tag.id);
-    if (tag.url) Linking.openURL(tag.url);
-    else onCategoryPress?.(tag.id);
+    if (tag.url) {
+      // Use same navigation logic as SpecialToday
+      if (tag.url.includes('anmegam-spirituality') || tag.url.includes('hindu-kathikal')) {
+        navigation.navigate('CommonSectionScreen', {
+          screenTitle: 'ஆன்மீகம்',
+          apiEndpoint: 'https://api-st-cdn.dinamalar.com/anmeegam',
+          allTabLink: 'https://www.dinamalar.com/anmegam-spirituality'
+        });
+      } else if (tag.url.includes('malarkal/ariviyal-malar')) {
+        navigation.navigate('CommonSectionScreen', {
+          screenTitle: 'அறிவியல் மலர்',
+          apiEndpoint: 'https://api-st-cdn.dinamalar.com/ariviyal',
+          allTabLink: 'https://www.dinamalar.com/malarkal/ariviyal-malar-science-articles'
+        });
+      } else {
+        // Extract news ID from URL and navigate to NewsDetailsScreen
+        const urlMatch = tag.url.match(/\/(\d+)(?:\/|$)/);
+        if (urlMatch) {
+          const newsId = urlMatch[1];
+          navigation.navigate('NewsDetailsScreen', { 
+            newsId: newsId,
+            newsItem: { id: newsId, newsid: newsId }
+          });
+        } else {
+          Linking.openURL(tag.url);
+        }
+      }
+    } else {
+      onCategoryPress?.(tag.id);
+    }
   };
 
   const handleRow2Press = (item, index) => {
     const id = item.key || `special-${index}`;
     setRow2Active(row2Active === id ? null : id);
     const url = item.url || item.link || item.Url;
-    if (url) Linking.openURL(url);
-    else onCategoryPress?.(id);
+    if (url) {
+      // Use same navigation logic as SpecialToday
+      if (url.includes('anmegam-spirituality') || url.includes('hindu-kathikal')) {
+        navigation.navigate('CommonSectionScreen', {
+          screenTitle: 'ஆன்மீகம்',
+          apiEndpoint: 'https://api-st-cdn.dinamalar.com/anmeegam',
+          allTabLink: 'https://www.dinamalar.com/anmegam-spirituality'
+        });
+      } else if (url.includes('malarkal/ariviyal-malar')) {
+        navigation.navigate('CommonSectionScreen', {
+          screenTitle: 'அறிவியல் மலர்',
+          apiEndpoint: 'https://api-st-cdn.dinamalar.com/ariviyal',
+          allTabLink: 'https://www.dinamalar.com/malarkal/ariviyal-malar-science-articles'
+        });
+      } else {
+        // Extract news ID from URL and navigate to NewsDetailsScreen
+        const urlMatch = url.match(/\/(\d+)(?:\/|$)/);
+        if (urlMatch) {
+          const newsId = urlMatch[1];
+          navigation.navigate('NewsDetailsScreen', { 
+            newsId: newsId,
+            newsItem: { id: newsId, newsid: newsId }
+          });
+        } else {
+          Linking.openURL(url);
+        }
+      }
+    } else {
+      onCategoryPress?.(id);
+    }
   };
 
   if (row1Tags.length === 0 && specialTodayData.length === 0 && !loadingSpecial) {
@@ -86,9 +144,13 @@ const CategoryTab = ({
       {row1Tags.length > 0 && (
         <View style={st.row}>
           {/* Icon box — square, white bg, gray border, blue icon */}
-          <View style={st.iconBox}>
+          <TouchableOpacity 
+            style={st.iconBox}
+            onPress={() => navigation.navigate('TagsScreen')}
+            activeOpacity={0.8}
+          >
             <Ionicons name="trending-up" size={ms(25)} color="#096dd2" />
-          </View>
+          </TouchableOpacity>
 
           <ScrollView
             horizontal
@@ -125,9 +187,17 @@ const CategoryTab = ({
       {(specialTodayData.length > 0 || loadingSpecial) && (
         <View style={st.row}>
           {/* Icon box — calendar, same style */}
-          <View style={st.iconBox}>
+          <TouchableOpacity 
+            style={st.iconBox}
+            onPress={() => navigation.navigate('SpecialTodayScreen', {
+              screenTitle: 'சிறப்பு இன்று',
+              apiEndpoint: 'https://api-st-cdn.dinamalar.com/specialtoday',
+              allTabLink: 'https://www.dinamalar.com/specialtoday'
+            })}
+            activeOpacity={0.8}
+          >
             <Ionicons name="calendar-clear" size={ms(25)} color="#096dd2" />
-          </View>
+          </TouchableOpacity>
 
           <ScrollView
             horizontal

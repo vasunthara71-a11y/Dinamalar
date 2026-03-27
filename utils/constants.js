@@ -154,6 +154,31 @@ export const NewsCard = {
     // marginVertical: vs(2),
     // borderRadius: s(8),
   },
+  wrapper: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    overflow: 'hidden',
+    width: 100,
+    height: 100,
+  },
+
+  ribbonContainer: {
+    position: 'absolute',
+    top: 20,
+    right: -30,
+    transform: [{ rotate: '45deg' }],
+    backgroundColor: '#E53935', // ribbon color
+    paddingVertical: 5,
+    width: 140,
+    alignItems: 'center',
+  },
+
+  ribbonText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
   imageWrap: {
     marginHorizontal: s(12),
     marginTop: vs(5),
@@ -172,19 +197,14 @@ export const NewsCard = {
     alignItems: 'center',
   },
   premiumTag: {
-    position: 'absolute',
-    // top: s(8),
-    right: s(0),
-    backgroundColor: PALETTE.primary,
-    paddingHorizontal: s(10),
-    paddingVertical: s(6),
-    // borderRadius: s(6),
-    zIndex: 10,
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
+     position: 'absolute',
+    top: 20,
+    right: -30,
+    transform: [{ rotate: '45deg' }],
+    backgroundColor: '#E53935', // ribbon color
+    paddingVertical: 5,
+    width: 140,
+    alignItems: 'center',
   },
   premiumTagText: {
     fontFamily: FONTS.muktaMalar.bold,

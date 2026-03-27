@@ -16,15 +16,12 @@ import {
   Animated, PanResponder,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
-import { Ionicons } from '@expo/vector-icons';
+import { FacebookIcon, TwitterIcon, WhatsAppIcon, TelegramIcon, ShareIcon } from '../assets/svg/Icons';
 import { Comment, Bookmark, BookmarkSaved, Editor } from '../assets/svg/Icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import RenderHtml from 'react-native-render-html';
-
-const getAudioPlayer = () => { try { return ExpoAV?.useAudioPlayer || null; } catch { return null; } };
-
 import { mainApi } from '../config/api';
-import { COLORS, FONTS } from '../utils/constants';
+import { COLORS, FONTS, NewsCard } from '../utils/constants';
 import { s, vs, scaledSizes } from '../utils/scaling';
 import { ms } from 'react-native-size-matters';
 import UniversalHeaderComponent from '../components/UniversalHeaderComponent';
@@ -32,6 +29,18 @@ import { addBookmark, removeBookmark, isBookmarked } from '../utils/storage';
 import AppHeaderComponent from '../components/AppHeaderComponent';
 import CommentsModal from '../components/CommentsModal';
 import { useFontSize } from '../context/FontSizeContext';
+import { Ionicons } from '@expo/vector-icons';
+import AudioPlayerCard from '../components/AudioPlayerCard';
+import ShareInfo from '../components/ShareInfo';
+import IPaperSubscription from '../components/IPaperSubscription';
+import FeedbackCard from '../components/FeedbackCard';
+import TrendingTags from '../components/TrendingTags';
+import DinamalarChannelSubscription from '../components/DinamalarChannelSubscription';
+import MetaTags from '../components/MetaTags';
+import SpecialToday from '../components/SpecialToday';
+import Shorts from '../components/Shorts';
+import MoreNews from '../components/MoreNews';
+import AlsoSeeThis from '../components/AlsoSeeThis';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 
@@ -50,6 +59,7 @@ const PALETTE = {
   grey700: '#637381',
   grey800: '#212B36',
   white: '#FFFFFF',
+  buttonBackground: '#e5eef5',
 };
 
 
@@ -524,32 +534,69 @@ function GoogleNewsWidget() {
 }
 
 function GoogleFollowBanner({ data }) {
-  const link = data?.link || 
+  const link = data?.link ||
     'https://news.google.com/publications/CAAqKAgKIiJDQklTRXdnTWFnOEtEV1JwYm1GdFlXeGhjaTVqYjIwb0FBUAE?hl=ta&gl=IN&ceid=IN%3Ata';
 
+  const iconUrl = 'https://stat.dinamalar.com/new/2024/images/follow-icons/google_news.png';
+  const shareUrl = /* pass this as a prop or get from context */ 'https://www.dinamalar.com';
+  const shareTitle = '';
+
+  const handleSocialShare = async (platform) => {
+    const url = shareUrl;
+    const text = encodeURIComponent(shareTitle);
+    const encodedUrl = encodeURIComponent(url);
+
+    
+
+    const links = {
+      facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`,
+      twitter: `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${text}`,
+      whatsapp: `https://wa.me/?text=${text}%20${encodedUrl}`,
+      telegram: `https://t.me/share/url?url=${encodedUrl}&text=${text}`,
+    };
+
+    if (platform === 'share') {
+      await Share.share({ title: shareTitle, message: `${shareTitle}\n\n${url}`, url });
+    } else {
+      Linking.openURL(links[platform]);
+    }
+  };
+
   return (
-    <TouchableOpacity
-      style={styles.googleFollowBanner}
-      onPress={() => Linking.openURL(link)}
-      activeOpacity={0.85}
-    >
-      <View style={styles.googleFollowNative}>
-        {/* Left: Google icon + text */}
-        <View style={styles.googleFollowLeft}>
-          <View style={styles.googleIconCircle}>
-            <Text style={styles.googleIconText}>G</Text>
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.googleFollowTitle}>Google News-ல் பின்தொடரவும்</Text>
-            <Text style={styles.googleFollowSub}>தினமலர் செய்திகளை உடனுக்குடன் பெறுங்கள்</Text>
-          </View>
-        </View>
-        {/* Right: Follow button */}
-        <View style={styles.googleFollowBtn}>
-          <Text style={styles.googleFollowBtnText}>Follow</Text>
-        </View>
-      </View>
-    </TouchableOpacity>
+    <View style={styles.gnFollowWrap}>
+      {/* Google News Follow button */}
+      <TouchableOpacity
+        style={styles.gnFollowBtn}
+        onPress={() => Linking.openURL(link)}
+        activeOpacity={0.85}
+      >
+        <Image
+          source={{ uri: iconUrl }}
+          style={styles.gnFollowIcon}
+          resizeMode="contain"
+        />
+      </TouchableOpacity>
+
+      {/* Divider */}
+      <View style={styles.gnDivider} />
+
+      {/* Social icons */}
+      <TouchableOpacity style={styles.gnSocialBtn} onPress={() => handleSocialShare('facebook')}>
+        <FacebookIcon size={s(20)} color="#1877F2" />
+      </TouchableOpacity>
+      <TouchableOpacity style={styles.gnSocialBtn} onPress={() => handleSocialShare('twitter')}>
+        <TwitterIcon size={s(20)} color="#000" />
+      </TouchableOpacity>
+      <TouchableOpacity style={styles.gnSocialBtn} onPress={() => handleSocialShare('whatsapp')}>
+        <WhatsAppIcon size={s(20)} color="#25D366" />
+      </TouchableOpacity>
+      <TouchableOpacity style={styles.gnSocialBtn} onPress={() => handleSocialShare('telegram')}>
+        <TelegramIcon size={s(20)} color="#229ED9" />
+      </TouchableOpacity>
+      <TouchableOpacity style={styles.gnSocialBtn} onPress={() => handleSocialShare('share')}>
+        <ShareIcon size={s(20)} color="#555" />
+      </TouchableOpacity>
+    </View>
   );
 }
 
@@ -619,17 +666,20 @@ export default function NewsDetailsScreen() {
   const [prevNews, setPrevNews] = useState(null);
   const [relatedNewsData, setRelatedNewsData] = useState([]);
   const [commentTotal, setCommentTotal] = useState(0);
+  const [shortsData, setShortsData] = useState([]);
   const [authorId, setAuthorId] = useState(null);
+  const [morenewsLink, setMorenewsLink] = useState(null);
   const [googleFollowData, setGoogleFollowData] = useState(null);
-
-  // Scroll-to-top functionality
   const [showScrollTop, setShowScrollTop] = useState(false);
-  const flatListRef = useRef(null);
+  const [trendingData, setTrendingData] = useState(null);
+  const [specialData, setSpecialData] = useState(null);
+  const [mdescription, setMdescription] = useState(null);
 
   const handleScroll = useCallback((e) => {
     setShowScrollTop(e.nativeEvent.contentOffset.y > 300);
   }, []);
 
+  // ... (rest of the code remains the same)
   const scrollToTop = () =>
     scrollRef.current?.scrollTo({ x: 0, y: 0, animated: true });
 
@@ -719,12 +769,12 @@ export default function NewsDetailsScreen() {
 
   // Handle author navigation
   const handleAuthorPress = () => {
-    console.log('handleAuthorPress called');
-    console.log('authorId:', authorId);
-    console.log('Author name:', Author);
+    // console.log('handleAuthorPress called');
+    // console.log('authorId:', authorId);
+    // console.log('Author name:', Author);
 
     if (authorId) {
-      console.log('Navigating to AuthorScreen with authorId:', authorId);
+      // console.log('Navigating to AuthorScreen with authorId:', authorId);
       navigation.navigate('AuthorScreen', { authorId, authorName: Author });
     } else {
       console.log('No authorId available for navigation');
@@ -732,6 +782,31 @@ export default function NewsDetailsScreen() {
       // alert('Author information not available');
     }
   };
+
+  // ── Fetch shorts data ───────────────────────────────────────────────────────
+  const fetchShorts = useCallback(async () => {
+    try {
+      const id = newsId || newsItem?.id || newsItem?.newsid || detail?.newsid;
+      if (!id) {
+        console.log('No news ID available for shorts');
+        setShortsData([]);
+        return;
+      }
+      
+      console.log('Fetching shorts data for news ID:', id);
+      const res = await mainApi.get(`/recentreels?newsid=${id}`);
+      if (res.data && res.data.newlist && res.data.newlist.data && Array.isArray(res.data.newlist.data)) {
+        // console.log('Shorts data fetched:', res.data.newlist.data.length, 'items');
+        setShortsData(res.data.newlist.data);
+      } else {
+        console.log('No shorts data available for this news');
+        setShortsData([]);
+      }
+    } catch (error) {
+      console.error('Error fetching shorts:', error);
+      setShortsData([]);
+    }
+  }, [newsId, newsItem, detail]);
 
   // ── Fetch detail ───────────────────────────────────────────────────────────
   const fetchDetail = useCallback(async () => {
@@ -754,12 +829,12 @@ export default function NewsDetailsScreen() {
     try {
       if (!newsItem) setLoading(true);
       setError(null);
-      
+
       // Add timeout to prevent hanging - increased for NRI content
-      const timeoutPromise = new Promise((_, reject) => 
+      const timeoutPromise = new Promise((_, reject) =>
         setTimeout(() => reject(new Error('Request timeout')), 15000) // Increased to 15 seconds
       );
-      
+
       // Try different endpoints for NRI content
       let res;
       try {
@@ -775,7 +850,7 @@ export default function NewsDetailsScreen() {
           timeoutPromise
         ]);
       }
-      
+
       const data = res.data;
 
       const article =
@@ -788,7 +863,7 @@ export default function NewsDetailsScreen() {
 
       // Update state in batches to reduce re-renders
       const updates = {};
-      
+
       if (data?.comments?.data && Array.isArray(data.comments.data)) {
         updates.newsComments = data.comments.data;
       } else if (Array.isArray(data?.comments)) {
@@ -808,10 +883,18 @@ export default function NewsDetailsScreen() {
       updates.detail = article || newsItem || null;
       updates.taboolaAds = data?.taboola_ads?.mobile || null;
       updates.googleFollowData = data?.googlefollowus?.[0] || null;
+      updates.trendingData = data?.trending || null;
+      updates.specialData = data?.specialtoday || null;
+      updates.mdescription = article?.mdescription || null;
+      updates.morenewsLink = data?.morenewslink || null;
+
+      // Debug logging for morenewslink extraction
+      // console.log('fetchDetail - data.morenewslink:', data?.morenewslink);
+      // console.log('fetchDetail - updates.morenewsLink:', updates.morenewsLink);
 
       // Apply all updates at once
       Object.entries(updates).forEach(([key, value]) => {
-        switch(key) {
+        switch (key) {
           case 'newsComments': setNewsComments(value); break;
           case 'commentTotal': setCommentTotal(value); break;
           case 'nextNews': setNextNews(value); break;
@@ -820,8 +903,15 @@ export default function NewsDetailsScreen() {
           case 'detail': setDetail(value); break;
           case 'taboolaAds': setTaboolaAds(value); break;
           case 'googleFollowData': setGoogleFollowData(value); break;
+          case 'trendingData': setTrendingData(value); break;
+          case 'specialData': setSpecialData(value); break;
+          case 'mdescription': setMdescription(value); break;
+          case 'morenewsLink': setMorenewsLink(value); break;
         }
       });
+
+      // Fetch shorts data after detail is loaded
+      fetchShorts();
 
       // Extract author ID from the article data
       const authorIdToSet = article?.author_id || article?.authorid;
@@ -865,13 +955,13 @@ export default function NewsDetailsScreen() {
       const success = await addBookmark(detail);
       if (success) {
         setBookmarked(true);
-        alert('புக்மார்க் சேமிக்கப்பட்டது');
       }
     }
   };
 
   useEffect(() => { fetchDetail(); }, [fetchDetail]);
   useEffect(() => { if (detail) triggerPulse(); }, [detail]);
+  useEffect(() => { if (detail) fetchShorts(); }, [fetchShorts, detail]);
 
   const getShareUrl = () => {
     const slug = detail?.slug || newsItem?.slug || '';
@@ -881,7 +971,7 @@ export default function NewsDetailsScreen() {
 
   const handleShare = async () => {
     try {
-      const url = getShareUrl();
+      const url = getShareUrl(); // call fresh each time
       const ttl = detail?.newstitle || newsItem?.newstitle || 'தினமலர் செய்தி';
       await Share.share({ title: ttl, message: `${ttl}\n\n${url}`, url });
     } catch (err) { console.error('Share error:', err); }
@@ -892,354 +982,366 @@ export default function NewsDetailsScreen() {
   const d = detail || {};
   const ni = newsItem || {};
 
-  const title = d.newstitle || ni.newstitle || ni.title || '';
-  const image = d.largeimages || d.images || ni.largeimages || ni.images || '';
-  const catKey = d.maincat || ni.maincat || '';
-  const ago = d.ago || ni.ago || '';
-  const date = d.standarddate || ni.standarddate || '';
-  const content = d.newsdescription || d.content || ni.content || '';
-  const videoPath = d.path || ni.path || '';
-  const AddedDate = d.adddate;
-  const UpdateDate = d.updateddate;
+const title = d.newstitle || ni.newstitle || ni.title || '';
+const image = d.largeimages || d.images || ni.largeimages || ni.images || '';
+const catKey = d.maincat || ni.maincat || '';
+const ago = d.ago || ni.ago || '';
+const date = d.standarddate || ni.standarddate || '';
+const content = d.newsdescription || d.content || ni.content || '';
+const videoPath = d.path || ni.path || '';
+const AddedDate = d.adddate;
+const UpdateDate = d.updateddate;
 
-  const isVideo = catKey === 'video' || videoPath?.includes('youtube');
-  const isPodcast = catKey === 'podcast' || d.audio === '1' || d.audio === 1;
-  const Author = d.authorname;
+const isVideo = catKey === 'video' || videoPath?.includes('youtube');
+const isPodcast = catKey === 'podcast' || d.audio === '1' || d.audio === 1;
+const Author = d.authorname;
 
-  const comments = commentTotal > 0
-    ? commentTotal
-    : parseInt(d.newscomment || d.nmcomment || ni.newscomment || ni.nmcomment || 0, 10) || 0;
+const comments = commentTotal > 0
+  ? commentTotal
+  : parseInt(d.newscomment || d.nmcomment || ni.newscomment || ni.nmcomment || 0, 10) || 0;
 
-  const tags = Array.isArray(d.tags) ? d.tags : [];
-  const ytId = getYouTubeId(videoPath);
-  const ytThumb = ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : '';
-  const currentNewsId = newsId || newsItem?.id || newsItem?.newsid;
-  const podcastAudioUrl = videoPath || d.audiofile || d.audiourl || null;
-  const articlePageUrl = getShareUrl();
+const tags = Array.isArray(d.tags) ? d.tags : [];
+const ytId = getYouTubeId(videoPath);
+const ytThumb = ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : '';
+const currentNewsId = newsId || newsItem?.id || newsItem?.newsid;
+const podcastAudioUrl = videoPath || d.audiofile || d.audiourl || null;
+const articlePageUrl = getShareUrl();
 
-  const BASE_FONT = sf(12);
-  const tagsStyles = React.useMemo(() => buildTagsStyles(BASE_FONT, COLORS.text), [BASE_FONT]);
-  const baseStyle = React.useMemo(() => buildBaseStyle(BASE_FONT, COLORS.text), [BASE_FONT]);
-  const safeContent = sanitizeHtml(content);
+// Extract shorts link from API response
+const shortsLink = d.shortslink || d.reelslink || null;
 
-  return (
-    <View style={styles.container}>
+const BASE_FONT = sf(13);
+const tagsStyles = React.useMemo(() => buildTagsStyles(BASE_FONT, COLORS.text), [BASE_FONT]);
+const baseStyle = React.useMemo(() => buildBaseStyle(BASE_FONT, COLORS.text), [BASE_FONT]);
+const safeContent = sanitizeHtml(content);
 
-      <UniversalHeaderComponent
-        statusBarStyle="dark-content"
-        statusBarBackgroundColor={COLORS.white}
-        onMenuPress={handleMenuPress}
-        onNotification={goToNotifs}
-        notifCount={0}
-        isDrawerVisible={isDrawerVisible}
-        setIsDrawerVisible={setIsDrawerVisible}
-        navigation={navigation}
-        isLocationDrawerVisible={isLocationDrawerVisible}
-        setIsLocationDrawerVisible={setIsLocationDrawerVisible}
-        onSelectDistrict={handleSelectDistrict}
-        selectedDistrict={selectedDistrict}
-      >
-        <AppHeaderComponent
-          onSearch={goToSearch}
-          onMenu={() => setIsDrawerVisible(true)}
-          onLocation={() => setIsLocationDrawerVisible(true)}
-          selectedDistrict="உள்ளூர்"
-        />
-      </UniversalHeaderComponent>
+// Extract morenews data (moved outside return to fix scope)
+// morenewslink is at root level of API response, not in detail object
 
-      <View style={styles.panLayer} {...panResponder.panHandlers}>
-        <Animated.View style={[styles.animLayer, { transform: [{ translateX }] }]}>
+// Debug logging
+// console.log('NewsDetailsScreen - morenewsLink (state):', morenewsLink);
+// console.log('NewsDetailsScreen - morenews data available:', !!morenewsLink);
+// console.log('NewsDetailsScreen - detail state:', !!detail);
+// console.log('NewsDetailsScreen - detail object keys:', detail ? Object.keys(detail) : 'no detail');
 
-          {hintDir === 'left' && <SwipeHint direction="left" />}
-          {hintDir === 'right' && <SwipeHint direction="right" />}
+// Extract "இதையும் பாருங்க" item from descriptions
+const alsoSeeThisItem = detail?.descriptions?.find(item => 
+  item.title === 'இதையும் பாருங்க' || 
+  item.title === 'இதையும் படிங்க'
+);
 
-          {hasPrev && (
-            <TouchableOpacity style={styles.edgeBtnLeft} onPress={() => navigateToNews('prev')} activeOpacity={0.7}>
-              <Ionicons name="chevron-back" size={s(30)} color={COLORS.white} />
+// console.log('NewsDetailsScreen - alsoSeeThisItem found:', !!alsoSeeThisItem);
+
+return (
+  <View style={styles.container}>
+
+    <UniversalHeaderComponent
+      statusBarStyle="dark-content"
+      statusBarBackgroundColor={COLORS.white}
+      onMenuPress={handleMenuPress}
+      onNotification={goToNotifs}
+      notifCount={0}
+      isDrawerVisible={isDrawerVisible}
+      setIsDrawerVisible={setIsDrawerVisible}
+      navigation={navigation}
+      isLocationDrawerVisible={isLocationDrawerVisible}
+      setIsLocationDrawerVisible={setIsLocationDrawerVisible}
+      onSelectDistrict={handleSelectDistrict}
+      selectedDistrict={selectedDistrict}
+    >
+      <AppHeaderComponent
+        onSearch={goToSearch}
+        onMenu={() => setIsDrawerVisible(true)}
+        onLocation={() => setIsLocationDrawerVisible(true)}
+        selectedDistrict="உள்ளூர்"
+      />
+    </UniversalHeaderComponent>
+
+    <View style={styles.panLayer} {...panResponder.panHandlers}>
+      <Animated.View style={[styles.animLayer, { transform: [{ translateX }] }]}>
+
+        {hintDir === 'left' && <SwipeHint direction="left" />}
+        {hintDir === 'right' && <SwipeHint direction="right" />}
+
+        {hasNext && (
+          <TouchableOpacity style={styles.edgeBtnRight} onPress={() => navigateToNews('next')} activeOpacity={0.7}>
+            <Ionicons name="chevron-forward" size={s(30)} color={COLORS.white} />
+          </TouchableOpacity>
+        )}
+
+        {loading && (
+          <ScrollView scrollEnabled={!scrollLocked} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+            <ContentLoader />
+          </ScrollView>
+        )}
+
+        {!loading && !!error && (
+          <View style={styles.errorWrap}>
+            <Ionicons name="alert-circle-outline" size={s(52)} color="#f44336" />
+            <Text style={styles.errorTxt}>{error}</Text>
+            <TouchableOpacity style={styles.retryBtn} onPress={fetchDetail}>
+              <Text style={styles.retryBtnTxt}>மீண்டும் முயற்சி</Text>
             </TouchableOpacity>
-          )}
-          {hasNext && (
-            <TouchableOpacity style={styles.edgeBtnRight} onPress={() => navigateToNews('next')} activeOpacity={0.7}>
-              <Ionicons name="chevron-forward" size={s(30)} color={COLORS.white} />
-            </TouchableOpacity>
-          )}
+          </View>
+        )}
 
-          {loading && (
-            <ScrollView scrollEnabled={!scrollLocked} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-              <ContentLoader />
-            </ScrollView>
-          )}
+        {!loading && !error && (
+          <ScrollView
+            ref={scrollRef}
+            scrollEnabled={!scrollLocked}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.scrollContent}
+            scrollEventThrottle={16}
+            onScroll={handleScroll}
+          >
+            {/* Title */}
+            <Text style={[styles.title, { fontSize: sf(17), lineHeight: sf(24) }]}>
+              {title}
+            </Text>
 
-          {!loading && !!error && (
-            <View style={styles.errorWrap}>
-              <Ionicons name="alert-circle-outline" size={s(52)} color="#f44336" />
-              <Text style={styles.errorTxt}>{error}</Text>
-              <TouchableOpacity style={styles.retryBtn} onPress={fetchDetail}>
-                <Text style={styles.retryBtnTxt}>மீண்டும் முயற்சி</Text>
+            {/* Meta row */}
+            <View style={styles.metaRow}>
+
+              {/* Only show author container if authorId exists and is not 0 */}
+              {authorId && authorId !== 0 && (
+                <TouchableOpacity onPress={handleAuthorPress} style={{ flexDirection: "row", alignItems: "center", gap: ms(5) }}>
+                  <Editor size={s(20)} color={PALETTE.grey500} />
+                  <Text style={styles.authorText}>{Author}</Text>
+                </TouchableOpacity>
+              )}
+              <View style={{ flex: 1 }} />
+
+              {!disableComments && (
+                <TouchableOpacity style={styles.iconAction} onPress={() => setCommentsVisible(true)}>
+                  <Comment size={s(15)} color={PALETTE.grey600} style={{ marginRight: 2 }} />
+                  {comments > 0 && (
+                    <Text style={[styles.iconBadge, { fontSize: sf(10) }]}>{comments}</Text>
+                  )}
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity style={styles.iconAction} onPress={handleBookmarkToggle}>
+                {bookmarked ? (
+                  <BookmarkSaved
+                    size={s(20)}
+                    color={COLORS.primary}
+                  />
+                ) : (
+                  <Bookmark
+                    size={s(20)}
+                    color={PALETTE.grey600}
+                  />
+                )}
               </TouchableOpacity>
             </View>
-          )}
 
-          {!loading && !error && (
-            <ScrollView
-              ref={scrollRef}
-              scrollEnabled={!scrollLocked}
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={styles.scrollContent}
-              scrollEventThrottle={16}
-              onScroll={handleScroll}
-            >
-              {/* Title */}
-              <Text style={[styles.title, { fontSize: sf(17), lineHeight: sf(24) }]}>
-                {title}
-              </Text>
+            <View style={{ paddingHorizontal: ms(12) }}>
+              <Text style={[styles.authorText, { fontSize: ms(13) }]}>{AddedDate}</Text>
+              <Text style={[styles.authorText, { fontSize: ms(13) }]}>{UpdateDate}</Text>
+            </View>
+            <View style={styles.rowDivider} />
 
-              {/* Meta row */}
-              <View style={styles.metaRow}>
+            <GoogleFollowBanner
+              data={googleFollowData}
+              shareUrl={getShareUrl()}
+              shareTitle={title}
+            />
 
-                {/* Only show author container if authorId exists and is not 0 */}
-                {authorId && authorId !== 0 && (
-                  <TouchableOpacity onPress={handleAuthorPress} style={{ flexDirection: "row", alignItems: "center", gap: ms(5) }}>
-                    <Editor size={s(20)} color={PALETTE.grey500} />
-                    <Text style={styles.authorText}>{Author}</Text>
-                  </TouchableOpacity>
-                )}
-                <View style={{ flex: 1 }} />
-
-
-                {!disableComments && (
-                  <TouchableOpacity style={styles.iconAction} onPress={() => setCommentsVisible(true)}>
-                    <Comment size={s(15)} color={PALETTE.grey600} style={{ marginRight: 2 }} />
-                    {comments > 0 && (
-                      <Text style={[styles.iconBadge, { fontSize: sf(10) }]}>{comments}</Text>
-                    )}
-                  </TouchableOpacity>
-                )}
-                <TouchableOpacity style={styles.iconAction} onPress={handleBookmarkToggle}>
-                  {bookmarked ? (
-                    <BookmarkSaved
-                      size={s(20)}
-                      color={COLORS.primary}
-                    />
-                  ) : (
-                    <Bookmark
-                      size={s(20)}
-                      color={PALETTE.grey600}
-                    />
-                  )}
-                </TouchableOpacity>
+            {/* Hero image */}
+            {!!image && !isVideo && !isPodcast && (
+              <View style={styles.heroWrap}>
+                <Image source={{ uri: image }} style={styles.heroImage} resizeMode="cover" />
+                {!!d.imagecaption && <Text style={[styles.caption, { fontSize: sf(12) }]}>{d.imagecaption}</Text>}
               </View>
+            )}
 
-              <View style={{ paddingHorizontal: ms(12) }}>
-                <Text style={[styles.authorText, { fontSize: ms(13) }]}>{AddedDate}</Text>
-                <Text style={[styles.authorText, { fontSize: ms(13) }]}>{UpdateDate}</Text>
-              </View>
-              <View style={styles.rowDivider} />
-               
-
-              {/* Hero image */}
-              {!!image && !isVideo && !isPodcast && (
-                <View style={styles.heroWrap}>
-                  <Image source={{ uri: image }} style={styles.heroImage} resizeMode="cover" />
-                  {!!d.imagecaption && <Text style={[styles.caption, { fontSize: sf(12) }]}>{d.imagecaption}</Text>}
-                </View>
-              )}
-
-              {/* YouTube */}
-              {isVideo && (
-                <TouchableOpacity style={styles.videoWrap} onPress={() => videoPath && Linking.openURL(videoPath)}>
-                  {!!ytThumb ? (
-                    <>
-                      <Image source={{ uri: ytThumb }} style={styles.ytThumb} resizeMode="cover" />
-                      <View style={styles.ytPlayOverlay}>
-                        <Ionicons name="play-circle" size={s(56)} color="#fff" />
-                      </View>
-                    </>
-                  ) : (
-                    <>
+            {/* YouTube */}
+            {isVideo && (
+              <TouchableOpacity style={styles.videoWrap} onPress={() => videoPath && Linking.openURL(videoPath)}>
+                {!!ytThumb ? (
+                  <>
+                    <Image source={{ uri: ytThumb }} style={styles.ytThumb} resizeMode="cover" />
+                    <View style={styles.ytPlayOverlay}>
                       <Ionicons name="play-circle" size={s(56)} color="#fff" />
-                      <Text style={styles.videoTxt}>வீடியோ பார்க்க தட்டவும்</Text>
-                    </>
-                  )}
-                </TouchableOpacity>
-              )}
-
-              {/* Podcast */}
-              {isPodcast && !!podcastAudioUrl && (
-                <View style={styles.podcastSection}>
-                  <View style={styles.podcastCard}>
-                    <View style={styles.podcastArtwork}>
-                      {!!image
-                        ? <Image source={{ uri: image }} style={styles.podcastArtworkImg} resizeMode="cover" />
-                        : <View style={styles.podcastArtworkFallback}><Ionicons name="mic-circle" size={s(48)} color="#9c27b0" /></View>
-                      }
                     </View>
-                    <View style={styles.podcastInfo}>
-                      <View style={styles.podcastBadge}>
-                        <Ionicons name="mic" size={s(9)} color="#fff" />
-                        <Text style={styles.podcastBadgeTxt}>PODCAST</Text>
-                      </View>
-                      <Text style={styles.podcastCardTitle} numberOfLines={3}>{title}</Text>
-                      {!!(date || ago) && <Text style={styles.podcastCardDate}>{date || ago}</Text>}
-                    </View>
-                  </View>
-                </View>
-              )}
+                  </>
+                ) : (
+                  <>
+                    <Ionicons name="play-circle" size={s(56)} color="#fff" />
+                    <Text style={styles.videoTxt}>வீடியோ பார்க்க தட்டவும்</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            )}
 
-              {/* HTML body */}
-              {!!safeContent && (
-                <Animated.View
-                  style={[styles.contentSection, { opacity: pulseAnim }]}
-                  onLayout={(e) => { const w = e.nativeEvent.layout.width; if (w > 0) setContentWidth(w); }}
-                >
-                  <RenderHtml
-                    contentWidth={contentWidth}
-                    source={{ html: safeContent }}
-                    baseStyle={baseStyle}
-                    tagsStyles={tagsStyles}
-                    ignoredDomTags={['script', 'style', 'meta', 'head', 'html', 'body', 'subtitle']}
-                    enableExperimentalMarginCollapsing
-                    systemFonts={SYSTEM_FONTS}
-                    renderersProps={{
-                      a: { onPress: (_e, href) => { if (href) Linking.openURL(href); } },
-                      img: { enableExperimentalPercentWidth: true },
-                    }}
-                  />
-                </Animated.View>
-              )}
+            {/* Podcast */}
+            <AudioPlayerCard
+              audioUrl={podcastAudioUrl}
+              data={{
+                spotify: d.spotifylink || d.spotify || null,
+                alexa: d.alexalink || d.amazon || null,
+              }}
+            />
 
-              {/* ── Taboola Mid-article ─────────────────────────────────────
-                  After body content. Uses mdinamalarcom / loader.js.
-                  mode + container + placement from data.taboola_ads.mobile.midarticle */}
-              {taboolaAds?.midarticle && (
-                <TaboolaWidget
-                  pageUrl={articlePageUrl}
-                  mode={taboolaAds.midarticle.mode}
-                  container={taboolaAds.midarticle.container}
-                  placement={taboolaAds.midarticle.placement}
+            {/* HTML body */}
+            {!!safeContent && (
+              <Animated.View
+                style={[styles.contentSection, { opacity: pulseAnim }]}
+                onLayout={(e) => { const w = e.nativeEvent.layout.width; if (w > 0) setContentWidth(w); }}
+              >
+                <RenderHtml
+                  contentWidth={contentWidth}
+                  source={{ html: safeContent }}
+                  baseStyle={baseStyle}
+                  tagsStyles={tagsStyles}
+                  ignoredDomTags={['script', 'style', 'meta', 'head', 'html', 'body', 'subtitle']}
+                  enableExperimentalMarginCollapsing
+                  systemFonts={SYSTEM_FONTS}
+                  renderersProps={{
+                    a: { onPress: (_e, href) => { if (href) Linking.openURL(href); } },
+                    img: { enableExperimentalPercentWidth: true },
+                  }}
                 />
-              )}
+              </Animated.View>
+            )}
 
-              {/* Related news */}
-              {relatedNewsData.length > 0 && (
-                <View style={styles.relatedSection}>
-                  <View style={styles.relatedHeader}>
-                    <Text style={[styles.relatedSectionTitle, { fontSize: sf(14) }]}>
-                      தொடர்புடையவை
-                    </Text>
-                    <View style={styles.relatedHeaderLine} />
-                  </View>
+            <ShareInfo
+              url="https://www.dinamalar.com/news/123"
+              title="தமிழக செய்தி..."
+            />
 
-                  {relatedNewsData.map((rel, i) => {
-                    const relId = rel.id || rel.newsid;
-                    const relImage = rel.images || rel.largeimages || rel.image ||
-                      'https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_default.jpg?im=Resize,width=400';
-                    const relTitle = rel.newstitle || rel.title || '';
-                    const relDate = rel.standarddate || rel.ago || '';
-                    const relCommentCount = parseInt(rel.nmcomment || rel.newscomment || rel.commentcount || 0, 10) || 0;
+             {/* Also See This */}
+            {alsoSeeThisItem && (
+              <View style={{ paddingHorizontal: ms(12) }}>
+              <AlsoSeeThis 
+                item={alsoSeeThisItem}
+                onPress={(item) => {
+                  // Navigate to NewsDetailsScreen with the news ID
+                  if (item.newsid) {
+                    navigation.navigate('NewsDetailsScreen', { newsId: item.newsid });
+                  } else {
+                    console.log('No newsid found for item:', item);
+                  }
+                }}
+              />
+              </View>
+            )}
+            <IPaperSubscription />
+            <FeedbackCard newsId={currentNewsId} />
+            <MetaTags mdescription={mdescription} />
+            <DinamalarChannelSubscription />
+            <TrendingTags trendingData={trendingData} />
+            <SpecialToday specialData={specialData} />
+            
+            {/* Shorts */}
+            <Shorts shortsData={shortsData} onShortPress={(short) => {
+              const url = short.link || short.url || (short.slug ? `https://www.dinamalar.com${short.slug}` : null);
+              if (url) {
+                Linking.openURL(url);
+              }
+            }} />
 
-                    return (
-                      <View key={`related-${i}-${relId || i}`} style={styles.relatedNewsCardWrap}>
-                        <TouchableOpacity
-                          onPress={() => navigation.push('NewsDetailsScreen', { newsId: relId, newsItem: rel, newsList })}
-                          activeOpacity={0.88}
-                        >
-                          <View style={styles.relatedNewsImageWrap}>
-                            <Image source={{ uri: relImage }} style={styles.relatedNewsImage} resizeMode="contain" />
-                          </View>
-                          <View style={styles.relatedNewsContent}>
-                            {!!relTitle && (
-                              <Text style={[styles.relatedNewsTitle, { fontSize: sf(12), lineHeight: sf(20) }]} numberOfLines={3}>
-                                {relTitle}
-                              </Text>
+           
+
+            {/* Extract morenews data (moved after detail is set) */}
+ 
+           
+
+            <MoreNews morenewsLink={morenewsLink} />
+
+            {/* ── Taboola Mid-article ─────────────────────────────────────
+                After body content. Uses mdinamalarcom / loader.js.
+                mode + container + placement from data.taboola_ads.mobile.midarticle */}
+            {taboolaAds?.midarticle && (
+              <TaboolaWidget
+                pageUrl={articlePageUrl}
+                mode={taboolaAds.midarticle.mode}
+                container={taboolaAds.midarticle.container}
+                placement={taboolaAds.midarticle.placement}
+              />
+            )}
+
+            {/* Related news */}
+            {relatedNewsData.length > 0 && (
+              <View style={styles.relatedSection}>
+                <View style={styles.relatedHeader}>
+                  <Text style={[styles.relatedSectionTitle, { fontSize: sf(14) }]}>
+                    தொடர்புடையவை
+                  </Text>
+                  <View style={styles.relatedHeaderLine} />
+                </View>
+
+                {relatedNewsData.map((rel, i) => {
+                  const relId = rel.id || rel.newsid;
+                  const relImage = rel.images || rel.largeimages || rel.image ||
+                    'https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_default.jpg?im=Resize,width=400';
+                  const relTitle = rel.newstitle || rel.title || '';
+                  const relDate = rel.standarddate || rel.ago || '';
+                  const relCommentCount = parseInt(rel.nmcomment || rel.newscomment || rel.commentcount || 0, 10) || 0;
+
+                  return (
+                    <View key={`related-${i}-${relId || i}`} style={styles.relatedNewsCardWrap}>
+                      <TouchableOpacity
+                        onPress={() => navigation.push('NewsDetailsScreen', { newsId: relId, newsItem: rel, newsList })}
+                        activeOpacity={0.88}
+                      >
+                        <View style={styles.relatedNewsImageWrap}>
+                          <Image source={{ uri: relImage }} style={styles.relatedNewsImage} resizeMode="contain" />
+                        </View>
+                        <View style={styles.relatedNewsContent}>
+                          {!!relTitle && (
+                            <Text style={[NewsCard.title, { fontSize: sf(12), lineHeight: sf(20) }]} numberOfLines={3}>
+                              {relTitle}
+                            </Text>
+                          )}
+                          <View style={styles.relatedNewsMetaRow}>
+                            <Text style={[NewsCard.timeText, { fontSize: sf(10) }]}>{relDate}</Text>
+                            {relCommentCount > 0 && (
+                              <View style={styles.relatedNewsCommentRow}>
+                                <Comment size={s(14)} color="#637381" style={{ marginRight: 2 }} />
+                                <Text style={[styles.relatedNewsCommentText, { fontSize: sf(12) }]}> {relCommentCount}</Text>
+                              </View>
                             )}
-                            <View style={styles.relatedNewsMetaRow}>
-                              <Text style={[styles.relatedNewsTimeText, { fontSize: sf(10) }]}>{relDate}</Text>
-                              {relCommentCount > 0 && (
-                                <View style={styles.relatedNewsCommentRow}>
-                                  <Comment size={s(14)} color="#637381" style={{ marginRight: 2 }} />
-                                  <Text style={[styles.relatedNewsCommentText, { fontSize: sf(12) }]}> {relCommentCount}</Text>
-                                </View>
-                              )}
-                            </View>
                           </View>
-                        </TouchableOpacity>
-                        <View style={styles.relatedNewsDivider} />
-                      </View>
-                    );
-                  })}
+                        </View>
+                      </TouchableOpacity>
+                      <View style={styles.relatedNewsDivider} />
+                    </View>
+                  );
+                })}
+              </View>
+            )}
+
+            {/* Tags */}
+            {tags.length > 0 && (
+              <View style={styles.tagsSection}>
+                <Text style={[styles.tagsSectionTitle, { fontSize: sf(14) }]}>Tags</Text>
+                <View style={styles.tagsWrap}>
+                  {tags.map((tag, i) => (
+                    <View key={`tag-${i}`} style={styles.tagChip}>
+                      <Text style={[styles.tagTxt, { fontSize: sf(12) }]}>
+                        #{typeof tag === 'string' ? tag : tag?.title || tag?.name || ''}
+                      </Text>
+                    </View>
+                  ))}
                 </View>
-              )}
+              </View>
+            )}
 
-              {/* Tags */}
-              {tags.length > 0 && (
-                <View style={styles.tagsSection}>
-                  <Text style={[styles.tagsSectionTitle, { fontSize: sf(14) }]}>Tags</Text>
-                  <View style={styles.tagsWrap}>
-                    {tags.map((tag, i) => (
-                      <View key={`tag-${i}`} style={styles.tagChip}>
-                        <Text style={[styles.tagTxt, { fontSize: sf(12) }]}>
-                          #{typeof tag === 'string' ? tag : tag?.title || tag?.name || ''}
-                        </Text>
-                      </View>
-                    ))}
-                  </View>
-                </View>
-              )}
+            {/* ── Taboola Below-article ───────────────────────────────────
+                After related news + tags. Uses mdinamalarcom / loader.js.
+                mode + container + placement from data.taboola_ads.mobile.belowarticle */}
+            {taboolaAds?.belowarticle && (
+              <TaboolaWidget
+                pageUrl={articlePageUrl}
+                mode={taboolaAds.belowarticle.mode}
+                container={taboolaAds.belowarticle.container}
+                placement={taboolaAds.belowarticle.placement}
+              />
+            )}
 
- {/* Replace <GoogleFollowWidget /> with: */}
-{/* <GoogleFollowBanner data={googleFollowData} /> */}
-              {/* ── Taboola Below-article ───────────────────────────────────
-                  After related news + tags. Uses mdinamalarcom / loader.js.
-                  mode + container + placement from data.taboola_ads.mobile.belowarticle */}
-              {taboolaAds?.belowarticle && (
-                <TaboolaWidget
-                  pageUrl={articlePageUrl}
-                  mode={taboolaAds.belowarticle.mode}
-                  container={taboolaAds.belowarticle.container}
-                  placement={taboolaAds.belowarticle.placement}
-                />
-              )}
-
-              {/* Share bar */}
-              {/* <View style={styles.shareBar}>
-                <Text style={[styles.shareBarTitle, { fontSize: sf(14) }]}>பகிரவும்</Text>
-                <TouchableOpacity style={styles.shareBtn} onPress={handleShare}>
-                  <Ionicons name="share-social-outline" size={s(16)} color={COLORS.primary} />
-                  <Text style={[styles.shareBtnTxt, { fontSize: sf(12) }]}>Share</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.shareBtn} onPress={handleOpenBrowser}>
-                  <Ionicons name="globe-outline" size={s(16)} color={COLORS.primary} />
-                  <Text style={[styles.shareBtnTxt, { fontSize: sf(12) }]}>Browser</Text>
-                </TouchableOpacity>
-              </View> */}
-
-              {/* Swipe nav */}
-              {/* {(hasPrev || hasNext) && (
-                <View style={styles.swipeNavRow}>
-                  <TouchableOpacity
-                    style={[styles.swipeNavBtn, !hasPrev && styles.swipeNavBtnDisabled]}
-                    onPress={() => hasPrev && navigateToNews('prev')}
-                    disabled={!hasPrev}
-                  >
-                    <Ionicons name="arrow-back" size={s(15)} color={hasPrev ? COLORS.primary : '#ccc'} />
-                    <Text style={[styles.swipeNavTxt, !hasPrev && styles.swipeNavTxtDisabled]}>முந்தைய</Text>
-                  </TouchableOpacity>
-                  <View style={{ flex: 1 }} />
-                  <TouchableOpacity
-                    style={[styles.swipeNavBtn, !hasNext && styles.swipeNavBtnDisabled]}
-                    onPress={() => hasNext && navigateToNews('next')}
-                    disabled={!hasNext}
-                  >
-                    <Text style={[styles.swipeNavTxt, !hasNext && styles.swipeNavTxtDisabled]}>அடுத்த</Text>
-                    <Ionicons name="arrow-forward" size={s(15)} color={hasNext ? COLORS.primary : '#ccc'} />
-                  </TouchableOpacity>
-                </View>
-              )} */}
-
-              <View style={{ height: vs(40) }} />
-            </ScrollView>
-          )}
+            <View style={{ height: vs(40) }} />
+          </ScrollView>
+        )}
 
           {/* Scroll to top button */}
           {showScrollTop && (
@@ -1284,68 +1386,43 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: 'rgba(0,0,0,0.45)',
   },
-// In StyleSheet.create({...})
-googleFollowBanner: {
-  marginHorizontal: s(12),
-  marginVertical: vs(10),
-},
-googleFollowImage: {
-  width: '100%',
-  height: vs(60),
-},
-googleFollowNative: {
-  flexDirection: 'row',
-  alignItems: 'center',
-  justifyContent: 'space-between',
-  backgroundColor: '#f0f7ff',
-  borderRadius: s(10),
-  borderWidth: 1,
-  borderColor: '#d0e8ff',
-  paddingHorizontal: s(12),
-  paddingVertical: vs(10),
-  gap: s(10),
-},
-googleFollowLeft: {
-  flexDirection: 'row',
-  alignItems: 'center',
-  gap: s(10),
-  flex: 1,
-},
-googleIconCircle: {
-  width: s(36),
-  height: s(36),
-  borderRadius: s(18),
-  backgroundColor: '#4285f4',
-  justifyContent: 'center',
-  alignItems: 'center',
-},
-googleIconText: {
-  color: '#fff',
-  fontWeight: '800',
-  fontSize: ms(18),
-},
-googleFollowTitle: {
-  fontSize: ms(13),
-  fontWeight: '700',
-  color: '#202124',
-  fontFamily: FONTS.muktaMalar.bold,
-},
-googleFollowSub: {
-  fontSize: ms(11),
-  color: '#5f6368',
-  fontFamily: FONTS.muktaMalar.regular,
-},
-googleFollowBtn: {
-  backgroundColor: '#4285f4',
-  paddingHorizontal: s(14),
-  paddingVertical: vs(6),
-  borderRadius: s(16),
-},
-googleFollowBtnText: {
-  color: '#fff',
-  fontWeight: '700',
-  fontSize: ms(12),
-},
+  // In StyleSheet.create({...})
+  gnFollowWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: s(12),
+    marginVertical: vs(10),
+    paddingVertical: vs(8),
+    // paddingHorizontal: s(12),
+    backgroundColor: '#F8F9FA',
+    // borderRadius: s(10),
+    // borderWidth: 1,
+    borderColor: '#E8EAED',
+    gap: s(4),
+  },
+  gnFollowBtn: {
+    marginRight: s(4),
+  },
+  gnFollowIcon: {
+    width: s(55),
+    height: s(35),
+  },
+  gnDivider: {
+    width: 1,
+    height: s(28),
+    backgroundColor: '#DDE1E6',
+    marginHorizontal: s(6),
+  },
+  gnSocialBtn: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: s(8),
+    backgroundColor: PALETTE.buttonBackground,
+    width: 50,
+    height: 50,
+    borderRadius: 30
+  },
   edgeBtnRight: {
     position: 'absolute', right: 0, top: '45%',
     zIndex: 5,
@@ -1356,8 +1433,7 @@ googleFollowBtnText: {
     backgroundColor: 'rgba(0,0,0,0.45)',
   },
   scrollContent: {
-    paddingBottom: vs(20)
-
+    paddingBottom: vs(20),
   },
   title: {
     color: COLORS.text, paddingHorizontal: s(12),
@@ -1426,8 +1502,10 @@ googleFollowBtnText: {
   swipeNavTxtDisabled: { color: '#ccc' },
   relatedSection: { marginBottom: vs(10) },
   relatedHeader: { paddingHorizontal: s(12), marginBottom: vs(12) },
-  relatedSectionTitle: { fontWeight: '800', color: COLORS.text, marginBottom: vs(6) },
-  relatedHeaderLine: { height: vs(5), width: s(90), backgroundColor: COLORS.primary },
+  relatedSectionTitle: {
+ fontFamily: FONTS.muktaMalar.bold,
+    color: PALETTE.grey800,     },
+  relatedHeaderLine: { height: vs(2.5), width: s(60), backgroundColor: COLORS.primary },
   relatedNewsCardWrap: { backgroundColor: COLORS.white },
   relatedNewsImageWrap: { paddingHorizontal: s(12), paddingTop: vs(8) },
   relatedNewsImage: { width: '100%', height: vs(200), backgroundColor: '#f0f0f0' },

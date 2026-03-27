@@ -13,7 +13,7 @@ import {
   Platform,
   Dimensions,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { SpeakerIcon } from '../assets/svg/Icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { CDNApi, CATEGORY_MAP, SPECIAL_ENDPOINTS } from '../config/api';
 import { COLORS, FONTS, NewsCard } from '../utils/constants';
@@ -25,6 +25,7 @@ import AppHeaderComponent from '../components/AppHeaderComponent';
 import { mvs } from 'react-native-size-matters';
 import TEXT_STYLES from '../utils/textStyles';
 import { useFontSize } from '../context/FontSizeContext';
+import { Ionicons } from '@expo/vector-icons';
 
 const PALETTE = {
   primary: '#096dd2',
@@ -139,7 +140,7 @@ function TharpothaiyaNewsCard({ item, onPress, isPremium = false }) {
             <View style={NewsCard.metaRight}>
               {hasAudio && (
                 <View style={NewsCard.audioIcon}>
-                  <Ionicons name="volume-high" size={s(14)} color={PALETTE.grey700} />
+                  <SpeakerIcon size={s(14)} color={PALETTE.grey700} />
                 </View>
               )}
 

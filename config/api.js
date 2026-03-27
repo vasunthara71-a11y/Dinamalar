@@ -22,7 +22,7 @@ const setCachedData = (key, data) => {
 // ─── API Base URLs ────────────────────────────────────────────────────────
 export const API_BASE_URLS = {
   MAIN: 'https://api-st-cdn.dinamalar.com',
-  // DMR_API: 'https://dmrapi.dinamalar.com',
+  DMR_API: 'https://dmrapi.dinamalar.com',
   U38: 'https://u38.dinamalar.com',
   OPEN_API: 'https://openapi-st-cdn.dinamalar.com',
   CDN: 'https://api-st-cdn.dinamalar.com',
@@ -319,11 +319,11 @@ export const mainApi = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
-// export const dmrApi = axios.create({
-//   baseURL: API_BASE_URLS.DMR_API,
-//   timeout: 12000,
-//   headers: { 'Content-Type': 'application/json' },
-// });
+export const dmrApi = axios.create({
+  baseURL: API_BASE_URLS.DMR_API,
+  timeout: 12000,
+  headers: { 'Content-Type': 'application/json' },
+});
 
 export const u38Api = axios.create({
   baseURL: API_BASE_URLS.U38,

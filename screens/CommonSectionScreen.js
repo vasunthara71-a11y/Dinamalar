@@ -13,7 +13,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { SpeakerIcon } from '../assets/svg/Icons';
 import { Comment } from '../assets/svg/Icons';
 import CommentsModal from '../components/CommentsModal';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
@@ -137,6 +137,7 @@ const PALETTE = {
 import UniversalHeaderComponent from '../components/UniversalHeaderComponent';
 import AppHeaderComponent from '../components/AppHeaderComponent';
 import { PhotoGallery } from '../assets/svg/Icons';
+import { Ionicons } from '@expo/vector-icons';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Constants
@@ -1054,7 +1055,7 @@ function NewsCard({ item, onPress, sectionTitle = '' }) {
             <View style={NewsCardStyles.metaRight}>
               {hasAudio && (
                 <View style={NewsCardStyles.audioIcon}>
-                  <Ionicons name="volume-high" size={s(14)} color={PALETTE.grey700} />
+                  <SpeakerIcon size={s(14)} color={PALETTE.grey700} />
                 </View>
               )}
               {!!newscomment && newscomment !== '0' && (

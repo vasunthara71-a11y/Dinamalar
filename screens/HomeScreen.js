@@ -28,7 +28,7 @@ import DrawerMenu from '../components/DrawerMenu';
 import CategoryTab from '../components/CategoryTab';
 import { SvgUri } from 'react-native-svg';
 import FooterMenu from '../components/FooterMenu';
-import { Ionicons } from '@expo/vector-icons';
+import { SpeakerIcon } from '../assets/svg/Icons';
 import { Comment, Shorts } from '../assets/svg/Icons';
 import { useNavigation } from '@react-navigation/native';
 import { useFontSize } from '../context/FontSizeContext';
@@ -40,6 +40,7 @@ import SimplePodcastPlayer from '../components/SimplePodcastPlayer';
 import JoshiyamSection from '../components/JoshiyamSection';
 import TodayEventsCard from '../components/TodayEventsCard';
 import { titles } from '../utils/textStyles';
+import { Ionicons } from '@expo/vector-icons';
 
 // --- Palette ------------------------------------------------------------------
 const PALETTE = {
@@ -905,9 +906,18 @@ function NewsCard({ item, onPress, isSocialMedia = false, isPremium = false, hid
             {/* Premium Tag */}
             {isPremium && (
               <>
-                {console.log('Rendering premium tag for:', title)}
+                {/* {console.log('Rendering premium tag for:', title)}
                 <View style={NewsCardStyles.premiumTag}>
                   <Text style={NewsCardStyles.premiumTagText}>பிரீமியம்</Text>
+                </View> */}
+
+                <View style={NewsCardStyles.wrapper}>
+                  <TouchableOpacity
+                    style={NewsCardStyles.ribbonContainer}
+                    // onPress={() => navigation.navigate('PremiumNews')}
+                  >
+                    <Text style={styles.ribbonText}>ப்ரீமியம்</Text>
+                  </TouchableOpacity>
                 </View>
               </>
             )}
@@ -992,7 +1002,8 @@ function NewsCard({ item, onPress, isSocialMedia = false, isPremium = false, hid
             <View style={NewsCardStyles.metaRight}>
               {hasAudio && (
                 <View style={NewsCardStyles.audioIcon}>
-                  <Ionicons name="volume-high" size={s(14)} color={PALETTE.grey700} />
+
+                  <SpeakerIcon size={s(14)} color={PALETTE.grey700} />
                 </View>
               )}
 
@@ -1189,19 +1200,19 @@ function DinaMalarTVCard({ item, onVideoPress }) {
   // Format duration display
   const formatDuration = (durationStr) => {
     if (!durationStr) return '';
-    
+
     // If duration is in seconds, convert to MM:SS format
     if (typeof durationStr === 'number') {
       const minutes = Math.floor(durationStr / 60);
       const seconds = durationStr % 60;
       return `${minutes}:${seconds.toString().padStart(2, '0')}`;
     }
-    
+
     // If duration is already in MM:SS or HH:MM:SS format, return as is
     if (typeof durationStr === 'string' && durationStr.includes(':')) {
       return durationStr;
     }
-    
+
     // Try to parse as number if it's a string
     const numDuration = parseInt(durationStr);
     if (!isNaN(numDuration)) {
@@ -1209,7 +1220,7 @@ function DinaMalarTVCard({ item, onVideoPress }) {
       const seconds = numDuration % 60;
       return `${minutes}:${seconds.toString().padStart(2, '0')}`;
     }
-    
+
     return durationStr;
   };
 
@@ -1948,7 +1959,7 @@ export default function HomeScreen() {
     try {
       const [
         homeRes, shortRes, shortsRes, varthagamRes, varavaramRes,
-        joshiyamRes, districtRes, premiumRes, cinemaRes, cinemaRes2,vimarsanamRes,
+        joshiyamRes, districtRes, premiumRes, cinemaRes, cinemaRes2, vimarsanamRes,
         photosRes, // Add photos API call
       ] = await Promise.allSettled([
         fetchHomeData(),
@@ -2477,26 +2488,26 @@ export default function HomeScreen() {
             hideDescription: true // Hide descriptions like Aanmegam
           });
 
-          if(vimarsanamRes.status === 'fulfilled' && vimarsanamRes.value?.data){
+          if (vimarsanamRes.status === 'fulfilled' && vimarsanamRes.value?.data) {
 
           }
-          
+
           // Add cinema wrapper using first item largeimages and vimarsanam
           const firstCinemaItem = [...cinemaNews, ...cinemaVideos][0];
           console.log('🎬 First cinema item:', firstCinemaItem);
           console.log('🎬 Cinema item keys:', Object.keys(firstCinemaItem || {}));
-          
+
           // Handle the specific cinema data structure you provided
           const largeImage = 'https://images.dinamalar.com/data/cini//CineGallery/VM_20240428133507000000.jpg?im=Resize,width=300';
-          const reviewText = firstCinemaItem?.vimarsanam || 
-                           firstCinemaItem?.review || 
-                           firstCinemaItem?.description ||
-                           firstCinemaItem?.newsdescription;
-          
+          const reviewText = firstCinemaItem?.vimarsanam ||
+            firstCinemaItem?.review ||
+            firstCinemaItem?.description ||
+            firstCinemaItem?.newsdescription;
+
           console.log('🎬 Large image:', largeImage);
           console.log('🎬 Review text length:', reviewText?.length || 0);
           console.log('🎬 Review text preview:', reviewText?.substring(0, 100) + '...');
-          
+
           if (firstCinemaItem && (largeImage || reviewText)) {
             sections.push({
               title: '', // No title for cinema wrapper
@@ -2521,7 +2532,7 @@ export default function HomeScreen() {
 
         // ── Weekly Malar ───────────────────────────────────────────────────
         const weeklyMalarRaw = d?.varamalar;
-        
+
         // First add the original varamalar data items for card display
         if (weeklyMalarRaw?.data?.length > 0) {
           sections.push({
@@ -2537,7 +2548,7 @@ export default function HomeScreen() {
             hideDescription: true,
           });
         }
-        
+
         // Then add wrapper image as ipaper_image type below the news cards
         if (weeklyMalarRaw?.wrapperimage) {
           sections.push({
@@ -2659,7 +2670,7 @@ export default function HomeScreen() {
         // ── Varavaram ──────────────────────────────────────────────────────
         if (varavaramRes.status === 'fulfilled') {
           const data = varavaramRes.value?.data;
-          
+
           // Handle both "varavaram" and "varamalar" response structures
           if (data?.varavaram?.data?.length > 0) {
             // Add wrapperimage to each item for display
@@ -3033,24 +3044,24 @@ export default function HomeScreen() {
                             >
                               <Ionicons name="images-outline" size={s(14)} color="#fff" />
                             </TouchableOpacity>
-                             <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, paddingVertical: vs(10), paddingHorizontal: s(8), backgroundColor: 'rgba(0,0,0,0.4)' }}>
-                                          {/* Carousel dots — rendered first so they appear above the bg but below no other element */}
-                            
-                                          <Text style={{ fontFamily: FONTS.muktaMalar.semibold, fontSize: ms(14), color: '#FFFFFF', lineHeight: ms(22) }}>
-                                            {title}
-                                          </Text>
-                                          <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: s(6), paddingTop: ms(8) }}>
-                                            {[0, 1, 2, 3, 4, 5, 6, 7].map((index) => (
-                                              <View
-                                                key={`dot-${index}`}
-                                                style={{
-                                                  width: s(13), height: s(2), borderRadius: (0.5),
-                                                  backgroundColor: 'rgba(255,255,255,0.5)',
-                                                }}
-                                              />
-                                            ))}
-                                          </View>
-                                        </View>
+                            <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, paddingVertical: vs(10), paddingHorizontal: s(8), backgroundColor: 'rgba(0,0,0,0.4)' }}>
+                              {/* Carousel dots — rendered first so they appear above the bg but below no other element */}
+
+                              <Text style={{ fontFamily: FONTS.muktaMalar.semibold, fontSize: ms(14), color: '#FFFFFF', lineHeight: ms(22) }}>
+                                {title}
+                              </Text>
+                              <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: s(6), paddingTop: ms(8) }}>
+                                {[0, 1, 2, 3, 4, 5, 6, 7].map((index) => (
+                                  <View
+                                    key={`dot-${index}`}
+                                    style={{
+                                      width: s(13), height: s(2), borderRadius: (0.5),
+                                      backgroundColor: 'rgba(255,255,255,0.5)',
+                                    }}
+                                  />
+                                ))}
+                              </View>
+                            </View>
                           </View>
                         </TouchableOpacity>
                       );
@@ -3450,7 +3461,7 @@ export default function HomeScreen() {
                             }}>
                               {item.newstitle}
                             </Text>
-                            
+
                             {starRating && (
                               <View style={{
                                 flexDirection: 'row',
@@ -3532,7 +3543,7 @@ export default function HomeScreen() {
                             // borderColor: PALETTE.grey300,
                             overflow: 'hidden',
                           }}>
-                            
+
                             {/* Image at top */}
                             {imageUri && (
                               <Image
@@ -3558,7 +3569,7 @@ export default function HomeScreen() {
                               }}>
                                 {item.newstitle}
                               </Text> */}
-                              
+
                               {/* {starRating && (
                                 <View style={{
                                   flexDirection: 'row',
@@ -3638,31 +3649,36 @@ export default function HomeScreen() {
                     title={section.title}
                     onSeeMore={
                       section.title?.includes('உலக தமிழர் செய்திகள்') ?
-                      () => {
-                        console.log('🔍 ULAGA THAMIZAR SECTION HEADER CLICKED - Navigating to: NewsDetailsScreen');
-                        // Navigate to the first ulaga thamizar news item instead of CommonSectionScreen
-                        const ulagaThamizarData = section.data || [];
-                        if (ulagaThamizarData.length > 0) {
-                          const firstItem = ulagaThamizarData[0];
-                          console.log('📱 First item data:', { newsId: firstItem.News_ID || firstItem.newsid || firstItem.id, title: firstItem.newstitle || firstItem.title });
-                          navigation?.navigate('NewsDetailsScreen', {
-                            newsId: firstItem.News_ID || firstItem.newsid || firstItem.id,
-                            newsItem: firstItem,
-                            slug: firstItem.slug || '',
-                          });
-                        }
-                      } : section.title?.includes('சினிமா') ?
-                      () => {
-                        console.log('🎬 CINEMA SECTION HEADER CLICKED - Opening in browser');
-                        const link = 'https://www.dinamalar.com/cinema';
-                        Linking.openURL(link).catch(() => console.log('Failed to open cinema link'));
-                      } : (section.title?.includes('வாராவாரம்') || section.title?.includes('varavaram') || 
-                         section.title?.includes('வாரமலர்') || section.title?.includes('varamalar')) ?
-                      () => {
-                        console.log('📰 VARAVARAM/VARAMALAR SECTION HEADER CLICKED - Opening iPaper in browser');
-                        const link = 'https://ipaper.dinamalar.com/';
-                        Linking.openURL(link).catch(() => console.log('Failed to open varavaram iPaper link'));
-                      } : undefined
+                        () => {
+                          console.log('🔍 ULAGA THAMIZAR SECTION HEADER CLICKED - Navigating to: NewsDetailsScreen');
+                          // Navigate to the first ulaga thamizar news item instead of CommonSectionScreen
+                          const ulagaThamizarData = section.data || [];
+                          if (ulagaThamizarData.length > 0) {
+                            const firstItem = ulagaThamizarData[0];
+                            console.log('📱 First item data:', { newsId: firstItem.News_ID || firstItem.newsid || firstItem.id, title: firstItem.newstitle || firstItem.title });
+                            navigation?.navigate('NewsDetailsScreen', {
+                              newsId: firstItem.News_ID || firstItem.newsid || firstItem.id,
+                              newsItem: firstItem,
+                              slug: firstItem.slug || '',
+                            });
+                          }
+                        } : section.title?.includes('தற்போதைய செய்திகள்') || section.title.includes('tharpothaiya') ||
+                          section.title?.includes('தற்போதைய') || section.title?.includes('தற்போதைய செய்திகள்') ?
+                          () => {
+                            console.log('📰 THARPOTHAIYA SECTION HEADER CLICKED - Navigating to TharpothaiyaSeithigalScreen');
+                            navigation?.navigate('TharpothaiyaSeithigalScreen');
+                          } : section.title?.includes('சினிமா') ?
+                            () => {
+                              console.log('🎬 CINEMA SECTION HEADER CLICKED - Opening in browser');
+                              const link = 'https://www.dinamalar.com/cinema';
+                              Linking.openURL(link).catch(() => console.log('Failed to open cinema link'));
+                            } : section.title?.includes('வாராவாரம்') || section.title?.includes('varavaram') ||
+                              section.title?.includes('வாரமலர்') || section.title?.includes('varamalar') ?
+                              () => {
+                                console.log('📰 VARAVARAM/VARAMALAR SECTION HEADER CLICKED - Opening iPaper in browser');
+                                const link = 'https://ipaper.dinamalar.com/';
+                                Linking.openURL(link).catch(() => console.log('Failed to open varavaram iPaper link'));
+                              } : undefined
                     }
                   />
                   {section.data?.map((item, i) => {
@@ -3675,12 +3691,12 @@ export default function HomeScreen() {
                     // Custom varamalar card with title below category
                     if (isVaramalarSection) {
                       const { sf } = useFontSize();
-                      
+
                       // Use wrapperimage from section data if available, otherwise fall back to item image
                       const wrapperImage = section.data?.[0]?.wrapperimage || section.wrapperimage;
-                      const imageUri = wrapperImage || 
-                                     item.images || item.largeimages || item.image || item.thumbnail || item.thumb || 
-                                     'https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_default.jpg?im=Resize,width=400';
+                      const imageUri = wrapperImage ||
+                        item.images || item.largeimages || item.image || item.thumbnail || item.thumb ||
+                        'https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_default.jpg?im=Resize,width=400';
                       const bookTitle = item.booktitle || item.title || item.newstitle || '';
                       const category = item.maincat || 'வாரமலர்';
                       const date = item.standarddate || item.date || item.ago || '';
@@ -3813,7 +3829,7 @@ export default function HomeScreen() {
                             return;
                           }
 
-                          if (sectionTitle.includes('வாராவாரம்') || sectionTitle.includes('varavaram') || 
+                          if (sectionTitle.includes('வாராவாரம்') || sectionTitle.includes('varavaram') ||
                             sectionTitle.includes('வாரமலர்') || sectionTitle.includes('varamalar')) {
                             // Open varavaram iPaper in browser
                             const link = item.link || item.slug || item.external_link || 'https://ipaper.dinamalar.com/';

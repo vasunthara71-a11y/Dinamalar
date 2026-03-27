@@ -1,4 +1,7 @@
 // ─── Dinamalar TV Card ────────────────────────────────────────────────────────
+
+import { Ionicons } from "@expo/vector-icons";
+
 // NewsCard-style layout but with play button overlay on image — tapping opens VideoPlayerModal
 function DinaMalarTVCard({ item, onPress }) {
   const { sf } = useFontSize();

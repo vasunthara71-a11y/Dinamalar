@@ -1150,7 +1150,7 @@ const styles = StyleSheet.create({
   safe: {
     flex: 1,
     backgroundColor: PALETTE.grey100,
-    paddingTop: Platform.OS === 'android' ? vs(30) : 0,
+    paddingTop: Platform.OS === 'android' ? vs(0) : 0,
   },
 
   // Category row
