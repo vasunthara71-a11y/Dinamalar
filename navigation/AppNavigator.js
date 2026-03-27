@@ -30,6 +30,8 @@ import PodcastPlayer from '../screens/PodcastPlayer';
 import CommodityScreen from '../screens/CommodityScreen';
 import BookmarkListScreen from '../screens/BookmarkListScreen';
 import AuthorScreen from '../screens/AuthorScreen';
+import TagsScreen from '../screens/TagsScreen';
+import SpecialTodayScreen from '../screens/SpecialTodayScreen';
   
 const Stack = createNativeStackNavigator();
 
@@ -82,6 +84,8 @@ const AppNavigator = () => {
         <Stack.Screen name='CommodityScreen' component={CommodityScreen}/>
         <Stack.Screen name='BookmarkListScreen' component={BookmarkListScreen}/>
         <Stack.Screen name='AuthorScreen' component={AuthorScreen}/>
+        <Stack.Screen name='TagsScreen' component={TagsScreen}/>
+        <Stack.Screen name='SpecialTodayScreen' component={SpecialTodayScreen}/>
         
       </Stack.Navigator>
     </NavigationContainer>

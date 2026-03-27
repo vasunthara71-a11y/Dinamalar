@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONTS } from '../utils/constants';
 import { scaledSizes } from '../utils/scaling';
+import { s } from 'react-native-size-matters';
 
 // ─── AppHeader Component ───────────────────────────────────────────────────────
 export default function AppHeader({ 

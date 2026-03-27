@@ -16,7 +16,7 @@ import {
 } from 'react-native';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { Comment, CommentForChat } from '../assets/svg/Icons';
-import { CDNApi, mainApi, u38Api } from '../config/api';
+import { CDNApi, mainApi,  } from '../config/api';
 import { COLORS, FONTS } from '../utils/constants';
 import { s, vs, ms, scaledSizes } from '../utils/scaling';
 import FontSizeControl from './FontSizeControl';

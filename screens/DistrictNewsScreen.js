@@ -13,7 +13,7 @@ import {
   Modal,
   Platform,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { SpeakerIcon } from '../assets/svg/Icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { CDNApi } from '../config/api';
 import { s, vs, ms, scaledSizes } from '../utils/scaling';
@@ -23,6 +23,7 @@ import AppHeaderComponent from '../components/AppHeaderComponent';
 import { useFontSize } from '../context/FontSizeContext';
 import { mvs } from 'react-native-size-matters';
 import TEXT_STYLES from '../utils/textStyles';
+import { Ionicons } from '@expo/vector-icons';
 
 const PALETTE = {
   primary: '#096dd2',
@@ -147,7 +148,7 @@ function NewsCard({ item, onPress }) {
               )}
               {hasAudio && (
                 <View style={NewsCardStyles.audioIcon}>
-                  <Ionicons name="volume-high" size={s(14)} color={PALETTE.grey700} />
+                  <SpeakerIcon size={s(14)} color={PALETTE.grey700} />
                 </View>
               )}
             </View>

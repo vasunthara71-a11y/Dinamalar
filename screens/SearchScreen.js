@@ -13,8 +13,8 @@ import {
   Image,
   Keyboard,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { SpeakerIcon } from '../assets/svg/Icons';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { s, vs } from '../utils/scaling';
 import { ms } from 'react-native-size-matters';
 import { FONTS, getFontFamily } from '../utils/fonts';
@@ -23,6 +23,7 @@ import { useFontSize } from '../context/FontSizeContext';
 import UniversalHeaderComponent from '../components/UniversalHeaderComponent';
 import AppHeaderComponent from '../components/AppHeaderComponent';
 import axios from 'axios';
+import { Ionicons } from '@expo/vector-icons';
 
 const SEARCH_API_BASE = 'https://api-st-cdn.dinamalar.com/searchfilter?search=';
 
@@ -82,7 +83,7 @@ function NewsCard({ item, onPress, sectionTitle = '' }) {
             <View style={NewsCardStyles.metaRight}>
               {hasAudio && (
                 <View style={NewsCardStyles.audioIcon}>
-                  <Ionicons name="volume-high" size={s(14)} color={COLORS.text} />
+                  <SpeakerIcon size={s(14)} color={COLORS.text} />
                 </View>
               )}
 
@@ -281,8 +282,7 @@ var SearchResultItem = function (props) {
           <Text style={styles.metaDate}>{pubDate}</Text>
           <View style={styles.metaIcons}>
             {hasAudio ? (
-              <Ionicons
-                name="volume-high-outline"
+              <SpeakerIcon
                 size={ms(16)}
                 color="#555"
                 style={{ marginRight: s(10) }}
@@ -307,7 +307,8 @@ var SearchResultItem = function (props) {
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 var SearchScreen = function () {
   var navigation = useNavigation();
-
+  var route = useRoute();
+  
   var sq = useState(''); var searchQuery = sq[0]; var setSearchQuery = sq[1];
   var sr = useState([]); var searchResults = sr[0]; var setSearchResults = sr[1];
   var il = useState(false); var isLoading = il[0]; var setIsLoading = il[1];
@@ -330,6 +331,17 @@ var SearchScreen = function () {
   var sd = useState('உள்ளூர்'); var selectedDistrict = sd[0]; var setSelectedDistrict = sd[1];
 
   var inputRef = useRef(null);
+
+  // Set initial search query from route params
+  useEffect(function () {
+    var initialSearchTerm = route.params?.searchTerm;
+    if (initialSearchTerm) {
+      setSearchQuery(initialSearchTerm);
+      cq.current = initialSearchTerm;
+      // Trigger search automatically
+      performSearch(initialSearchTerm);
+    }
+  }, [route.params?.searchTerm]);
 
   // Fetch trending topics on mount
   useEffect(function () {

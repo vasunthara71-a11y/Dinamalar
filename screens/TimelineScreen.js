@@ -4,7 +4,7 @@ import {
   ActivityIndicator, RefreshControl, Dimensions,
   Animated, StyleSheet, Platform, Linking,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { SpeakerIcon } from '../assets/svg/Icons';
 import { WebView } from 'react-native-webview';
 import RenderHtml from 'react-native-render-html';
 import axios from 'axios';
@@ -19,6 +19,7 @@ import TEXT_STYLES from '../utils/textStyles';
 import { useFontSize } from '../context/FontSizeContext';
 import FontSizeControl from '../components/FontSizeControl';
 import { StatusBar } from 'expo-status-bar';
+import { Ionicons } from '@expo/vector-icons';
 
 const PALETTE = {
   primary: '#096dd2',
@@ -344,7 +345,7 @@ function NotificationCard({ item, onPress }) {
                 </View>
               )}
               {hasAudio && (
-                <Ionicons name="volume-high" size={sf(14)} color={PALETTE.grey700} />
+                <SpeakerIcon size={sf(14)} color={PALETTE.grey700} />
               )}
             </View>
           </View>

@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { CDNApi } from '../config/api';
+import { CDNApi, mainApi } from '../config/api';
 import { s, vs, ms, scaledSizes } from '../utils/scaling';
 import { COLORS, FONTS } from '../utils/constants';
 import { TEXT_STYLES } from '../utils/textStyles';
@@ -487,52 +487,82 @@ export default function VarthagamScreen() {
   }, []);
 
   // ── Fetch /varthagam ──────────────────────────────────────────────────────
-  const fetchAll = useCallback(async () => {
-    try {
-      const res = await CDNApi.get('/varthagam');
-      const d = res?.data;
-      const tabs = (d?.subcatlist || []).filter(t => t.id !== 'commodity');
-      setSubTabs(tabs);
-      if (tabs.length > 0) setActiveTab(tabs[0]);
-      setCommodity(d?.commodity || null);
-      setAllSections(d?.newlist || []);
-    } catch (e) {
-      console.error('VarthagamScreen fetchAll error:', e?.message);
-    } finally {
-      setInitLoading(false);
-      setRefreshing(false);
+const fetchAll = useCallback(async () => {
+  try {
+    const res = await CDNApi.get('/varthagam');
+    const d = res?.data;
+    const tabs = (d?.subcatlist || []).filter(t => t.id !== 'commodity');
+    setSubTabs(tabs);
+    if (tabs.length > 0) setActiveTab(tabs[0]);
+    setCommodity(d?.commodity || null);
+
+    // ✅ Handle both array-of-sections and paginated object
+    const newlist = d?.newlist;
+    if (Array.isArray(newlist)) {
+      setAllSections(newlist);           // old format: [{title, data:[]}]
+    } else if (newlist?.data) {
+      // ✅ Wrap flat list into a single section
+      setAllSections([{ title: '', data: newlist.data }]);
+    } else {
+      setAllSections([]);
     }
-  }, []);
+  } catch (e) {
+    console.error('VarthagamScreen fetchAll error:', e?.message);
+  } finally {
+    setInitLoading(false);
+    setRefreshing(false);
+  }
+}, []);
 
   useEffect(() => { fetchAll(); }, []);
 
   // ── Fetch tab news from tab.link ──────────────────────────────────────────
-  const fetchTabNews = useCallback(async (tab, pg, append = false) => {
-    if (!tab?.link || tab.title === 'All') return;
-    try {
-      const sep = tab.link.includes('?') ? '&' : '?';
-      const url = `${tab.link}${sep}page=${pg}`;
-      const res = await CDNApi.get(url);
-      const d = res?.data;
-      const list = (
-        d?.newlist?.data ||
-        d?.newslist?.data ||
-        d?.data ||
-        d?.list ||
-        []
-      ).filter(Boolean);
-      const lp = d?.newlist?.last_page || d?.newslist?.last_page || d?.last_page || 1;
-      setTabLastPage(lp);
-      setTabNews(prev => append ? [...prev, ...list] : list);
-      setTabPage(pg);
-    } catch (e) {
-      console.error('Tab fetch error:', e?.message);
-    } finally {
-      setTabLoading(false);
-      setTabLoadMore(false);
-      setRefreshing(false);
-    }
-  }, []);
+const fetchTabNews = useCallback(async (tab, pg, append = false) => {
+  if (!tab?.link || tab.title === 'All') return;
+  try {
+    const sep = tab.link.includes('?') ? '&' : '?';
+    const url = `${tab.link}${sep}page=${pg}`;
+
+    console.log('🔵 Fetching tab URL:', url);
+
+    // ✅ Use mainApi instead of CDNApi — /newsdata lives on www.dinamalar.com
+    const res = await mainApi.get(url);  // <-- KEY FIX
+    const d = res?.data;
+
+    console.log('🟢 Tab response keys:', Object.keys(d || {}));
+
+    const list = (
+      d?.newlist?.data ||
+      d?.newslist?.data ||
+      d?.data ||
+      d?.list ||
+      []
+    ).filter(Boolean);
+
+    const lp =
+      d?.newlist?.last_page ||
+      d?.newslist?.last_page ||
+      d?.last_page ||
+      1;
+
+    setTabLastPage(lp);
+    setTabNews(prev => append ? [...prev, ...list] : list);
+    setTabPage(pg);
+  }  catch (e) {
+  console.error('Tab fetch error:', e?.message);
+  console.error('Tab fetch status:', e?.response?.status);
+
+  // ✅ Show user-friendly message for 500 errors
+  if (e?.response?.status === 500) {
+    setTabNews([]);  // clear any stale data
+    // Optionally set an error state to show UI message
+  }
+} finally {
+  setTabLoading(false);
+  setTabLoadMore(false);
+  setRefreshing(false);
+}
+}, []);
 
   const handleTabPress = (tab) => {
     if (activeTab?.id === tab.id && activeTab?.title === tab.title) return;
@@ -591,19 +621,21 @@ export default function VarthagamScreen() {
   };
   const isAllTab = !activeTab || activeTab.title === 'All';
 
-  const buildFlatData = () => {
-    if (isAllTab) {
-      const flat = [];
-      allSections.forEach(section => {
-        if (section?.data?.length > 0) {
+const buildFlatData = () => {
+  if (isAllTab) {
+    const flat = [];
+    allSections.forEach(section => {
+      if (section?.data?.length > 0) {
+        if (section.title) {  // ✅ Only show title if it exists
           flat.push({ type: 'section', title: section.title });
-          section.data.forEach(item => flat.push({ type: 'news', item }));
         }
-      });
-      return flat;
-    }
-    return tabNews.map(item => ({ type: 'news', item }));
-  };
+        section.data.forEach(item => flat.push({ type: 'news', item }));
+      }
+    });
+    return flat;
+  }
+  return tabNews.map(item => ({ type: 'news', item }));
+};
 
   const flatData = buildFlatData();
   const isLoading = initLoading || tabLoading;
