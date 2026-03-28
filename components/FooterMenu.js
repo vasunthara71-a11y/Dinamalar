@@ -53,23 +53,8 @@ function FooterMenu() {
       try {
         const res = await mainApi.get(API_ENDPOINTS.MENU);
         const d = res.data;
-        console.log('FooterMenu: Full menu data:', JSON.stringify(d, null, 2)); // Debug log full menu
-        if (d?.footermenu?.footerdata) {
-          setFooterData(d.footermenu.footerdata);
-          console.log('FooterMenu: Footer data:', d.footermenu.footerdata); // Debug log footer data
-        }
-        if (d?.footermenu?.footerourapps) {
-          const apps = d.footermenu.footerourapps;
-          // Add Dinamalar Calendar app manually if not in API response
-          if (apps.length === 0) {
-            apps.push({
-              Title: 'Dinamalar Calendar',
-              Link: 'https://play.google.com/store/apps/details?id=com.daily.dinamalar',
-              icon: 'https://play.google.com/store/images/dinamalar-calendar-icon.png'
-            });
-          }
-          setOurApps(apps);
-        }
+        if (d?.footermenu?.footerdata) setFooterData(d.footermenu.footerdata);
+        if (d?.footermenu?.footerourapps) setOurApps(d.footermenu.footerourapps);
         if (d?.follow) setFollowUs(d.follow);
         if (d?.footermenu?.footertext) setFooterText(d.footermenu.footertext);
 
@@ -86,44 +71,6 @@ function FooterMenu() {
     setActiveIdx(index);
     const url = toFullUrl(item.Link || item.slug);
     if (!url) return;
-    
-    console.log('FooterMenu: Pressed item:', JSON.stringify(item.Title)); // Debug log with JSON.stringify
-    console.log('FooterMenu: Title length:', item.Title?.length); // Debug log
-    console.log('FooterMenu: Title char codes:', item.Title?.split('').map(c => c.charCodeAt(0))); // Debug log
-    
-    // Special handling for Varthagam - navigate to Varthagam screen
-    if (item.Title === 'வர்த்தகம்' || item.Title === 'வர்தகம்' || item.Title === 'Varthagam') {
-      console.log('FooterMenu: Navigating to VarthagamScreen'); // Debug log
-      navigation.navigate('VarthagamScreen');
-      return;
-    }
-    
-    // Special handling for Sports - navigate to Sports screen
-    if (item.Title === 'விளையாட்டு' || item.Title === 'Sports') {
-      console.log('FooterMenu: Navigating to SportsScreen'); // Debug log
-      navigation.navigate('SportsScreen');
-      return;
-    }
-    
-    // Special handling for Ulagha Tamil - navigate to CommonSectionScreen
-    if (item.Title === 'உலக தமிழர்' || item.Title === 'Ulagha Tamil' || item.Title === 'ulaga thamilar') {
-      console.log('FooterMenu: Navigating to CommonSectionScreen - Ulagha Tamil'); // Debug log
-      navigation.navigate('CommonSectionScreen', { 
-        screenTitle: 'உலக தமிழர்',
-        apiEndpoint: 'https://api-st-cdn.dinamalar.com/nrimain',
-        allTabLink: 'https://api-st-cdn.dinamalar.com/nrimain'
-      });
-      return;
-    }
-    
-    // Try more flexible matching for Varthagam
-    if (item.Title?.includes('வர்த') || item.Title?.includes('Varthag') || item.Title?.includes('varthag')) {
-      console.log('FooterMenu: Flexible match for Varthagam - Navigating to VarthagamScreen'); // Debug log
-      navigation.navigate('VarthagamScreen');
-      return;
-    }
-    
-    console.log('FooterMenu: Opening URL in browser:', url); // Debug log
     Linking.openURL(url);
   };
 

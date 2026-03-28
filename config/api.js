@@ -317,178 +317,104 @@ export const mainApi = axios.create({
   baseURL: API_BASE_URLS.MAIN,
   timeout: 12000,
   headers: { 'Content-Type': 'application/json' },
-  maxRedirects: 5,
-  validateStatus: (status) => status >= 200 && status < 300,
 });
-
-// Add request interceptor for error handling
-mainApi.interceptors.request.use(
-  (config) => config,
-  (error) => Promise.reject(error)
-);
-
-// Add response interceptor for error handling
-mainApi.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response) {
-      console.log('Response Error:', error.response.status, error.response.data);
-    } else if (error.request) {
-      console.log('Request Error:', error.message);
-    } else {
-      console.log('Error:', error.message);
-    }
-    return Promise.reject(error);
-  }
-);
 
 export const dmrApi = axios.create({
   baseURL: API_BASE_URLS.DMR_API,
   timeout: 12000,
   headers: { 'Content-Type': 'application/json' },
-  maxRedirects: 5,
-  validateStatus: (status) => status >= 200 && status < 300,
 });
-
-// Add request interceptor for error handling
-dmrApi.interceptors.request.use(
-  (config) => config,
-  (error) => Promise.reject(error)
-);
-
-// Add response interceptor for error handling
-dmrApi.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response) {
-      console.log('Response Error:', error.response.status, error.response.data);
-    } else if (error.request) {
-      console.log('Request Error:', error.message);
-    } else {
-      console.log('Error:', error.message);
-    }
-    return Promise.reject(error);
-  }
-);
 
 export const u38Api = axios.create({
   baseURL: API_BASE_URLS.U38,
   timeout: 12000,
   headers: { 'Content-Type': 'application/json' },
-  maxRedirects: 5,
-  validateStatus: (status) => status >= 200 && status < 300,
 });
 
-// Add request interceptor for error handling
-u38Api.interceptors.request.use(
-  (config) => config,
-  (error) => Promise.reject(error)
-);
-
-// Add response interceptor for error handling
-u38Api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response) {
-      console.log('Response Error:', error.response.status, error.response.data);
-    } else if (error.request) {
-      console.log('Request Error:', error.message);
-    } else {
-      console.log('Error:', error.message);
-    }
-    return Promise.reject(error);
-  }
-);
-
 export const CDNApi = axios.create({
-  baseURL: API_BASE_URLS.CDN,
-  timeout: 15000, // Reduced to 15s for faster failure detection
-  headers: {
-    'Content-Type': 'application/json',
+  baseURL:API_BASE_URLS.CDN,
+  timeout:15000, // Reduced to 15s for faster failure detection
+  headers:{
+    'Content-Type':'application/json',
     'Accept': 'application/json',
     'Accept-Encoding': 'gzip, deflate, br', // Enable compression
     'Connection': 'keep-alive' // Connection pooling
   },
 });
 
-// Add request interceptor for error handling
+// Add request interceptor with caching
 CDNApi.interceptors.request.use(
-  (config) => config,
-  (error) => Promise.reject(error)
-);
-
-// Add response interceptor for error handling
-CDNApi.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response) {
-      console.log('Response Error:', error.response.status, error.response.data);
-    } else if (error.request) {
-      console.log('Request Error:', error.message);
-    } else {
-      console.log('Error:', error.message);
+   (config) => {
+    // Check cache for GET requests
+    if (config.method === 'get') {
+      const cacheKey = `${config.baseURL}${config.url}`;
+      const cachedData = getCachedData(cacheKey);
+      if (cachedData) {
+        // Return cached data immediately
+        config.adapter = () => Promise.resolve({
+          data: cachedData,
+          status: 200,
+          statusText: 'OK',
+          headers: {},
+          config,
+          request: {},
+        });
+      }
     }
+    return config;
+  },
+  (error) => {
     return Promise.reject(error);
   }
 );
+
+// Add response caching interceptor
+CDNApi.interceptors.response.use(
+  (response) => {
+    // Cache successful GET responses
+    if (response.config.method === 'get' && response.status === 200) {
+      const cacheKey = `${response.config.baseURL}${response.config.url}`;
+      setCachedData(cacheKey, response.data);
+    }
+    return response;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Add response interceptor for debugging
+// dmrApi.interceptors.response.use(
+//   (response) => {
+//     console.log('=== API RESPONSE DEBUG ===');
+//     console.log('URL:', response.config.url);
+//     console.log('Status:', response.status);
+//     console.log('Data length:', JSON.stringify(response.data).length);
+//     console.log('========================');
+//     return response;
+//   },
+//   (error) => {
+//     console.error('=== API RESPONSE ERROR ===');
+//     console.error('URL:', error.config?.baseURL + error.config?.url);
+//     console.error('Status:', error.response?.status);
+//     console.error('Message:', error.message);
+//     console.error('Code:', error.code);
+//     console.error('==========================');
+//     return Promise.reject(error);
+//   }
+// );
 
 export const openApi = axios.create({
   baseURL: API_BASE_URLS.OPEN_API,
   timeout: 12000,
   headers: { 'Content-Type': 'application/json' },
-  maxRedirects: 5,
-  validateStatus: (status) => status >= 200 && status < 300,
 });
-
-// Add request interceptor for error handling
-openApi.interceptors.request.use(
-  (config) => config,
-  (error) => Promise.reject(error)
-);
-
-// Add response interceptor for error handling
-openApi.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response) {
-      console.log('Response Error:', error.response.status, error.response.data);
-    } else if (error.request) {
-      console.log('Request Error:', error.message);
-    } else {
-      console.log('Error:', error.message);
-    }
-    return Promise.reject(error);
-  }
-);
 
 export const cdnApi = axios.create({
   baseURL: API_BASE_URLS.CDN,
   timeout: 12000,
   headers: { 'Content-Type': 'application/json' },
-  maxRedirects: 5,
-  validateStatus: (status) => status >= 200 && status < 300,
 });
-
-// Add request interceptor for error handling
-cdnApi.interceptors.request.use(
-  (config) => config,
-  (error) => Promise.reject(error)
-);
-
-// Add response interceptor for error handling
-cdnApi.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response) {
-      console.log('Response Error:', error.response.status, error.response.data);
-    } else if (error.request) {
-      console.log('Request Error:', error.message);
-    } else {
-      console.log('Error:', error.message);
-    }
-    return Promise.reject(error);
-  }
-);
 
 // ─── API Functions ─────────────────────────────────────────────────────────
 export const api = {

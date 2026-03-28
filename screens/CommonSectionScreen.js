@@ -1482,15 +1482,15 @@ export default function CommonSectionScreen() {
   const fetchAll = useCallback(async () => {
     try {
       const api = mainApi; // Always use mainApi
-
+      
       // Handle special case for cartoons - redirect to photodata API
       let actualEndpoint = apiEndpoint;
-      if (apiEndpoint === '/cartoons' || apiEndpoint === 'https://api-st-cdn.dinamalar.com/cartoons') {
+      if (apiEndpoint === '/cartoons'|| apiEndpoint === 'https://api-st-cdn.dinamalar.com/cartoons') {
         actualEndpoint = 'https://api-st-cdn.dinamalar.com/photodata';
       } else if (apiEndpoint === '/cards' || apiEndpoint === 'https://api-st-cdn.dinamalar.com/cards') {
         actualEndpoint = 'https://api-st-cdn.dinamalar.com/photodata';
       }
-
+      
       const res = await api.get(actualEndpoint);
       const d = res?.data;
 
@@ -1587,7 +1587,7 @@ export default function CommonSectionScreen() {
         setSubTabs(tabs);
         setAllSections(photoSections);
         setTaboolaAds(d?.taboola_ads?.mobile || null);
-
+        
         // Handle initial tab selection for photodata
         if (initialTabId && initialTabId !== 'all') {
           const preselected = tabs.find(t => String(t.id) === String(initialTabId));
@@ -1598,7 +1598,7 @@ export default function CommonSectionScreen() {
             return;
           }
         }
-
+        
         // Special case: if original endpoint was /cartoons, select cartoons tab
         if (apiEndpoint === '/cartoons' || apiEndpoint === 'https://api-st-cdn.dinamalar.com/cartoons') {
           const cartoonsTab = tabs.find(t => String(t.id) === '5002');
@@ -1609,7 +1609,7 @@ export default function CommonSectionScreen() {
             return;
           }
         }
-
+        
         // Special case: if original endpoint was /cards, select cards tab
         if (apiEndpoint === '/cards' || apiEndpoint === 'https://api-st-cdn.dinamalar.com/cards') {
           const cardsTab = tabs.find(t => String(t.id) === 'socialcards');
@@ -1620,7 +1620,7 @@ export default function CommonSectionScreen() {
             return;
           }
         }
-
+        
         // Special case: if original endpoint was /nri, select nri album tab
         if (apiEndpoint === '/nri' || apiEndpoint.includes('nri') || apiEndpoint.includes('5003')) {
           const nriTab = tabs.find(t => String(t.id) === '5003');
@@ -1631,7 +1631,7 @@ export default function CommonSectionScreen() {
             return;
           }
         }
-
+        
         setActiveTab({ title: 'Photo', link: apiEndpoint, _isAllTab: true });
         return;
       }
@@ -2378,216 +2378,254 @@ export default function CommonSectionScreen() {
       }
       return tab.link === apiEndpoint;
     }
-     return tabIsAll(tab) ? tabIsAll(activeTab) : String(activeTab.id) === String(tab.id);
+
+    if (tabIsAll(tab) || tab.link === allTabLink) return tabIsAll(activeTab);
+    return String(activeTab.id) === String(tab.id);
   };
 
-    // ─── Image with Fallback ─────────────────────────────────────────────────────
-    function ImageWithFallback({ source, style, resizeMode = 'cover', iconSize = 40 }) {
-      const [imageError, setImageError] = useState(false);
-      const [loading, setLoading] = useState(true);
+  // ─── Image with Fallback ─────────────────────────────────────────────────────
+  function ImageWithFallback({ source, style, resizeMode = 'cover', iconSize = 40 }) {
+    const [imageError, setImageError] = useState(false);
+    const [loading, setLoading] = useState(true);
 
-      const handleImageError = () => {
-        setImageError(true);
-        setLoading(false);
-      };
+    const handleImageError = () => {
+      setImageError(true);
+      setLoading(false);
+    };
 
-      const handleImageLoad = () => {
-        setImageError(false);
-        setLoading(false);
-      };
+    const handleImageLoad = () => {
+      setImageError(false);
+      setLoading(false);
+    };
 
-      // Placeholder image from photodata API
-      const placeholderImage = 'https://stat.dinamalar.com/new/2025/images/no-image-available.jpg';
-
-      if (imageError || !source?.uri) {
-        return (
-          <View style={[style, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#f5f5f5' }]}>
-            <Image
-              source={{ uri: placeholderImage }}
-              style={[style, { resizeMode: 'contain' }]}
-              onError={() => console.log('Placeholder image also failed to load')}
-            />
-          </View>
-        );
-      }
-
+    if (imageError || !source?.uri) {
       return (
-        <View style={style}>
-          <Image
-            source={source}
-            style={[style, { position: 'absolute' }]}
-            resizeMode={resizeMode}
-            onError={handleImageError}
-            onLoad={handleImageLoad}
-          />
-          {loading && (
-            <View style={[style, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#f0f0f0' }]}>
-              <ActivityIndicator size="small" color={COLORS.primary} />
-              <Text style={{ fontSize: ms(12), color: COLORS.subtext, marginTop: vs(4) }}>Loading...</Text>
-            </View>
-          )}
+        <View style={[style, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#f5f5f5' }]}>
+          <Ionicons name="image-outline" size={s(iconSize)} color={COLORS.subtext} />
         </View>
       );
     }
 
-    // ─── Anmegam News Card ────────────────────────────────────────────────────────
-    function AnmegamNewsCard({ item, onPress }) {
-      const { sf } = useFontSize();
-      const imageUri =
-        item.largeimages || item.images || item.image ||
-        'https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_default.jpg?im=Resize,width=400';
-      const title = item.newstitle || item.title || '';
-      const date = item.date || item.time_date || item.standarddate || item.date || '';
-
-      return (
-        <TouchableOpacity onPress={onPress} activeOpacity={0.88} style={anc.wrap}>
-          <ImageWithFallback
-            source={{ uri: imageUri }}
-            style={anc.image}
-            resizeMode="cover"
-            iconSize={40}
-          />
-          <View style={NewsCardStyles.contentContainer}>
-            {!!title && (
-              <Text style={[NewsCardStyles.title, { fontSize: sf(13), lineHeight: sf(22) }]} numberOfLines={3}>{title}</Text>
-            )}
-            {!!date && (
-              <Text style={[NewsCardStyles.timeText, { fontSize: sf(14) }]}>{date}</Text>
-            )}
-            <View style={anc.divider} />
+    return (
+      <View style={style}>
+        <Image
+          source={source}
+          style={[style, { position: 'absolute' }]}
+          resizeMode={resizeMode}
+          onError={handleImageError}
+          onLoad={handleImageLoad}
+        />
+        {loading && (
+          <View style={[style, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#f5f5f5' }]}>
+            <ActivityIndicator size="small" color={COLORS.primary} />
           </View>
-        </TouchableOpacity>
+        )}
+      </View>
+    );
+  }
+
+  // ─── Image Loader Component ───────────────────────────────────────────────────
+  function ImageLoader({ source, style, resizeMode = 'cover', iconSize = 40 }) {
+    const [imageError, setImageError] = useState(false);
+    const [loading, setLoading] = useState(true);
+
+    const handleImageError = () => {
+      setImageError(true);
+      setLoading(false);
+    };
+
+    const handleImageLoad = () => {
+      setImageError(false);
+      setLoading(false);
+    };
+
+    if (imageError || !source?.uri) {
+      return (
+        <View style={[style, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#f0f0f0' }]}>
+          <Ionicons name="image-outline" size={s(iconSize)} color={COLORS.subtext} />
+        </View>
       );
     }
 
-    const anc = StyleSheet.create({
-      wrap: { backgroundColor: '#fff', paddingHorizontal: s(12), paddingTop: vs(10) },
-      image: { width: '100%', height: vs(190), borderRadius: s(4) },
-      title: {
-        fontSize: ms(15),
-        fontFamily: FONTS.muktaMalar.bold,
-        color: '#111',
-        fontWeight: '700',
-        marginTop: vs(8),
-      },
-      date: {
-        fontSize: ms(12),
-        fontFamily: FONTS.muktaMalar.regular,
-        color: '#888',
-        marginTop: vs(4),
-      },
-      divider: { height: 1, backgroundColor: '#f0f0f0', },
-    });
+    return (
+      <View style={style}>
+        <Image
+          source={source}
+          style={[style, { position: 'absolute' }]}
+          resizeMode={resizeMode}
+          onError={handleImageError}
+          onLoad={handleImageLoad}
+        />
+        {loading && (
+          <View style={[style, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#f0f0f0' }]}>
+            <ActivityIndicator size="small" color={COLORS.primary} />
+            <Text style={{ fontSize: ms(12), color: COLORS.subtext, marginTop: vs(4) }}>Loading...</Text>
+          </View>
+        )}
+      </View>
+    );
+  }
 
-    // ─── Anmigam Category Card (All tab) ─────────────────────────────────────────
-    function AnmigamCategoryCard({ item, onPress }) {
-      const imageUri = item.images || item.largeimages ||
-        'https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_default.jpg?im=Resize,width=400';
+  // ─── Anmegam News Card ────────────────────────────────────────────────────────
+  function AnmegamNewsCard({ item, onPress }) {
+    const { sf } = useFontSize();
+    const imageUri =
+      item.largeimages || item.images || item.image ||
+      'https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_default.jpg?im=Resize,width=400';
+    const title = item.newstitle || item.title || '';
+    const date = item.date || item.time_date || item.standarddate || item.date || '';
+
+    return (
+      <TouchableOpacity onPress={onPress} activeOpacity={0.88} style={anc.wrap}>
+        <ImageWithFallback
+          source={{ uri: imageUri }}
+          style={anc.image}
+          resizeMode="cover"
+          iconSize={40}
+        />
+        <View style={NewsCardStyles.contentContainer}>
+
+          {!!title && (
+            <Text style={[NewsCardStyles.title, { fontSize: sf(13), lineHeight: sf(22) }]} numberOfLines={3}>{title}</Text>
+          )}
+          {!!date && (
+            <Text style={[NewsCardStyles.timeText, { fontSize: sf(14) }]}>{date}</Text>
+          )}
+          <View style={anc.divider} />
+        </View>
+      </TouchableOpacity>
+    );
+  }
+
+  const anc = StyleSheet.create({
+    wrap: { backgroundColor: '#fff', paddingHorizontal: s(12), paddingTop: vs(10) },
+    image: { width: '100%', height: vs(190), borderRadius: s(4) },
+    title: {
+      fontSize: ms(15),
+      fontFamily: FONTS.muktaMalar.bold,
+      color: '#111',
+      fontWeight: '700',
+      marginTop: vs(8),
+    },
+    date: {
+      fontSize: ms(12),
+      fontFamily: FONTS.muktaMalar.regular,
+      color: '#888',
+      marginTop: vs(4),
+      // marginBottom: vs(10),
+    },
+    divider: { height: 1, backgroundColor: '#f0f0f0', },
+  });
+
+  // ─── Anmigam Category Card (All tab) ─────────────────────────────────────────
+  function AnmigamCategoryCard({ item, onPress }) {
+    const imageUri = item.images || item.largeimages ||
+      'https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_default.jpg?im=Resize,width=400';
+
+    return (
+      <TouchableOpacity onPress={onPress} activeOpacity={0.88} style={acc.wrap}>
+        <ImageWithFallback
+          source={{ uri: imageUri }}
+          style={acc.image}
+          resizeMode="cover"
+          iconSize={40}
+        />
+      </TouchableOpacity>
+    );
+  }
+
+  const acc = StyleSheet.create({
+    wrap: { backgroundColor: '#fff', marginBottom: vs(4), paddingHorizontal: ms(12) },
+    image: { width: '100%', height: vs(200) },
+    moreRow: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end',
+      paddingHorizontal: s(12), paddingVertical: vs(10),
+      borderBottomWidth: 1, borderBottomColor: '#f0f0f0',
+    },
+    moreText: { fontSize: ms(14), fontFamily: FONTS.muktaMalar.medium, color: COLORS.primary, marginRight: s(2) },
+  });
+
+  const renderItem = ({ item: row }) => {
+    if (row.type === 'section')
+      return <View style={styles.sectionWrap}>
+        <SectionTitle title={row.title} />
+      </View>;
+
+    if (row.type === 'news' && row.item?._isCategoryCard)
+      return (
+        <AnmigamCategoryCard
+          item={row.item}
+          onPress={() => goToArticle(row.item)}
+        />
+      );
+
+    if (row.type === 'news' && row._isAnmegamSection)
+      return (
+        <AnmegamNewsCard
+          item={row.item}
+          onPress={() => goToArticle(row.item)}
+        />
+      );
+
+    if (row.type === 'rasi' || row.type === 'individualRasi')
+      return <RasiCard item={row.item} onPress={() => goToRasiDetails(row.item)} />;
+
+    // Compute isPhoto locally inside renderItem — has full access to state
+    const isPhoto =
+      isPhotoScreen(apiEndpoint) ||
+      isPhotoScreen(activeTab?.link) ||
+      allSections.some(s => PHOTO_SECTION_IDS.includes(String(s.id)));
+
+    // Check if this is webstories
+    const isWebstories = apiEndpoint?.includes('webstories') ||
+      activeTab?.link?.includes('webstories') ||
+      row.item?.category === 'webstories' ||
+      row.item?.category === 'webstory';
+
+    if (row.type === 'news' && isWebstories) {
+      const imageUri = row.item.images || row.item.largeimages || row.item.image || row.item.thumbnail || row.item.thumb || 'https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_default.jpg?im=Resize,width=400';
+      const title = row.item.newstitle || row.item.title || '';
+      const category = row.item.categrorytitle || '';
 
       return (
-        <TouchableOpacity onPress={onPress} activeOpacity={0.88} style={acc.wrap}>
-          <ImageWithFallback
-            source={{ uri: imageUri }}
-            style={acc.image}
-            resizeMode="cover"
-            iconSize={40}
-          />
-        </TouchableOpacity>
-      );
-    }
-
-    const acc = StyleSheet.create({
-      wrap: { backgroundColor: '#fff', marginBottom: vs(4), paddingHorizontal: ms(12) },
-      image: { width: '100%', height: vs(200) },
-      moreRow: {
-        flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end',
-        paddingHorizontal: s(12), paddingVertical: vs(10),
-        borderBottomWidth: 1, borderBottomColor: '#f0f0f0',
-      },
-      moreText: { fontSize: ms(14), fontFamily: FONTS.muktaMalar.medium, color: COLORS.primary, marginRight: s(2) },
-    });
-
-    const renderItem = ({ item: row }) => {
-      if (row.type === 'section')
-        return <View style={styles.sectionWrap}>
-          <SectionTitle title={row.title} />
-        </View>;
-
-      if (row.type === 'news' && row.item?._isCategoryCard)
-        return (
-          <AnmigamCategoryCard
-            item={row.item}
-            onPress={() => goToArticle(row.item)}
-          />
-        );
-
-      if (row.type === 'news' && row._isAnmegamSection)
-        return (
-          <AnmegamNewsCard
-            item={row.item}
-            onPress={() => goToArticle(row.item)}
-          />
-        );
-
-      if (row.type === 'rasi' || row.type === 'individualRasi')
-        return <RasiCard item={row.item} onPress={() => goToRasiDetails(row.item)} />;
-
-      // Compute isPhoto locally inside renderItem — has full access to state
-      const isPhoto =
-        isPhotoScreen(apiEndpoint) ||
-        isPhotoScreen(activeTab?.link) ||
-        allSections.some(s => PHOTO_SECTION_IDS.includes(String(s.id)));
-
-      // Check if this is webstories
-      const isWebstories = apiEndpoint?.includes('webstories') ||
-        activeTab?.link?.includes('webstories') ||
-        row.item?.category === 'webstories' ||
-        row.item?.category === 'webstory';
-
-      if (row.type === 'news' && isWebstories) {
-        const imageUri = row.item.images || row.item.largeimages || row.item.image || row.item.thumbnail || row.item.thumb || 'https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_default.jpg?im=Resize,width=400';
-        const title = row.item.newstitle || row.item.title || '';
-        const category = row.item.categrorytitle || '';
-
-        return (
-          <TouchableOpacity
-            key={`webstory-${row.item?.newsid || row.item?.id || row._idx}`}
-            style={{
-              width: '48%',
-              marginHorizontal: '1%',
-              marginBottom: s(8),
-              backgroundColor: PALETTE.white,
-              borderRadius: s(20),
-              overflow: 'hidden'
-            }}
-            onPress={() => {
-              // For webstories, use Linkedurl field to open in browser
-              const linkedUrl = row.item.Linkedurl || row.item.link || row.item.slug || '';
-              if (linkedUrl && (linkedUrl.startsWith('http://') || linkedUrl.startsWith('https://'))) {
-                Linking.openURL(linkedUrl).catch(() => console.log('Failed to open Linkedurl'));
-              } else if (row.item.reacturl) {
-                // Fallback to reacturl if Linkedurl not available
-                const fullUrl = row.item.reacturl.startsWith('http')
-                  ? row.item.reacturl
-                  : `https://www.dinamalar.com${row.item.reacturl}`;
-                Linking.openURL(fullUrl).catch(() => console.log('Failed to open webstory URL'));
-              } else {
-                goToArticle(row.item);
-              }
-            }}
-            activeOpacity={0.85}
-          >
-            <View style={{ position: 'relative' }}>
-              <Image
-                source={{ uri: imageUri }}
-                style={{
-                  width: '100%',
-                  height: vs(250),
-                  resizeMode: 'cover',
-                }}
-              />
-              {/* Category tag */}
-              {/* {category && (
+        <TouchableOpacity
+          key={`webstory-${row.item?.newsid || row.item?.id || row._idx}`}
+          style={{
+            width: '48%',
+            marginHorizontal: '1%',
+            marginBottom: s(8),
+            backgroundColor: PALETTE.white,
+            borderRadius: s(20),
+            overflow: 'hidden'
+          }}
+          onPress={() => {
+            // For webstories, use Linkedurl field to open in browser
+            const linkedUrl = row.item.Linkedurl || row.item.link || row.item.slug || '';
+            if (linkedUrl && (linkedUrl.startsWith('http://') || linkedUrl.startsWith('https://'))) {
+              Linking.openURL(linkedUrl).catch(() => console.log('Failed to open Linkedurl'));
+            } else if (row.item.reacturl) {
+              // Fallback to reacturl if Linkedurl not available
+              const fullUrl = row.item.reacturl.startsWith('http')
+                ? row.item.reacturl
+                : `https://www.dinamalar.com${row.item.reacturl}`;
+              Linking.openURL(fullUrl).catch(() => console.log('Failed to open webstory URL'));
+            } else {
+              goToArticle(row.item);
+            }
+          }}
+          activeOpacity={0.85}
+        >
+          <View style={{ position: 'relative' }}>
+            <Image
+              source={{ uri: imageUri }}
+              style={{
+                width: '100%',
+                height: vs(250),
+                resizeMode: 'cover',
+              }}
+            />
+            {/* Category tag */}
+            {/* {category && (
               <View style={{
                 position: 'absolute',
                 top: s(0),
@@ -2606,360 +2644,359 @@ export default function CommonSectionScreen() {
                 </Text>
               </View>
             )} */}
-              {/* Gallery icon */}
-              <TouchableOpacity
-                style={{
-                  position: 'absolute',
-                  top: s(8),
-                  right: s(8),
-                  backgroundColor: 'rgba(0,0,0,0.5)',
-                  padding: s(6),
-                  borderRadius: s(20),
-                }}
-                onPress={() => {
-                  const link = row.item.link || row.item.slug || '';
-                  if (link && (link.startsWith('http://') || link.startsWith('https://'))) {
-                    Linking.openURL(link).catch(() => console.log('Failed to open link'));
-                  } else if (row.item.reacturl) {
-                    // Open webstory detail URL in browser
-                    const fullUrl = row.item.reacturl.startsWith('http')
-                      ? row.item.reacturl
-                      : `https://www.dinamalar.com${row.item.reacturl}`;
-                    Linking.openURL(fullUrl).catch(() => console.log('Failed to open webstory URL'));
-                  } else {
-                    goToArticle(row.item);
-                  }
-                }}
-                activeOpacity={0.8}
-              >
-                <Ionicons name="images-outline" size={s(14)} color="#fff" />
-              </TouchableOpacity>
-              {/* Carousel indicators */}
-              <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, paddingVertical: vs(10), paddingHorizontal: s(8), backgroundColor: 'rgba(0,0,0,0.4)' }}>
-                {/* Carousel dots — rendered first so they appear above the bg but below no other element */}
+            {/* Gallery icon */}
+            <TouchableOpacity
+              style={{
+                position: 'absolute',
+                top: s(8),
+                right: s(8),
+                backgroundColor: 'rgba(0,0,0,0.5)',
+                padding: s(6),
+                borderRadius: s(20),
+              }}
+              onPress={() => {
+                const link = row.item.link || row.item.slug || '';
+                if (link && (link.startsWith('http://') || link.startsWith('https://'))) {
+                  Linking.openURL(link).catch(() => console.log('Failed to open link'));
+                } else if (row.item.reacturl) {
+                  // Open webstory detail URL in browser
+                  const fullUrl = row.item.reacturl.startsWith('http')
+                    ? row.item.reacturl
+                    : `https://www.dinamalar.com${row.item.reacturl}`;
+                  Linking.openURL(fullUrl).catch(() => console.log('Failed to open webstory URL'));
+                } else {
+                  goToArticle(row.item);
+                }
+              }}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="images-outline" size={s(14)} color="#fff" />
+            </TouchableOpacity>
+            {/* Carousel indicators */}
+            <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, paddingVertical: vs(10), paddingHorizontal: s(8), backgroundColor: 'rgba(0,0,0,0.4)' }}>
+              {/* Carousel dots — rendered first so they appear above the bg but below no other element */}
 
-                <Text style={{ fontFamily: FONTS.muktaMalar.semibold, fontSize: ms(14), color: '#FFFFFF', lineHeight: ms(22) }}>
-                  {title}
-                </Text>
-                <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: s(6), paddingTop: ms(8) }}>
-                  {[0, 1, 2, 3, 4, 5, 6, 7].map((index) => (
-                    <View
-                      key={`dot-${index}`}
-                      style={{
-                        width: s(13), height: s(2), borderRadius: (0.5),
-                        backgroundColor: 'rgba(255,255,255,0.5)',
-                      }}
-                    />
-                  ))}
-                </View>
+              <Text style={{ fontFamily: FONTS.muktaMalar.semibold, fontSize: ms(14), color: '#FFFFFF', lineHeight: ms(22) }}>
+                {title}
+              </Text>
+              <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: s(6), paddingTop: ms(8) }}>
+                {[0, 1, 2, 3, 4, 5, 6, 7].map((index) => (
+                  <View
+                    key={`dot-${index}`}
+                    style={{
+                      width: s(13), height: s(2), borderRadius: (0.5),
+                      backgroundColor: 'rgba(255,255,255,0.5)',
+                    }}
+                  />
+                ))}
               </View>
             </View>
-          </TouchableOpacity>
-        );
-      }
+          </View>
+        </TouchableOpacity>
+      );
+    }
 
-      if (row.type === 'news' && isPhoto)
-        return (
-          <PhotoCard
-            item={row.item}
-            onPress={() => goToArticle(row.item)}
-            sf={sf}
-            isAllTab={isAllTab}
-            isSocialCard={activeTab?.link?.includes('getsocialmedia') || apiEndpoint?.includes('getsocialmedia')}
-          />
-        );
+    if (row.type === 'news' && isPhoto)
+      return (
+        <PhotoCard
+          item={row.item}
+          onPress={() => goToArticle(row.item)}
+          sf={sf}
+          isAllTab={isAllTab}
+          isSocialCard={activeTab?.link?.includes('getsocialmedia') || apiEndpoint?.includes('getsocialmedia')}
+        />
+      );
 
-      return <NewsCard
-        item={row.item}
-        onPress={() => goToArticle(row.item)}
-        sectionTitle={row.sectionTitle || ''}
-      />;
-    };
+    return <NewsCard
+      item={row.item}
+      onPress={() => goToArticle(row.item)}
+      sectionTitle={row.sectionTitle || ''}
+    />;
+  };
 
-    const scrollToTop = useCallback(() => {
-      rasiScrollViewRef.current?.scrollTo({ y: 0, animated: true });
-      flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
-    }, []);
+  const scrollToTop = useCallback(() => {
+    rasiScrollViewRef.current?.scrollTo({ y: 0, animated: true });
+    flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+  }, []);
 
-    // ── Render ─────────────────────────────────────────────────────────────────
-    return (
-      <View style={styles.container}>
-        <UniversalHeaderComponent
-          showMenu showSearch showNotifications showLocation
+  // ── Render ─────────────────────────────────────────────────────────────────
+  return (
+    <View style={styles.container}>
+      <UniversalHeaderComponent
+        showMenu showSearch showNotifications showLocation
+        onSearch={goToSearch}
+        onLocation={() => setIsLocationDrawerVisible(true)}
+        selectedDistrict={selectedDistrict}
+        navigation={navigation}
+        isDrawerVisible={isDrawerVisible}
+        setIsDrawerVisible={setIsDrawerVisible}
+        isLocationDrawerVisible={isLocationDrawerVisible}
+        setIsLocationDrawerVisible={setIsLocationDrawerVisible}
+        onSelectDistrict={handleSelectDistrict}      >
+        <AppHeaderComponent
           onSearch={goToSearch}
+          onMenu={() => setIsDrawerVisible(true)}
           onLocation={() => setIsLocationDrawerVisible(true)}
           selectedDistrict={selectedDistrict}
-          navigation={navigation}
-          isDrawerVisible={isDrawerVisible}
-          setIsDrawerVisible={setIsDrawerVisible}
-          isLocationDrawerVisible={isLocationDrawerVisible}
-          setIsLocationDrawerVisible={setIsLocationDrawerVisible}
-          onSelectDistrict={handleSelectDistrict}
-        >
-          <AppHeaderComponent
-            onSearch={goToSearch}
-            onMenu={() => setIsDrawerVisible(true)}
-            onLocation={() => setIsLocationDrawerVisible(true)}
-            selectedDistrict={selectedDistrict}
-          />
-        </UniversalHeaderComponent>
+        />
+      </UniversalHeaderComponent>
 
-        {/* ── Page Title ── */}
-        <View style={styles.pageTitleWrap}>
-          <Text style={[styles.pageTitle, { fontSize: sf(16), fontFamily: FONTS.anek.bold }]}>
-            {console.log('[NRI Page Title] apiEndpoint:', apiEndpoint, 'activeTab:', activeTab, '_nriCountryTab:', activeTab?._nriCountryTab, '_nriTabTitle:', activeTab?._nriTabTitle)}
-            {apiEndpoint === '/nrimain'
-              ? (activeTab?._nriCountryTab
-                ? activeTab.title  // Show country tab title (America, Singapore, etc)
-                : (activeTab?._nriTabTitle || screenTitle)  // _nriTabTitle set immediately on tap, no flash
-              )
-              : (screenTitle === 'தினம் தினம்' || screenTitle === 'வாராவாரம்' || screenTitle === 'ஜோசியம்' || screenTitle === 'உலக தமிழர்' || screenTitle === 'ஸ்பெஷல்' || screenTitle === 'ஆன்மீகம்' || screenTitle === 'காலண்டர்' || screenTitle === 'போட்டோ' || screenTitle === 'விளையாட்டு' || screenTitle === 'வர்த்தகம்')
-                ? (isAllTab ? screenTitle : (activeTab?.title || screenTitle))
-                : screenTitle
-            }
-          </Text>
-        </View>
+      {/* ── Page Title ── */}
+      <View style={styles.pageTitleWrap}>
+        <Text style={[styles.pageTitle, { fontSize: sf(16), fontFamily: FONTS.anek.bold }]}>
+          {console.log('[NRI Page Title] apiEndpoint:', apiEndpoint, 'activeTab:', activeTab, '_nriCountryTab:', activeTab?._nriCountryTab, '_nriTabTitle:', activeTab?._nriTabTitle)}
+          {apiEndpoint === '/nrimain'
+            ? (activeTab?._nriCountryTab
+              ? activeTab.title  // Show country tab title (America, Singapore, etc)
+              : (activeTab?._nriTabTitle || screenTitle)  // _nriTabTitle set immediately on tap, no flash
+            )
+            : (screenTitle === 'தினம் தினம்' || screenTitle === 'வாராவாரம்' || screenTitle === 'ஜோசியம்' || screenTitle === 'உலக தமிழர்' || screenTitle === 'ஸ்பெஷல்' || screenTitle === 'ஆன்மீகம்' || screenTitle === 'காலண்டர்' || screenTitle === 'போட்டோ' || screenTitle === 'விளையாட்டு' || screenTitle === 'வர்த்தகம்')
+              ? (isAllTab ? screenTitle : (activeTab?.title || screenTitle))
+              : screenTitle
+          }
+        </Text>
+      </View>
 
-        {/* ── Tabs ── */}
-        {subTabs.length > 0 && (
-          (apiEndpoint?.includes('webstoriesupdate') || apiEndpoint?.includes('webstorieslisting')) ? (<WebstoriesDropdown
-            subTabs={subTabs}
-            activeTab={activeTab}
-            isAllTab={isAllTab}
-            allTabLink={allTabLink}
-            handleTabPress={handleTabPress}
-          />
-          ) : (
-            <View style={styles.tabsWrap}>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.tabsContent}
-              >
-                {subTabs.map((tab, index) => {
-                  const active = isTabActive(tab);
-                  return (
-                    <TouchableOpacity
-                      key={`tab-${tab.id != null ? tab.id : 'all-' + index}`}
-                      style={[styles.tab, active && styles.tabActive]}
-                      onPress={() => handleTabPress(tab)}
-                      activeOpacity={0.8}
-                    >
-                      <Text style={[styles.tabText, active && styles.tabTextActive, { fontSize: ms(16) }]}>
-                        {tab.title || ''}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </ScrollView>
-              <View style={styles.tabsBottomLine} />
-            </View>
-          )
-        )}
-
-        {/* ── Content ── */}
-        {isLoading ? (
-          <FlatList
-            data={[1, 2, 3, 4]}
-            keyExtractor={i => `sk-${i}`}
-            renderItem={() => <SkeletonCard />}
-            contentContainerStyle={styles.listContent}
-            style={styles.list}
-          />
-        ) : htmlContent ? (
-          <WebView
-            source={{ html: htmlContent, baseUrl: 'https://www.dinamalar.com' }}
-            style={styles.webView}
-            javaScriptEnabled
-            domStorageEnabled
-            startInLoadingState={true}
-            renderLoading={() => (
-              <View style={styles.webViewLoader}>
-                <ActivityIndicator size="large" color={PALETTE.primary} />
-              </View>
-            )}
-          />
-        ) : isRasiTab && rasiDetailItem ? (
-          <RasiDetailView
-            key={`${activeTab?.id}-${rasiDetailItem.jcat}`}
-            tabId={String(activeTab?.id || '')}
-            tabTitle={activeTab?.title || screenTitle}
-            initialJcat={rasiDetailItem.jcat}
-            initialItem={rasiDetailItem.item}
-            onBack={() => setRasiDetailItem(null)}
-            subTabs={subTabs}
-            onTabChange={(tab) => handleTabPress(tab)}
-          />
-        ) : isRasiTab ? (
-          <ScrollView
-            ref={rasiScrollViewRef}
-            style={styles.list}
-            contentContainerStyle={styles.rasiGridContent}
-            showsVerticalScrollIndicator={false}
-            onScroll={handleScroll}
-            scrollEventThrottle={16}
-            refreshControl={
-              <RefreshControl refreshing={refreshing} onRefresh={handleRefresh}
-                colors={[COLORS.primary]} tintColor={COLORS.primary} />
-            }
-          >
-            {flatData.map((row, index) => (
-              <RasiCard
-                key={row.item?.id || index}
-                item={row.item}
-                onPress={() => goToRasiDetails(row.item)}
-              />
-            ))}
-          </ScrollView>
+      {/* ── Tabs ── */}
+      {subTabs.length > 0 && (
+        (apiEndpoint?.includes('webstoriesupdate') || apiEndpoint?.includes('webstorieslisting')) ? (<WebstoriesDropdown
+          subTabs={subTabs}
+          activeTab={activeTab}
+          isAllTab={isAllTab}
+          allTabLink={allTabLink}
+          handleTabPress={handleTabPress}
+        />
         ) : (
-          <FlatList
-            ref={flatListRef}
-            data={flatData}
-            keyExtractor={(row, i) =>
-              row.type === 'section'
-                ? `sec-${row.id || i}-${row.title}`
-                : `news-${i}-${row.item?.newsid || row.item?.id || row.item?.eventid || row.item?.rasiid || i}`
-            }
-            renderItem={renderItem}
-            contentContainerStyle={styles.listContent}
-            style={styles.list}
-            showsVerticalScrollIndicator={false}
-            onScroll={handleScroll}
-            scrollEventThrottle={16}
-            onEndReached={handleLoadMore}
-            onEndReachedThreshold={0.4}
-            refreshControl={
-              <RefreshControl refreshing={refreshing} onRefresh={handleRefresh}
-                colors={[COLORS.primary]} tintColor={COLORS.primary} />
-            }
-            key={(apiEndpoint?.includes('webstories') || activeTab?.link?.includes('webstories')) ? 'webstories-grid' : 'single-column'}
-            numColumns={apiEndpoint?.includes('webstories') || activeTab?.link?.includes('webstories') ? 2 : 1}
-            ListHeaderComponent={
-              taboolaAds?.midmain ? (
+          <View style={styles.tabsWrap}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.tabsContent}
+            >
+              {subTabs.map((tab, index) => {
+                const active = isTabActive(tab);
+                return (
+                  <TouchableOpacity
+                    key={`tab-${tab.id != null ? tab.id : 'all-' + index}`}
+                    style={[styles.tab, active && styles.tabActive]}
+                    onPress={() => handleTabPress(tab)}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={[styles.tabText, active && styles.tabTextActive, { fontSize: ms(16) }]}>
+                      {tab.title || ''}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+            <View style={styles.tabsBottomLine} />
+          </View>
+        )
+      )}
+
+      {/* ── Content ── */}
+      {isLoading ? (
+        <FlatList
+          data={[1, 2, 3, 4]}
+          keyExtractor={i => `sk-${i}`}
+          renderItem={() => <SkeletonCard />}
+          contentContainerStyle={styles.listContent}
+          style={styles.list}
+        />
+      ) : htmlContent ? (
+        <WebView
+          source={{ html: htmlContent, baseUrl: 'https://www.dinamalar.com' }}
+          style={styles.webView}
+          javaScriptEnabled
+          domStorageEnabled
+          startInLoadingState={true}
+          renderLoading={() => (
+            <View style={styles.webViewLoader}>
+              <ActivityIndicator size="large" color={PALETTE.primary} />
+            </View>
+          )}
+        />
+      ) : isRasiTab && rasiDetailItem ? (
+        <RasiDetailView
+          key={`${activeTab?.id}-${rasiDetailItem.jcat}`}
+          tabId={String(activeTab?.id || '')}
+          tabTitle={activeTab?.title || screenTitle}
+          initialJcat={rasiDetailItem.jcat}
+          initialItem={rasiDetailItem.item}
+          onBack={() => setRasiDetailItem(null)}
+          subTabs={subTabs}
+          onTabChange={(tab) => handleTabPress(tab)}
+        />
+      ) : isRasiTab ? (
+        <ScrollView
+          ref={rasiScrollViewRef}
+          style={styles.list}
+          contentContainerStyle={styles.rasiGridContent}
+          showsVerticalScrollIndicator={false}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh}
+              colors={[COLORS.primary]} tintColor={COLORS.primary} />
+          }
+        >
+          {flatData.map((row, index) => (
+            <RasiCard
+              key={row.item?.id || index}
+              item={row.item}
+              onPress={() => goToRasiDetails(row.item)}
+            />
+          ))}
+        </ScrollView>
+      ) : (
+        <FlatList
+          ref={flatListRef}
+          data={flatData}
+          keyExtractor={(row, i) =>
+            row.type === 'section'
+              ? `sec-${row.id || i}-${row.title}`
+              : `news-${i}-${row.item?.newsid || row.item?.id || row.item?.eventid || row.item?.rasiid || i}`
+          }
+          renderItem={renderItem}
+          contentContainerStyle={styles.listContent}
+          style={styles.list}
+          showsVerticalScrollIndicator={false}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
+          onEndReached={handleLoadMore}
+          onEndReachedThreshold={0.4}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh}
+              colors={[COLORS.primary]} tintColor={COLORS.primary} />
+          }
+          key={(apiEndpoint?.includes('webstories') || activeTab?.link?.includes('webstories')) ? 'webstories-grid' : 'single-column'}
+          numColumns={apiEndpoint?.includes('webstories') || activeTab?.link?.includes('webstories') ? 2 : 1}
+          ListHeaderComponent={
+            taboolaAds?.midmain ? (
+              <TaboolaWidget
+                pageUrl={`https://www.dinamalar.com${apiEndpoint}`}
+                mode={taboolaAds.midmain.mode}
+                container={`${taboolaAds.midmain.container}_header`}
+                placement={taboolaAds.midmain.placement}
+                targetType="mix"
+              />
+            ) : null
+          }
+          ListEmptyComponent={
+            <View style={styles.emptyWrap}>
+              <Ionicons name="newspaper-outline" size={s(48)} color="#ccc" />
+              <Text style={[styles.emptyText, { fontSize: sf(15) }]}>செய்திகள் இல்லை</Text>
+            </View>
+          }
+          ListFooterComponent={
+            <>
+              {taboolaAds?.midmain && (
                 <TaboolaWidget
                   pageUrl={`https://www.dinamalar.com${apiEndpoint}`}
                   mode={taboolaAds.midmain.mode}
-                  container={`${taboolaAds.midmain.container}_header`}
+                  container={`${taboolaAds.midmain.container}_footer`}
                   placement={taboolaAds.midmain.placement}
                   targetType="mix"
                 />
-              ) : null
-            }
-            ListEmptyComponent={
-              <View style={styles.emptyWrap}>
-                <Ionicons name="newspaper-outline" size={s(48)} color="#ccc" />
-                <Text style={[styles.emptyText, { fontSize: sf(15) }]}>செய்திகள் இல்லை</Text>
-              </View>
-            }
-            ListFooterComponent={
-              <>
-                {taboolaAds?.midmain && (
-                  <TaboolaWidget
-                    pageUrl={`https://www.dinamalar.com${apiEndpoint}`}
-                    mode={taboolaAds.midmain.mode}
-                    container={`${taboolaAds.midmain.container}_footer`}
-                    placement={taboolaAds.midmain.placement}
-                    targetType="mix"
-                  />
-                )}
-                {tabLoadMore
-                  ? <View style={styles.footerLoader}><ActivityIndicator size="small" color={COLORS.primary} /></View>
-                  : <View style={{ height: vs(40) }} />}
-              </>
-            }
-          />
-        )}
+              )}
+              {tabLoadMore
+                ? <View style={styles.footerLoader}><ActivityIndicator size="small" color={COLORS.primary} /></View>
+                : <View style={{ height: vs(40) }} />}
+            </>
+          }
+        />
+      )}
 
-        {/* ── Scroll To Top ── */}
-        {showScrollTop && !rasiDetailItem && (
-          <TouchableOpacity style={styles.scrollTopBtn} onPress={scrollToTop} activeOpacity={0.8}>
-            <Ionicons name="arrow-up" size={s(20)} color="#fff" />
-          </TouchableOpacity>
-        )}
-      </View>
-    );
-  }
+      {/* ── Scroll To Top ── */}
+      {showScrollTop && !rasiDetailItem && (
+        <TouchableOpacity style={styles.scrollTopBtn} onPress={scrollToTop} activeOpacity={0.8}>
+          <Ionicons name="arrow-up" size={s(20)} color="#fff" />
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Styles
 // ─────────────────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#f2f2f2', paddingTop: Platform.OS === 'android' ? vs(0) : 0 },
-    pageTitleWrap: { paddingTop: vs(14), paddingBottom: vs(6), backgroundColor: '#fff' },
-    pageTitle: { fontSize: 18, fontFamily: FONTS.anek.bold, color: '#111', paddingHorizontal: s(12), marginBottom: vs(4) },
+  container: { flex: 1, backgroundColor: '#f2f2f2', paddingTop: Platform.OS === 'android' ? vs(28) : 0 },
+  pageTitleWrap: { paddingTop: vs(14), paddingBottom: vs(6), backgroundColor: '#fff' },
+  pageTitle: { fontSize: 18, fontFamily: FONTS.anek.bold, color: '#111', paddingHorizontal: s(12), marginBottom: vs(4) },
 
-    tabsWrap: { backgroundColor: '#fff', elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: vs(1) }, shadowOpacity: 0.08, shadowRadius: s(2) },
-    tabsContent: { paddingHorizontal: s(4), alignItems: 'center' },
-    tab: { paddingHorizontal: s(12), paddingVertical: vs(12), marginHorizontal: s(2), borderBottomWidth: vs(3), borderBottomColor: 'transparent' },
-    tabActive: { borderBottomColor: COLORS.primary },
-    tabText: {
-      fontSize: ms(16),
-      fontFamily: FONTS.muktaMalar.medium,
-      color: COLORS.black,
-    },
-    tabTextActive: {
-      fontSize: ms(16),
-      fontFamily: FONTS.muktaMalar.medium,
-      color: COLORS.black,
-    },
+  tabsWrap: { backgroundColor: '#fff', elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: vs(1) }, shadowOpacity: 0.08, shadowRadius: s(2) },
+  tabsContent: { paddingHorizontal: s(4), alignItems: 'center' },
+  tab: { paddingHorizontal: s(12), paddingVertical: vs(12), marginHorizontal: s(2), borderBottomWidth: vs(3), borderBottomColor: 'transparent' },
+  tabActive: { borderBottomColor: COLORS.primary },
+  tabText: {
+    fontSize: ms(16),
+    fontFamily: FONTS.muktaMalar.medium,
+    color: COLORS.black,
+  },
+  tabTextActive: {
+    fontSize: ms(16),
+    fontFamily: FONTS.muktaMalar.medium,
+    color: COLORS.black,
+  },
 
-    list: { flex: 1 },
-    listContent: { paddingTop: vs(6), paddingBottom: vs(30) },
-    rasiGridContent: { flexDirection: 'column', paddingBottom: vs(30) },
-    webView: { flex: 1 },
-    webViewLoader: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' },
+  list: { flex: 1 },
+  listContent: { paddingTop: vs(6), paddingBottom: vs(30) },
+  rasiGridContent: { flexDirection: 'column', paddingBottom: vs(30) },
+  webView: { flex: 1 },
+  webViewLoader: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' },
 
-    sectionWrap: { paddingHorizontal: s(12), paddingTop: vs(16), paddingBottom: vs(4), backgroundColor: '#f2f2f2' },
-    emptyWrap: { alignItems: 'center', justifyContent: 'center', paddingVertical: vs(80), gap: vs(12) },
-    emptyText: { fontSize: ms(15), fontFamily: FONTS.muktaMalar.medium, color: '#aaa' },
-    footerLoader: { paddingVertical: vs(20), alignItems: 'center' },
+  sectionWrap: { paddingHorizontal: s(12), paddingTop: vs(16), paddingBottom: vs(4), backgroundColor: '#f2f2f2' },
+  emptyWrap: { alignItems: 'center', justifyContent: 'center', paddingVertical: vs(80), gap: vs(12) },
+  emptyText: { fontSize: ms(15), fontFamily: FONTS.muktaMalar.medium, color: '#aaa' },
+  footerLoader: { paddingVertical: vs(20), alignItems: 'center' },
 
-    scrollTopBtn: {
-      position: 'absolute', bottom: vs(20), right: s(16),
-      backgroundColor: COLORS.primary, padding: s(10), borderRadius: s(30),
-      elevation: 4, shadowColor: '#000', shadowOffset: { width: 0, height: vs(2) }, shadowOpacity: 0.2, shadowRadius: s(4),
-    },
+  scrollTopBtn: {
+    position: 'absolute', bottom: vs(20), right: s(16),
+    backgroundColor: COLORS.primary, padding: s(10), borderRadius: s(30),
+    elevation: 4, shadowColor: '#000', shadowOffset: { width: 0, height: vs(2) }, shadowOpacity: 0.2, shadowRadius: s(4),
+  },
 
-    // Webstories styles
-    webstoriesContainer: {
-      paddingHorizontal: s(12),
-      paddingVertical: vs(6),
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      justifyContent: 'space-between',
-    },
-    webstoryCard: {
-      width: '48%',
-      marginHorizontal: '1%',
-      marginBottom: s(8),
-      backgroundColor: '#FFFFFF',
-      borderRadius: s(20),
-      overflow: 'hidden',
-    },
-    webstoryImage: {
-      width: '100%',
-      height: vs(250),
-      resizeMode: 'cover',
-    },
-    webstoryTitleOverlay: {
-      position: 'absolute',
-      bottom: 0,
-      left: 0,
-      right: 0,
-      paddingVertical: vs(8),
-      paddingHorizontal: s(6),
-      backgroundColor: 'rgba(0,0,0,0.5)',
-    },
-    webstoryTitle: {
-      fontFamily: FONTS.muktaMalar.semibold,
-      fontSize: ms(12),
-      color: '#FFFFFF',
-      lineHeight: ms(16),
-    },
-    webstoryDecorativeLine: {
-      position: 'absolute',
-      bottom: vs(6),
-      height: 1,
-      backgroundColor: 'rgba(255,255,255,0.3)',
-    },
-  });
+  // Webstories styles
+  webstoriesContainer: {
+    paddingHorizontal: s(12),
+    paddingVertical: vs(6),
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  webstoryCard: {
+    width: '48%',
+    marginHorizontal: '1%',
+    marginBottom: s(8),
+    backgroundColor: '#FFFFFF',
+    borderRadius: s(20),
+    overflow: 'hidden',
+  },
+  webstoryImage: {
+    width: '100%',
+    height: vs(250),
+    resizeMode: 'cover',
+  },
+  webstoryTitleOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingVertical: vs(8),
+    paddingHorizontal: s(6),
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  webstoryTitle: {
+    fontFamily: FONTS.muktaMalar.semibold,
+    fontSize: ms(12),
+    color: '#FFFFFF',
+    lineHeight: ms(16),
+  },
+  webstoryDecorativeLine: {
+    position: 'absolute',
+    bottom: vs(6),
+    height: 1,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+  },
+});
