@@ -161,7 +161,7 @@ const VideoListCard = ({ video, onPress, sf }) => {
       <View style={S.vidListInfo}>
         <Text style={[S.vidListTitle, { fontSize: sf(12), lineHeight: sf(19) }]}  >
           {title}
-          </Text>
+        </Text>
         <View style={S.vidListMeta}>
           {!!cat && <View style={S.catPill}><Text style={[S.catTxt, { fontSize: sf(10) }]}>{cat}</Text></View>}
           {!!date && <Text style={[S.metaDate, { fontSize: sf(12) }]}>{date}</Text>}
@@ -297,8 +297,12 @@ const NewsCard = ({ item, onPress, sf }) => {
 const VideoDetailScreen = ({ navigation, route }) => {
   const { sf } = useFontSize();
   const passedVideo = route?.params?.video ?? null;
-  const videoId = passedVideo?.videoid ?? route?.params?.videoId ?? null;
-
+  const videoId =
+    passedVideo?.videoid ??
+    passedVideo?.videoId ??
+    passedVideo?.video_id ??
+    route?.params?.videoId ??
+    null;
   const [latestvideo, setLatestvideo] = useState(null);
   // data.relatedvideos — fresh related videos (main list, screenshot 1 style)
   const [relatedVideos, setRelatedVideos] = useState([]);
@@ -401,7 +405,7 @@ const VideoDetailScreen = ({ navigation, route }) => {
 
       // ── Parallel fetch of related content ───────────────────────────────
       const relatedEndpoint = data?.morerelated ?? `/relatedmost?videoid=${id}`;
-      
+
       // Create array of parallel requests
       const parallelRequests = [
         // Related videos, reels, and news
@@ -423,12 +427,12 @@ const VideoDetailScreen = ({ navigation, route }) => {
 
       // Execute all requests in parallel
       const results = await Promise.allSettled(parallelRequests);
-      
+
       // Process related content
       const relatedResult = results[0];
       if (relatedResult.status === 'fulfilled') {
         const relatedApiData = relatedResult.value.data;
-        
+
         // data.videos.data → தொடர்புடையவை section
         const videosData = relatedApiData?.videos?.data ?? [];
         setRelatedVideos(videosData.filter(v => v && v.videoid));
@@ -453,7 +457,7 @@ const VideoDetailScreen = ({ navigation, route }) => {
       const vrData = data?.videoreels?.data ?? [];
       const relatedReelIds = new Set((data?.relatedreels ?? []).map(r => String(r.id || '')));
       setVideoReelReels(vrData.filter(v => v && v.type === 'reels' && !relatedReelIds.has(String(v.id || ''))));
-      
+
       // Use morerelated or fallback to videoreels type=news
       if (!data?.morerelated) {
         setVideoReelNews(vrData.filter(v => v && (v.type === 'news' || (v.videoid && !v.type))));
@@ -462,11 +466,11 @@ const VideoDetailScreen = ({ navigation, route }) => {
       setVideomixData((data?.videomix?.data ?? []).filter(v => v && v.type !== 'googlead' && v.type !== 'reels'));
       setVideoDistrict(Array.isArray(data?.videodistrict) ? data.videodistrict : []);
 
-    } catch (err) { 
-      setError(err?.message || 'பிழை ஏற்பட்டது'); 
+    } catch (err) {
+      setError(err?.message || 'பிழை ஏற்பட்டது');
     }
-    finally { 
-      setLoading(false); 
+    finally {
+      setLoading(false);
     }
   }, []);
 
@@ -481,7 +485,13 @@ const VideoDetailScreen = ({ navigation, route }) => {
   }, [videoId]);
 
   const video = latestvideo ?? passedVideo;
-  const rawUrl = video?.videopath ?? video?.y_path ?? video?.vidg_path ?? null;
+  const rawUrl =
+    video?.videopath ??
+    video?.y_path ??
+    video?.vidg_path ??
+    video?.video ??        // ✅ Add this — HomeScreen items use 'video' field
+    video?.videourl ??     // ✅ fallback
+    null;
   const ytId = getYouTubeId(rawUrl);
   const bodyText = video?.videodescription ?? '';
   const timeAgo = getTimeAgo(video?.videodate);
@@ -614,7 +624,7 @@ const VideoDetailScreen = ({ navigation, route }) => {
         <View style={S.articleBody}>
           <Text style={[S.articleTitle, { fontSize: sf(14), lineHeight: sf(22) }]}>
             {video?.videotitle ?? ''}
-             </Text>
+          </Text>
           {loading && !latestvideo ? (
             <View style={{ gap: vs(10), marginVertical: vs(10) }}>
               {[1, .9, .75].map((w, i) => <View key={i} style={[S.skelLine, { width: `${w * 100}%` }]} />)}
@@ -638,10 +648,10 @@ const VideoDetailScreen = ({ navigation, route }) => {
             </View>
             <View style={S.metaRight}>
               {/* {commentCount > 0 && ( */}
-                <TouchableOpacity style={S.metaBtn} onPress={() => setIsCommentsOpen(true)} activeOpacity={0.8}>
-                  <Ionicons name="chatbox" size={ms(18)} color={PALETTE.grey600} />
-                  {/* <Text style={{ fontSize: sf(11), color: PALETTE.grey600, marginLeft: s(3) }}>{commentCount}</Text> */}
-                </TouchableOpacity>
+              <TouchableOpacity style={S.metaBtn} onPress={() => setIsCommentsOpen(true)} activeOpacity={0.8}>
+                <Ionicons name="chatbox" size={ms(18)} color={PALETTE.grey600} />
+                {/* <Text style={{ fontSize: sf(11), color: PALETTE.grey600, marginLeft: s(3) }}>{commentCount}</Text> */}
+              </TouchableOpacity>
               {/* )} */}
               <TouchableOpacity style={S.metaBtn} onPress={() => setBookmarked(b => !b)} activeOpacity={0.8}>
                 <Ionicons name={bookmarked ? 'bookmark' : 'bookmark-outline'} size={ms(18)} color={bookmarked ? PALETTE.primary : PALETTE.grey600} />

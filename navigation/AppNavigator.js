@@ -20,8 +20,7 @@ import KadalThamaraiScreen from "../screens/KadalThamaraiScreen";
 import VarthagamScreen from '../screens/VarthagamScreen';
 import SportsScreen from '../screens/SportsScreen';
 import DistrictNewsScreen from '../screens/DistrictNewsScreen';
- import JoshiyamScreen from '../screens/JoshiyamScreen';
-import CommonSectionScreen from '../screens/CommonSectionScreen';
+ import CommonSectionScreen from '../screens/CommonSectionScreen';
 import RasiDetailScreen from '../screens/RasiDetailScreen';
 import PhotoDetailsScreen from '../screens/PhotoDetailsScreen';
 import ShortNewsSwiperScreen from '../screens/ShortNewsSwiperScreen';
@@ -32,6 +31,7 @@ import BookmarkListScreen from '../screens/BookmarkListScreen';
 import AuthorScreen from '../screens/AuthorScreen';
 import TagsScreen from '../screens/TagsScreen';
 import SpecialTodayScreen from '../screens/SpecialTodayScreen';
+import EditorChoiceScreen from '../screens/EditorChoiceScreen';
   
 const Stack = createNativeStackNavigator();
 
@@ -74,8 +74,7 @@ const AppNavigator = () => {
         <Stack.Screen name='SportsScreen' component={SportsScreen}/>
         <Stack.Screen name='DistrictNewsScreen' component={DistrictNewsScreen}/>
  
-        <Stack.Screen name='JoshiyamScreen' component={JoshiyamScreen}/>
-        <Stack.Screen name='CommonSectionScreen' component={CommonSectionScreen}/>
+         <Stack.Screen name='CommonSectionScreen' component={CommonSectionScreen}/>
         <Stack.Screen name='RasiDetailScreen' component={RasiDetailScreen}/>
         <Stack.Screen name='PhotoDetailsScreen' component={PhotoDetailsScreen}/>
         <Stack.Screen name='ShortNewsSwiperScreen' component={ShortNewsSwiperScreen}/>
@@ -86,6 +85,7 @@ const AppNavigator = () => {
         <Stack.Screen name='AuthorScreen' component={AuthorScreen}/>
         <Stack.Screen name='TagsScreen' component={TagsScreen}/>
         <Stack.Screen name='SpecialTodayScreen' component={SpecialTodayScreen}/>
+        <Stack.Screen name='EditorChoiceScreen' component={EditorChoiceScreen}/>
         
       </Stack.Navigator>
     </NavigationContainer>

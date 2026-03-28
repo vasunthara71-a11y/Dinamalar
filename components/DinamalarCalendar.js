@@ -159,7 +159,7 @@ export default function DinamalarCalendarScreen() {
         {/* Date card */}
         <View style={st.card}>
           <View style={st.cardLeft}>
-            <Text style={[st.cardNum, { fontSize: sf(38) }]}>{calInfo.engdate}</Text>
+            <Text style={[st.cardNum, { fontSize: sf(32) }]}>{calInfo.engdate}</Text>
             <Text style={[st.cardMonth, { fontSize: sf(13) }]}>{calInfo.engmonth}</Text>
             <Text style={[st.cardDay, { fontSize: sf(12) }]}>{calInfo.daytamil}</Text>
           </View>
@@ -273,9 +273,9 @@ const st = StyleSheet.create({
     alignItems:      'center',
     justifyContent:  'center',
   },
-  cardNum:    { fontSize: 38, fontWeight: '800', color: '#fff', lineHeight: 42 },
-  cardMonth:  { fontSize: 13, fontWeight: '600', color: '#fff', marginTop: 2 },
-  cardDay:    { fontSize: 12, color: 'rgba(255,255,255,0.85)', marginTop: 3 },
+  cardNum:    { fontSize: 38, fontWeight: '800', color: '#fff', lineHeight: 42 ,fontFamily:FONTS.muktaMalar.bold},
+  cardMonth:  { fontSize: 13, fontWeight: '600', color: '#fff', marginTop: 2 ,fontFamily:FONTS.muktaMalar.bold},
+  cardDay:    { fontSize: 12, color: 'rgba(255,255,255,0.85)', marginTop: 3 ,fontFamily:FONTS.muktaMalar.semibold},
   cardRight:  { flex: 1 },
   cardTopRow: {
     flexDirection:     'row',
