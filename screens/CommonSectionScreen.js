@@ -1925,6 +1925,11 @@ export default function CommonSectionScreen() {
 
   // ── Tab press ──────────────────────────────────────────────────────────────
   const handleTabPress = (tab) => {
+    console.log('🔍 Tab Press Debug - Tab pressed:', tab);
+    console.log('🔍 Tab Press Debug - Current activeTab:', activeTab);
+    console.log('🔍 Tab Press Debug - API endpoint:', apiEndpoint);
+    console.log('🔍 Tab Press Debug - All subTabs:', subTabs);
+    
     setRasiDetailItem(null);
 
     const pressedIsAll = !!tab._isAllTab || tab.link === allTabLink || (tab.id === 'webstories' && (apiEndpoint?.includes('webstoriesupdate') || apiEndpoint?.includes('webstorieslisting')));
@@ -2346,6 +2351,10 @@ export default function CommonSectionScreen() {
   const isRasiTab = !isAllTab && RASI_TAB_IDS.includes(String(activeTab?.id));
 
   const isTabActive = (tab) => {
+    console.log('🔍 isTabActive Debug - Tab:', tab);
+    console.log('🔍 isTabActive Debug - ActiveTab:', activeTab);
+    console.log('🔍 isTabActive Debug - API endpoint:', apiEndpoint);
+    
     if (!activeTab) return false;
 
     // ── Webstories ────────────────────────────────────────────────────────
