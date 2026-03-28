@@ -11,9 +11,10 @@ import {
   RefreshControl,
   ScrollView,
   Platform,
+  Linking,
 } from 'react-native';
 import { SpeakerIcon } from '../assets/svg/Icons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { CDNApi } from '../config/api';
 import { s, vs, ms, scaledSizes } from '../utils/scaling';
 import { COLORS, FONTS, NewsCard } from '../utils/constants';
@@ -154,6 +155,10 @@ function SportsNewsCard({ item, onPress }) {
 export default function SportsScreen() {
   const { sf } = useFontSize();
   const navigation = useNavigation();
+  const route = useRoute();
+  
+  // Get initial tab parameters from navigation
+  const { initialTabId, initialTabTitle } = route?.params || {};
 
   const [subTabs, setSubTabs] = useState([]);
   const [activeTab, setActiveTab] = useState(null);
@@ -195,7 +200,33 @@ export default function SportsScreen() {
       // subcatlist → tabs
       const tabs = d?.subcatlist || [];
       setSubTabs(tabs);
-      if (tabs.length > 0) setActiveTab(tabs[0]);
+      
+      // Handle initial tab selection
+      let selectedTab = null;
+      if (initialTabId) {
+        // Find tab by ID
+        selectedTab = tabs.find(t => String(t.id) === String(initialTabId));
+        console.log('SportsScreen: Looking for tab by ID', initialTabId, 'found:', selectedTab);
+      }
+      if (!selectedTab && initialTabTitle) {
+        // Find tab by title
+        selectedTab = tabs.find(t => t.title === initialTabTitle || t.title.toLowerCase().includes(initialTabTitle.toLowerCase()));
+        console.log('SportsScreen: Looking for tab by title', initialTabTitle, 'found:', selectedTab);
+      }
+      if (!selectedTab) {
+        // Default to first tab
+        selectedTab = tabs[0];
+        console.log('SportsScreen: Defaulting to first tab');
+      }
+      
+      if (selectedTab) {
+        setActiveTab(selectedTab);
+        // If it's not the "All" tab, fetch its content
+        if (selectedTab.title !== 'All') {
+          setTabLoading(true);
+          fetchTabNews(selectedTab, 1, false);
+        }
+      }
 
       // newlist → [{title, id, link, data:[...newsItems]}]
       // Each section has a .data array with the news items
@@ -209,7 +240,7 @@ export default function SportsScreen() {
       setInitLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [initialTabId, initialTabTitle, fetchTabNews]);
 
   useEffect(() => { fetchAll(); }, []);
 

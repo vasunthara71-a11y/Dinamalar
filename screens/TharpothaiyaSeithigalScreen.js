@@ -129,11 +129,11 @@ function TharpothaiyaNewsCard({ item, onPress, isPremium = false }) {
             <Text style={[NewsCard.title, { fontSize: sf(13), lineHeight: sf(22) }]} numberOfLines={3}>{title}</Text>
           )}
 
-          {!!category && (
+          {/* {!!category && (
             <View style={NewsCard.catPill}>
               <Text style={[NewsCard.catText, { fontSize: sf(12) }]}>{category}</Text>
             </View>
-          )}
+          )} */}
 
           <View style={NewsCard.metaRow}>
             <Text style={[NewsCard.timeText, { fontSize: sf(13) }]}>{ago}</Text>

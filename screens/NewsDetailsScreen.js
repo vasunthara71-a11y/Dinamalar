@@ -705,13 +705,39 @@ export default function NewsDetailsScreen() {
     if (isAnimating.current) return;
     const targetNews = direction === 'next' ? nextNews : prevNews;
     if (!targetNews?.newsid) {
-      Animated.spring(translateX, { toValue: 0, useNativeDriver: true, tension: 180, friction: 12 }).start();
+      // Smooth bounce back animation when no next/prev
+      Animated.spring(translateX, { 
+        toValue: direction === 'next' ? -60 : 60, 
+        useNativeDriver: true, 
+        tension: 120, 
+        friction: 10,
+        overshootClamping: false
+      }).start(() => {
+        Animated.spring(translateX, { 
+          toValue: 0, 
+          useNativeDriver: true, 
+          tension: 180, 
+          friction: 14,
+          overshootClamping: true
+        }).start();
+      });
       return;
     }
     isAnimating.current = true;
     const exitTo = direction === 'next' ? -SCREEN_W : SCREEN_W;
-    Animated.timing(translateX, { toValue: exitTo, duration: 220, useNativeDriver: true }).start(() => {
-      translateX.setValue(0);
+    
+    // Ultra-smooth slide out animation with custom easing
+    Animated.timing(translateX, { 
+      toValue: exitTo, 
+      duration: 300, 
+      useNativeDriver: true,
+      easing: (t) => {
+        // Custom easing function for smooth acceleration/deceleration
+        return t < 0.5 
+          ? 2 * t * t 
+          : 1 - Math.pow(-2 * t + 2, 2) / 2;
+      }
+    }).start(() => {
       isAnimating.current = false;
       navigation.replace('NewsDetailsScreen', {
         newsId: targetNews.newsid,
@@ -733,10 +759,14 @@ export default function NewsDetailsScreen() {
         if (isH) { isHorizontalDrag.current = true; setScrollLocked(true); }
         return isH;
       },
-      onPanResponderGrant: () => { isHorizontalDrag.current = false; },
+      onPanResponderGrant: () => { 
+        isHorizontalDrag.current = false; 
+      },
       onPanResponderMove: (_, g) => {
         if (!isHorizontalDrag.current) return;
-        translateX.setValue(g.dx * 0.38);
+        // Smooth resistance with better feedback
+        const resistance = g.dx > 0 ? Math.min(g.dx * 0.5, 100) : Math.max(g.dx * 0.5, -100);
+        translateX.setValue(resistance);
         setHintDir(g.dx < 0 ? 'right' : 'left');
       },
       onPanResponderRelease: (_, g) => {
@@ -744,11 +774,23 @@ export default function NewsDetailsScreen() {
         isHorizontalDrag.current = false;
         setHintDir(null);
         if (isAnimating.current) return;
+        
         const swipedLeft = g.dx < -SWIPE_THRESHOLD || g.vx < -SWIPE_VELOCITY;
         const swipedRight = g.dx > SWIPE_THRESHOLD || g.vx > SWIPE_VELOCITY;
+        
         if (swipedLeft) navigateToNews('next');
         else if (swipedRight) navigateToNews('prev');
-        else Animated.spring(translateX, { toValue: 0, useNativeDriver: true, tension: 200, friction: 15 }).start();
+        else {
+          // Smooth return animation with better spring physics
+          Animated.spring(translateX, { 
+            toValue: 0, 
+            useNativeDriver: true, 
+            tension: 160, 
+            friction: 12,
+            overshootClamping: true,
+            restDisplacementThreshold: 0.1
+          }).start();
+        }
       },
       onPanResponderTerminate: () => {
         setScrollLocked(false);
@@ -806,7 +848,7 @@ export default function NewsDetailsScreen() {
       console.error('Error fetching shorts:', error);
       setShortsData([]);
     }
-  }, [newsId, newsItem, detail]);
+  }, [newsId, newsItem]);
 
   // ── Fetch detail ───────────────────────────────────────────────────────────
   const fetchDetail = useCallback(async () => {
@@ -928,7 +970,7 @@ export default function NewsDetailsScreen() {
     } finally {
       setLoading(false);
     }
-  }, [newsId, newsItem, detail]);
+  }, [newsId, newsItem]);
 
   // Check bookmark status when detail changes
   useEffect(() => {
@@ -960,8 +1002,14 @@ export default function NewsDetailsScreen() {
   };
 
   useEffect(() => { fetchDetail(); }, [fetchDetail]);
-  useEffect(() => { if (detail) triggerPulse(); }, [detail]);
-  useEffect(() => { if (detail) fetchShorts(); }, [fetchShorts, detail]);
+  
+  // Combined effect to reduce re-renders when detail changes
+  useEffect(() => {
+    if (detail) {
+      triggerPulse();
+      // fetchShorts is already called in fetchDetail, so no need to call it here
+    }
+  }, [detail]);
 
   const getShareUrl = () => {
     const slug = detail?.slug || newsItem?.slug || '';
@@ -1066,6 +1114,12 @@ return (
         {hasNext && (
           <TouchableOpacity style={styles.edgeBtnRight} onPress={() => navigateToNews('next')} activeOpacity={0.7}>
             <Ionicons name="chevron-forward" size={s(30)} color={COLORS.white} />
+          </TouchableOpacity>
+        )}
+
+        {hasPrev && (
+          <TouchableOpacity style={styles.edgeBtnLeft} onPress={() => navigateToNews('prev')} activeOpacity={0.7}>
+            <Ionicons name="chevron-back" size={s(30)} color={COLORS.white} />
           </TouchableOpacity>
         )}
 
@@ -1204,10 +1258,15 @@ return (
               </Animated.View>
             )}
 
-            <ShareInfo
-              url="https://www.dinamalar.com/news/123"
-              title="தமிழக செய்தி..."
-            />
+            {/* Share and top elements - only show after data loads */}
+            {!loading && !error && detail && (
+              <>
+                <ShareInfo
+                  url="https://www.dinamalar.com/news/123"
+                  title="தமிழக செய்தி..."
+                />
+              </>
+            )}
 
              {/* Also See This */}
             {alsoSeeThisItem && (
@@ -1451,7 +1510,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#EBEBEB',   // matches screenshot thin gray line
     marginHorizontal: ms(10),
   },
-  heroImage: { width: '100%', height: ms(230), backgroundColor: '#f0f0f0' },
+  heroImage: { width: '100%', height: ms(250), backgroundColor: '#f0f0f0' },
   caption: { color: PALETTE.grey600, fontStyle: 'italic', marginTop: vs(4), textAlign: 'center' },
   videoWrap: { marginHorizontal: s(16), height: ms(200), backgroundColor: '#1a1a2e', borderRadius: s(10), justifyContent: 'center', alignItems: 'center', marginBottom: vs(12), overflow: 'hidden' },
   ytThumb: { position: 'absolute', width: '100%', height: '100%' },

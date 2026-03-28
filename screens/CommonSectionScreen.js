@@ -1044,11 +1044,11 @@ function NewsCard({ item, onPress, sectionTitle = '' }) {
             <Text style={[NewsCardStyles.title, { fontSize: sf(13), lineHeight: sf(22) }]} numberOfLines={3}>{title}</Text>
           )}
 
-          {!!category && (
+          {/* {!!category && (
             <View style={NewsCardStyles.catPill}>
               <Text style={[NewsCardStyles.catText, { fontSize: sf(12) }]}>{category}</Text>
             </View>
-          )}
+          )} */}
 
           <View style={NewsCardStyles.metaRow}>
             <Text style={[NewsCardStyles.timeText, { fontSize: sf(13) }]}>{date}</Text>
@@ -2625,7 +2625,7 @@ export default function CommonSectionScreen() {
               }}
             />
             {/* Category tag */}
-            {category && (
+            {/* {category && (
               <View style={{
                 position: 'absolute',
                 top: s(0),
@@ -2643,7 +2643,7 @@ export default function CommonSectionScreen() {
                   {category}
                 </Text>
               </View>
-            )}
+            )} */}
             {/* Gallery icon */}
             <TouchableOpacity
               style={{

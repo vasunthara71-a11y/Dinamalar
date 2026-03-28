@@ -13,7 +13,7 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { CDNApi, mainApi } from '../config/api';
 import { s, vs, ms, scaledSizes } from '../utils/scaling';
 import { COLORS, FONTS } from '../utils/constants';
@@ -457,6 +457,8 @@ const nc = StyleSheet.create({
 export default function VarthagamScreen() {
   const { sf } = useFontSize();
   const navigation = useNavigation();
+  const route = useRoute();                                    // ← ADD THIS
+  const { initialTabId } = route.params || {};                // ← ADD THIS
 
   const [subTabs, setSubTabs] = useState([]);
   const [activeTab, setActiveTab] = useState(null);
@@ -493,15 +495,28 @@ const fetchAll = useCallback(async () => {
     const d = res?.data;
     const tabs = (d?.subcatlist || []).filter(t => t.id !== 'commodity');
     setSubTabs(tabs);
-    if (tabs.length > 0) setActiveTab(tabs[0]);
+
+    // ── Pick initial tab based on initialTabId param ──
+    if (initialTabId) {
+      const matchedTab = tabs.find(t => String(t.id) === String(initialTabId));
+      if (matchedTab) {
+        setActiveTab(matchedTab);
+        // Fetch that tab's news immediately
+        setTabLoading(true);
+        fetchTabNews(matchedTab, 1, false);
+      } else {
+        setActiveTab(tabs[0]);
+      }
+    } else {
+      if (tabs.length > 0) setActiveTab(tabs[0]);
+    }
+
     setCommodity(d?.commodity || null);
 
-    // ✅ Handle both array-of-sections and paginated object
     const newlist = d?.newlist;
     if (Array.isArray(newlist)) {
-      setAllSections(newlist);           // old format: [{title, data:[]}]
+      setAllSections(newlist);
     } else if (newlist?.data) {
-      // ✅ Wrap flat list into a single section
       setAllSections([{ title: '', data: newlist.data }]);
     } else {
       setAllSections([]);
@@ -512,57 +527,57 @@ const fetchAll = useCallback(async () => {
     setInitLoading(false);
     setRefreshing(false);
   }
-}, []);
+}, [initialTabId, fetchTabNews]);                             // ← ADD DEPS
 
   useEffect(() => { fetchAll(); }, []);
 
   // ── Fetch tab news from tab.link ──────────────────────────────────────────
-const fetchTabNews = useCallback(async (tab, pg, append = false) => {
-  if (!tab?.link || tab.title === 'All') return;
-  try {
-    const sep = tab.link.includes('?') ? '&' : '?';
-    const url = `${tab.link}${sep}page=${pg}`;
+  const fetchTabNews = useCallback(async (tab, pg, append = false) => {
+    if (!tab?.link || tab.title === 'All') return;
+    try {
+      const sep = tab.link.includes('?') ? '&' : '?';
+      const url = `${tab.link}${sep}page=${pg}`;
 
-    console.log('🔵 Fetching tab URL:', url);
+      console.log('🔵 Fetching tab URL:', url);
 
-    // ✅ Use mainApi instead of CDNApi — /newsdata lives on www.dinamalar.com
-    const res = await mainApi.get(url);  // <-- KEY FIX
-    const d = res?.data;
+      // ✅ Use mainApi instead of CDNApi — /newsdata lives on www.dinamalar.com
+      const res = await mainApi.get(url);  // <-- KEY FIX
+      const d = res?.data;
 
-    console.log('🟢 Tab response keys:', Object.keys(d || {}));
+      console.log('🟢 Tab response keys:', Object.keys(d || {}));
 
-    const list = (
-      d?.newlist?.data ||
-      d?.newslist?.data ||
-      d?.data ||
-      d?.list ||
-      []
-    ).filter(Boolean);
+      const list = (
+        d?.newlist?.data ||
+        d?.newslist?.data ||
+        d?.data ||
+        d?.list ||
+        []
+      ).filter(Boolean);
 
-    const lp =
-      d?.newlist?.last_page ||
-      d?.newslist?.last_page ||
-      d?.last_page ||
-      1;
+      const lp =
+        d?.newlist?.last_page ||
+        d?.newslist?.last_page ||
+        d?.last_page ||
+        1;
 
-    setTabLastPage(lp);
-    setTabNews(prev => append ? [...prev, ...list] : list);
-    setTabPage(pg);
-  }  catch (e) {
-  console.error('Tab fetch error:', e?.message);
-  console.error('Tab fetch status:', e?.response?.status);
+      setTabLastPage(lp);
+      setTabNews(prev => append ? [...prev, ...list] : list);
+      setTabPage(pg);
+    } catch (e) {
+      console.error('Tab fetch error:', e?.message);
+      console.error('Tab fetch status:', e?.response?.status);
 
-  // ✅ Show user-friendly message for 500 errors
-  if (e?.response?.status === 500) {
-    setTabNews([]);  // clear any stale data
-    // Optionally set an error state to show UI message
-  }
-} finally {
-  setTabLoading(false);
-  setTabLoadMore(false);
-  setRefreshing(false);
-}
-}, []);
+      // ✅ Show user-friendly message for 500 errors
+      if (e?.response?.status === 500) {
+        setTabNews([]);  // clear any stale data
+        // Optionally set an error state to show UI message
+      }
+    } finally {
+      setTabLoading(false);
+      setTabLoadMore(false);
+      setRefreshing(false);
+    }
+  }, []);
 
   const handleTabPress = (tab) => {
     if (activeTab?.id === tab.id && activeTab?.title === tab.title) return;
@@ -621,21 +636,21 @@ const fetchTabNews = useCallback(async (tab, pg, append = false) => {
   };
   const isAllTab = !activeTab || activeTab.title === 'All';
 
-const buildFlatData = () => {
-  if (isAllTab) {
-    const flat = [];
-    allSections.forEach(section => {
-      if (section?.data?.length > 0) {
-        if (section.title) {  // ✅ Only show title if it exists
-          flat.push({ type: 'section', title: section.title });
+  const buildFlatData = () => {
+    if (isAllTab) {
+      const flat = [];
+      allSections.forEach(section => {
+        if (section?.data?.length > 0) {
+          if (section.title) {  // ✅ Only show title if it exists
+            flat.push({ type: 'section', title: section.title });
+          }
+          section.data.forEach(item => flat.push({ type: 'news', item }));
         }
-        section.data.forEach(item => flat.push({ type: 'news', item }));
-      }
-    });
-    return flat;
-  }
-  return tabNews.map(item => ({ type: 'news', item }));
-};
+      });
+      return flat;
+    }
+    return tabNews.map(item => ({ type: 'news', item }));
+  };
 
   const flatData = buildFlatData();
   const isLoading = initLoading || tabLoading;

@@ -168,14 +168,14 @@ export const NewsCard = {
     top: 20,
     right: -30,
     transform: [{ rotate: '45deg' }],
-    backgroundColor: '#E53935', // ribbon color
+    backgroundColor: COLORS.primary, // ribbon color
     paddingVertical: 5,
     width: 140,
     alignItems: 'center',
   },
 
   ribbonText: {
-    color: '#fff',
+    color: COLORS.white,
     fontSize: 12,
     fontWeight: 'bold',
   },
@@ -201,7 +201,7 @@ export const NewsCard = {
     top: 20,
     right: -30,
     transform: [{ rotate: '45deg' }],
-    backgroundColor: '#E53935', // ribbon color
+    backgroundColor: COLORS.primary, // ribbon color
     paddingVertical: 5,
     width: 140,
     alignItems: 'center',

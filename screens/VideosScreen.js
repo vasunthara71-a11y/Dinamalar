@@ -455,6 +455,7 @@ const VideosScreen = ({ navigation, route }) => {
     'live': ['live', 'நேரலை', 'லைவ்'],
     'விளையாட்டு': ['விளையாட்டு', 'sport', 'Sports'],
     'சினிமா': ['சினிமா', 'cinema', 'Cinema'],
+    'shorts': ['shorts', 'ஷார்ட்ஸ்', 'ஷார்ட்'],
   };
 
   // Add this after your existing useState declarations:
