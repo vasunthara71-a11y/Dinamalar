@@ -857,7 +857,7 @@ const shortsSt = StyleSheet.create({
 });
 
 // --- News Card ----------------------------------------------------------------
-function NewsCard({ item, onPress, isSocialMedia = false, isPremium = false, hideCategory = false, isCartoon = false, sectionTitle = '', is360Degree = false, hideImage = false, hideDescription = false, isIPaper = false }) {
+function NewsCard({ item, onPress, isSocialMedia = false, isPremium = false, hideCategory = false, isCartoon = false, sectionTitle = '', is360Degree = false, hideImage = false, hideDescription = false, isIPaper = false, navigation }) {
   const { sf } = useFontSize();
 
   console.log('NewsCard hideDescription:', hideDescription, 'Title:', item.newstitle || item.title);
@@ -880,6 +880,407 @@ function NewsCard({ item, onPress, isSocialMedia = false, isPremium = false, hid
     '';
   const hasAudio = item.audio === 1 || item.audio === '1' || item.audio === true ||
     (typeof item.audio === 'string' && item.audio.length > 1 && item.audio !== '0');
+
+  // Handle category press - navigate to appropriate screen with specific tab
+  const handleCategoryPress = () => {
+    console.log('🚀 handleCategoryPress FUNCTION CALLED!');
+    const normalizedCategory = category?.toLowerCase().trim();
+    console.log('[Category Debug] Original category:', category);
+    console.log('[Category Debug] Normalized category:', normalizedCategory);
+    console.log('[Category Debug] Full item context:', {
+      categorytitle: item?.categorytitle,
+      maincategory: item?.maincategory,
+      maincat: item?.maincat,
+      maincatid: item?.maincatid,
+      category: item?.category,
+      catengtitle: item?.catengtitle
+    });
+
+    if (normalizedCategory === 'தமிழகம்' || normalizedCategory === 'tamilagam' || normalizedCategory === 'tamil nadu') {
+      // Navigate to TharpothaiyaSeithigalScreen with Tamilagam tab
+      navigation.navigate('TharpothaiyaSeithigalScreen', {
+        tabId: 'tamilagam',
+        initialTabTitle: 'தமிழகம்'
+      });
+    } else if (normalizedCategory === 'இந்தியா' || normalizedCategory === 'india') {
+      // Navigate to TharpothaiyaSeithigalScreen with India tab
+      navigation.navigate('TharpothaiyaSeithigalScreen', {
+        tabId: 'india',
+        initialTabTitle: 'இந்தியா'
+      });
+    } else if (normalizedCategory === 'உலகம்' || normalizedCategory === 'world') {
+      // Navigate to TharpothaiyaSeithigalScreen with World tab
+      navigation.navigate('TharpothaiyaSeithigalScreen', {
+        tabId: 'world',
+        initialTabTitle: 'உலகம்'
+      });
+    } else if (normalizedCategory === 'பிரீமியம்' || normalizedCategory === 'premium') {
+      // Navigate to TharpothaiyaSeithigalScreen with Premium tab
+      navigation.navigate('TharpothaiyaSeithigalScreen', {
+        tabId: 'premium',
+        initialTabTitle: 'பிரீமியம்'
+      });
+    } else if (normalizedCategory === 'விளையாட்டு' || normalizedCategory === 'sports') {
+      // Navigate to TharpothaiyaSeithigalScreen with Sports tab
+      navigation.navigate('TharpothaiyaSeithigalScreen', {
+        tabId: 'sports',
+        initialTabTitle: 'விளையாட்டு'
+      });
+    } else if (normalizedCategory === 'சினிமா' || normalizedCategory === 'cinema') {
+      // Navigate to TharpothaiyaSeithigalScreen with Cinema tab
+      navigation.navigate('TharpothaiyaSeithigalScreen', {
+        tabId: 'cinema',
+        initialTabTitle: 'சினிமா'
+      });
+    } else if (normalizedCategory === 'வர்த்தகம்' || normalizedCategory === 'business' || normalizedCategory === 'varthagam') {
+      // Navigate to TharpothaiyaSeithigalScreen with Business tab
+      navigation.navigate('TharpothaiyaSeithigalScreen', {
+        tabId: 'business',
+        initialTabTitle: 'வர்த்தகம்'
+      });
+    } else if (normalizedCategory === 'ஜோசியம்' || normalizedCategory === 'joshiyam') {
+      // Navigate to TharpothaiyaSeithigalScreen with Joshiyam tab
+      navigation.navigate('TharpothaiyaSeithigalScreen', {
+        tabId: 'joshiyam',
+        initialTabTitle: 'ஜோசியம்'
+      });
+    } else if (normalizedCategory === 'தினம் தினம்' || normalizedCategory === 'dinamdinam') {
+      // Navigate to CommonSectionScreen with Dinamdinam data
+      navigation.navigate('CommonSectionScreen', {
+        screenTitle: 'தினம் தினம்',
+        apiEndpoint: '/dinamdinam',
+        allTabLink: '/dinamdinam'
+      });
+    } else if (normalizedCategory === 'டீ கடை பெஞ்ச்' || normalizedCategory === 'tea kadai bench') {
+      // Navigate to CommonSectionScreen with Tea Kadai Bench data
+      navigation.navigate('CommonSectionScreen', {
+        screenTitle: 'டீ கடை பெஞ்ச்',
+        apiEndpoint: '/dinamdinam',
+        initialTabId: '91',
+        initialTabLink: '/dinamdinam/91'
+      });
+    } else if (normalizedCategory === 'டவுட் தனபாலு' || normalizedCategory === 'doubt dhanabalu') {
+      // Navigate to CommonSectionScreen with Doubt Dhanabalu data
+      navigation.navigate('CommonSectionScreen', {
+        screenTitle: 'டவுட் தனபாலு',
+        apiEndpoint: '/dinamdinam',
+        initialTabId: '92',
+        initialTabLink: '/dinamdinam/92'
+      });
+    } else if (normalizedCategory === 'பக்கவாத்தியம்' || normalizedCategory === 'pakka vathiyam') {
+      // Navigate to CommonSectionScreen with Pakka Vathiyam data
+      navigation.navigate('CommonSectionScreen', {
+        screenTitle: 'பக்கவாத்தியம்',
+        apiEndpoint: '/dinamdinam',
+        initialTabId: '68',
+        initialTabLink: '/dinamdinam/68'
+      });
+    } else if (normalizedCategory === 'செய்தி எதிரொலி' || normalizedCategory === 'dinamalar news ethiroli') {
+      // Navigate to CommonSectionScreen with Seithi Ethiroli data
+      navigation.navigate('CommonSectionScreen', {
+        screenTitle: 'செய்தி எதிரொலி',
+        apiEndpoint: '/dinamdinam',
+        initialTabId: '1629',
+        initialTabLink: '/dinamdinam/1629'
+      });
+    } else if (normalizedCategory === 'இது உங்கள் இடம்' || normalizedCategory === 'ithu ungal idam') {
+      // Navigate to CommonSectionScreen with Ithu Ungal Idam data
+      navigation.navigate('CommonSectionScreen', {
+        screenTitle: 'இது உங்கள் இடம்',
+        apiEndpoint: '/dinamdinam',
+        initialTabId: '67',
+        initialTabLink: '/dinamdinam/67'
+      });
+    } else if (normalizedCategory === 'பேச்சு, பேட்டி, அறிக்கை' || normalizedCategory === 'pechu petti arikai') {
+      // Navigate to CommonSectionScreen with Pechu Petti Arikai data
+      navigation.navigate('CommonSectionScreen', {
+        screenTitle: 'பேச்சு, பேட்டி, அறிக்கை',
+        apiEndpoint: '/dinamdinam',
+        initialTabId: '96',
+        initialTabLink: '/dinamdinam/96'
+      });
+    } else if (normalizedCategory === 'அறிவியல் ஆயிரம்' || normalizedCategory === 'ariviyal ayiram') {
+      // Navigate to CommonSectionScreen with Ariviyal Ayiram data
+      navigation.navigate('CommonSectionScreen', {
+        screenTitle: 'அறிவியல் ஆயிரம்',
+        apiEndpoint: '/dinamdinam',
+        initialTabId: '71',
+        initialTabLink: '/dinamdinam/71'
+      });
+    } else if (normalizedCategory === 'சொல்கிறார்கள்' || normalizedCategory === 'solgirargal') {
+      // Navigate to CommonSectionScreen with Solgirargal data
+      navigation.navigate('CommonSectionScreen', {
+        screenTitle: 'சொல்கிறார்கள்',
+        apiEndpoint: '/dinamdinam',
+        initialTabId: '93',
+        initialTabLink: '/dinamdinam/93'
+      });
+    } else if (normalizedCategory === 'இதப்படிங்க முதல்ல' || normalizedCategory === 'itha padinga muthlla') {
+      // Navigate to CommonSectionScreen with Itha Padinga Muthlla data
+      navigation.navigate('CommonSectionScreen', {
+        screenTitle: 'இதப்படிங்க முதல்ல',
+        apiEndpoint: '/dinamdinam',
+        initialTabId: '2',
+        initialTabLink: '/dinamdinam/2'
+      });
+    } else if (normalizedCategory === 'அக்கம் பக்கம்' || normalizedCategory === 'akkam pakkam') {
+      // Navigate to CommonSectionScreen with Akkam Pakkam data
+      navigation.navigate('CommonSectionScreen', {
+        screenTitle: 'அக்கம் பக்கம்',
+        apiEndpoint: '/dinamdinam',
+        initialTabId: '69',
+        initialTabLink: '/dinamdinam/69'
+      });
+    } else if (normalizedCategory === 'பழமொழி' || normalizedCategory === 'pazhamozi') {
+      // Navigate to CommonSectionScreen with Pazhamozi data
+      navigation.navigate('CommonSectionScreen', {
+        screenTitle: 'பழமொழி',
+        apiEndpoint: '/dinamdinam',
+        initialTabId: '1707',
+        initialTabLink: '/dinamdinam/1707'
+      });
+    } else if (normalizedCategory === 'இதே நாளில் அன்று' || normalizedCategory === 'on the same day') {
+      // Navigate to CommonSectionScreen with On The Same Day data
+      navigation.navigate('CommonSectionScreen', {
+        screenTitle: 'இதே நாளில் அன்று',
+        apiEndpoint: '/dinamdinam',
+        initialTabId: '1708',
+        initialTabLink: '/dinamdinam/1708'
+      });
+    } else if (normalizedCategory === 'தகவல் சுரங்கம்' || normalizedCategory === 'thagaval surangam') {
+      // Navigate to CommonSectionScreen with Thagaval Surangam data
+      navigation.navigate('CommonSectionScreen', {
+        screenTitle: 'தகவல் சுரங்கம்',
+        apiEndpoint: '/dinamdinam',
+        initialTabId: '1709',
+        initialTabLink: '/dinamdinam/1709'
+      });
+    } else if (normalizedCategory === 'விளையாட்டு' || normalizedCategory === 'sports') {
+      // Navigate to CommonSectionScreen with Sports data
+      navigation.navigate('CommonSectionScreen', {
+        screenTitle: 'விளையாட்டு',
+        apiEndpoint: '/sports',
+        allTabLink: '/sports'
+      });
+    } else if (normalizedCategory === 'கிரிக்கெட்' || normalizedCategory === 'cricket') {
+      // Navigate to CommonSectionScreen with Cricket data
+      navigation.navigate('CommonSectionScreen', {
+        screenTitle: 'கிரிக்கெட்',
+        apiEndpoint: '/sports',
+        initialTabId: '1668',
+        initialTabLink: '/sports/1668'
+      });
+    } else if (normalizedCategory === 'டென்னிஸ்' || normalizedCategory === 'tennis') {
+      // Navigate to CommonSectionScreen with Tennis data
+      navigation.navigate('CommonSectionScreen', {
+        screenTitle: 'டென்னிஸ்',
+        apiEndpoint: '/sports',
+        initialTabId: '1669',
+        initialTabLink: '/sports/1669'
+      });
+    } else if (normalizedCategory === 'கால்பந்து' || normalizedCategory === 'football') {
+      // Navigate to CommonSectionScreen with Football data
+      navigation.navigate('CommonSectionScreen', {
+        screenTitle: 'கால்பந்து',
+        apiEndpoint: '/sports',
+        initialTabId: '1670',
+        initialTabLink: '/sports/1670'
+      });
+    } else if (normalizedCategory === 'பாட்மின்டன்' || normalizedCategory === 'badminton') {
+      // Navigate to CommonSectionScreen with Badminton data
+      navigation.navigate('CommonSectionScreen', {
+        screenTitle: 'பாட்மின்டன்',
+        apiEndpoint: '/sports',
+        initialTabId: '1671',
+        initialTabLink: '/sports/1671'
+      });
+    } else if (normalizedCategory === 'பிற விளையாட்டு' || normalizedCategory === 'other sports') {
+      // Navigate to CommonSectionScreen with Other Sports data
+      navigation.navigate('CommonSectionScreen', {
+        screenTitle: 'பிற விளையாட்டு',
+        apiEndpoint: '/sports',
+        initialTabId: '1672',
+        initialTabLink: '/sports/1672'
+      });
+    } else if (normalizedCategory === 'தினமலர் டிவி' || normalizedCategory === 'dinamalar tv' || normalizedCategory === 'video') {
+      // Navigate to CommonSectionScreen with Video data
+      navigation.navigate('CommonSectionScreen', {
+        screenTitle: 'தினமலர் டிவி',
+        apiEndpoint: '/videodata',
+        allTabLink: '/videos'
+      });
+    } else if (normalizedCategory === 'live' || normalizedCategory === 'live video') {
+      // Navigate to CommonSectionScreen with Live video data
+      navigation.navigate('CommonSectionScreen', {
+        screenTitle: 'Live',
+        apiEndpoint: '/videodata',
+        initialTabId: '5050',
+        initialTabLink: '/video?category=5050'
+      });
+    } else if (normalizedCategory === 'அரசியல்' || normalizedCategory === 'politics') {
+      // Navigate to CommonSectionScreen with Politics video data
+      navigation.navigate('CommonSectionScreen', {
+        screenTitle: 'அரசியல்',
+        apiEndpoint: '/videodata',
+        initialTabId: '31',
+        initialTabLink: '/video?category=31'
+      });
+    } else if (normalizedCategory === 'பொது' || normalizedCategory === 'general') {
+      // Navigate to CommonSectionScreen with General video data
+      navigation.navigate('CommonSectionScreen', {
+        screenTitle: 'பொது',
+        apiEndpoint: '/videodata',
+        initialTabId: '32',
+        initialTabLink: '/video?category=32'
+      });
+    } else if (normalizedCategory === 'சம்பவம்' || normalizedCategory === 'event') {
+      // Navigate to CommonSectionScreen with Sambavam video data
+      navigation.navigate('CommonSectionScreen', {
+        screenTitle: 'சம்பவம்',
+        apiEndpoint: '/videodata',
+        initialTabId: '33',
+        initialTabLink: '/video?category=33'
+      });
+    } else if (normalizedCategory === 'சினிமா வீடியோ' || normalizedCategory === 'cinema video') {
+      // Navigate to CommonSectionScreen with Cinema video data
+      navigation.navigate('CommonSectionScreen', {
+        screenTitle: 'சினிமா வீடியோ',
+        apiEndpoint: '/videodata',
+        initialTabId: '435',
+        initialTabLink: '/video?category=435'
+      });
+    } else if (normalizedCategory === 'டிரைலர்' || normalizedCategory === 'trailer') {
+      // Navigate to CommonSectionScreen with Trailer video data
+      navigation.navigate('CommonSectionScreen', {
+        screenTitle: 'டிரைலர்',
+        apiEndpoint: '/videodata',
+        initialTabId: '436',
+        initialTabLink: '/video?category=436'
+      });
+    } else if (normalizedCategory === 'செய்திச்சுருக்கம்' || normalizedCategory === 'short news') {
+      // Navigate to CommonSectionScreen with Short News video data
+      navigation.navigate('CommonSectionScreen', {
+        screenTitle: 'செய்திச்சுருக்கம்',
+        apiEndpoint: '/videodata',
+        initialTabId: '594',
+        initialTabLink: '/video?category=594'
+      });
+    } else if (normalizedCategory === 'விளையாட்டு' || normalizedCategory === 'sports video') {
+      // Navigate to CommonSectionScreen with Sports video data
+      navigation.navigate('CommonSectionScreen', {
+        screenTitle: 'விளையாட்டு',
+        apiEndpoint: '/videodata',
+        initialTabId: '464',
+        initialTabLink: '/video?category=464'
+      });
+    } else if (normalizedCategory === 'சிறப்பு தொகுப்புகள்' || normalizedCategory === 'exclusive videos') {
+      // Navigate to CommonSectionScreen with Exclusive video data
+      navigation.navigate('CommonSectionScreen', {
+        screenTitle: 'சிறப்பு தொகுப்புகள்',
+        apiEndpoint: '/videodata',
+        initialTabId: '1238',
+        initialTabLink: '/video?category=1238'
+      });
+    } else if (normalizedCategory === 'ஆன்மிகம் வீடியோ' || normalizedCategory === 'spiritual video') {
+      // Navigate to CommonSectionScreen with Spiritual video data
+      navigation.navigate('CommonSectionScreen', {
+        screenTitle: 'ஆன்மிகம் வீடியோ',
+        apiEndpoint: '/videodata',
+        initialTabId: '1316',
+        initialTabLink: '/video?category=1316'
+      });
+    } else if (normalizedCategory === 'மாவட்ட செய்திகள்' || normalizedCategory === 'district news') {
+      // Navigate to CommonSectionScreen with District News video data
+      navigation.navigate('CommonSectionScreen', {
+        screenTitle: 'மாவட்ட செய்திகள்',
+        apiEndpoint: '/videodata',
+        initialTabId: '1585',
+        initialTabLink: '/video?category=1585'
+      });
+    } else if (normalizedCategory === 'வர்த்தகம்' || normalizedCategory === 'business') {
+      // Navigate to CommonSectionScreen with Business data
+      navigation.navigate('CommonSectionScreen', {
+        screenTitle: 'வர்த்தகம்',
+        apiEndpoint: '/varthagamdata',
+        allTabLink: '/varthagam'
+      });
+    } else if ((normalizedCategory === 'பொது' || normalizedCategory === 'general') && (item?.categorytitle === 'வர்த்தகம்' || item?.maincategory === 'varthagam')) {
+      // Navigate to CommonSectionScreen with General Business data
+      console.log('[Business Navigation] பொது (General) - Found Business context:', {
+        screenTitle: 'பொது',
+        apiEndpoint: '/varthagamdata',
+        initialTabId: '1605',
+        initialTabLink: '/newsdata?cat=1597&scat=1605',
+        itemContext: {
+          categorytitle: item?.categorytitle,
+          maincategory: item?.maincategory,
+          maincat: item?.maincat
+        }
+      });
+      navigation.navigate('CommonSectionScreen', {
+        screenTitle: 'பொது',
+        apiEndpoint: '/varthagamdata',
+        initialTabId: '1605',
+        initialTabLink: '/newsdata?cat=1597&scat=1605'
+      });
+    } else if (normalizedCategory === 'ஆயிரம் சந்தேகங்கள்' || normalizedCategory === 'thousand doubts') {
+      // Navigate to CommonSectionScreen with Thousand Doubts data
+      navigation.navigate('CommonSectionScreen', {
+        screenTitle: 'ஆயிரம் சந்தேகங்கள்',
+        apiEndpoint: '/varthagamdata',
+        initialTabId: '1714',
+        initialTabLink: '/newsdata?cat=1597&scat=1714'
+      });
+    } else if (normalizedCategory === 'ஜி.எஸ்.டி., சந்தேகங்கள்' || normalizedCategory === 'gst doubts') {
+      // Navigate to CommonSectionScreen with GST Doubts data
+      navigation.navigate('CommonSectionScreen', {
+        screenTitle: 'ஜி.எஸ்.டி., சந்தேகங்கள்',
+        apiEndpoint: '/varthagamdata',
+        initialTabId: '1718',
+        initialTabLink: '/newsdata?cat=1597&scat=1718'
+      });
+    } else if (normalizedCategory === 'பங்கு வர்த்தகம்' || normalizedCategory === 'share market') {
+      // Navigate to CommonSectionScreen with Share Market data
+      navigation.navigate('CommonSectionScreen', {
+        screenTitle: 'பங்கு வர்த்தகம்',
+        apiEndpoint: '/varthagamdata',
+        initialTabId: '1598',
+        initialTabLink: '/newsdata?cat=1597&scat=1598'
+      });
+    } else if (normalizedCategory === 'வங்கி மற்றும் நிதி' || normalizedCategory === 'banking and finance') {
+      // Navigate to CommonSectionScreen with Banking and Finance data
+      navigation.navigate('CommonSectionScreen', {
+        screenTitle: 'வங்கி மற்றும் நிதி',
+        apiEndpoint: '/varthagamdata',
+        initialTabId: '1599',
+        initialTabLink: '/newsdata?cat=1597&scat=1599'
+      });
+    } else if (normalizedCategory === 'சேமிப்பு திட்டம்' || normalizedCategory === 'savings') {
+      // Navigate to CommonSectionScreen with Savings data
+      navigation.navigate('CommonSectionScreen', {
+        screenTitle: 'சேமிப்பு திட்டம்',
+        apiEndpoint: '/varthagamdata',
+        initialTabId: '1602',
+        initialTabLink: '/newsdata?cat=1597&scat=1602'
+      });
+    } else if (normalizedCategory === 'கமாடிட்டி' || normalizedCategory === 'commodity') {
+      // Navigate to CommonSectionScreen with Commodity data
+      navigation.navigate('CommonSectionScreen', {
+        screenTitle: 'கமாடிட்டி',
+        apiEndpoint: '/bussinessbox',
+        allTabLink: '/commodity'
+      });
+    } else if (normalizedCategory === 'லாபம்' || normalizedCategory === 'labam') {
+      // Navigate to CommonSectionScreen with Labam data
+      navigation.navigate('CommonSectionScreen', {
+        screenTitle: 'லாபம்',
+        apiEndpoint: '/varthagamdata',
+        initialTabId: '1726',
+        initialTabLink: '/newsdata?cat=1597&scat=1726'
+      });
+    }
+    // Add more category mappings as needed
+  };
 
   return (
     <View style={isSocialMedia ? NewsCardStyles.socialMediaWrap : NewsCardStyles.wrap}>
@@ -988,11 +1389,19 @@ function NewsCard({ item, onPress, isSocialMedia = false, isPremium = false, hid
           )}
 
           {!!category && !isSocialMedia && !hideCategory && !isPremium && (
-            <View style={NewsCardStyles.catPill}>
+            <TouchableOpacity 
+              style={NewsCardStyles.catPill}
+              onPress={() => {
+                console.log('🔥 NewsCard Category TouchableOpacity PRESSED! Category:', category);
+                handleCategoryPress();
+              }}
+              activeOpacity={0.7}
+              hitSlop={{ top: 5, bottom: 5, left: 10, right: 10 }}
+            >
               <Text style={[NewsCardStyles.catText, { fontSize: sf(12) }]}>
                 {category}
               </Text>
-            </View>
+            </TouchableOpacity>
           )}
 
           <View style={NewsCardStyles.metaRow}>
@@ -1023,7 +1432,7 @@ function NewsCard({ item, onPress, isSocialMedia = false, isPremium = false, hid
   );
 }
 
-function ShortNewsSection({ title, data, onPress, onSeeMore }) {
+function ShortNewsSection({ title, data, onPress, onSeeMore, navigation }) {
   const { sf } = useFontSize();
   if (!data || data.length === 0) return null;
 
@@ -1035,6 +1444,49 @@ function ShortNewsSection({ title, data, onPress, onSeeMore }) {
   const category = item.maincat || item.ctitle || item.categrorytitle || '';
   const ago = item.ago || item.time_ago || '';
   const description = item.newsdescription || item.description || item.shortdescription || item.body || '';
+
+  // Handle category press for short news
+  const handleCategoryPress = () => {
+    const normalizedCategory = category?.toLowerCase().trim();
+    console.log('[ShortNews Category Debug] Original category:', category);
+    console.log('[ShortNews Category Debug] Normalized category:', normalizedCategory);
+    console.log('[ShortNews Category Debug] Full item context:', {
+      categorytitle: item?.categorytitle,
+      maincategory: item?.maincategory,
+      maincat: item?.maincat,
+      maincatid: item?.maincatid,
+      category: item?.category,
+      catengtitle: item?.catengtitle
+    });
+
+    if (normalizedCategory === 'தமிழகம்' || normalizedCategory === 'tamilagam' || normalizedCategory === 'tamil nadu') {
+      // Navigate to TharpothaiyaSeithigalScreen with Tamilagam tab
+      navigation.navigate('TharpothaiyaSeithigalScreen', {
+        tabId: 'tamilagam',
+        initialTabTitle: 'தமிழகம்'
+      });
+    } else if (normalizedCategory === 'இந்தியா' || normalizedCategory === 'india') {
+      // Navigate to TharpothaiyaSeithigalScreen with India tab
+      navigation.navigate('TharpothaiyaSeithigalScreen', {
+        tabId: 'india',
+        initialTabTitle: 'இந்தியா'
+      });
+    } else if (normalizedCategory === 'உலகம்' || normalizedCategory === 'world') {
+      // Navigate to TharpothaiyaSeithigalScreen with World tab
+      navigation.navigate('TharpothaiyaSeithigalScreen', {
+        tabId: 'world',
+        initialTabTitle: 'உலகம்'
+      });
+    } else if (normalizedCategory === 'பிரீமியம்' || normalizedCategory === 'premium') {
+      // Navigate to TharpothaiyaSeithigalScreen with Premium tab
+      navigation.navigate('TharpothaiyaSeithigalScreen', {
+        tabId: 'premium',
+        initialTabTitle: 'பிரீமியம்'
+      });
+    } else {
+      console.log('[ShortNews Category Debug] No specific navigation for category:', normalizedCategory);
+    }
+  };
 
   return (
     <View style={shortNewsSt.wrapper}>
@@ -1063,9 +1515,14 @@ function ShortNewsSection({ title, data, onPress, onSeeMore }) {
               {/* Category pill + time */}
               <View style={shortNewsSt.metaRow}>
                 {!!category && (
-                  <View style={shortNewsSt.catPill}>
+                  <TouchableOpacity 
+                    style={shortNewsSt.catPill} 
+                    onPress={handleCategoryPress}
+                    activeOpacity={0.7}
+                    hitSlop={{ top: 5, bottom: 5, left: 10, right: 10 }}
+                  >
                     <Text style={[shortNewsSt.catText, { fontSize: sf(12) }]}>{category}</Text>
-                  </View>
+                  </TouchableOpacity>
                 )}
                 {!!ago && (
                   <Text style={[shortNewsSt.agoText, { fontSize: sf(12) }]}>{ago}</Text>
@@ -1184,7 +1641,7 @@ const shortNewsSt = StyleSheet.create({
 
 
 // NewsCard-style layout with play button overlay   tapping opens VideoPlayerModal
-function DinaMalarTVCard({ item, onVideoPress }) {
+function DinaMalarTVCard({ item, onVideoPress, navigation }) {
   const { sf } = useFontSize();
 
   const imageUri =
@@ -1196,6 +1653,49 @@ function DinaMalarTVCard({ item, onVideoPress }) {
   const ago = item.ago || item.time_ago || '';
   const newscomment = item.newscomment || item.commentcount || item.nmcomment || item.comments?.total || '';
   const duration = item.duration || item.video_duration || item.length || '';
+
+  // Handle category press for TV card
+  const handleCategoryPress = () => {
+    const normalizedCategory = category?.toLowerCase().trim();
+    console.log('[TV Card Category Debug] Original category:', category);
+    console.log('[TV Card Category Debug] Normalized category:', normalizedCategory);
+    console.log('[TV Card Category Debug] Full item context:', {
+      categorytitle: item?.categorytitle,
+      maincategory: item?.maincategory,
+      maincat: item?.maincat,
+      maincatid: item?.maincatid,
+      category: item?.category,
+      catengtitle: item?.catengtitle
+    });
+
+    if (normalizedCategory === 'தமிழகம்' || normalizedCategory === 'tamilagam' || normalizedCategory === 'tamil nadu') {
+      // Navigate to TharpothaiyaSeithigalScreen with Tamilagam tab
+      navigation.navigate('TharpothaiyaSeithigalScreen', {
+        tabId: 'tamilagam',
+        initialTabTitle: 'தமிழகம்'
+      });
+    } else if (normalizedCategory === 'இந்தியா' || normalizedCategory === 'india') {
+      // Navigate to TharpothaiyaSeithigalScreen with India tab
+      navigation.navigate('TharpothaiyaSeithigalScreen', {
+        tabId: 'india',
+        initialTabTitle: 'இந்தியா'
+      });
+    } else if (normalizedCategory === 'உலகம்' || normalizedCategory === 'world') {
+      // Navigate to TharpothaiyaSeithigalScreen with World tab
+      navigation.navigate('TharpothaiyaSeithigalScreen', {
+        tabId: 'world',
+        initialTabTitle: 'உலகம்'
+      });
+    } else if (normalizedCategory === 'பிரீமியம்' || normalizedCategory === 'premium') {
+      // Navigate to TharpothaiyaSeithigalScreen with Premium tab
+      navigation.navigate('TharpothaiyaSeithigalScreen', {
+        tabId: 'premium',
+        initialTabTitle: 'பிரீமியம்'
+      });
+    } else {
+      console.log('[TV Card Category Debug] No specific navigation for category:', normalizedCategory);
+    }
+  };
 
   // Format duration display
   const formatDuration = (durationStr) => {
@@ -1279,9 +1779,17 @@ function DinaMalarTVCard({ item, onVideoPress }) {
           )}
 
           {!!category && (
-            <View style={NewsCardStyles.catPill}>
+            <TouchableOpacity 
+              style={NewsCardStyles.catPill} 
+              onPress={() => {
+                console.log('🔥 Category TouchableOpacity PRESSED! Category:', category);
+                handleCategoryPress();
+              }}
+              activeOpacity={0.7}
+              hitSlop={{ top: 5, bottom: 5, left: 10, right: 10 }}
+            >
               <Text style={[NewsCardStyles.catText, { fontSize: sf(11) }]}>{category}</Text>
-            </View>
+            </TouchableOpacity>
           )}
 
           <View style={NewsCardStyles.metaRow}>
@@ -1441,6 +1949,7 @@ function DinaMalarTVSection({ data, onVideoPress }) {
           <DinaMalarTVCard
             key={`tv-${i}-${item.newsid || item.videoid || i}`}
             item={item}
+            navigation={navigation}
             onVideoPress={() => onVideoPress(item)}
           />
         ))
@@ -2086,6 +2595,27 @@ export default function HomeScreen() {
               sections.push({ title: sec.title, data: sec.data.slice(0, 5) });
           });
         }
+
+        // ── Advertisement Banner ─────────────────────────────────────────────
+        sections.push({
+          type: 'advertisement_banner',
+          data: [{
+            id: 'Mainhomepage_MTF_300x250_4',
+            width: 300,
+            height: 250
+          }]
+        });
+
+        // ── Subscription Banner ─────────────────────────────────────────────
+        sections.push({
+          type: 'subscription_banner',
+          data: [{
+            url: 'https://subscription.dinamalar.com/',
+            image: 'https://cdn.jsdelivr.net/gh/dinamalardmr/files@main/images/Dinamalar-Subscription_300x90.gif',
+            altname: 'ad',
+            target: '_blank'
+          }]
+        });
 
         // ── தினம் தினம் ────────────────────────────────────────────────────
         if (d?.dinamdinam) {
@@ -2973,7 +3503,11 @@ export default function HomeScreen() {
                     title={section.title}
                     data={section.data}
                     onPress={() => navigation?.navigate('ShortNewsSwiperScreen')}
-                  // onSeeMore={() => navigation?.navigate('WebStoriesScreen')}
+                    navigation={navigation}
+                    onSeeMore={() => {
+                      console.log('📰 SHORT NEWS SECTION HEADER CLICKED - Navigating to ShortNewsSwiperScreen');
+                      navigation?.navigate('ShortNewsSwiperScreen');
+                    }}
                   />
                 </View>
               ) : section.type === 'webstories' ? (
@@ -3259,6 +3793,7 @@ export default function HomeScreen() {
                       <DinaMalarTVCard
                         key={`cinema-video-${i}-${item.id || item.videoid || i}`}
                         item={item}
+                        navigation={navigation}
                         onVideoPress={() => {
                           navigation?.navigate('VideoDetailScreen', {
                             videoId: item.videoid || item.id || item.newsid,
@@ -3345,6 +3880,7 @@ export default function HomeScreen() {
                           isPremium={isPremiumStory}
                           hideCategory={true}
                           hideDescription={true}
+                          navigation={navigation}
                           onPress={() => {
                             const link = item.slug || item.link || item.url || item.weburl;
                             if (link && (link.startsWith('http://') || link.startsWith('https://'))) {
@@ -3388,6 +3924,7 @@ export default function HomeScreen() {
                           hideCategory={true}
                           isCartoon={true}
                           hideDescription={true}
+                          navigation={navigation}
                           onPress={() => {
                             // Navigate to CommonSectionScreen for cartoons
                             navigation?.navigate('CommonSectionScreen', {
@@ -3429,6 +3966,7 @@ export default function HomeScreen() {
                           isPremium={isPremiumStory}
                           hideCategory={false}
                           hideDescription={true}
+                          navigation={navigation}
                           onPress={() => {
                             const link = item.slug || item.link || item.url || item.weburl;
                             if (link && (link.startsWith('http://') || link.startsWith('https://'))) {
@@ -3731,19 +4269,19 @@ export default function HomeScreen() {
                               slug: firstItem.slug || '',
                             });
                           }
-                        } : section.title?.includes('தமிழகம்') || section.title?.includes('tamilagam') ?
+                        } : section.title && (section.title?.includes('தமிழகம்') || section.title?.includes('tamilagam')) ?
                           () => {
                             console.log('📰 TAMILAGAM SECTION HEADER CLICKED - Navigating to TharpothaiyaSeithigalScreen with tamilagam tab');
                             navigation?.navigate('TharpothaiyaSeithigalScreen', {
                               tabId: 'tamilagam'
                             });
-                          } : section.title?.includes('இந்தியா') || section.title?.includes('india') ?
+                          } : section.title && (section.title?.includes('இந்தியா') || section.title?.includes('india')) ?
                           () => {
                             console.log('📰 INDIA SECTION HEADER CLICKED - Navigating to TharpothaiyaSeithigalScreen with india tab');
                             navigation?.navigate('TharpothaiyaSeithigalScreen', {
                               tabId: 'india'
                             });
-                          } : section.title?.includes('தினம் தினம்') || section.title?.includes('dinamdinam') ?
+                          } : section.title && (section.title?.includes('தினம் தினம்') || section.title?.includes('dinamdinam')) ?
                           () => {
                             console.log('📰 DINAMDINAM SECTION HEADER CLICKED - Navigating to CommonSectionScreen with dinamdinam data');
                             navigation?.navigate('CommonSectionScreen', {
@@ -3751,23 +4289,23 @@ export default function HomeScreen() {
                               apiEndpoint: '/dinamdinam',
                               allTabLink: '/dinamdinam'
                             });
-                          } : section.title?.includes('சிறுசெய்திகள்') || section.title?.includes('short news') || section.title?.includes('shortnews') ?
+                          } : section.title && (section.title?.includes('சிறுசெய்திகள்') || section.title?.includes('short news') || section.title?.includes('shortnews')) ?
                           () => {
                             console.log('📰 SHORT NEWS SECTION HEADER CLICKED - Navigating to ShortNewsSwiperScreen');
                             navigation?.navigate('ShortNewsSwiperScreen');
-                          } : section.title?.includes('விளையாட்டு') || section.title?.includes('sports') ?
+                          } : section.title && (section.title?.includes('விளையாட்டு') || section.title?.includes('sports')) ?
                           () => {
                             console.log('🏏 SPORTS SECTION HEADER CLICKED - Navigating to SportsScreen');
                             navigation?.navigate('SportsScreen');
-                          } : section.title?.includes('உள்ளூர் செய்திகள்') || section.title?.includes('ullur seithigal') || section.title?.includes('உள்ளூர்') ?
+                          } : section.title && (section.title?.includes('உள்ளூர் செய்திகள்') || section.title?.includes('ullur seithigal') || section.title?.includes('உள்ளூர்')) ?
                           () => {
                             console.log('📍 DISTRICT NEWS SECTION HEADER CLICKED - Navigating to DistrictNewsScreen');
                             navigation?.navigate('DistrictNewsScreen');
-                          } : section.title?.includes('வர்த்தகம்') || section.title?.includes('varthagam') ?
+                          } : section.title && (section.title?.includes('வர்த்தகம்') || section.title?.includes('varthagam')) ?
                           () => {
                             console.log('💰 VARTHAGAM SECTION HEADER CLICKED - Navigating to VarthagamScreen');
                             navigation?.navigate('VarthagamScreen');
-                          } : section.title?.includes('ஜோசியம்') || section.title?.includes('joshiyam') ?
+                          } : section.title && (section.title?.includes('ஜோசியம்') || section.title?.includes('joshiyam')) ?
                           () => {
                             console.log('🔮 JOSHIYAM SECTION HEADER CLICKED - Navigating to CommonSectionScreen with joshiyam data');
                             navigation?.navigate('CommonSectionScreen', {
@@ -3775,18 +4313,18 @@ export default function HomeScreen() {
                               apiEndpoint: '/joshiyam',
                               allTabLink: '/joshiyam'
                             });
-                          } : section.title?.includes('தற்போதைய செய்திகள்') || section.title.includes('tharpothaiya') ||
-                          section.title?.includes('தற்போதைய') || section.title?.includes('தற்போதைய செய்திகள்') ?
+                          } : section.title && (section.title?.includes('தற்போதைய செய்திகள்') || section.title?.includes('tharpothaiya') ||
+                          section.title?.includes('தற்போதைய') || section.title?.includes('தற்போதைய செய்திகள்')) ?
                           () => {
                             console.log('📰 THARPOTHAIYA SECTION HEADER CLICKED - Navigating to TharpothaiyaSeithigalScreen');
                             navigation?.navigate('TharpothaiyaSeithigalScreen');
-                          } : section.title?.includes('சினிமா') ?
+                          } : section.title && section.title?.includes('சினிமா') ?
                             () => {
                               console.log('🎬 CINEMA SECTION HEADER CLICKED - Opening in browser');
                               const link = 'https://www.dinamalar.com/cinema';
                               Linking.openURL(link).catch(() => console.log('Failed to open cinema link'));
-                            } : section.title?.includes('வாராவாரம்') || section.title?.includes('varavaram') ||
-                              section.title?.includes('வாரமலர்') || section.title?.includes('varamalar') ?
+                            } : section.title && (section.title?.includes('வாராவாரம்') || section.title?.includes('varavaram') ||
+                              section.title?.includes('வாரமலர்') || section.title?.includes('varamalar')) ?
                               () => {
                                 console.log('📰 VARAVARAM/VARAMALAR SECTION HEADER CLICKED - Navigating to CommonSectionScreen with photo data cards');
                                 navigation?.navigate('CommonSectionScreen', {
@@ -3794,8 +4332,8 @@ export default function HomeScreen() {
                                   apiEndpoint: 'https://u38.dinamalar.com/varavaram',
                                   allTabLink: 'https://u38.dinamalar.com/varavaram'
                                 });
-                              } : section.title?.includes('கார்ட்ஸ்') || section.title?.includes('cards') ||
-                            section.title?.includes('கார்ட்ஸ்') || section.title?.includes('card') ?
+                              } : section.title && (section.title?.includes('கார்ட்ஸ்') || section.title?.includes('cards') ||
+                            section.title?.includes('கார்ட்ஸ்') || section.title?.includes('card')) ?
                               () => {
                                 console.log('📰 CARDS/SOCIAL MEDIA SECTION HEADER CLICKED - Navigating to CommonSectionScreen with cards');
                                 navigation?.navigate('CommonSectionScreen', {
@@ -3803,16 +4341,40 @@ export default function HomeScreen() {
                                   apiEndpoint: 'https://api-st-cdn.dinamalar.com/cards',
                                   allTabLink: 'https://api-st-cdn.dinamalar.com/cards'
                                 });
-                              } : section.title?.includes('கோயில்கள்') || section.title?.includes('kovilgal') ?
+                              } : section.title && (section.title?.includes('கோயில்கள்') || section.title?.includes('kovilgal')) ?
                               () => {
                                 console.log('🏛️ KOVILGAL SECTION HEADER CLICKED - Opening temple website in browser');
                                 const link = 'https://temple.dinamalar.com';
                                 Linking.openURL(link).catch(() => console.log('Failed to open temple website link'));
-                              } : section.title?.includes('எடிட்டர் லைக்ஸ்') || section.title?.includes('editor') || section.title?.includes('Editor') ?
+                              } : section.title && (section.title?.includes('எடிட்டர் லைக்ஸ்') || section.title?.includes('editor') || section.title?.includes('Editor')) ?
                               () => {
                                 console.log('📝 EDITOR LIKES SECTION HEADER CLICKED - Navigating to EditorChoiceScreen');
                                 navigation?.navigate('EditorChoiceScreen');
-                              } : undefined
+                                                    } : section.title && (section.title?.includes('ஆன்மிகம்') || section.title?.includes('aanmegam') || section.title?.includes('anmegam')) ?
+                                                      () => {
+                    navigation?.navigate('CommonSectionScreen', {
+                      screenTitle: 'ஆன்மிகம்',
+                      apiEndpoint: '/anmegam',
+                      allTabLink: '/anmegam'
+                    });
+                                                      }
+                  : section.title && (section.title?.includes('ஐ - பேப்பர்') || section.title?.includes('ipaper') || section.title?.includes('ஐபேப்பர்')) ?
+                                                        () => {
+                    Linking.openURL('https://play.google.com/store/apps/details?id=com.dinamalar.ipaper&hl=en_IN').catch(console.warn);
+                                                        }
+                  : section.title && (section.title?.includes('உலக தமிழர்') || section.title?.includes('ulaga thamizar')) ?
+                                                          () => {
+                    navigation?.navigate('CommonSectionScreen', {
+                      screenTitle: 'உலக தமிழர் செய்திகள்',
+                      apiEndpoint: '/nrimain',
+                      allTabLink: '/nrimain'
+                    });
+                                                          }
+                  : section.title && (section.title?.includes('புத்தகங்கள்') || section.title?.includes('books')) ?
+                                                            () => {
+                    Linking.openURL('https://books.dinamalar.com').catch(console.warn);
+                                                            }
+                  : undefined
                     }
                   />
                   {section.data?.map((item, i) => {
@@ -3850,9 +4412,34 @@ export default function HomeScreen() {
                               {!!bookTitle && (
                                 <Text style={[NewsCardStyles.title, { fontSize: sf(14), lineHeight: sf(22) }]} numberOfLines={2}>{bookTitle}</Text>
                               )}
-                              <View style={NewsCardStyles.catPill}>
+                              <TouchableOpacity 
+                                style={NewsCardStyles.catPill}
+                                onPress={() => {
+                                  console.log('🔥 Varamalar Category TouchableOpacity PRESSED! Category:', category);
+                                  // Handle category press for varamalar
+                                  const normalizedCategory = category?.toLowerCase().trim();
+                                  if (normalizedCategory === 'தமிழகம்' || normalizedCategory === 'tamilagam' || normalizedCategory === 'tamil nadu') {
+                                    navigation?.navigate('TharpothaiyaSeithigalScreen', {
+                                      tabId: 'tamilagam',
+                                      initialTabTitle: 'தமிழகம்'
+                                    });
+                                  } else if (normalizedCategory === 'இந்தியா' || normalizedCategory === 'india') {
+                                    navigation?.navigate('TharpothaiyaSeithigalScreen', {
+                                      tabId: 'india',
+                                      initialTabTitle: 'இந்தியா'
+                                    });
+                                  } else if (normalizedCategory === 'உலகம்' || normalizedCategory === 'world') {
+                                    navigation?.navigate('TharpothaiyaSeithigalScreen', {
+                                      tabId: 'world',
+                                      initialTabTitle: 'உலகம்'
+                                    });
+                                  }
+                                }}
+                                activeOpacity={0.7}
+                                hitSlop={{ top: 5, bottom: 5, left: 10, right: 10 }}
+                              >
                                 <Text style={[NewsCardStyles.catText, { fontSize: sf(12) }]}>{category}</Text>
-                              </View>
+                              </TouchableOpacity>
                               {!!date && (
                                 <Text style={[NewsCardStyles.timeText, { fontSize: sf(13) }]}>{date}</Text>
                               )}
@@ -3913,6 +4500,7 @@ export default function HomeScreen() {
                         <DinaMalarTVCard
                           key={`cinema-${si}-${i}-${item.id || item.videoid || i}`}
                           item={item}
+                          navigation={navigation}
                           onVideoPress={() => {
                             navigation?.navigate('VideoDetailScreen', {
                               videoId: item.videoid || item.id || item.newsid,
@@ -3949,6 +4537,7 @@ export default function HomeScreen() {
                         hideDescription={shouldHideDescription}
                         isIPaper={section.title?.includes('ஐ - பேப்பர்') || section.title?.includes('iPaper') || section.title?.includes('ஐ பேப்பர்') || section.title?.includes('ஐபேப்பர்')}
                         // sectionTitle={section.title || ''}
+                        navigation={navigation}
                         onPress={() => {
                           const sectionTitle = section.title?.toLowerCase() || '';
 
@@ -3999,31 +4588,25 @@ export default function HomeScreen() {
 
                           if (sectionTitle.includes('தினம் தினம்') || sectionTitle.includes('dinamdinam') ||
                             sectionTitle.includes('தினம் தினம்')) {
-                            // Navigate to the first dinamdinam news item instead of DinamDinamScreen
-                            const dinamDinamData = section.data || [];
-                            if (dinamDinamData.length > 0) {
-                              const firstItem = dinamDinamData[0];
-                              navigation?.navigate('NewsDetailsScreen', {
-                                newsId: firstItem.newsid || firstItem.id,
-                                newsItem: firstItem,
-                                slug: firstItem.slug || '',
-                              });
-                            }
+                            // Navigate to the clicked dinamdinam news item instead of always the first item
+                            console.log('📰 DINAMDINAM ITEM CLICKED - Using clicked item:', { newsId: item.newsid || item.id, title: item.newstitle || item.title });
+                            navigation?.navigate('NewsDetailsScreen', {
+                              newsId: item.newsid || item.id,
+                              newsItem: item,
+                              slug: item.slug || '',
+                            });
                             return;
                           }
 
                           if (sectionTitle.includes('விளையாட்டு') || sectionTitle.includes('sports') ||
                             sectionTitle.includes('விளையாட்டு')) {
-                            // Navigate to the first sports news item instead of SportsScreen
-                            const sportsData = section.data || [];
-                            if (sportsData.length > 0) {
-                              const firstItem = sportsData[0];
-                              navigation?.navigate('NewsDetailsScreen', {
-                                newsId: firstItem.newsid || firstItem.id,
-                                newsItem: firstItem,
-                                slug: firstItem.slug || '',
-                              });
-                            }
+                            // Navigate to the clicked sports news item instead of always the first item
+                            console.log('🏏 SPORTS ITEM CLICKED - Using clicked item:', { newsId: item.newsid || item.id, title: item.newstitle || item.title });
+                            navigation?.navigate('NewsDetailsScreen', {
+                              newsId: item.newsid || item.id,
+                              newsItem: item,
+                              slug: item.slug || '',
+                            });
                             return;
                           }
 
