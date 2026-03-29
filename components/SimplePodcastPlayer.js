@@ -6,7 +6,6 @@ import {
   StyleSheet,
   ActivityIndicator,
   Modal,
-  ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAudioPlayer, useAudioPlayerStatus, setAudioModeAsync } from 'expo-audio';
@@ -15,7 +14,6 @@ import { ms } from 'react-native-size-matters';
 import { FONTS } from '../utils/constants';
 import { useNavigation } from '@react-navigation/native';
 
-// ─── MANUAL TEST DATA ──────────────────────────────────────────────────────────
 const MANUAL_TEST_DATA = [
   {
     newsid: 58927,
@@ -28,7 +26,8 @@ const MANUAL_TEST_DATA = [
 
 export default function SimplePodcastPlayer({ data, onMorePress }) {
   const [isReady, setIsReady] = useState(false);
-  const [isDismissed, setIsDismissed] = useState(false);
+  // ✅ 3 states: 'expanded' = mini player, 'collapsed' = tab strip, 'hidden' = fully gone
+  const [playerState, setPlayerState] = useState('expanded');
   const [showFullPlayer, setShowFullPlayer] = useState(false);
   const navigation = useNavigation();
 
@@ -86,164 +85,196 @@ export default function SimplePodcastPlayer({ data, onMorePress }) {
 
   const progress = status.duration > 0 ? status.currentTime / status.duration : 0;
 
-  // If dismissed, show nothing
-  if (isDismissed) return null;
-
-  return (
-    <>
-      {/* ── Compact Floating Mini-Player (matches Dinamalar website) ── */}
-      <View style={styles.miniPlayerContainer}>
-        {/* Dismiss (–) button */}
-        <TouchableOpacity
-          style={styles.dismissBtn}
-          onPress={() => {
-            handleStop();
-            setIsDismissed(true);
-          }}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <Text style={styles.dismissText}>−</Text>
-        </TouchableOpacity>
-
-        {/* Label */}
-        <Text style={styles.miniLabel}>Podcast</Text>
-
-        {/* Play / Pause button */}
-        <TouchableOpacity
-          style={styles.miniPlayBtn}
-          onPress={handlePlayPause}
-          disabled={!isReady}
-          activeOpacity={0.8}
-        >
-          {status.isBuffering ? (
-            <ActivityIndicator size="small" color="#fff" />
-          ) : (
-            <Ionicons
-              name={status.playing ? 'pause' : 'play'}
-              size={s(20)}
-              color="#fff"
-            />
-          )}
-        </TouchableOpacity>
-
-        {/* "மேலும் >>" — navigates to PodcastPlayer screen */}
-        <TouchableOpacity
-          onPress={() => navigation.navigate('PodcastPlayer')}
-          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-          style={{ flexDirection: "row", alignItems: "center", gap: ms(5) }}
-        >
-          <Text style={styles.moreText}>மேலும் </Text>
-          <Text style={{ color: "#fff", fontSize: ms(15) }}>{'>>'}</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* ── Full-Screen Player Modal (opened via மேலும்) ── */}
-      <Modal
-        visible={showFullPlayer}
-        animationType="slide"
-        presentationStyle="fullScreen"
-        onRequestClose={() => setShowFullPlayer(false)}
+  // ✅ COLLAPSED TAB — vertical strip shown when mini player is dismissed
+  if (playerState === 'collapsed') {
+    return (
+      <TouchableOpacity
+        style={styles.collapsedTab}
+        onPress={() => setPlayerState('expanded')}
+        activeOpacity={0.85}
       >
-        <View style={styles.fullPlayerContainer}>
+        {/* Mic icon */}
+        <Ionicons name="mic" size={s(18)} color="#fff" />
+        {/* Vertical "OPEN" text */}
+        {['O', 'P', 'E', 'N'].map((char, i) => (
+          <Text key={i} style={styles.collapsedChar}>{char}</Text>
+        ))}
+      </TouchableOpacity>
+    );
+  }
 
-          {/* Header */}
-          <View style={styles.fullHeader}>
-            <TouchableOpacity
-              onPress={() => setShowFullPlayer(false)}
-              style={styles.closeBtn}
-            >
-              <Ionicons name="chevron-down" size={s(28)} color="#fff" />
-            </TouchableOpacity>
-            <Text style={styles.fullHeaderLabel}>PODCAST</Text>
-            <View style={{ width: s(40) }} />
-          </View>
+  // ✅ EXPANDED MINI PLAYER
+  if (playerState === 'expanded') {
+    return (
+      <>
+        <View style={styles.miniPlayerContainer}>
+          {/* Dismiss (–) button → go to collapsed tab */}
+          <TouchableOpacity
+            style={styles.dismissBtn}
+            onPress={() => {
+              // ✅ Don't stop audio, just collapse the UI
+              setPlayerState('collapsed');
+            }}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Text style={styles.dismissText}>−</Text>
+          </TouchableOpacity>
 
-          {/* Art circle */}
-          <View style={styles.artContainer}>
-            <View style={[styles.artCircle, status.playing && styles.artCircleActive]}>
-              <Ionicons name="radio" size={s(64)} color="#096dd2" />
-            </View>
-          </View>
+          {/* Label */}
+          <Text style={styles.miniLabel}>Podcast</Text>
 
-          {/* Title & date */}
-          <Text style={styles.fullTitle}>{currentPodcast.newstitle}</Text>
-          <Text style={styles.fullSubtitle}>{currentPodcast.standarddate}</Text>
+          {/* Play / Pause button */}
+          <TouchableOpacity
+            style={styles.miniPlayBtn}
+            onPress={handlePlayPause}
+            disabled={!isReady}
+            activeOpacity={0.8}
+          >
+            {status.isBuffering ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Ionicons
+                name={status.playing ? 'pause' : 'play'}
+                size={s(20)}
+                color="#fff"
+              />
+            )}
+          </TouchableOpacity>
 
-          {/* Progress */}
-          <View style={styles.progressContainer}>
-            <Text style={styles.timeText}>{formatTime(status.currentTime)}</Text>
-            <View style={styles.progressBar}>
-              <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
-            </View>
-            <Text style={styles.timeText}>{formatTime(status.duration)}</Text>
-          </View>
-
-          {/* Controls */}
-          <View style={styles.controlsRow}>
-            {/* –15s */}
-            <TouchableOpacity style={styles.controlBtn} onPress={handleSeekBackward}>
-              <Ionicons name="play-back" size={s(22)} color="#fff" />
-            </TouchableOpacity>
-
-            {/* Stop */}
-            <TouchableOpacity style={styles.controlBtn} onPress={handleStop}>
-              <Ionicons name="stop" size={s(22)} color="#fff" />
-            </TouchableOpacity>
-
-            {/* Play/Pause */}
-            <TouchableOpacity
-              style={styles.fullPlayBtn}
-              onPress={handlePlayPause}
-              disabled={!isReady}
-            >
-              {status.isBuffering ? (
-                <ActivityIndicator size="large" color="#fff" />
-              ) : (
-                <Ionicons
-                  name={status.playing ? 'pause' : 'play'}
-                  size={s(36)}
-                  color="#fff"
-                />
-              )}
-            </TouchableOpacity>
-
-            {/* +15s */}
-            <TouchableOpacity style={styles.controlBtn} onPress={handleSeekForward}>
-              <Ionicons name="play-forward" size={s(22)} color="#fff" />
-            </TouchableOpacity>
-
-            {/* Close full player → back to mini */}
-            <TouchableOpacity
-              style={styles.controlBtn}
-              onPress={() => setShowFullPlayer(false)}
-            >
-              <Ionicons name="contract" size={s(22)} color="#fff" />
-            </TouchableOpacity>
-          </View>
-
-          {/* Podcast title strip */}
-          <View style={styles.titleStrip}>
-            <Ionicons name="musical-notes" size={s(14)} color="#096dd2" />
-            <Text style={styles.titleStripText} numberOfLines={2}>
-              {currentPodcast.newstitle}
-            </Text>
-          </View>
-
+          {/* மேலும் >> */}
+          <TouchableOpacity
+            onPress={() => navigation.navigate('PodcastPlayer')}
+            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: ms(5) }}
+          >
+            <Text style={styles.moreText}>மேலும் </Text>
+            <Text style={{ color: '#fff', fontSize: ms(15) }}>{'>>'}</Text>
+          </TouchableOpacity>
         </View>
-      </Modal>
-    </>
-  );
+
+        {/* Full-Screen Player Modal */}
+        <Modal
+          visible={showFullPlayer}
+          animationType="slide"
+          presentationStyle="fullScreen"
+          onRequestClose={() => setShowFullPlayer(false)}
+        >
+          <View style={styles.fullPlayerContainer}>
+            <View style={styles.fullHeader}>
+              <TouchableOpacity
+                onPress={() => setShowFullPlayer(false)}
+                style={styles.closeBtn}
+              >
+                <Ionicons name="chevron-down" size={s(28)} color="#fff" />
+              </TouchableOpacity>
+              <Text style={styles.fullHeaderLabel}>PODCAST</Text>
+              <View style={{ width: s(40) }} />
+            </View>
+
+            <View style={styles.artContainer}>
+              <View style={[styles.artCircle, status.playing && styles.artCircleActive]}>
+                <Ionicons name="radio" size={s(64)} color="#096dd2" />
+              </View>
+            </View>
+
+            <Text style={styles.fullTitle}>{currentPodcast.newstitle}</Text>
+            <Text style={styles.fullSubtitle}>{currentPodcast.standarddate}</Text>
+
+            <View style={styles.progressContainer}>
+              <Text style={styles.timeText}>{formatTime(status.currentTime)}</Text>
+              <View style={styles.progressBar}>
+                <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
+              </View>
+              <Text style={styles.timeText}>{formatTime(status.duration)}</Text>
+            </View>
+
+            <View style={styles.controlsRow}>
+              <TouchableOpacity style={styles.controlBtn} onPress={handleSeekBackward}>
+                <Ionicons name="play-back" size={s(22)} color="#fff" />
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.controlBtn} onPress={handleStop}>
+                <Ionicons name="stop" size={s(22)} color="#fff" />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.fullPlayBtn}
+                onPress={handlePlayPause}
+                disabled={!isReady}
+              >
+                {status.isBuffering ? (
+                  <ActivityIndicator size="large" color="#fff" />
+                ) : (
+                  <Ionicons
+                    name={status.playing ? 'pause' : 'play'}
+                    size={s(36)}
+                    color="#fff"
+                  />
+                )}
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.controlBtn} onPress={handleSeekForward}>
+                <Ionicons name="play-forward" size={s(22)} color="#fff" />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.controlBtn}
+                onPress={() => setShowFullPlayer(false)}
+              >
+                <Ionicons name="contract" size={s(22)} color="#fff" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.titleStrip}>
+              <Ionicons name="musical-notes" size={s(14)} color="#096dd2" />
+              <Text style={styles.titleStripText} numberOfLines={2}>
+                {currentPodcast.newstitle}
+              </Text>
+            </View>
+          </View>
+        </Modal>
+      </>
+    );
+  }
+
+  return null;
 }
 
 const styles = StyleSheet.create({
+  // ✅ Collapsed vertical tab strip
+  collapsedTab: {
+    position: 'absolute',
+    right: s(0),
+    top: '42%',
+    backgroundColor: 'rgba(99, 115, 131, 0.95)',
+    borderTopLeftRadius: s(10),
+    borderBottomLeftRadius: s(10),
+    paddingVertical: vs(10),
+    paddingHorizontal: s(8),
+    alignItems: 'center',
+    gap: vs(3),
+    shadowColor: '#000',
+    shadowOffset: { width: -2, height: 4 },
+    shadowOpacity: 0.18,
+    shadowRadius: s(8),
+    elevation: 12,
+    zIndex: 1000,
+    borderWidth: 1,
+    borderColor: '#fff',
+    minWidth: s(34),
+  },
+  collapsedChar: {
+    color: '#fff',
+    fontSize: s(11),
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    lineHeight: s(14),
+  },
+
+  // Mini player
   miniPlayerContainer: {
     position: 'absolute',
     right: s(0),
     top: '42%',
-    backgroundColor: 'rgba(99, 115, 131)',
+    backgroundColor: 'rgba(99, 115, 131, 0.95)',
     borderTopLeftRadius: s(10),
     borderBottomLeftRadius: s(10),
-    // paddingTop: vs(10),
     paddingBottom: vs(10),
     paddingHorizontal: s(10),
     alignItems: 'center',
@@ -256,7 +287,7 @@ const styles = StyleSheet.create({
     zIndex: 1000,
     minWidth: s(90),
     borderWidth: 1,
-    borderColor: "#fff"
+    borderColor: '#fff',
   },
   dismissBtn: {
     alignSelf: 'flex-start',
@@ -272,7 +303,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.18,
     shadowRadius: s(8),
-    marginTop: -s(10)
+    marginTop: -s(10),
   },
   dismissText: {
     fontSize: s(16),
@@ -284,7 +315,7 @@ const styles = StyleSheet.create({
     fontSize: s(14),
     color: '#fff',
     letterSpacing: 0.3,
-    fontFamily: FONTS.muktaMalar.medium
+    fontFamily: FONTS.muktaMalar.medium,
   },
   miniPlayBtn: {
     width: s(40),
@@ -292,18 +323,17 @@ const styles = StyleSheet.create({
     borderRadius: s(20),
     borderWidth: 3,
     borderColor: '#fff',
-    // backgroundColor: '#fff',
     justifyContent: 'center',
     alignItems: 'center',
   },
   moreText: {
     fontSize: s(12),
     color: '#fff',
-    // fontWeight: '600',
     textAlign: 'center',
-    fontFamily: FONTS.muktaMalar.medium
+    fontFamily: FONTS.muktaMalar.medium,
   },
 
+  // Full player
   fullPlayerContainer: {
     flex: 1,
     backgroundColor: '#0d1b2a',

@@ -20,6 +20,18 @@ import { useNavigation } from '@react-navigation/native';
 import { ms, vs } from 'react-native-size-matters';
 import UniversalHeaderComponent from '../components/UniversalHeaderComponent';
 import AppHeaderComponent from '../components/AppHeaderComponent';
+import { addBookmark, removeBookmark, isBookmarked } from '../utils/storage';
+import { 
+  FacebookIcon, 
+  TwitterIcon, 
+  WhatsAppIcon, 
+  ShareIcon, 
+  Bookmark, 
+  BookmarkSaved,
+  Calendar,
+  SpeakerIcon,
+  RightArrow
+} from '../assets/svg/Icons';
 
 const { width: SW } = Dimensions.get('window');
 
@@ -87,6 +99,7 @@ export default function PodcastPlayer() {
   const [isLocationDrawerVisible, setIsLocationDrawerVisible] = useState(false);
   const [selectedDistrict, setSelectedDistrict] = useState('உள்ளூர்');
   const [showScrollTop, setShowScrollTop] = useState(false);
+  const [bookmarked, setBookmarked] = useState(false);
   const flatListRef = useRef(null);
   const pbW = useRef(SW - 32 - 80);
   const prevIdx = useRef(0);
@@ -149,6 +162,36 @@ export default function PodcastPlayer() {
     try { await Share.share({ message: `${cur.newstitle}\n${cur.audio}` }); } catch (_) { }
   };
 
+  // Handle bookmark toggle
+  const handleBookmarkToggle = async () => {
+    if (!cur) {
+      console.log('No current episode to bookmark');
+      return;
+    }
+
+    console.log('Current episode data:', cur);
+    console.log('Current bookmark state:', bookmarked);
+
+    if (bookmarked) {
+      console.log('Removing bookmark...');
+      const success = await removeBookmark(cur);
+      console.log('Remove result:', success);
+      if (success) setBookmarked(false);
+    } else {
+      console.log('Adding bookmark...');
+      const success = await addBookmark(cur);
+      console.log('Add result:', success);
+      if (success) setBookmarked(true);
+    }
+  };
+
+  // Check bookmark status when current episode changes
+  useEffect(() => {
+    if (cur) {
+      isBookmarked(cur).then(setBookmarked);
+    }
+  }, [cur]);
+
   // Header handlers
   const handleMenuPress = () => setIsDrawerVisible(true);
   const handleSearch = () => navigation.navigate('SearchScreen');
@@ -189,7 +232,7 @@ export default function PodcastPlayer() {
             {item.newstitle}
           </Text>
           <View style={S.epMetaRow}>
-             <Ionicons name="calendar-outline" size={11} color={T_LIGHT} />
+             <Calendar size={11} color={T_LIGHT} />
             <Text style={S.epMeta}> {item.standarddate}</Text>
             <Text style={S.epMetaSep}>  |  </Text>
             <Ionicons name="time-outline" size={11} color={T_LIGHT} />
@@ -270,7 +313,7 @@ export default function PodcastPlayer() {
                   <View style={S.cardInfo}>
                     <Text style={S.cardTitle}>{cur.newstitle}</Text>
                     <View style={S.cardMetaRow}>
-                      <Ionicons name="calendar-outline" size={12} color={T_MUTED} />
+                      <Calendar size={12} color={T_MUTED} />
                       <Text style={S.cardMetaTxt}> {cur.standarddate}</Text>
                       <Text style={S.cardMetaSep}>  |  </Text>
                       <Ionicons name="time-outline" size={12} color={T_MUTED} />
@@ -329,7 +372,7 @@ export default function PodcastPlayer() {
                       {/* <Text style={S.timeTxt}>{fmt(dur)}</Text> */}
                     </View>
                     <TouchableOpacity hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}>
-                      <Ionicons name="volume-medium-outline" size={24} color={BLUE} />
+                      <SpeakerIcon size={24} color={BLUE} />
                     </TouchableOpacity>
                   </TouchableOpacity>
 
@@ -368,22 +411,26 @@ export default function PodcastPlayer() {
                 
                 <View style={S.shareRow}>
                   <TouchableOpacity style={S.shareBtn} onPress={doShare}>
-                    <FontAwesome name="facebook" size={18} color="#1877F2" />
+                    <FacebookIcon size={20} color="#1877F2" />
                   </TouchableOpacity>
                   <TouchableOpacity style={S.shareBtn} onPress={doShare}>
-                    <FontAwesome name="twitter" size={17} color="#1DA1F2" />
+                    <TwitterIcon size={20} color="#1DA1F2" />
                   </TouchableOpacity>
                   <TouchableOpacity style={S.shareBtn} onPress={doShare}>
-                    <FontAwesome name="whatsapp" size={19} color="#25D366" />
+                    <WhatsAppIcon size={20} color="#25D366" />
                   </TouchableOpacity>
                   <TouchableOpacity style={S.shareBtn} onPress={doShare}>
-                    <Ionicons name="send" size={16} color="#229ED9" />
+                    <ShareIcon size={20} color="#229ED9" />
                   </TouchableOpacity>
-                  <TouchableOpacity style={S.shareBtn} onPress={doShare}>
-                    <Feather name="share" size={17} color={T_MID} />
-                  </TouchableOpacity>
-                  <TouchableOpacity style={S.shareBtn} onPress={doShare}>
-                    <Feather name="bookmark" size={17} color={T_MID} />
+                  {/* <TouchableOpacity style={S.shareBtn} onPress={doShare}>
+                    <ShareIcon size={17} color={T_MID} />
+                  </TouchableOpacity> */}
+                  <TouchableOpacity style={S.shareBtn} onPress={handleBookmarkToggle}>
+                    {bookmarked ? (
+                      <BookmarkSaved size={20} color={BLUE} />
+                    ) : (
+                      <Bookmark size={20} color={T_MID} />
+                    )}
                   </TouchableOpacity>
                 </View>
 
@@ -400,7 +447,7 @@ export default function PodcastPlayer() {
           onPress={scrollToTop} 
           activeOpacity={0.85}
         >
-          <Ionicons name="arrow-up" size={20} color="#fff" />
+          <RightArrow size={20} color="#fff" style={{ transform: [{ rotate: '-90deg' }] }} />
         </TouchableOpacity>
       )}
     </SafeAreaView>
