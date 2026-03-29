@@ -19,9 +19,9 @@ const MoreNews = ({ morenewsLink, onNewsPress }) => {
   const [loading, setLoading] = useState(false);
 
   // Debug logging
-  console.log('MoreNews component - morenewsLink prop:', morenewsLink);
-  console.log('MoreNews component - morenewsLink type:', typeof morenewsLink);
-  console.log('MoreNews component - morenewsLink length:', morenewsLink?.length);
+  // console.log('MoreNews component - morenewsLink prop:', morenewsLink);
+  // console.log('MoreNews component - morenewsLink type:', typeof morenewsLink);
+  // console.log('MoreNews component - morenewsLink length:', morenewsLink?.length);
 
   // Fetch morenews data
   const fetchMorenews = useCallback(async () => {
@@ -97,11 +97,11 @@ const MoreNews = ({ morenewsLink, onNewsPress }) => {
 
   // Don't render anything if no morenewsLink or no data
   if (!morenewsLink || (morenewsData.length === 0 && !loading)) {
-    console.log('MoreNews component - not rendering container, morenewsLink:', morenewsLink, 'dataLength:', morenewsData.length, 'loading:', loading);
+    // console.log('MoreNews component - not rendering container, morenewsLink:', morenewsLink, 'dataLength:', morenewsData.length, 'loading:', loading);
     return null;
   }
 
-  console.log('MoreNews component - rendering container with data:', morenewsData.length, 'items');
+  // console.log('MoreNews component - rendering container with data:', morenewsData.length, 'items');
 
   return (
     <View style={styles.container}>
