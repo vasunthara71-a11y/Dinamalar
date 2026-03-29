@@ -7,6 +7,7 @@ import {
   StyleSheet,
   StatusBar,
   ActivityIndicator,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { mainApi, API_ENDPOINTS } from '../config/api';
@@ -151,10 +152,18 @@ export default function DinamalarCalendarScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Page title */}
-        <View style={st.pageTitleRow}>
-          <Text style={[st.pageTitle, { fontSize: sf(20) }]}>காலண்டர்</Text>
+        <TouchableOpacity 
+          style={st.pageTitleRow}
+          onPress={() => {
+            console.log('📅 CALENDAR TITLE CLICKED - Opening Play Store');
+            const playStoreUrl = 'https://play.google.com/store/apps/details?id=com.daily.dinamalar&hl=en_IN';
+            Linking.openURL(playStoreUrl).catch(() => console.log('Failed to open Play Store'));
+          }}
+          activeOpacity={0.8}
+        >
+          <Text style={[st.pageTitle, { fontSize: sf(18) }]}>காலண்டர்</Text>
           <View style={st.titleUnderline} />
-        </View>
+        </TouchableOpacity>
 
         {/* Date card */}
         <View style={st.card}>
@@ -256,7 +265,7 @@ const st = StyleSheet.create({
   // Page title
   pageTitleRow:   { marginBottom: 10 },
   pageTitle:      { fontSize: 20, fontWeight: '700', color: TEXT1, fontFamily: FONTS.muktaMalar.bold },
-  titleUnderline: { height: 3, width: 52, backgroundColor: COLORS.primary, marginTop: 4 },
+  titleUnderline: { height: 3, width: 52, backgroundColor: COLORS.primary, },
 
   // Date card
   card: {

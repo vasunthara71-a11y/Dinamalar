@@ -179,9 +179,9 @@ const CategoryTab = ({
       )}
 
       {/* Thin divider between rows */}
-      {row1Tags.length > 0 && (specialTodayData.length > 0 || loadingSpecial) && (
+      {/* {row1Tags.length > 0 && (specialTodayData.length > 0 || loadingSpecial) && (
         <View style={st.rowDivider} />
-      )}
+      )} */}
 
       {/* ── Row 2: Special Today ─────────────────────────────────────────── */}
       {(specialTodayData.length > 0 || loadingSpecial) && (
@@ -248,7 +248,7 @@ const st = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: vs(7),
+    paddingVertical: vs(5),
     paddingRight: s(8),
   },
 

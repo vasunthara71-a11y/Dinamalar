@@ -1887,10 +1887,16 @@ export default function CommonSectionScreen() {
       setTaboolaAds(d?.taboola_ads?.mobile || null);
 
       if (initialTabId || initialTabLink) {
+        console.log('🔍 DEBUG: Looking for initial tab - initialTabId:', initialTabId, 'initialTabLink:', initialTabLink);
+        console.log('🔍 DEBUG: Available tabs:', tabs.map(t => ({ id: t.id, title: t.title, link: t.link })));
+        
         const preselected = tabs.find(t =>
           (initialTabId && String(t.id) === String(initialTabId)) ||
           (initialTabLink && t.link === initialTabLink)
         );
+        
+        console.log('🔍 DEBUG: Preselected tab found:', !!preselected, preselected ? preselected.title : 'Not found');
+        
         if (preselected) {
           const preIsAll = preselected.link === allTabLink;
           setActiveTab({ ...preselected, _isAllTab: preIsAll });
@@ -2165,7 +2171,46 @@ export default function CommonSectionScreen() {
       if (targetTab) { handleTabPress(targetTab); return; }
     }
 
-    // ── 3. Photo ────────────────────────────────────────────────────────────────
+    // ── 3. Varavaram ───────────────────────────────────────────────────────────────
+    if (apiEndpoint?.includes('varavaram')) {
+      if (isAllTab) {
+        // When in All tab of varavaram, navigate to specific sub-tab based on item data
+        const targetTab = subTabs.find(t =>
+          String(t.id) === String(item.maincatid) ||
+          String(t.id) === String(item.scatid) ||
+          String(t.id) === String(item.subcatid) ||
+          t.title === item.categrorytitle ||
+          t.title === item.maincat ||
+          t.title === item.subcat
+        );
+        
+        if (targetTab) {
+          console.log('🎯 Varavaram item clicked - navigating to tab:', targetTab.title, 'ID:', targetTab.id);
+          handleTabPress(targetTab);
+          return;
+        }
+      } else {
+        // When in a specific varavaram sub-tab, navigate to CommonSectionScreen with that tab
+        // This handles cases where user clicks on items that should open in the same tab structure
+        if (item.maincatid || item.scatid || item.subcatid) {
+          const tabId = String(item.maincatid || item.scatid || item.subcatid);
+          const targetTab = subTabs.find(t => String(t.id) === tabId);
+          
+          if (targetTab && targetTab.title === 'நிஜக்கதை') {
+            console.log('📖 Nijakkathi item clicked - opening in CommonSectionScreen with nijakkathi tab');
+            navigation.push('CommonSectionScreen', {
+              screenTitle: 'நிஜக்கதை',
+              apiEndpoint: 'https://api-st-cdn.dinamalar.com/varavaram',
+              initialTabId: '644',
+              allTabLink: 'https://api-st-cdn.dinamalar.com/varavaram'
+            });
+            return;
+          }
+        }
+      }
+    }
+
+    // ── 4. Photo ────────────────────────────────────────────────────────────────
     const isPhotoEndpoint =
       apiEndpoint.includes('photodata') ||
       apiEndpoint.includes('photodetails') ||

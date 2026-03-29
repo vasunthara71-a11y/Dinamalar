@@ -854,10 +854,32 @@ export default function NewsDetailsScreen() {
   const fetchDetail = useCallback(async () => {
     const id = newsId || newsItem?.id || newsItem?.newsid;
 
+    console.log('🔍 NewsDetailsScreen fetchDetail called');
+    console.log('🔍 newsId:', newsId);
+    console.log('🔍 newsItem:', newsItem);
+    console.log('🔍 Extracted ID:', id);
+    console.log('🔍 newsItem keys:', newsItem ? Object.keys(newsItem) : 'no newsItem');
+
+    // Check if this is flash news - if so, don't fetch API, just show the flash news data
+    const isFlashNews = newsItem && (
+      newsItem.clr === 'flashnews_Y' || 
+      newsItem.target === '' ||
+      (newsItem.link && newsItem.link.includes('latestmain'))
+    );
+
+    console.log('🔍 Is flash news:', isFlashNews);
+
     // Immediately show available data without waiting for API
     if (newsItem && !detail) {
+      console.log('🔍 Showing newsItem immediately:', newsItem.title || newsItem.newstitle);
       setDetail(newsItem);
       setLoading(false);
+      
+      // If it's flash news, don't fetch API - we already have complete data
+      if (isFlashNews) {
+        console.log('🔍 Flash news detected - skipping API fetch');
+        return;
+      }
     }
 
     if (!id) {
@@ -895,6 +917,9 @@ export default function NewsDetailsScreen() {
 
       const data = res.data;
 
+      console.log('🔍 API Response data structure:', data);
+      console.log('🔍 API Response keys:', Object.keys(data));
+
       const article =
         data?.detailnews?.detailpage?.[0] ||
         data?.detailpage?.[0] ||
@@ -902,6 +927,9 @@ export default function NewsDetailsScreen() {
         data?.detail?.[0] ||
         (Array.isArray(data) ? data[0] : null) ||
         null;
+
+      console.log('🔍 Extracted article:', article);
+      console.log('🔍 Article keys:', article ? Object.keys(article) : 'no article');
 
       // Update state in batches to reduce re-renders
       const updates = {};

@@ -259,10 +259,14 @@ export default function JoshiyamSection({ josiyamData, onSeeMore }) {
         <View style={jSt.container}>
 
             {/* ── Section Header ──────────────────────────────────────────────── */}
-            <View style={jSt.sectionHeader}>
+            <TouchableOpacity 
+                style={jSt.sectionHeader}
+                onPress={onSeeMore}
+                activeOpacity={0.8}
+            >
                 <Text style={[jSt.sectionTitle, { fontSize: sf(18) }]}>ஜோசியம்</Text>
                 <View style={jSt.sectionUnderline} />
-            </View>
+            </TouchableOpacity>
 
             {/* ── Rasi Selector Row ───────────────────────────────────────────── */}
             <View style={jSt.rasiSelectorRow}>
@@ -352,17 +356,6 @@ export default function JoshiyamSection({ josiyamData, onSeeMore }) {
                     </TouchableOpacity>
                 ))}
             </View>
-
-            {/* ── See More ────────────────────────────────────────────────────── */}
-            {/* <TouchableOpacity
-                style={jSt.seeMoreRow}
-                onPress={onSeeMore}
-                activeOpacity={0.8}
-            >
-                <Text style={[jSt.seeMoreText, { fontSize: sf(14) }]}>
-                    மேலும் ஜோசியம் &gt;
-                </Text>
-            </TouchableOpacity> */}
 
             <View style={jSt.bottomDivider} />
         </View>

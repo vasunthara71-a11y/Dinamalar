@@ -1,8 +1,23 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { WebView } from 'react-native-webview';
 import { ms, s, vs } from '../utils/scaling';
 
-function AdvertisementBanner({ width = 200, height = 250, showLabel = true }) {
+function AdvertisementBanner({ width = 280, height = 200, showLabel = true, htmlContent = null }) {
+  // If HTML content is provided, use WebView; otherwise use placeholder
+  if (htmlContent) {
+    return (
+      <View style={styles.container}>
+        <WebView
+          source={{ html: htmlContent, baseUrl: 'https://www.dinamalar.com' }}
+          style={{ width: s(width), height: vs(height) }}
+          scrollEnabled={false}
+          nestedScrollEnabled={false}
+        />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <View style={[styles.adBox, { width: s(width), height: vs(height) }]}>

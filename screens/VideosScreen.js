@@ -453,8 +453,16 @@ const VideosScreen = ({ navigation, route }) => {
   // Map tab key to Tamil/English keywords to match against API category titles
   const TAB_KEY_KEYWORDS = {
     'live': ['live', 'நேரலை', 'லைவ்'],
-    'விளையாட்டு': ['விளையாட்டு', 'sport', 'Sports'],
+    'அரசியல்': ['அரசியல்', 'politics', 'Politics'],
+    'பொது': ['பொது', 'general', 'General'],
+    'சம்பவம்': ['சம்பவம்', 'event', 'Event'],
     'சினிமா': ['சினிமா', 'cinema', 'Cinema'],
+    'டிரைலர்': ['டிரைலர்', 'trailer', 'Trailer'],
+    'செய்திச்சுருக்கம்': ['செய்திச்சுருக்கம்', 'short news', 'Short News'],
+    'விளையாட்டு': ['விளையாட்டு', 'sport', 'Sports'],
+    'சிறப்பு தொகுப்புகள்': ['சிறப்பு தொகுப்புகள்', 'exclusive videos', 'Exclusive'],
+    'ஆன்மிகம்': ['ஆன்மிகம்', 'spiritual', 'Spiritual'],
+    'மாவட்ட செய்திகள்': ['மாவட்ட செய்திகள்', 'district news', 'District'],
     'shorts': ['shorts', 'ஷார்ட்ஸ்', 'ஷார்ட்'],
   };
 
