@@ -222,35 +222,23 @@ export default function JoshiyamSection({ josiyamData, onSeeMore }) {
     // ── Pull the latest today-rasi item from API ────────────────────────────
     // josiyamData.data[] contains sections; the one with items having `description`
     // is the today-rasi section (index 2 in the sample JSON).
-    const latestRasiItem = useMemo(() => {
-        if (!josiyamData?.data) return null;
-        for (const section of josiyamData.data) {
-            if (
-                Array.isArray(section.data) &&
-                section.data.length > 0 &&
-                (section.data[0]?.description || section.data[0]?.newstitle)
-            ) {
-                return section.data[0]; // most recent
-            }
-        }
-        return null;
-    }, [josiyamData]);
+  // With this:
+const todayRasiSection = useMemo(() => {
+    if (!josiyamData?.data) return [];
+    const section = josiyamData.data.find(s => 
+        Array.isArray(s.data) && s.data.length > 0 && s.data[0]?.rasiid
+    );
+    return section?.data || [];
+}, [josiyamData]);
 
-    // ── Description: extract ONLY the selected rasi's portion ──────────────
-    // KEY FIX: use extractRasiDescription so changing dropdown shows correct text
-    const rasiDescription = useMemo(() => {
-        const raw = latestRasiItem?.description || latestRasiItem?.newstitle || '';
+const selectedRasiItem = useMemo(() => {
+    return todayRasiSection.find(r => r.rasiid === selectedRasi.en.toLowerCase()) 
+        || todayRasiSection[0] 
+        || null;
+}, [todayRasiSection, selectedRasi]);
 
-        // ADD THIS DEBUG LOG
-        console.log('RAW API TEXT:', raw.slice(0, 200));
-        console.log('SELECTED RASI:', selectedRasi.ta);
-        console.log('FOUND AT INDEX:', raw.indexOf(selectedRasi.ta));
-
-        return extractRasiDescription(raw, selectedRasi);
-    }, [latestRasiItem, selectedRasi]);
-
-    const ago = latestRasiItem?.ago || latestRasiItem?.standarddate || '';
-
+const rasiDescription = selectedRasiItem?.footnote || '';
+const ago = selectedRasiItem?.standarddate || selectedRasiItem?.ago || '';
     // ── Image: ALWAYS use the per-rasi static image (API image is always Mesham)
     // KEY FIX: use RASI_IMAGES[selectedRasi.id] not the API item's images field
     const rasiImage = RASI_IMAGES[selectedRasi.id];

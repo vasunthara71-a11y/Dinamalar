@@ -1,14 +1,15 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Image, StyleSheet, FlatList, Dimensions, Linking } from 'react-native';
 import { ms, s, vs } from '../utils/scaling';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-function PromoBanners({ banners }) {
-  if (!banners || banners.length === 0) return null;
+// ─── Banner Item Component ─────────────────────────────────────────────────────
+function BannerItem({ item, index }) {
+  const [imageError, setImageError] = useState(false);
 
-  const handlePress = (item) => {
-    let url = item.url || '';
+  const handlePress = (bannerItem) => {
+    let url = bannerItem.url || '';
     if (url && !url.startsWith('http')) {
       url = `https://www.dinamalar.com${url}`;
     }
@@ -17,7 +18,7 @@ function PromoBanners({ banners }) {
     }
   };
 
-  const renderItem = ({ item, index }) => (
+  return (
     <View style={styles.bannerWrapper} aria-label="promo-banner">
       <TouchableOpacity
         onPress={() => handlePress(item)}
@@ -25,14 +26,33 @@ function PromoBanners({ banners }) {
         style={styles.bannerLink}
         accessibilityLabel="promo-banner"
       >
-        <Image
-          source={{ uri: item.image }}
-          style={styles.bannerImage}
-          resizeMode="cover"
-          accessibilityLabel={item.altname || 'promo-banner'}
-        />
+        {imageError || !item.image ? (
+          <View style={[styles.bannerImage, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#f5f5f5' }]}>
+            <Image
+              source={{ uri: 'https://stat.dinamalar.com/new/2025/images/dinamalar-pavala-vizha-logo-day.png' }}
+              style={{ width: s(120), height: s(40), resizeMode: 'contain' }}
+            />
+          </View>
+        ) : (
+          <Image
+            source={{ uri: item.image }}
+            style={styles.bannerImage}
+            resizeMode="cover"
+            accessibilityLabel={item.altname || 'promo-banner'}
+            onError={() => setImageError(true)}
+          />
+        )}
       </TouchableOpacity>
     </View>
+  );
+}
+
+// ─── Main PromoBanners Component ─────────────────────────────────────────────
+function PromoBanners({ banners }) {
+  if (!banners || banners.length === 0) return null;
+
+  const renderItem = ({ item, index }) => (
+    <BannerItem item={item} index={index} />
   );
 
   return (

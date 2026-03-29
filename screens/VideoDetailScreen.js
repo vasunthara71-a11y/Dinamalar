@@ -151,7 +151,12 @@ const VideoListCard = ({ video, onPress, sf }) => {
       <View style={S.vidListThumb}>
         {img
           ? <Image source={{ uri: img }} style={S.vidThumnail} resizeMode="cover" />
-          : <View style={[S.vidThumnail]}><Text style={{ fontSize: ms(28) }}>🎬</Text></View>}
+          : <View style={[S.vidThumnail, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#f5f5f5' }]}>
+              <Image
+                source={{ uri: 'https://stat.dinamalar.com/new/2025/images/dinamalar-pavala-vizha-logo-day.png' }}
+                style={{ width: s(60), height: s(30), resizeMode: 'contain' }}
+              />
+            </View>}
         {/* <View style={S.vidListOverlay} /> */}
         <View style={S.vidListPlayWrap}><PlayIcon size={s(30)} /></View>
         {!!duration && (
@@ -179,7 +184,16 @@ const ReelCard = ({ item, onPress, sf }) => {
   return (
     <TouchableOpacity style={S.reelCard} onPress={() => onPress?.(item)} activeOpacity={0.85} >
       <View style={S.reelThumb}>
-        <Image source={{ uri: img }} style={S.image} resizeMode="cover" />
+        {img ? (
+          <Image source={{ uri: img }} style={S.image} resizeMode="cover" />
+        ) : (
+          <View style={[S.reelThumb, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#f5f5f5' }]}>
+            <Image
+              source={{ uri: 'https://stat.dinamalar.com/new/2025/images/dinamalar-pavala-vizha-logo-day.png' }}
+              style={{ width: s(40), height: s(20), resizeMode: 'contain' }}
+            />
+          </View>
+        )}
 
         {/* <View style={S.vidListOverlay} /> */}
       </View>

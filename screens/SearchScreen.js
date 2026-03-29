@@ -110,7 +110,7 @@ function SectionTitle({ title }) {
 
   return (
     <View style={styles.sectionHeader}>
-      <Text style={[styles.sectionTitle, { fontSize: sf(18) }]}>{title || ''}</Text>
+      <Text style={[styles.sectionTitle, { fontSize: sf(16) }]}>{title || ''}</Text>
       <View style={styles.sectionUnderline} />
     </View>
   );

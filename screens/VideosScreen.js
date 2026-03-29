@@ -165,7 +165,10 @@ function ImageWithFallback({ source, style, resizeMode = 'cover', iconSize = 40 
   if (imageError || !source?.uri) {
     return (
       <View style={[style, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#f5f5f5' }]}>
-        <Ionicons name="image-outline" size={s(iconSize)} color={PALETTE.grey500} />
+        <Image
+          source={{ uri: 'https://stat.dinamalar.com/new/2025/images/dinamalar-pavala-vizha-logo-day.png' }}
+          style={{ width: s(iconSize * 2), height: s(iconSize), resizeMode: 'contain' }}
+        />
       </View>
     );
   }

@@ -89,6 +89,8 @@ const st = StyleSheet.create({
 // ─── News Card (same as HomeScreen) ────────────────────────────────────────────────────────
 function SportsNewsCard({ item, onPress }) {
   const { sf } = useFontSize();
+  const [imageError, setImageError] = useState(false);
+  
   const imageUri =
     item.images ||
     item.largeimages ||
@@ -108,7 +110,16 @@ function SportsNewsCard({ item, onPress }) {
 
         {/* Image with horizontal padding */}
         <View style={NewsCard.imageWrap}>
-          <Image source={{ uri: imageUri }} style={NewsCard.image} resizeMode="cover" />
+          {imageError ? (
+            <View style={[NewsCard.image, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#f5f5f5' }]}>
+              <Image
+                source={{ uri: 'https://stat.dinamalar.com/new/2025/images/dinamalar-pavala-vizha-logo-day.png' }}
+                style={{ width: s(80), height: s(40), resizeMode: 'contain' }}
+              />
+            </View>
+          ) : (
+            <Image source={{ uri: imageUri }} style={NewsCard.image} resizeMode="cover" onError={() => setImageError(true)} />
+          )}
         </View>
 
         {/* Content */}
