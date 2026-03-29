@@ -6,13 +6,8 @@
   <component name="ChangeListManager">
     <list default="true" id="7dff0835-ba21-4555-8c27-70a8bbe09433" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/components/AdvertisementBanner.js" beforeDir="false" afterPath="$PROJECT_DIR$/components/AdvertisementBanner.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/components/CategoryTab.js" beforeDir="false" afterPath="$PROJECT_DIR$/components/CategoryTab.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/components/FlashNews.js" beforeDir="false" afterPath="$PROJECT_DIR$/components/FlashNews.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/components/MoreNews.js" beforeDir="false" afterPath="$PROJECT_DIR$/components/MoreNews.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/context/FontSizeContext.js" beforeDir="false" afterPath="$PROJECT_DIR$/context/FontSizeContext.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/screens/HomeScreen.js" beforeDir="false" afterPath="$PROJECT_DIR$/screens/HomeScreen.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/screens/NewsDetailsScreen.js" beforeDir="false" afterPath="$PROJECT_DIR$/screens/NewsDetailsScreen.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/SimplePodcastPlayer.js" beforeDir="false" afterPath="$PROJECT_DIR$/components/SimplePodcastPlayer.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/screens/PodcastPlayer.js" beforeDir="false" afterPath="$PROJECT_DIR$/screens/PodcastPlayer.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -40,12 +35,9 @@
     "RunOnceActivity.cidr.known.project.marker": "true",
     "RunOnceActivity.git.unshallow": "true",
     "RunOnceActivity.readMode.enableVisualFormatting": "true",
-    "ToolWindow.Running Devices.ShowToolbar": "false",
     "cf.first.check.clang-format": "false",
     "cidr.known.project.marker": "true",
-    "com.android.tools.idea.streaming.emulator.frame.visible": "false",
-    "com.android.tools.idea.streaming.zoom.toolbar.visible": "false",
-    "git-widget-placeholder": "SubCategoryHomescreenSunday",
+    "git-widget-placeholder": "AdvertisementHomeScreen",
     "kotlin-language-version-configured": "true",
     "last_opened_file_path": "D:/Dinamalar"
   }

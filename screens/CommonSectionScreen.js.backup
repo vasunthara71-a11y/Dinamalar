@@ -1,4 +1,4 @@
-﻿import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -444,6 +444,20 @@ function RasiDetailView({ tabId, tabTitle, initialJcat, initialItem, onBack, sub
   const currentIdx = RASI_LIST.findIndex(r => r.etitle === activeJcat);
   const currentRasi = RASI_LIST[currentIdx] || RASI_LIST[0];
 
+function RasiDetailView({ tabId, tabTitle, initialJcat, initialItem, onBack, subTabs, onTabChange }) {
+  const [detail, setDetail] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [activeJcat, setActiveJcat] = useState(initialJcat || 'mesham');
+  const [videoPlaying, setVideoPlaying] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
+
+  const scrollRef = useRef(null);
+  const resolvedEndpoint = RASI_DETAIL_ENDPOINT[tabId] || '';
+  const currentIdx = RASI_LIST.findIndex(r => r.etitle === activeJcat);
+  const currentRasi = RASI_LIST[currentIdx] || RASI_LIST[0];
+
   const fetchDetail = useCallback(async (targetJcat, date = selectedDate) => {
     if (!resolvedEndpoint || !targetJcat) { setLoading(false); return; }
     try {
@@ -536,10 +550,10 @@ function RasiDetailView({ tabId, tabTitle, initialJcat, initialItem, onBack, sub
   const rasiLabel = detail?.rasi || detail?.zodiac || detail?.sign || currentRasi.title;
   const footnoteHtml = detail?.footnote || detail?.content || detail?.description || '';
   const paragraphs = parseFootnoteParagraphs(footnoteHtml);
-  
-// ✅ Use _hasVideo flag set during fetch
-const videopath = detail?.videopath || '';
-const hasVideo = detail?._hasVideo || videopath.length > 4;
+
+  // ✅ Video detection
+  const videopath = detail?.videopath || '';
+  const hasVideo = videopath.length > 4;
 
   let videoUrl = videopath;
   if (videoUrl && !videoUrl.startsWith('http')) {
@@ -724,7 +738,7 @@ const hasVideo = detail?._hasVideo || videopath.length > 4;
       )}
     </ScrollView>
   );
-}
+};
 
 const rd = StyleSheet.create({
   // Chip strip
@@ -1176,56 +1190,11 @@ const pc = StyleSheet.create({
   divider: { height: vs(8), backgroundColor: PALETTE.grey200 },
 });
 
-// ─── Image with Fallback ─────────────────────────────────────────────────────
-function ImageWithFallback({ source, style, resizeMode = 'cover', iconSize = 40 }) {
-  const [imageError, setImageError] = useState(false);
-  const [loading, setLoading] = useState(true);
-
-  const handleImageError = () => {
-    setImageError(true);
-    setLoading(false);
-  };
-
-  const handleImageLoad = () => {
-    setImageError(false);
-    setLoading(false);
-  };
-
-  if (imageError || !source?.uri) {
-    return (
-      <View style={[style, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#f5f5f5' }]}>
-        <Image
-          source={{ uri: 'https://stat.dinamalar.com/new/2025/images/dinamalar-pavala-vizha-logo-day.png' }}
-          style={{ width: s(iconSize * 2), height: s(iconSize), resizeMode: 'contain' }}
-        />
-      </View>
-    );
-  }
-
-  return (
-    <View style={style}>
-      <Image
-        source={source}
-        style={[style, { position: 'absolute' }]}
-        resizeMode={resizeMode}
-        onError={handleImageError}
-        onLoad={handleImageLoad}
-      />
-      {loading && (
-        <View style={[style, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#f5f5f5' }]}>
-          <ActivityIndicator size="small" color={COLORS.primary} />
-        </View>
-      )}
-    </View>
-  );
-}
-
 // ─────────────────────────────────────────────────────────────────────────────
 // News Card (same as HomeScreen)
 // ─────────────────────────────────────────────────────────────────────────────
 function NewsCard({ item, onPress, sectionTitle = '' }) {
   const { sf } = useFontSize();
-  const [imageError, setImageError] = useState(false);
 
   const imageUri =
     item.largeimages || item.images || item.image || item.thumbnail || item.thumb ||
@@ -1243,21 +1212,11 @@ function NewsCard({ item, onPress, sectionTitle = '' }) {
     <View style={NewsCardStyles.wrap}>
       <TouchableOpacity onPress={onPress} activeOpacity={0.88}>
         <View style={NewsCardStyles.imageWrap}>
-          {imageError ? (
-            <View style={[NewsCardStyles.image, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#f5f5f5' }]}>
-              <Image
-                source={{ uri: 'https://stat.dinamalar.com/new/2025/images/dinamalar-pavala-vizha-logo-day.png' }}
-                style={{ width: s(80), height: s(40), resizeMode: 'contain' }}
-              />
-            </View>
-          ) : (
-            <Image
-              source={{ uri: imageUri }}
-              style={NewsCardStyles.image}
-              resizeMode="contain"
-              onError={() => setImageError(true)}
-            />
-          )}
+          <Image
+            source={{ uri: imageUri }}
+            style={NewsCardStyles.image}
+            resizeMode="contain"
+          />
         </View>
 
         <View style={NewsCardStyles.contentContainer}>
@@ -2658,36 +2617,119 @@ export default function CommonSectionScreen() {
     return String(activeTab.id) === String(tab.id);
   };
 
-// ─── Anmegam News Card ────────────────────────────────────────────────────────
-function AnmegamNewsCard({ item, onPress }) {
-  const { sf } = useFontSize();
-  const imageUri =
-    item.largeimages || item.images || item.image ||
-    'https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_default.jpg?im=Resize,width=400';
-  const title = item.newstitle || item.title || '';
-  const date = item.date || item.time_date || item.standarddate || '';
+  // ─── Image with Fallback ─────────────────────────────────────────────────────
+  function ImageWithFallback({ source, style, resizeMode = 'cover', iconSize = 40 }) {
+    const [imageError, setImageError] = useState(false);
+    const [loading, setLoading] = useState(true);
 
-  return (
-    <TouchableOpacity onPress={onPress} activeOpacity={0.88} style={anc.wrap}>
-      <ImageWithFallback
-        source={{ uri: imageUri }}
-        style={anc.image}
-        resizeMode="cover"
-        iconSize={40}
-      />
-      <View style={NewsCardStyles.contentContainer}>
+    const handleImageError = () => {
+      setImageError(true);
+      setLoading(false);
+    };
 
-        {!!title && (
-          <Text style={[NewsCardStyles.title, { fontSize: sf(13), lineHeight: sf(22) }]} numberOfLines={3}>{title}</Text>
+    const handleImageLoad = () => {
+      setImageError(false);
+      setLoading(false);
+    };
+
+    if (imageError || !source?.uri) {
+      return (
+        <View style={[style, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#f5f5f5' }]}>
+          <Ionicons name="image-outline" size={s(iconSize)} color={COLORS.subtext} />
+        </View>
+      );
+    }
+
+    return (
+      <View style={style}>
+        <Image
+          source={source}
+          style={[style, { position: 'absolute' }]}
+          resizeMode={resizeMode}
+          onError={handleImageError}
+          onLoad={handleImageLoad}
+        />
+        {loading && (
+          <View style={[style, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#f5f5f5' }]}>
+            <ActivityIndicator size="small" color={COLORS.primary} />
+          </View>
         )}
-        {!!date && (
-          <Text style={[NewsCardStyles.timeText, { fontSize: sf(14) }]}>{date}</Text>
-        )}
-        <View style={anc.divider} />
       </View>
-    </TouchableOpacity>
-  );
-}
+    );
+  }
+
+  // ─── Image Loader Component ───────────────────────────────────────────────────
+  function ImageLoader({ source, style, resizeMode = 'cover', iconSize = 40 }) {
+    const [imageError, setImageError] = useState(false);
+    const [loading, setLoading] = useState(true);
+
+    const handleImageError = () => {
+      setImageError(true);
+      setLoading(false);
+    };
+
+    const handleImageLoad = () => {
+      setImageError(false);
+      setLoading(false);
+    };
+
+    if (imageError || !source?.uri) {
+      return (
+        <View style={[style, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#f0f0f0' }]}>
+          <Ionicons name="image-outline" size={s(iconSize)} color={COLORS.subtext} />
+        </View>
+      );
+    }
+
+    return (
+      <View style={style}>
+        <Image
+          source={source}
+          style={[style, { position: 'absolute' }]}
+          resizeMode={resizeMode}
+          onError={handleImageError}
+          onLoad={handleImageLoad}
+        />
+        {loading && (
+          <View style={[style, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#f0f0f0' }]}>
+            <ActivityIndicator size="small" color={COLORS.primary} />
+            <Text style={{ fontSize: ms(12), color: COLORS.subtext, marginTop: vs(4) }}>Loading...</Text>
+          </View>
+        )}
+      </View>
+    );
+  }
+
+  // ─── Anmegam News Card ────────────────────────────────────────────────────────
+  function AnmegamNewsCard({ item, onPress }) {
+    const { sf } = useFontSize();
+    const imageUri =
+      item.largeimages || item.images || item.image ||
+      'https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_default.jpg?im=Resize,width=400';
+    const title = item.newstitle || item.title || '';
+    const date = item.date || item.time_date || item.standarddate || item.date || '';
+
+    return (
+      <TouchableOpacity onPress={onPress} activeOpacity={0.88} style={anc.wrap}>
+        <ImageWithFallback
+          source={{ uri: imageUri }}
+          style={anc.image}
+          resizeMode="cover"
+          iconSize={40}
+        />
+        <View style={NewsCardStyles.contentContainer}>
+
+          {!!title && (
+            <Text style={[NewsCardStyles.title, { fontSize: sf(13), lineHeight: sf(22) }]} numberOfLines={3}>{title}</Text>
+          )}
+          {!!date && (
+            <Text style={[NewsCardStyles.timeText, { fontSize: sf(14) }]}>{date}</Text>
+          )}
+          <View style={anc.divider} />
+        </View>
+      </TouchableOpacity>
+    );
+  }
 
   const anc = StyleSheet.create({
     wrap: { backgroundColor: '#fff', paddingHorizontal: s(12), paddingTop: vs(10) },

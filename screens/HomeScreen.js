@@ -692,7 +692,7 @@ function SectionHeader({ title, onSeeMore }) {
       activeOpacity={0.8}
       disabled={!onSeeMore}
     >
-      <Text style={[styles.sectionTitle, { fontSize: sf(18) }]}>{title}</Text>
+      <Text style={[styles.sectionTitle, { fontSize: sf(17) }]}>{title}</Text>
       <View style={styles.sectionUnderline} />
     </TouchableOpacity>
   );
@@ -2516,6 +2516,7 @@ export default function HomeScreen() {
   const [podcastData, setPodcastData] = useState([]);
   const [sections, setSections] = useState([]);
   const [taboolaAdHtml, setTaboolaAdHtml] = useState(null);
+  const [promoBanners, setPromoBanners] = useState([]);
 
   const flatListRef = useRef(null);
 
@@ -2909,6 +2910,15 @@ export default function HomeScreen() {
 
       if (homeRes.status === 'fulfilled') {
         const d = homeRes.value?.data;
+        
+        // Debug logging for entire home data
+        console.log('🏠 HOME DATA DEBUG:', {
+          hasData: !!d,
+          dataKeys: d ? Object.keys(d) : [],
+          fullData: d,
+          // Raw stringified data for inspection
+          rawDataString: JSON.stringify(d, null, 2)
+        });
 
         setBreakingNews(
           d?.breaking_news || d?.breakingnews || d?.ticker_text || d?.ticker || ''
@@ -3023,15 +3033,93 @@ export default function HomeScreen() {
           }]
         });
 
+        // ── Promo Banners ─────────────────────────────────────────────
+        // Check multiple possible locations for promo banners
+        let mobilePromoBanners = [];
+        
+        // Try different possible data locations
+        if (d?.mobile?.data && Array.isArray(d.mobile.data)) {
+          mobilePromoBanners = d.mobile.data;
+          console.log('🎯 Found promo banners in d.mobile.data');
+        } else if (d?.mobile && Array.isArray(d.mobile)) {
+          mobilePromoBanners = d.mobile;
+          console.log('🎯 Found promo banners in d.mobile (direct array)');
+        } else if (d?.promo?.data && Array.isArray(d.promo.data)) {
+          mobilePromoBanners = d.promo.data;
+          console.log('🎯 Found promo banners in d.promo.data');
+        } else if (d?.promo && Array.isArray(d.promo)) {
+          mobilePromoBanners = d.promo;
+          console.log('🎯 Found promo banners in d.promo (direct array)');
+        } else if (d?.promobanners?.mobile?.data && Array.isArray(d.promobanners.mobile.data)) {
+          mobilePromoBanners = d.promobanners.mobile.data;
+          console.log('🎯 Found promo banners in d.promobanners.mobile.data');
+        } else if (d?.promobanners?.mobile && Array.isArray(d.promobanners.mobile)) {
+          mobilePromoBanners = d.promobanners.mobile;
+          console.log('🎯 Found promo banners in d.promobanners.mobile (direct array)');
+        } else if (d?.promobanners?.data && Array.isArray(d.promobanners.data)) {
+          mobilePromoBanners = d.promobanners.data;
+          console.log('🎯 Found promo banners in d.promobanners.data');
+        } else if (d?.promobanners && Array.isArray(d.promobanners)) {
+          mobilePromoBanners = d.promobanners;
+          console.log('🎯 Found promo banners in d.promobanners (direct array)');
+        } else if (d?.banners?.data && Array.isArray(d.banners.data)) {
+          mobilePromoBanners = d.banners.data;
+          console.log('🎯 Found promo banners in d.banners.data');
+        } else if (d?.banners && Array.isArray(d.banners)) {
+          mobilePromoBanners = d.banners;
+          console.log('🎯 Found promo banners in d.banners (direct array)');
+        } else if (d?.advertisements?.data && Array.isArray(d.advertisements.data)) {
+          mobilePromoBanners = d.advertisements.data;
+          console.log('🎯 Found promo banners in d.advertisements.data');
+        } else if (d?.advertisements && Array.isArray(d.advertisements)) {
+          mobilePromoBanners = d.advertisements;
+          console.log('🎯 Found promo banners in d.advertisements (direct array)');
+        } else {
+          console.log('🎯 No promo banners found in any expected location');
+        }
+      
+        // Debug logging
+        console.log('🎯 PROMO BANNERS DEBUG:', {
+          hasMobileData: !!d?.mobile,
+          mobileData: d?.mobile,
+          promoBannersLength: mobilePromoBanners.length,
+          promoBanners: mobilePromoBanners,
+          // Check other possible locations for promo banners
+          allKeys: d ? Object.keys(d) : [],
+          hasPromo: d?.promo,
+          hasBanners: d?.banners,
+          hasAdvertisements: d?.advertisements,
+          hasPromoBanners: d?.promobanners,
+          promobannersType: typeof d?.promobanners,
+          promobannersIsArray: Array.isArray(d?.promobanners),
+          promobannersKeys: d?.promobanners ? Object.keys(d.promobanners) : [],
+          // Check each key for data arrays
+          keyDetails: d ? Object.keys(d).reduce((acc, key) => {
+            acc[key] = {
+              type: typeof d[key],
+              isArray: Array.isArray(d[key]),
+              hasData: d[key]?.data,
+              dataIsArray: Array.isArray(d[key]?.data),
+              length: Array.isArray(d[key]) ? d[key].length : (Array.isArray(d[key]?.data) ? d[key]?.data.length : 0)
+            };
+            return acc;
+          }, {}) : {}
+        });
+        
+        // Set promo banners for display below flash news
+        setPromoBanners(mobilePromoBanners);
+
         // ── Subscription Banner ─────────────────────────────────────────────
+        const subscriptionBannerData = [{
+          url: 'https://subscription.dinamalar.com/',
+          image: 'https://cdn.jsdelivr.net/gh/dinamalardmr/files@main/images/Dinamalar-Subscription_300x90.gif',
+          altname: 'ad',
+          target: '_blank'
+        }];
+        
         sections.push({
           type: 'subscription_banner',
-          data: [{
-            url: 'https://subscription.dinamalar.com/',
-            image: 'https://cdn.jsdelivr.net/gh/dinamalardmr/files@main/images/Dinamalar-Subscription_300x90.gif',
-            altname: 'ad',
-            target: '_blank'
-          }]
+          data: subscriptionBannerData
         });
 
         // ── தினம் தினம் ────────────────────────────────────────────────────
@@ -3894,6 +3982,24 @@ export default function HomeScreen() {
             }}
           />
 
+          {/* Promo Banners */}
+          <View>
+            {console.log('🎯 RENDER PROMO BANNERS DEBUG:', {
+              promoBannersLength: promoBanners.length,
+              promoBanners: promoBanners,
+              shouldRender: promoBanners && promoBanners.length > 0
+            })}
+            {promoBanners && promoBanners.length > 0 && (
+              <PromoBanners banners={promoBanners} />
+            )}
+            {(!promoBanners || promoBanners.length === 0) && (
+              <View style={{ padding: 10, backgroundColor: '#f0f0f0' }}>
+                <Text>No promo banners available</Text>
+                <Text>Length: {promoBanners?.length || 0}</Text>
+              </View>
+            )}
+          </View>
+
           {/* News sections */}
           {allNewsSections.map((section, si) => (
             // -- Divider ---------------------------------------------------------
@@ -4720,6 +4826,16 @@ export default function HomeScreen() {
                   <SectionHeader
                     title={section.title}
                     onSeeMore={
+                      // BOOKS SECTION - Check first to give it priority
+                      section.isBooksSection || section.type === 'books' || (section.title && (section.title?.includes('புத்தகங்கள்') || section.title?.includes('books'))) ?
+                        () => {
+                          console.log('📚 BOOKS SECTION HEADER CLICKED - Section title:', section.title);
+                          console.log('📚 BOOKS SECTION HEADER CLICKED - Opening books website in browser');
+                          Linking.openURL('https://books.dinamalar.com').catch((error) => {
+                            console.warn('Failed to open books website:', error);
+                          });
+                        } :
+                      // ULAGA THAMIZAR SECTION
                       section.title?.includes('உலக தமிழர் செய்திகள்') ?
                         () => {
                           console.log('🔍 ULAGA THAMIZAR SECTION HEADER CLICKED - Navigating to CommonSectionScreen');
@@ -4829,34 +4945,52 @@ export default function HomeScreen() {
                                                   const link = 'https://temple.dinamalar.com';
                                                   Linking.openURL(link).catch(() => console.log('Failed to open temple website link'));
                                                 } : section.title && (section.title?.includes('எடிட்டர் லைக்ஸ்') || section.title?.includes('editor') || section.title?.includes('Editor')) ?
-                                                () => {
-                                                  console.log('📝 EDITOR LIKES SECTION HEADER CLICKED - Navigating to EditorChoiceScreen');
-                                                  navigation?.navigate('EditorChoiceScreen');
-                                                } : section.title && (section.title?.includes('ஆன்மிகம்') || section.title?.includes('aanmegam') || section.title?.includes('anmegam')) ?
-                                                () => {
-                                                  navigation?.navigate('CommonSectionScreen', {
-                                                    screenTitle: 'ஆன்மிகம்',
-                                                    apiEndpoint: '/anmegam',
-                                                    allTabLink: '/anmegam'
-                                                  });
-                                                }
-                                                : section.title && (section.title?.includes('ஐ - பேப்பர்') || section.title?.includes('ipaper') || section.title?.includes('ஐபேப்பர்')) ?
                                                   () => {
-                                                    Linking.openURL('https://play.google.com/store/apps/details?id=com.dinamalar.ipaper&hl=en_IN').catch(console.warn);
-                                                  }
-                                                  : section.title && (section.title?.includes('உலக தமிழர்') || section.title?.includes('ulaga thamizar')) ?
+                                                    console.log('📰 SPECIAL SECTION HEADER CLICKED - Navigating to CommonSectionScreen with special data');
+                                                    navigation?.navigate('CommonSectionScreen', {
+                                                      screenTitle: 'ஸ்பெஷல்',
+                                                      apiEndpoint: 'https://api-st-cdn.dinamalar.com/specialmain',
+                                                      initialTabId: '1611'
+                                                    });
+                                                  } : section.title?.includes('கார்ட்ஸ்') || section.title?.includes('cards') ||
+                                                  section.title?.includes('கார்ட்ஸ்') || section.title?.includes('card') ?
                                                     () => {
+                                                      console.log('📰 CARDS/SOCIAL MEDIA SECTION HEADER CLICKED - Navigating to CommonSectionScreen with cards');
                                                       navigation?.navigate('CommonSectionScreen', {
-                                                        screenTitle: 'உலக தமிழர் செய்திகள்',
-                                                        apiEndpoint: '/nrimain',
-                                                        allTabLink: '/nrimain'
+                                                        screenTitle: 'கார்ட்ஸ்',
+                                                        apiEndpoint: 'https://api-st-cdn.dinamalar.com/cards',
+                                                        allTabLink: 'https://api-st-cdn.dinamalar.com/cards'
                                                       });
-                                                    }
-                                                    : section.title && (section.title?.includes('புத்தகங்கள்') || section.title?.includes('books')) ?
+                                                    } : section.title?.includes('கோயில்கள்') || section.title?.includes('kovilgal') ?
                                                       () => {
-                                                        Linking.openURL('https://books.dinamalar.com').catch(console.warn);
-                                                      }
-                                                      : undefined
+                                                        console.log('🏛️ KOVILGAL SECTION HEADER CLICKED - Opening temple website in browser');
+                                                        const link = 'https://temple.dinamalar.com';
+                                                        Linking.openURL(link).catch(() => console.log('Failed to open temple website link'));
+                                                      } : section.title?.includes('எடிட்டர் லைக்ஸ்') || section.title?.includes('editor') || section.title?.includes('Editor') ?
+                                                        () => {
+                                                          console.log('📝 EDITOR LIKES SECTION HEADER CLICKED - Navigating to EditorChoiceScreen');
+                                                          navigation?.navigate('EditorChoiceScreen');
+                                                        } : section.title?.includes('ஆன்மிகம்') || section.title?.includes('aanmegam') || section.title?.includes('anmegam') ?
+                                                          () => {
+                                                            navigation?.navigate('CommonSectionScreen', {
+                                                              screenTitle: 'ஆன்மிகம்',
+                                                              apiEndpoint: '/anmegam',
+                                                              allTabLink: '/anmegam'
+                                                            });
+                                                          }
+                                                          : section.title && (section.title?.includes('ஐ - பேப்பர்') || section.title?.includes('ipaper') || section.title?.includes('ஐபேப்பர்')) ?
+                                                            () => {
+                                                              Linking.openURL('https://play.google.com/store/apps/details?id=com.dinamalar.ipaper&hl=en_IN').catch(console.warn);
+                                                            }
+                                                            : section.title && (section.title?.includes('உலக தமிழர்') || section.title?.includes('ulaga thamizar')) ?
+                                                              () => {
+                                                                navigation?.navigate('CommonSectionScreen', {
+                                                                  screenTitle: 'உலக தமிழர் செய்திகள்',
+                                                                  apiEndpoint: '/nrimain',
+                                                                  allTabLink: '/nrimain'
+                                                                });
+                                                              }
+                                                              : undefined
                     }
                   />
                   {section.data?.map((item, i) => {

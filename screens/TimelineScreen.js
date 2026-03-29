@@ -97,18 +97,20 @@ const PlayIcon = ({ size = 28 }) => {
 // ─── VideoThumbnailCard ───────────────────────────────────────────────
 // Shows video thumbnail with play button overlay.
 // Tapping: if YouTube path → embed inline via WebView; else → navigate to VideoScreen
-function VideoThumbnailCard({ item, onPress }) {
+const VideoThumbnailCard = ({ item, onPress }) => {
+  const { sf } = useFontSize();
+  const [imageError, setImageError] = useState(false);
   const [playing, setPlaying] = useState(false);
-  const youtubeId = getYouTubeId(item);
-  const duration = item.duration || item.videoduration || item.video_duration || '';
 
-  const thumbUrl =
-    (item.images && item.images.trim() !== '') ? item.images :
-      (item.largeimages && item.largeimages.trim() !== '') ? item.largeimages :
-        (item.image && item.image.trim() !== '') ? item.image :
-          (item.thumbnail && item.thumbnail.trim() !== '') ? item.thumbnail :
-            youtubeId ? `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg` :
-              'https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_default.jpg?im=Resize,width=400';
+  const thumbUrl = item.images || item.largeimages || item.thumbnail || '';
+  const youtubeId = thumbUrl ? getYouTubeId(thumbUrl) : null;
+  const duration = item.duration || '';
+
+  // Fallback: use YouTube thumbnail if YouTube video, else Dinamalar default
+  const fallbackUrl = youtubeId ? `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg` :
+    'https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_default.jpg?im=Resize,width=400';
+
+  const finalThumbUrl = imageError ? fallbackUrl : (thumbUrl || fallbackUrl);
 
   // If YouTube and user tapped play → show embedded WebView player
   if (playing && youtubeId) {
@@ -146,7 +148,21 @@ function VideoThumbnailCard({ item, onPress }) {
         }
       }}
     >
-      <Image source={{ uri: thumbUrl }} style={vtStyles.thumb} resizeMode="cover" />
+      {imageError && !finalThumbUrl.includes('youtube.com') ? (
+        <View style={[vtStyles.thumb, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#f5f5f5' }]}>
+          <Image
+            source={{ uri: 'https://stat.dinamalar.com/new/2025/images/dinamalar-pavala-vizha-logo-day.png' }}
+            style={{ width: s(60), height: s(30), resizeMode: 'contain' }}
+          />
+        </View>
+      ) : (
+        <Image 
+          source={{ uri: finalThumbUrl }} 
+          style={vtStyles.thumb} 
+          resizeMode="cover" 
+          onError={() => setImageError(true)}
+        />
+      )}
       {/* Subtle dark overlay */}
       <View style={vtStyles.overlay} />
       {/* Centered play circle */}
@@ -159,7 +175,7 @@ function VideoThumbnailCard({ item, onPress }) {
       )}
     </TouchableOpacity>
   );
-}
+};
 
 const vtStyles = StyleSheet.create({
   container: {
@@ -289,6 +305,7 @@ const shStyles = StyleSheet.create({
 // Video items (type="video"): show VideoThumbnailCard, tap → VideoScreen
 // News items: show padded image with rounded corners
 function NotificationCard({ item, onPress }) {
+  const [imageError, setImageError] = useState(false);
   const isVid = isVideoItem(item);
   const category = item.categrorytitle || item.catengtitle || item.maincat || '';
   const ago = item.ago || item.time_ago || '';
@@ -319,7 +336,21 @@ function NotificationCard({ item, onPress }) {
         // News: tappable padded image
         <TouchableOpacity onPress={() => onPress(item)} activeOpacity={0.88}>
           <View style={ncStyles.imageWrap}>
-            <Image source={{ uri: imageUrl }} style={ncStyles.image} resizeMode="cover" />
+            {imageError ? (
+              <View style={[ncStyles.image, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#f5f5f5' }]}>
+                <Image
+                  source={{ uri: 'https://stat.dinamalar.com/new/2025/images/dinamalar-pavala-vizha-logo-day.png' }}
+                  style={{ width: s(60), height: s(30), resizeMode: 'contain' }}
+                />
+              </View>
+            ) : (
+              <Image 
+                source={{ uri: imageUrl }} 
+                style={ncStyles.image} 
+                resizeMode="cover" 
+                onError={() => setImageError(true)}
+              />
+            )}
           </View>
         </TouchableOpacity>
       )}
@@ -385,15 +416,14 @@ const ncStyles = StyleSheet.create({
     paddingVertical: s(3),
     marginBottom: vs(10),
   },
-  catText: { fontFamily: FONTS.muktaMalar.bold,  color: PALETTE.grey700 },
+  catText: { fontFamily: FONTS.muktaMalar.bold, color: PALETTE.grey700 },
   metaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  timeText: { fontFamily: FONTS.muktaMalar.regular,  color: PALETTE.black },
+  timeText: { fontFamily: FONTS.muktaMalar.regular, color: PALETTE.black },
   metaRight: { flexDirection: 'row', alignItems: 'center', gap: s(8) },
   commentRow: { flexDirection: 'row', alignItems: 'center' },
-  commentText: { fontFamily: FONTS.muktaMalar.regular,  color: PALETTE.grey700 },
+  commentText: { fontFamily: FONTS.muktaMalar.regular, color: PALETTE.grey700 },
   divider: { height: vs(6), backgroundColor: PALETTE.grey200 },
 });
-
 
 // ─── Timeline Item ────────────────────────────────────────────────────
 //

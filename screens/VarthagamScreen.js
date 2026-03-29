@@ -322,6 +322,8 @@ function MoreLink({ label, onPress }) {
 }
 function NewsCard({ item, onPress }) {
   const { sf } = useFontSize();
+  const [imageError, setImageError] = useState(false);
+  
   const imageUri =
     item.images || item.largeimages || item.image || item.thumbnail ||
     'https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_default.jpg?im=Resize,width=400';
@@ -333,7 +335,21 @@ function NewsCard({ item, onPress }) {
   return (
     <TouchableOpacity style={nc.wrap} onPress={onPress} activeOpacity={0.85}>
       <View style={nc.imageWrap}>
-        <Image source={{ uri: imageUri }} style={nc.image} resizeMode="cover" />
+        {imageError ? (
+          <View style={[nc.image, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#f5f5f5' }]}>
+            <Image
+              source={{ uri: 'https://stat.dinamalar.com/new/2025/images/dinamalar-pavala-vizha-logo-day.png' }}
+              style={{ width: s(80), height: s(40), resizeMode: 'contain' }}
+            />
+          </View>
+        ) : (
+          <Image 
+            source={{ uri: imageUri }} 
+            style={nc.image} 
+            resizeMode="cover" 
+            onError={() => setImageError(true)}
+          />
+        )}
         {hasVideo && (
           <View style={nc.playOverlay}>
             <View style={nc.playBtn}>

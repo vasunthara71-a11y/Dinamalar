@@ -20,7 +20,9 @@ export const saveBookmarkedNews = async (newsItems) => {
 export const getBookmarkedNews = async () => {
   try {
     const serializedData = await SecureStore.getItemAsync(STORAGE_KEYS.BOOKMARKED_NEWS);
-    return serializedData ? JSON.parse(serializedData) : [];
+    const bookmarks = serializedData ? JSON.parse(serializedData) : [];
+    console.log('Retrieved bookmarks:', { count: bookmarks.length, bookmarks });
+    return bookmarks;
   } catch (error) {
     console.error('Error getting bookmarked news:', error);
     return [];
@@ -30,12 +32,16 @@ export const getBookmarkedNews = async () => {
 // Generate a unique identifier for news items
 const getNewsUniqueId = (newsItem) => {
   // Use multiple fields to create a unique identifier
+  // For podcast episodes, include audio URL which should be unique
   const identifier = [
     newsItem.id || '',
     newsItem.newsid || '',
     newsItem.newstitle || '',
     newsItem.slug || '',
-    newsItem.newsdate || ''
+    newsItem.newsdate || '',
+    newsItem.audio || '', // Include audio URL for podcasts
+    newsItem.standarddate || '', // Include standarddate for podcasts
+    newsItem.time || '' // Include time for podcasts
   ].join('|');
   
   return identifier;
@@ -46,6 +52,9 @@ export const addBookmark = async (newsItem) => {
   try {
     const currentBookmarks = await getBookmarkedNews();
     const newsUniqueId = getNewsUniqueId(newsItem);
+    
+    console.log('Adding bookmark:', { newsUniqueId, newsItem });
+    console.log('Current bookmarks count:', currentBookmarks.length);
     
     // Check if already bookmarked using unique identifier
     const exists = currentBookmarks.some(item => 
@@ -59,9 +68,11 @@ export const addBookmark = async (newsItem) => {
         bookmarkedAt: new Date().toISOString()
       });
       await saveBookmarkedNews(currentBookmarks);
+      console.log('Bookmark added successfully. New count:', currentBookmarks.length);
       return true;
     }
     
+    console.log('Item already bookmarked');
     return false; // Already bookmarked
   } catch (error) {
     console.error('Error adding bookmark:', error);
@@ -93,9 +104,14 @@ export const isBookmarked = async (newsItem) => {
     const currentBookmarks = await getBookmarkedNews();
     const newsUniqueId = getNewsUniqueId(newsItem);
     
-    return currentBookmarks.some(item => 
+    console.log('Checking bookmark status:', { newsUniqueId, totalBookmarks: currentBookmarks.length });
+    
+    const isBookmarked = currentBookmarks.some(item => 
       getNewsUniqueId(item) === newsUniqueId
     );
+    
+    console.log('Is bookmarked:', isBookmarked);
+    return isBookmarked;
   } catch (error) {
     console.error('Error checking bookmark status:', error);
     return false;
