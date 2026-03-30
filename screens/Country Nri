@@ -1,4 +1,4 @@
-﻿import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -176,57 +176,6 @@ const RASI_LIST = [
 
 // Photo section IDs
 const PHOTO_SECTION_IDS = ['81', '5001', '5002', '5003', 'top10', 'mostcommented'];
-
-// Format date to Tamil style: "மார் 27, 2025"
-const TAMIL_MONTHS = {
-  '01': 'ஜனவரி', '02': 'பிப்ரவரி', '03': 'மார்ச்', '04': 'ஏப்ரல்',
-  '05': 'மே', '06': 'ஜூன்', '07': 'ஜூலை', '08': 'ஆகஸ்ட்',
-  '09': 'செப்டம்பர்', '10': 'அக்டோபர்', '11': 'நவம்பர்', '12': 'டிசம்பர்'
-};
-
-// Group news items by date for sticky date headers
-function groupNewsByDate(items) {
-  const groups = [];
-  let currentDate = null;
-  
-  items.forEach(item => {
-    const rawDate = item.standarddate || item.date || item.time_date || '';
-    // Normalize date to a comparable key
-    const dateKey = rawDate.split(' ')[0] || rawDate; // Take just the date part
-    
-    if (dateKey && dateKey !== currentDate) {
-      currentDate = dateKey;
-      groups.push({ type: 'dateHeader', date: rawDate, dateKey });
-    }
-    groups.push({ type: 'news', item });
-  });
-  
-  return groups;
-}
-
-function formatTamilDate(dateStr) {
-  if (!dateStr) return '';
-  // Handle formats: "2025-08-06", "06-Aug-2025", "06/08/2025"
-  let day, month, year;
-  
-  if (dateStr.match(/^\d{4}-\d{2}-\d{2}/)) {
-    [year, month, day] = dateStr.split('T')[0].split('-');
-  } else if (dateStr.match(/^\d{2}-[A-Za-z]{3}-\d{4}/)) {
-    const parts = dateStr.split('-');
-    day = parts[0];
-    const engMonths = { Jan:'01',Feb:'02',Mar:'03',Apr:'04',May:'05',Jun:'06',
-                        Jul:'07',Aug:'08',Sep:'09',Oct:'10',Nov:'11',Dec:'12' };
-    month = engMonths[parts[1]] || '01';
-    year = parts[2];
-  } else if (dateStr.match(/^\d{2}\/\d{2}\/\d{4}/)) {
-    [day, month, year] = dateStr.split('/');
-  } else {
-    return dateStr; // Return as-is if unrecognized
-  }
-  
-  const tamilMonth = TAMIL_MONTHS[month] || month;
-  return `${tamilMonth} ${day}, ${year}`;
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HTML helpers
@@ -884,41 +833,6 @@ const st = StyleSheet.create({
   titleContainer: { flexDirection: 'column', alignItems: 'flex-start' },
   sectionTitle: { fontFamily: FONTS.muktaMalar.bold, color: PALETTE.grey800 },
   sectionUnderline: { height: vs(3), width: '20%', backgroundColor: PALETTE.primary },
-});
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Date Header for NRI tabs
-// ─────────────────────────────────────────────────────────────────────────────
-function DateHeader({ date }) {
-  return (
-    <View style={dh.wrap}>
-      <View style={{borderWidth:1,flexDirection:"row",borderRadius:s(10),paddingVertical:ms(3),paddingHorizontal:ms(8),alignItems:"center",borderColor:PALETTE.grey500}}>
-<Ionicons name="calendar-outline" size={s(15)} color="#555" style={dh.icon} />
-      <Text style={dh.text}>{formatTamilDate(date)}</Text>
-      </View>
-      
-    </View>
-  );
-}
-
-const dh = StyleSheet.create({
-  wrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-      marginVertical: vs(4),
-     gap: s(6),
-    paddingHorizontal:ms(12)
-  },
-  icon: { 
-    marginRight: s(3),
-    color: '#6c757d'
-  },
-  text: {
-    fontSize: ms(16),
-    fontFamily: FONTS.muktaMalar.medium,
-    color: PALETTE.grey500,
-    fontWeight: '600',
-  },
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1638,47 +1552,12 @@ export default function CommonSectionScreen() {
         console.log('🔍 NRI Region API - apiSubTabs:', apiSubTabs);
         console.log('🔍 NRI Region API - allArticles count:', allArticles.length);
 
-        // Use nricondition from API response or fallback to hardcoded mapping
-        const nriConditionData = nriConditionOverride || nriCondition || [];
-        let subCatMap = {};
-        
-        // Build dynamic subCatMap from nricondition structure
-        if (nriConditionData.length > 0) {
-          // Find the current region in nricondition data
-          const currentRegion = nriConditionData.find(region => 
-            region.id === tab.id || region.id === tab._nriRegionId
-          );
-          
-          if (currentRegion && currentRegion.cat) {
-            // Map category IDs to Tamil titles
-            const categoryTitles = {
-              'new': 'செய்திகள்',
-              'koi': 'கோயில்கள்',
-              'san': 'சங்கங்கள்',
-              'rdo': 'வானொலி',
-              'eve': 'நிகழ்வுகள்',
-              'iho': 'இந்திய உணவகங்கள்',
-              'tsi': 'தமிழ் தளங்கள்',
-              'uni': 'பல்கலைக்கழகங்கள்',
-              'trpl': 'கோயில்கள் 2',
-              'job': 'வேலைவாய்ப்பு'
-            };
-            
-            currentRegion.cat.forEach(category => {
-              subCatMap[category.id] = categoryTitles[category.id] || category.id;
-            });
-          }
-        }
-
-        // Fallback to global mapping if nricondition is empty or region not found
-        if (Object.keys(subCatMap).length === 0) {
-          subCatMap = {
-            'new': 'செய்திகள்', 'koi': 'கோயில்கள்', 'san': 'சங்கங்கள்',
-            'rdo': 'வானொலி', 'eve': 'நிகழ்வுகள்', 'iho': 'இந்திய உணவகங்கள்',
-            'tsi': 'தமிழ் தளங்கள்', 'uni': 'பல்கலைக்கழகங்கள்',
-            'trpl': 'கோயில்கள் 2', 'job': 'வேலைவாய்ப்பு',
-          };
-        }
+        const subCatMap = {
+          'new': 'செய்திகள்', 'koi': 'கோயில்கள்', 'san': 'சங்கங்கள்',
+          'rdo': 'வானொலி', 'eve': 'நிகழ்வுகள்', 'iho': 'இந்திய உணவகங்கள்',
+          'tsi': 'தமிழ் தளங்கள்', 'uni': 'பல்கலைக்கழகங்கள்',
+          'trpl': 'கோயில்கள் 2', 'job': 'வேலைவாய்ப்பு',
+        };
 
         const subCatArticleMap = new Map();
         allArticles.forEach(article => {
@@ -1714,17 +1593,15 @@ export default function CommonSectionScreen() {
           { title: 'அனைத்தும்', link: tab.link, _isAllTab: true, _isNriRegionAllTab: true, _regionTabId: tab._nriRegionId }
         ];
 
-        // Add subcategory tabs with their filtered articles using API data
+        // Add subcategory tabs with their filtered articles
         availableSubCats.forEach(subCat => {
           const subCatArticles = subCatArticleMap.get(subCat) || [];
-          const apiSubTab = apiSubTabs.find(t => t.id === subCat);
 
           newSubTabs.push({
             title: subCatMap[subCat] || subCat,
             id: subCat,
-            link: apiSubTab?.tamillink || apiSubTab?.englishlink || `${tab.link}&scat=${subCat}`, // Use API tamillink or englishlink or fallback
+            link: `${tab.link}&scat=${subCat}`,
             _isNriSubCatTab: true,
-            _nriCountryTab: tab._nriCountryTab, // Preserve country tab flag
             _regionTabId: tab._nriRegionId,
             _regionLink: tab.link,
             _subCatArticles: subCatArticles, // Populate with filtered articles
@@ -1733,7 +1610,6 @@ export default function CommonSectionScreen() {
           console.log('🔍 NRI Region - Created subtab:', subCatMap[subCat] || subCat, 'with', subCatArticles.length, 'articles');
         });
 
-        // Handle pagination - if append is true, merge with existing sections
         const sections = [];
         subCatArticleMap.forEach((articles, subCat) => {
           if (articles.length > 0) {
@@ -1746,38 +1622,16 @@ export default function CommonSectionScreen() {
           }
         });
 
-        if (append && allSections.length > 0) {
-          // Append new data to existing sections
-          const updatedSections = allSections.map(existingSection => {
-            const newSectionData = sections.find(s => s.id === existingSection.id);
-            if (newSectionData && newSectionData.data.length > 0) {
-              return {
-                ...existingSection,
-                data: [...existingSection.data, ...newSectionData.data]
-              };
-            }
-            return existingSection;
-          });
-          
-          // Add any new sections that didn't exist before
-          const existingSectionIds = new Set(allSections.map(s => s.id));
-          const newSections = sections.filter(s => !existingSectionIds.has(s.id));
-          
-          setAllSections([...updatedSections, ...newSections]);
-        } else {
-          // Initial load - replace all sections
-          setSubTabs(newSubTabs);
-          setNriSubCatTabs(newSubTabs);
-          setAllSections(sections);
-          setTabNews([]);
-        }
+        setSubTabs(newSubTabs);
+        setNriSubCatTabs(newSubTabs);
+        setAllSections(sections);
+        setTabNews([]);
         setTabPage(pg);
         setTabLastPage(d?.newlist?.pagination?.last_page || 1);
         setActiveTab({
           ...tab,
           _isAllTab: true,
           _isNriRegionTab: true,
-          _nriCountryTab: tab._nriCountryTab, // Preserve country tab flag
           _nriRegionId: tab.id,
           _nriRegionTitle: tab.title,
           _nriTabTitle: tab.title,
@@ -2517,43 +2371,20 @@ export default function CommonSectionScreen() {
 
     const pressedIsAll = !!tab._isAllTab || tab.link === allTabLink || (tab.id === 'webstories' && (apiEndpoint?.includes('webstoriesupdate') || apiEndpoint?.includes('webstorieslisting')));
     // ✅ 1. NRI country sub-tab clicked → filter articles for that country
-    // Replace _isNriCountryTab handler:
+    // Replace the _isNriCountryTab handler:
     if (tab._isNriCountryTab) {
-      // Build dynamic mapping from nricondition data
-      const tamilToEnglishMap = {};
-      nriCondition.forEach(region => {
-        // Map English region IDs to Tamil titles based on available data
-        const regionTitles = {
-          'america': 'அமெரிக்கா',
-          'europe': 'ஐரோப்பா',
-          'africa': 'ஆப்பிரிக்கா',
-          'gulf': 'வளைகுடா',
-          'asia': 'ஆசியா',
-          'australia': 'ஆஸ்திரேலியா',
-          'singapore': 'சிங்கப்பூர்',
-        }; // <--- Added missing closing brace and comma
-        const tamilTitle = regionTitles[region.id] || region.id;
-        tamilToEnglishMap[tamilTitle] = region.id;
-      });
+      // Map Tamil country names to English region IDs
+      const countryMap = {
+        'வளைகுடா': 'gulf',
+        'அமெரிக்கா': 'america',
+        'ஐரோப்பா': 'europe',
+        'ஆப்பிரிக்கா': 'africa',
+        'ஆஸ்திரேலியா': 'australia',
+        'சிங்கப்பூர்': 'singapore',
+        'ஆசியா': 'asia'
+      };
 
-      // Fallback to hardcoded mapping if nricondition is empty
-      if (Object.keys(tamilToEnglishMap).length === 0) {
-        Object.assign(tamilToEnglishMap, {
-          'வளைகுடா': 'gulf',
-          'அமெரிக்கா': 'america',
-          'ஐரோப்பா': 'europe',
-          'ஆப்பிரிக்கா': 'africa',
-          'ஆஸ்திரேலியா': 'australia',
-          'சிங்கப்பூர்': 'singapore',
-          'ஆசியா': 'asia'
-        });
-      }
-
-      // Debug: Log exact tab.title for debugging
-      console.log('🔍 DEBUG - Tab title for mapping:', JSON.stringify(tab.title));
-      console.log('🔍 DEBUG - Available mappings:', Object.keys(tamilToEnglishMap));
-      
-      const regionId = tamilToEnglishMap[tab.title] || tab.id?.toLowerCase();
+      const regionId = countryMap[tab.title] || tab.id?.toLowerCase();
       const regionLink = `/nricategory?cat=${regionId}&lang=ta`;
 
       console.log('🔍 Country Tab Click - Tamil:', tab.title, '→ Region ID:', regionId, '→ API:', regionLink);
@@ -2561,7 +2392,7 @@ export default function CommonSectionScreen() {
       // Set activeTab with correct flags for country tabs
       const newActiveTab = {
         ...tab,
-        _isAllTab: false,        // ← FIX: Should be false for country-specific view
+        _isAllTab: true,
         _isNriSubTab: true,
         _nriTabId: 'nri',
         _nriCountryTab: true,
@@ -2601,7 +2432,6 @@ export default function CommonSectionScreen() {
           ...tab,
           _isNriSubCatTab: true,
           _isNriRegionTab: true,
-          _nriCountryTab: activeTab?._nriCountryTab, // ← Preserve country tab flag
           _nriRegionId: activeTab?._nriRegionId,
           _nriRegionTitle: activeTab?._nriRegionTitle,
         }, 1, false);
@@ -2618,7 +2448,6 @@ export default function CommonSectionScreen() {
         ...activeTab,
         _isAllTab: false,        // ← KEY FIX: switch to tabNews rendering path
         _isNriRegionTab: true,
-        _nriCountryTab: activeTab?._nriCountryTab, // ← Preserve country tab flag
         _activeSubCat: tab.id,
         _activeSubCatTitle: tab.title,
         // Keep _isNriSubCatTab context so renderItem uses NewsCard
@@ -2651,6 +2480,21 @@ export default function CommonSectionScreen() {
             }
           }
 
+          // ✅ Use tabIsAll(activeTab) directly instead of isAllTab variable
+          if (tabIsAll(activeTab)) fetchAll();
+          else fetchTabNews(activeTab, 1, false);
+        };
+
+        const handleLoadMore = () => {
+          if (isAllTab) return;
+          if (tabLoadMore || tabPage >= tabLastPage) return;
+          setTabLoadMore(true);
+          fetchTabNews(activeTab, tabPage + 1, true);
+        };
+
+        const goToArticle = (item) => {
+
+          // ── 1. NRI ─────────────────────────────────────────────────────────────────
           // ── 1. NRI ─────────────────────────────────────────────────────────────────
           // ── 1. NRI ─────────────────────────────────────────────────────────────────
           if (apiEndpoint === '/nrimain' || apiEndpoint.includes('/nri') || apiEndpoint.includes('otherstatenews')) {
@@ -2820,8 +2664,7 @@ const handleRefresh = () => {
 };
 
   const handleLoadMore = () => {
-    // Allow load more for NRI region tabs even when _isAllTab is true
-    if (isAllTab && !activeTab?._isNriRegionTab) return;
+    if (isAllTab) return;
     if (tabLoadMore || tabPage >= tabLastPage) return;
     setTabLoadMore(true);
     fetchTabNews(activeTab, tabPage + 1, true);
@@ -3126,12 +2969,6 @@ const photoEndpoint = photoEndpointMap[sectionId];
       return tabNews.map((item, i) => ({ type: 'rasi', item, _idx: i }));
     }
     
-    // ✅ NEW: For NRI tabs, group tabNews by date
-    const isNriTab = apiEndpoint === '/nrimain' || apiEndpoint.includes('/nri');
-    if (isNriTab && tabNews.length > 0) {
-      return groupNewsByDate(tabNews);
-    }
-    
     console.log('[DEBUG buildFlatData] Using tabNews as fallback:', tabNews.length);
     return tabNews.map((item, i) => ({ type: 'news', item, sectionTitle: activeTab?.title || '', _idx: i }));
   };
@@ -3165,15 +3002,13 @@ const photoEndpoint = photoEndpointMap[sectionId];
       console.log('🔍 NRI isTabActive - tab.id:', tab.id);
 
       // ✅ Handle NRI subcategory tabs (செய்திகள், கோயில்கள், etc.)
-      if ((activeTab._isNriRegionTab || activeTab._nriCountryTab) && activeTab._activeSubCat) {
-        console.log('🔍 NRI isTabActive - In region/country view with active subcategory');
+      if (activeTab._isNriRegionTab && activeTab._activeSubCat) {
+        console.log('🔍 NRI isTabActive - In region view with active subcategory');
         console.log('🔍 NRI isTabActive - Checking tab:', tab.id, tab.title, 'isSubCatTab:', tab._isNriSubCatTab);
-        console.log('🔍 NRI isTabActive - Active subCat:', activeTab._activeSubCat, 'Type:', typeof activeTab._activeSubCat);
-        console.log('🔍 NRI isTabActive - Tab ID:', tab.id, 'Type:', typeof tab.id);
-        console.log('🔍 NRI isTabActive - Comparing:', String(tab.id), '===', String(activeTab._activeSubCat), '?');
+        console.log('🔍 NRI isTabActive - Comparing:', tab.id, '===', activeTab._activeSubCat, '?');
         
-        // We're in a region/country view with an active subcategory
-        if (tab._isNriSubCatTab && String(tab.id) === String(activeTab._activeSubCat)) {
+        // We're in a region view with an active subcategory
+        if (tab._isNriSubCatTab && tab.id === activeTab._activeSubCat) {
           console.log('🔍 NRI isTabActive - MATCH: Subcategory tab should be active');
           return true; // Highlight the active subcategory tab
         }
@@ -3186,8 +3021,8 @@ const photoEndpoint = photoEndpointMap[sectionId];
       }
 
       // ✅ Handle NRI region "All" tab
-      if ((activeTab._isNriRegionTab || activeTab._nriCountryTab) && !activeTab._activeSubCat) {
-        console.log('🔍 NRI isTabActive - In region/country view, no active subcategory');
+      if (activeTab._isNriRegionTab && !activeTab._activeSubCat) {
+        console.log('🔍 NRI isTabActive - In region view, no active subcategory');
         return tab._isNriRegionAllTab; // Highlight "All" tab when no subcategory is active
       }
 
@@ -3300,11 +3135,6 @@ const photoEndpoint = photoEndpointMap[sectionId];
   });
 
   const renderItem = ({ item: row }) => {
-    // ✅ ADD: Render sticky date header
-    if (row.type === 'dateHeader') {
-      return <DateHeader date={row.date} />;
-    }
-
     if (row.type === 'section')
       return <View style={styles.sectionWrap}>
         <SectionTitle title={row.title} />
@@ -3569,59 +3399,24 @@ const photoEndpoint = photoEndpointMap[sectionId];
                   onPress={() => {
                     console.log('🔍 English Version Button Clicked - activeTab:', activeTab);
 
-                    // Check if we're in a specific region (Gulf, America, etc.) and navigate to that region's English version
-                    if (activeTab?._nriRegionId) {
-                      // We're in a specific region tab (Gulf, America, etc.)
-                      const regionId = activeTab._nriRegionId;
-                      const englishRegionLink = `/nricategory?cat=${regionId}&lang=en`;
-                      
-                      console.log('🔍 Navigating to English version of region:', regionId);
-                      console.log('🔍 English region link:', englishRegionLink);
-                      
-                      // Create a new tab object for the English version of this region
-                      const englishRegionTab = {
-                        ...activeTab,
-                        id: `${regionId}_en`,
-                        title: `${activeTab.title} (English)`,
-                        link: englishRegionLink,
-                        _isNriRegionTab: true,
-                        _nriRegionId: regionId,
-                        _nriRegionTitle: activeTab.title,
-                        _isEnglishVersion: true,
-                        _originalTab: activeTab, // Keep reference to original Tamil tab
-                      };
-                      
-                      handleTabPress(englishRegionTab);
-                    } else if (activeTab?._isNriSubCatTab && activeTab?._nriTabId === 'nri') {
-                      // We're in the main NRI Tamil tab, navigate to main NRI English tab
-                      const nriNewsTab =
-                        originalNriTabs.find(t => t.id === 'nrinews') ||
-                        originalNriTabs.find(t => t.title === 'Nri news') ||
-                        originalNriTabs.find(t => t.link?.includes('lang=en'));
+                    // Always navigate to main NRI English tab (nrinews)
+                    const nriNewsTab =
+                      originalNriTabs.find(t => t.id === 'nrinews') ||
+                      originalNriTabs.find(t => t.title === 'Nri news') ||
+                      originalNriTabs.find(t => t.link?.includes('lang=en'));
 
-                      console.log('🔍 Found NRI News tab:', nriNewsTab);
+                    console.log('🔍 Found NRI News tab:', nriNewsTab);
 
-                      if (nriNewsTab) {
-                        console.log('🔍 Navigating to main NRI English tab');
-                        console.log('🔍 NRI News tab details:', {
-                          id: nriNewsTab.id,
-                          title: nriNewsTab.title,
-                          link: nriNewsTab.link
-                        });
-                        handleTabPress(nriNewsTab);
-                      } else {
-                        console.log('🔍 No NRI News tab found!');
-                      }
+                    if (nriNewsTab) {
+                      console.log('🔍 Navigating to main NRI English tab');
+                      console.log('🔍 NRI News tab details:', {
+                        id: nriNewsTab.id,
+                        title: nriNewsTab.title,
+                        link: nriNewsTab.link
+                      });
+                      handleTabPress(nriNewsTab);
                     } else {
-                      // Fallback: try to find main NRI English tab
-                      const nriNewsTab =
-                        originalNriTabs.find(t => t.id === 'nrinews') ||
-                        originalNriTabs.find(t => t.title === 'Nri news') ||
-                        originalNriTabs.find(t => t.link?.includes('lang=en'));
-
-                      if (nriNewsTab) {
-                        handleTabPress(nriNewsTab);
-                      }
+                      console.log('🔍 No NRI News tab found!');
                     }
                   }}
                   activeOpacity={0.8}
@@ -3633,11 +3428,8 @@ const photoEndpoint = photoEndpointMap[sectionId];
               </>
             )}
 
-          {/* Tamil Version button — show on nrinews tab (English) and English versions of regions */}
-          {apiEndpoint === '/nrimain' && (
-            (activeTab?._isNriSubTab && activeTab?._nriTabId === 'nrinews' && !activeTab?._nriCountryTab) ||
-            (activeTab?._isEnglishVersion && activeTab?._nriRegionTab)
-          ) && (
+          {/* Tamil Version button — show on nrinews tab (English) */}
+          {apiEndpoint === '/nrimain' && activeTab?._isNriSubTab && activeTab?._nriTabId === 'nrinews' && !activeTab?._nriCountryTab && (
             <TouchableOpacity
               style={{
                 borderWidth: 1,
@@ -3647,33 +3439,11 @@ const photoEndpoint = photoEndpointMap[sectionId];
                 paddingVertical: vs(4),
               }}
               onPress={() => {
-                console.log('🔍 Tamil Version Button Clicked - activeTab:', activeTab);
-
-                // Check if we're in an English version of a specific region and navigate back to Tamil version
-                if (activeTab?._isEnglishVersion && activeTab?._originalTab) {
-                  // We're in English version of a region tab, go back to original Tamil tab
-                  console.log('🔍 Navigating back to Tamil version of region:', activeTab._originalTab.title);
-                  handleTabPress(activeTab._originalTab);
-                } else if (activeTab?._nriTabId === 'nrinews') {
-                  // We're in main NRI English tab, navigate to main NRI Tamil tab
-                  const nriTab =
-                    originalNriTabs.find(t => t.id === 'nri') ||
-                    originalNriTabs.find(t => t.title === 'உலக தமிழர்') ||
-                    originalNriTabs.find(t => t.link?.includes('nri'));
-                  if (nriTab) {
-                    console.log('🔍 Navigating to main NRI Tamil tab');
-                    handleTabPress(nriTab);
-                  }
-                } else {
-                  // Fallback: try to find main NRI Tamil tab
-                  const nriTab =
-                    originalNriTabs.find(t => t.id === 'nri') ||
-                    originalNriTabs.find(t => t.title === 'உலக தமிழர்') ||
-                    originalNriTabs.find(t => t.link?.includes('nri'));
-                  if (nriTab) {
-                    handleTabPress(nriTab);
-                  }
-                }
+                const nriTab =
+                  originalNriTabs.find(t => t.id === 'nri') ||
+                  originalNriTabs.find(t => t.title === 'உலக தமிழர்') ||
+                  originalNriTabs.find(t => t.link?.includes('nri'));
+                if (nriTab) handleTabPress(nriTab);
               }}
               activeOpacity={0.8}
             >
@@ -3781,11 +3551,9 @@ const photoEndpoint = photoEndpointMap[sectionId];
           ref={flatListRef}
           data={flatData}
           keyExtractor={(row, i) =>
-            row.type === 'dateHeader'
-              ? `date-${row.dateKey}-${i}`
-              : row.type === 'section'
-                ? `sec-${row.id || i}-${row.title}`
-                : `news-${i}-${row.item?.newsid || row.item?.id || row.item?.eventid || row.item?.rasiid || i}`
+            row.type === 'section'
+              ? `sec-${row.id || i}-${row.title}`
+              : `news-${i}-${row.item?.newsid || row.item?.id || row.item?.eventid || row.item?.rasiid || i}`
           }
           renderItem={renderItem}
           contentContainerStyle={styles.listContent}
