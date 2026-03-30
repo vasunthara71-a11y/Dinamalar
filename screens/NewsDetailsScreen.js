@@ -1460,7 +1460,7 @@ return (
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.white, paddingTop: Platform.OS === 'android' ? vs(30) : 0 },
+  container: { flex: 1, backgroundColor: COLORS.white, paddingTop: Platform.OS === 'android' ? vs(0) : 0 },
   panLayer: { flex: 1, overflow: 'hidden' },
   animLayer: { flex: 1 },
   edgeBtnLeft: {

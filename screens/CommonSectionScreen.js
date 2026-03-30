@@ -495,10 +495,10 @@ function RasiDetailView({ tabId, tabTitle, initialJcat, initialItem, onBack, sub
 
       const merged = textItem
         ? {
-            ...textItem,
-            videopath: videoPath || textItem?.videopath || '',
-            videothumbnail: videoThumb || textItem?.largeimages || '',
-          }
+          ...textItem,
+          videopath: videoPath || textItem?.videopath || '',
+          videothumbnail: videoThumb || textItem?.largeimages || '',
+        }
         : null;
 
       setDetail(merged || (d?.footnote ? d : initialItem || null));
@@ -536,10 +536,10 @@ function RasiDetailView({ tabId, tabTitle, initialJcat, initialItem, onBack, sub
   const rasiLabel = detail?.rasi || detail?.zodiac || detail?.sign || currentRasi.title;
   const footnoteHtml = detail?.footnote || detail?.content || detail?.description || '';
   const paragraphs = parseFootnoteParagraphs(footnoteHtml);
-  
-// ✅ Use _hasVideo flag set during fetch
-const videopath = detail?.videopath || '';
-const hasVideo = detail?._hasVideo || videopath.length > 4;
+
+  // ✅ Use _hasVideo flag set during fetch
+  const videopath = detail?.videopath || '';
+  const hasVideo = detail?._hasVideo || videopath.length > 4;
 
   let videoUrl = videopath;
   if (videoUrl && !videoUrl.startsWith('http')) {
@@ -874,10 +874,7 @@ function PhotoCard({ item, onPress, sf, isAllTab, isSocialCard = false }) {
   const [isCommentsModalVisible, setIsCommentsModalVisible] = useState(false);
 
   const imageUri =
-    item.largeimages ||
-    item.images ||
-    item.image ||
-    item.thumbnail ||
+    (item.largeimages || item.images || item.image || item.thumbnail || '').trim() ||
     'https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_default.jpg?im=Resize,width=400';
 
   const title =
@@ -1228,7 +1225,7 @@ function NewsCard({ item, onPress, sectionTitle = '' }) {
   const [imageError, setImageError] = useState(false);
 
   const imageUri =
-    item.largeimages || item.images || item.image || item.thumbnail || item.thumb ||
+    (item.largeimages || item.images || item.image || item.thumbnail || item.thumb || '').trim() ||
     'https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_default.jpg?im=Resize,width=400';
 
   const title = item.newstitle || item.title || item.videotitle ||
@@ -1509,6 +1506,9 @@ export default function CommonSectionScreen() {
 
   const flatListRef = useRef(null);
   const rasiScrollViewRef = useRef(null);
+  const [originalNriTabs, setOriginalNriTabs] = useState([]);
+  const [nriCondition, setNriCondition] = useState([]);
+const [nriSubCatTabs, setNriSubCatTabs] = useState([]);
 
   const handleScroll = useCallback((e) => {
     setShowScrollTop(e.nativeEvent.contentOffset.y > 300);
@@ -1567,7 +1567,7 @@ export default function CommonSectionScreen() {
           ...prev,
           _isAllTab: true,
           _isNriSubTab: true,
-          _nriTabId: tab.id,
+          _nriTabId: tab.id,  // ✅ this is 'nri' for உலக தமிழர்
           _nriTabLink: tab.link,
           _nriTabTitle: tab.title,
         }));
@@ -1583,6 +1583,94 @@ export default function CommonSectionScreen() {
       }
       return;
     }
+
+    const isNriRegionTab = (apiEndpoint === '/nrimain' || apiEndpoint === '/nri') && !tabIsAll(tab);
+
+if (isNriRegionTab) {
+  try {
+    let url = tab.link?.startsWith('//') ? tab.link.slice(1) : tab.link;
+    const sep = url.includes('?') ? '&' : '?';
+    const fullUrl = `${url}${sep}page=${pg}`;
+    const res = await mainApi.get(fullUrl);
+    const d = res?.data;
+
+    const allArticles = extractList(d).filter(Boolean);
+
+    // ✅ Build subcategory tabs from nricondition for this region
+    const regionCondition = nriCondition.find(nc => nc.id === tab.id);
+    const subCatMap = {
+      'new': 'செய்திகள்',
+      'koi': 'கோயில்கள்',
+      'san': 'சங்கங்கள்',
+      'rdo': 'வானொலி',
+      'eve': 'நிகழ்வுகள்',
+      'iho': 'இந்திய உணவகங்கள்',
+      'tsi': 'தமிழ் தளங்கள்',
+      'uni': 'பல்கலைக்கழகங்கள்',
+      'trpl': 'கோயில்கள் 2',
+      'job': 'வேலைவாய்ப்பு',
+    };
+
+    // ✅ Group articles by their subcategory (derived from reacturl pattern)
+    const subCatArticleMap = new Map();
+    allArticles.forEach(article => {
+      // reacturl format: /nri/america/new/..., /nri/america/san/...
+      const urlParts = (article.reacturl || '').split('/');
+      const subCat = urlParts[3] || 'new'; // 4th segment is the subcategory
+      if (!subCatArticleMap.has(subCat)) subCatArticleMap.set(subCat, []);
+      subCatArticleMap.get(subCat).push(article);
+    });
+
+    // ✅ Build subcategory tabs from nricondition
+    const availableSubCats = regionCondition?.cat || [];
+    const newSubTabs = [
+      { title: 'All', id: `${tab.id}_all`, _isNriRegionAllTab: true, _regionTabId: tab.id, _isAllTab: false },
+      ...availableSubCats
+        .filter(sc => subCatArticleMap.has(sc.id))
+        .map(sc => ({
+          title: subCatMap[sc.id] || sc.id,
+          id: sc.id,
+          _isNriSubCatTab: true,
+          _regionTabId: tab.id,
+          _regionLink: tab.link,
+          _subCatArticles: subCatArticleMap.get(sc.id) || [],
+        }))
+    ];
+
+    // ✅ Build sections for All view (group by subcat)
+    const sections = [];
+    subCatArticleMap.forEach((articles, subCat) => {
+      sections.push({
+        title: subCatMap[subCat] || subCat,
+        id: subCat,
+        data: articles.slice(0, 3),
+        _isNriSection: true,
+      });
+    });
+
+    setSubTabs(newSubTabs);
+    setNriSubCatTabs(newSubTabs);
+    setAllSections(sections);
+    setActiveTab(prev => ({
+      ...prev,
+      ...tab,
+      _isAllTab: true,
+      _isNriRegionTab: true,
+      _nriRegionId: tab.id,
+      _nriRegionTitle: tab.title,
+    }));
+    setTabNews([]);
+    setTabPage(pg);
+    setTabLastPage(extractLastPage(d) || 1);
+  } catch (e) {
+    console.error('[NRI Region fetchTabNews] error:', e?.message);
+  } finally {
+    setTabLoading(false);
+    setTabLoadMore(false);
+    setRefreshing(false);
+  }
+  return;
+}
 
     if (!tab?.link || tabIsAll(tab)) return;
     try {
@@ -1723,44 +1811,56 @@ export default function CommonSectionScreen() {
         return;
       }
       setHtmlContent(null);
-      if (apiEndpoint === '/nrimain') {
-        const rawTabs = d?.subcatlist || [];
-        const tabs = rawTabs.map(t => ({
-          ...t,
-          link: t.link?.startsWith('//') ? t.link.slice(1) : (t.link || ''),
-        }));
+  // Replace the existing /nrimain block with this:
+if (apiEndpoint === '/nrimain' || apiEndpoint === '/nri') {
+  const rawTabs = d?.subcatlist || [];
+  const tabs = rawTabs.map(t => ({
+    ...t,
+    link: t.link?.startsWith('//') ? t.link.slice(1) : (t.link || ''),
+  }));
 
-        // ✅ Build sections using newlist title as section header
-        // articles within each section shown flat (not grouped by country)
-        const sections = [];
-        if (Array.isArray(d?.newlist)) {
-          d.newlist.forEach(nriSection => {
-            if (Array.isArray(nriSection?.data) && nriSection.data.length > 0) {
-              // Limit each NRI category to 3 items
-              const limitedData = nriSection.data.slice(0, 3);
-              console.log(`[NRI] Section "${nriSection.title}": ${nriSection.data.length} -> ${limitedData.length} items`);
-
-              sections.push({
-                title: nriSection.title || '',   // ✅ உலக தமிழர், Nri news, etc
-                id: nriSection.id || nriSection.etitle || '',
-                data: limitedData,               // ✅ limited to 3 items
-                _isNriSection: true,
-              });
-            }
-          });
-          console.log('[NRI] Total sections processed:', sections.length);
-        }
-
-        setSubTabs(tabs);
-        setAllSections(sections);
-        setTaboolaAds(d?.taboola_ads?.mobile || null);
-        if (tabs.length > 0) {
-          setActiveTab({ ...tabs[0], _isAllTab: true });
-        } else {
-          setActiveTab({ title: 'All', link: '/nrimain', _isAllTab: true });
-        }
-        return;
+  const sections = [];
+  if (Array.isArray(d?.newlist)) {
+    d.newlist.forEach(nriSection => {
+      if (Array.isArray(nriSection?.data) && nriSection.data.length > 0) {
+        const limitedData = nriSection.data.slice(0, 3);
+        sections.push({
+          title: nriSection.title || '',
+          id: nriSection.id || nriSection.etitle || '',
+          data: limitedData,
+          _isNriSection: true,
+        });
       }
+    });
+  }
+
+ setSubTabs(tabs);
+  setOriginalNriTabs(tabs);
+  setAllSections(sections);
+  setTaboolaAds(d?.taboola_ads?.mobile || null);
+  if (d?.nricondition) setNriCondition(d.nricondition);
+
+  // ✅ If a specific region tab was requested (e.g. அமெரிக்கா from drawer)
+  if (initialTabId && initialTabId !== 'all' && initialTabId !== '') {
+    const preselected = tabs.find(t =>
+      String(t.id) === String(initialTabId) ||
+      (initialTabLink && t.link === initialTabLink)
+    );
+    if (preselected) {
+      setTabLoading(true);
+      fetchTabNews({ ...preselected, _isAllTab: false }, 1, false);
+      return;
+    }
+  }
+
+  // ✅ Default — show All view
+  if (tabs.length > 0) {
+    setActiveTab({ ...tabs[0], _isAllTab: true });
+  } else {
+    setActiveTab({ title: 'All', link: '/nri', _isAllTab: true });
+  }
+  return;
+}
 
       // ── Handle /webstoriesupdate ──────────────────────────────────────────────
       if (apiEndpoint.includes('webstoriesupdate') || apiEndpoint.includes('webstorieslisting')) {
@@ -2172,9 +2272,10 @@ export default function CommonSectionScreen() {
         ...prev,
         _isAllTab: true,
         _isNriSubTab: true,
-        _nriCountryTab: tab.title,   // ✅ mark which country is active
+        _nriCountryTab: tab.title,  // ✅ mark which country is active
+        // ✅ DO NOT overwrite _nriTabId here — keep the original tab id (nri / nrinews / otherstatenews)
       }));
-      return;  // ✅ return early — no fetch needed
+      return;
     }
 
     // ✅ 2. NRI country All tab → restore original subcatlist + sections
@@ -2200,6 +2301,45 @@ export default function CommonSectionScreen() {
       fetchAll();
       return;
     }
+
+    // ✅ 0. NRI subcat tab (செய்திகள், சங்கங்கள் etc) clicked
+if (tab._isNriSubCatTab) {
+  setAllSections([{
+    title: tab.title,
+    id: tab.id,
+    data: tab._subCatArticles || [],
+    _isNriSection: true,
+  }]);
+  setActiveTab(prev => ({
+    ...prev,
+    _isAllTab: true,
+    _isNriRegionTab: true,
+    _activeSubCat: tab.id,
+    _activeSubCatTitle: tab.title,
+  }));
+  return;
+}
+
+// ✅ 0b. NRI region All tab → restore all subcat sections
+if (tab._isNriRegionAllTab) {
+  // Re-fetch the region to restore all sections
+  const regionTab = originalNriTabs.find(t => t.id === tab._regionTabId);
+  if (regionTab) {
+    setTabLoading(true);
+    fetchTabNews({ ...regionTab, _isAllTab: false }, 1, false);
+  }
+  return;
+}
+
+// ✅ 0c. Clicking "All" when inside a region → go back to main NRI All view
+if (tab._isAllTab && (tab.link === '/nri' || tab.link === '/nrimain') && activeTab?._isNriRegionTab) {
+  setSubTabs(originalNriTabs);
+  setInitLoading(true);
+  setAllSections([]);
+  setTabNews([]);
+  fetchAll();
+  return;
+}
 
     // ✅ 4. NRI sub-tab (உலக தமிழர், Nri news etc) → fetch and group by country
     if (apiEndpoint === '/nrimain' && !pressedIsAll) {
@@ -2337,15 +2477,10 @@ export default function CommonSectionScreen() {
   const goToArticle = (item) => {
 
     // ── 1. NRI ─────────────────────────────────────────────────────────────────
+    // ── 1. NRI ─────────────────────────────────────────────────────────────────
+    // ── 1. NRI ─────────────────────────────────────────────────────────────────
     if (apiEndpoint === '/nrimain' || apiEndpoint.includes('/nri') || apiEndpoint.includes('otherstatenews')) {
-      if (apiEndpoint === '/nrimain' && isAllTab && !activeTab?._isNriSubTab) {
-        const targetTab = subTabs.find(t =>
-          String(t.id) === String(item.maincategory) ||
-          String(t.id) === String(item.key?.toLowerCase()) ||
-          t.title === item.key
-        );
-        if (targetTab) { handleTabPress(targetTab); return; }
-      }
+      // ✅ Always go to NewsDetailsScreen — removed tab switching on item click
       navigation.navigate('NewsDetailsScreen', {
         newsId: item.newsid || item.id,
         newsItem: item,
@@ -2634,16 +2769,18 @@ export default function CommonSectionScreen() {
     // ✅ NRI screen
     if (apiEndpoint === '/nrimain') {
       if (activeTab._isNriSubTab) {
-        // ✅ Country sub-tabs showing — highlight correct tab
+        // ✅ Country sub-tabs showing — highlight the original parent tab (not All)
         if (activeTab._nriCountryTab) {
-          // A specific country tab is selected
-          return tab.title === activeTab._nriCountryTab && tab._isNriCountryTab;
+          // A specific country is selected — highlight the original NRI sub-tab
+          // e.g. if we're in otherstatenews > புதுடில்லி, highlight otherstatenews tab
+          if (tab._isAllTab || tab.link === '/nrimain') return false; // ✅ All tab NOT active
+          return String(tab.id) === String(activeTab._nriTabId); // ✅ highlight the correct sub-tab
         }
-        // ✅ Just entered sub-tab view (no country selected yet) → highlight All
+        // Just entered sub-tab view (no country selected yet) → highlight All
         if (tab._isAllTab || tab.link === '/nrimain') return true;
         return false;
       }
-      // All tab active — match by link
+      // Main All tab active — match by link
       return tab.link === '/nrimain' || tab.link === allTabLink;
     }
 
@@ -2658,36 +2795,36 @@ export default function CommonSectionScreen() {
     return String(activeTab.id) === String(tab.id);
   };
 
-// ─── Anmegam News Card ────────────────────────────────────────────────────────
-function AnmegamNewsCard({ item, onPress }) {
-  const { sf } = useFontSize();
-  const imageUri =
-    item.largeimages || item.images || item.image ||
-    'https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_default.jpg?im=Resize,width=400';
-  const title = item.newstitle || item.title || '';
-  const date = item.date || item.time_date || item.standarddate || '';
+  // ─── Anmegam News Card ────────────────────────────────────────────────────────
+  function AnmegamNewsCard({ item, onPress }) {
+    const { sf } = useFontSize();
+    const imageUri =
+      item.largeimages || item.images || item.image ||
+      'https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_default.jpg?im=Resize,width=400';
+    const title = item.newstitle || item.title || '';
+    const date = item.date || item.time_date || item.standarddate || '';
 
-  return (
-    <TouchableOpacity onPress={onPress} activeOpacity={0.88} style={anc.wrap}>
-      <ImageWithFallback
-        source={{ uri: imageUri }}
-        style={anc.image}
-        resizeMode="cover"
-        iconSize={40}
-      />
-      <View style={NewsCardStyles.contentContainer}>
+    return (
+      <TouchableOpacity onPress={onPress} activeOpacity={0.88} style={anc.wrap}>
+        <ImageWithFallback
+          source={{ uri: imageUri }}
+          style={anc.image}
+          resizeMode="cover"
+          iconSize={40}
+        />
+        <View style={NewsCardStyles.contentContainer}>
 
-        {!!title && (
-          <Text style={[NewsCardStyles.title, { fontSize: sf(13), lineHeight: sf(22) }]} numberOfLines={3}>{title}</Text>
-        )}
-        {!!date && (
-          <Text style={[NewsCardStyles.timeText, { fontSize: sf(14) }]}>{date}</Text>
-        )}
-        <View style={anc.divider} />
-      </View>
-    </TouchableOpacity>
-  );
-}
+          {!!title && (
+            <Text style={[NewsCardStyles.title, { fontSize: sf(13), lineHeight: sf(22) }]} numberOfLines={3}>{title}</Text>
+          )}
+          {!!date && (
+            <Text style={[NewsCardStyles.timeText, { fontSize: sf(14) }]}>{date}</Text>
+          )}
+          <View style={anc.divider} />
+        </View>
+      </TouchableOpacity>
+    );
+  }
 
   const anc = StyleSheet.create({
     wrap: { backgroundColor: '#fff', paddingHorizontal: s(12), paddingTop: vs(10) },
@@ -2934,19 +3071,83 @@ function AnmegamNewsCard({ item, onPress }) {
       </UniversalHeaderComponent>
 
       {/* ── Page Title ── */}
+      {/* ── Page Title ── */}
       <View style={styles.pageTitleWrap}>
-        <Text style={[styles.pageTitle, { fontSize: sf(16), fontFamily: FONTS.anek.bold }]}>
-          {console.log('[NRI Page Title] apiEndpoint:', apiEndpoint, 'activeTab:', activeTab, '_nriCountryTab:', activeTab?._nriCountryTab, '_nriTabTitle:', activeTab?._nriTabTitle)}
-          {apiEndpoint === '/nrimain'
-            ? (activeTab?._nriCountryTab
-              ? activeTab.title  // Show country tab title (America, Singapore, etc)
-              : (activeTab?._nriTabTitle || screenTitle)  // _nriTabTitle set immediately on tap, no flash
-            )
-            : (screenTitle === 'தினம் தினம்' || screenTitle === 'வாராவாரம்' || screenTitle === 'ஜோசியம்' || screenTitle === 'உலக தமிழர்' || screenTitle === 'ஸ்பெஷல்' || screenTitle === 'ஆன்மீகம்' || screenTitle === 'காலண்டர்' || screenTitle === 'போட்டோ' || screenTitle === 'விளையாட்டு' || screenTitle === 'வர்த்தகம்')
-              ? (isAllTab ? screenTitle : (activeTab?.title || screenTitle))
-              : screenTitle
-          }
-        </Text>
+        <View style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          paddingHorizontal: s(12),
+          marginBottom: vs(4)
+        }}>
+          <Text style={[styles.pageTitle, {
+            fontSize: sf(16),
+            fontFamily: FONTS.anek.bold,
+            paddingHorizontal: 0,
+            marginBottom: 0
+          }]}>
+            {apiEndpoint === '/nrimain'
+              ? (activeTab?._nriCountryTab
+                ? activeTab.title
+                : (activeTab?._nriTabTitle || screenTitle)
+              )
+              : (screenTitle === 'தினம் தினம்' || screenTitle === 'வாராவாரம்' || screenTitle === 'ஜோசியம்' || screenTitle === 'உலக தமிழர்' || screenTitle === 'ஸ்பெஷல்' || screenTitle === 'ஆன்மீகம்' || screenTitle === 'காலண்டர்' || screenTitle === 'போட்டோ' || screenTitle === 'விளையாட்டு' || screenTitle === 'வர்த்தகம்')
+                ? (isAllTab ? screenTitle : (activeTab?.title || screenTitle))
+                : screenTitle
+            }
+          </Text>
+
+          {/* ── English Version Button — only for NRI screen ── */}
+{/* English Version button — show on nri tab (Tamil) */}
+{apiEndpoint === '/nrimain' && activeTab?._isNriSubTab && activeTab?._nriTabId === 'nri' && !activeTab?._nriCountryTab && (
+  <TouchableOpacity
+    style={{
+      borderWidth: 1,
+      borderColor: COLORS.primary,
+      borderRadius: s(4),
+      paddingHorizontal: s(10),
+      paddingVertical: vs(4),
+    }}
+    onPress={() => {
+      const nriNewsTab =
+        originalNriTabs.find(t => t.id === 'nrinews') ||
+        originalNriTabs.find(t => t.title === 'Nri news') ||
+        originalNriTabs.find(t => t.link?.includes('lang=en'));
+      if (nriNewsTab) handleTabPress(nriNewsTab);
+    }}
+    activeOpacity={0.8}
+  >
+    <Text style={{ fontSize: ms(13), fontFamily: FONTS.muktaMalar.medium, color: COLORS.primary, fontWeight: '600' }}>
+      English Version
+    </Text>
+  </TouchableOpacity>
+)}
+
+{/* Tamil Version button — show on nrinews tab (English) */}
+{apiEndpoint === '/nrimain' && activeTab?._isNriSubTab && activeTab?._nriTabId === 'nrinews' && !activeTab?._nriCountryTab && (
+  <TouchableOpacity
+    style={{
+      borderWidth: 1,
+      borderColor: COLORS.primary,
+      borderRadius: s(4),
+      paddingHorizontal: s(10),
+      paddingVertical: vs(4),
+    }}
+    onPress={() => {
+      const nriTab =
+        originalNriTabs.find(t => t.id === 'nri') ||
+        originalNriTabs.find(t => t.title === 'உலக தமிழர்') ||
+        originalNriTabs.find(t => t.link?.includes('nri'));
+      if (nriTab) handleTabPress(nriTab);
+    }}
+    activeOpacity={0.8}
+  >
+    <Text style={{ fontSize: ms(13), fontFamily: FONTS.muktaMalar.medium, color: COLORS.primary, fontWeight: '600' }}>
+      தமிழ் வடிவம்
+    </Text>
+  </TouchableOpacity>
+)}
+        </View>
       </View>
 
       {/* ── Tabs ── */}
@@ -3113,7 +3314,7 @@ function AnmegamNewsCard({ item, onPress }) {
 // Styles
 // ─────────────────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f2f2f2', paddingTop: Platform.OS === 'android' ? vs(28) : 0 },
+  container: { flex: 1, backgroundColor: '#f2f2f2', paddingTop: Platform.OS === 'android' ? vs(0) : 20 },
   pageTitleWrap: { paddingTop: vs(14), paddingBottom: vs(6), backgroundColor: '#fff' },
   pageTitle: { fontSize: 18, fontFamily: FONTS.anek.bold, color: '#111', paddingHorizontal: s(12), marginBottom: vs(4) },
 
