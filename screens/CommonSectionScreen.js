@@ -1321,6 +1321,9 @@ function NewsCard({ item, onPress, sectionTitle = '' }) {
   const newscomment = item.newscomment || item.commentcount || item.nmcomment || item.comments?.total || '';
   const hasAudio = item.audio === 1 || item.audio === '1' || item.audio === true ||
     (typeof item.audio === 'string' && item.audio.length > 1 && item.audio !== '0');
+  const hasVideo = (item.video === '1' || item.video === 1 || 
+                   (typeof item.video === 'string' && item.video.length > 0) ||
+                   item.video === true);
 
   return (
     <View style={NewsCardStyles.wrap}>
@@ -1360,6 +1363,11 @@ function NewsCard({ item, onPress, sectionTitle = '' }) {
               {hasAudio && (
                 <View style={NewsCardStyles.audioIcon}>
                   <SpeakerIcon size={s(14)} color={PALETTE.grey700} />
+                </View>
+              )}
+              {hasVideo && (
+                <View style={NewsCardStyles.videoIcon}>
+                  <Ionicons name="videocam" size={s(14)} color={PALETTE.grey700} />
                 </View>
               )}
               {!!newscomment && newscomment !== '0' && (
@@ -1769,6 +1777,22 @@ export default function CommonSectionScreen() {
           }
         });
 
+        // ✅ ADD: Most Commented section for all NRI subcategory tabs
+        if (d?.mostcommented?.data && Array.isArray(d.mostcommented.data) && d.mostcommented.data.length > 0) {
+          sections.push({
+            title: d.mostcommented.title || 'அதிகம் விமர்ச்சிக்கப்பட்டவை',
+            id: 'most_commented',
+            data: d.mostcommented.data.map(item => ({
+              ...item,
+              _isMostCommented: true,
+              _isSpecialSection: true,
+              _sectionType: 'most_commented'
+            })),
+            _isNriSection: true,
+            _isMostCommented: true,
+          });
+        }
+
         if (append && allSections.length > 0) {
           // Append new data to existing sections
           const updatedSections = allSections.map(existingSection => {
@@ -1865,6 +1889,22 @@ export default function CommonSectionScreen() {
             _isNriSection: true,
           });
         });
+
+        // ✅ ADD: Most Commented section for main NRI subcategories (News, Temple, etc.)
+        if (d?.mostcommented?.data && Array.isArray(d.mostcommented.data) && d.mostcommented.data.length > 0) {
+          sections.push({
+            title: d.mostcommented.title || 'அதிகம் விமர்ச்சிக்கப்பட்டவை',
+            id: 'most_commented',
+            data: d.mostcommented.data.map(item => ({
+              ...item,
+              _isMostCommented: true,
+              _isSpecialSection: true,
+              _sectionType: 'most_commented'
+            })),
+            _isNriSection: true,
+            _isMostCommented: true,
+          });
+        }
 
         const countrySubTabs = [
           { title: 'All', link: '/nrimain', _isAllTab: true },
@@ -2106,6 +2146,37 @@ export default function CommonSectionScreen() {
               _isNriSection: true,
             });
           }
+        }
+
+        // ✅ ADD: Most Commented and Most Viewed sections for Ulaga Tamilar All tab
+        if (d?.mostcommented?.data && Array.isArray(d.mostcommented.data) && d.mostcommented.data.length > 0) {
+          sections.push({
+            title: d.mostcommented.title || 'அதிகம் விமர்ச்சிக்கப்பட்டவை',
+            id: 'most_commented',
+            data: d.mostcommented.data.map(item => ({
+              ...item,
+              _isMostCommented: true,
+              _isSpecialSection: true,
+              _sectionType: 'most_commented'
+            })),
+            _isNriSection: true,
+            _isMostCommented: true,
+          });
+        }
+
+        if (d?.top10?.data && Array.isArray(d.top10.data) && d.top10.data.length > 0) {
+          sections.push({
+            title: d.top10.title || 'அதிகம் பார்த்தவைகள்',
+            id: 'most_viewed',
+            data: d.top10.data.map(item => ({
+              ...item,
+              _isMostViewed: true,
+              _isSpecialSection: true,
+              _sectionType: 'most_viewed'
+            })),
+            _isNriSection: true,
+            _isMostViewed: true,
+          });
         }
 
         // console.log('[DEBUG /nrimain] Final sections:', sections);
@@ -2638,6 +2709,15 @@ export default function CommonSectionScreen() {
       setTabLoading(true);
       setTabNews([]);
 
+      setActiveTab(prev => ({
+        ...prev,
+        _isAllTab: false,
+        _isNriRegionTab: true,
+        _isEnglishVersion: tab._isEnglishVersion,  // ← carry language forward
+        _activeSubCat: tab.id,
+        _activeSubCatTitle: tab.title,
+      }));
+
       // Fetch data directly for this subcategory with correct language
       fetchTabNews({
         ...tab,
@@ -2814,26 +2894,90 @@ const handleRefresh = () => {
       return;
     }
 
-    // ── 1. NRI ─────────────────────────────────────────────────────────────────
-    // ── 1. NRI ─────────────────────────────────────────────────────────────────────────
-    // ── 1. NRI ─────────────────────────────────────────────────────────────────
-    if (apiEndpoint === '/nrimain' || apiEndpoint.includes('/nri') || apiEndpoint.includes('otherstatenews')) {
-      // ✅ Always go to NewsDetailsScreen — removed tab switching on item click
-      navigation.navigate('NewsDetailsScreen', {
+    // ── Check if item has video ──────────────────────────────────────────────────
+    const hasVideo = (item.video === '1' || item.video === 1 || 
+                     (typeof item.video === 'string' && item.video.length > 0) ||
+                     item.video === true);
+    
+    if (hasVideo) {
+      console.log('🎥 Video item detected - navigating to VideoDetailsScreen');
+      navigation.navigate('VideoDetailsScreen', {
         newsId: item.newsid || item.id,
         newsItem: item,
         slug: item.slug || item.reacturl || '',
-        disableComments: false,
+        videoUrl: item.video,
       });
       return;
     }
-
-    // ── 2. Anmegam ─────────────────────────────────────────────────────────────
-    if (apiEndpoint.includes('anmegammainlist')) {
+    // ── 1. NRI ─────────────────────────────────────────────────────────────────────────
+    // ── 1. NRI ─────────────────────────────────────────────────────────────────
+    if (apiEndpoint === '/nrimain' || apiEndpoint.includes('/nri') || apiEndpoint.includes('otherstatenews')) {
+      // Detect NRI English mode
+      const isEnglish = activeTab?._isEnglishVersion || 
+                      item.link?.includes('lang=en') || 
+                      item.com_cat === 'nrienglish' || 
+                      item.com_cat === 'en' ||
+                      item.reacturl?.includes('world-news-nri-en') ||
+                      item.slug?.includes('world-news-nri-en');
+      
+      // Handle special case for Most Commented and Most Viewed items using flags
+      const isSpecialSection = item._isSpecialSection || item._isMostCommented || item._isMostViewed;
+      
+      console.log(' NRI Item Debug:', {
+        newsId: item.newsid,
+        id: item.id,
+        slug: item.slug,
+        reacturl: item.reacturl,
+        link: item.link,
+        maincategory: item.maincategory,
+        isEnglish: isEnglish,
+        _isSpecialSection: item._isSpecialSection,
+        _isMostCommented: item._isMostCommented,
+        _isMostViewed: item._isMostViewed,
+        _sectionType: item._sectionType
+      });
+      
+      // For Most Commented/Viewed items, use a different navigation approach
+      if (isSpecialSection) {
+        // Use the slug or reacturl to construct the proper URL
+        const itemSlug = item.slug || item.reacturl || item.catslug || '';
+        const itemLink = item.link || '';
+        
+        console.log('🔍 Navigating to Special Section item with slug:', itemSlug, 'link:', itemLink);
+        navigation.navigate('NewsDetailsScreen', {
+          newsId: item.id,
+          newsItem: item,
+          slug: itemSlug,
+          nriDetailLink: itemLink.startsWith('/') ? itemLink : `/${itemLink}`, // ← pass the full link with lang
+          isNriEnglish: isEnglish,
+          disableComments: false,
+          _isSpecialSection: true,
+          _sectionType: item._sectionType
+        });
+        return;
+      }
+      
+      // ✅ For regular NRI items, pass the nriDetailLink
+      const nriSlug = item.slug || item.reacturl || '';
+      
+      // item.link is like "nridetail?cat=53&lang=en" — needs leading slash
+      let nriDetailLink = item.link || '';
+      if (nriDetailLink && !nriDetailLink.startsWith('/')) {
+        nriDetailLink = `/${nriDetailLink}`;
+      }
+      // If no link, build it
+      if (!nriDetailLink) {
+        const lang = isEnglish ? 'en' : 'ta';
+        nriDetailLink = `/nridetail?cat=${item.newsid || item.id}&lang=${lang}`;
+      }
+      
+      console.log('🔍 NRI goToArticle - nriDetailLink:', nriDetailLink);
       navigation.navigate('NewsDetailsScreen', {
         newsId: item.newsid || item.id,
         newsItem: item,
-        slug: item.slug || item.reacturl || '',
+        slug: nriSlug,
+        nriDetailLink,
+        isNriEnglish: isEnglish,
         disableComments: false,
       });
       return;
@@ -3073,7 +3217,9 @@ const photoEndpoint = photoEndpointMap[sectionId];
       allSections.forEach(section => {
         console.log('[DEBUG buildFlatData] Processing section:', section.title, 'data length:', Array.isArray(section.data) ? section.data.length : 0);
         // Only add section title if title exists and is not empty string AND we're in main All tab (not country view)
-        if (section.title && section.title.trim() !== '' && !activeTab?._nriCountryTab) {
+        // Allow section headers for ulagatamilar content (varavaram) even in country views
+        const allowSectionHeaders = apiEndpoint?.includes('varavaram') || !activeTab?._nriCountryTab;
+        if (section.title && section.title.trim() !== '' && allowSectionHeaders) {
           console.log('[DEBUG buildFlatData] Adding section header:', section.title);
           flat.push({
             type: 'section',
@@ -3947,7 +4093,7 @@ const photoEndpoint = photoEndpointMap[sectionId];
 // Styles
 // ─────────────────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f2f2f2', paddingTop: Platform.OS === 'android' ? vs(0) : 20 },
+  container: { flex: 1, backgroundColor: '#f2f2f2', paddingTop: Platform.OS === 'android' ? vs(20) : 20 },
   pageTitleWrap: { paddingTop: vs(14), paddingBottom: vs(6), backgroundColor: '#fff' },
   pageTitle: { fontSize: 18, fontFamily: FONTS.anek.bold, color: '#111', paddingHorizontal: s(12), marginBottom: vs(4) },
 

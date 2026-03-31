@@ -648,6 +648,8 @@ export default function NewsDetailsScreen() {
     newsItem,
     newsList = [],
     disableComments = false,
+    nriDetailLink,
+    isNriEnglish,
   } = route.params || {};
 
   const [detail, setDetail] = useState(null);
@@ -869,17 +871,13 @@ export default function NewsDetailsScreen() {
 
     console.log('🔍 Is flash news:', isFlashNews);
 
-    // Immediately show available data without waiting for API
-    if (newsItem && !detail) {
-      console.log('🔍 Showing newsItem immediately:', newsItem.title || newsItem.newstitle);
+    // ✅ DON'T set detail to newsItem immediately - keep loading until API responds
+    // Only show flash news immediately without API fetch
+    if (isFlashNews && newsItem && !detail) {
+      console.log('🔍 Flash news detected - setting detail immediately, skipping API fetch');
       setDetail(newsItem);
       setLoading(false);
-      
-      // If it's flash news, don't fetch API - we already have complete data
-      if (isFlashNews) {
-        console.log('🔍 Flash news detected - skipping API fetch');
-        return;
-      }
+      return;
     }
 
     if (!id) {
@@ -889,11 +887,11 @@ export default function NewsDetailsScreen() {
       return;
     }
 
-    // Only fetch if we don't have complete data or need fresh data
-    try {
-      if (!newsItem) setLoading(true);
-      setError(null);
+    // ✅ Keep loading=true until API responds for non-flash news
+    if (!newsItem) setLoading(true);
+    setError(null);
 
+    try {
       // Add timeout to prevent hanging - increased for NRI content
       const timeoutPromise = new Promise((_, reject) =>
         setTimeout(() => reject(new Error('Request timeout')), 15000) // Increased to 15 seconds
@@ -902,15 +900,31 @@ export default function NewsDetailsScreen() {
       // Try different endpoints for NRI content
       let res;
       try {
-        res = await Promise.race([
-          mainApi.get(`/detaildata?newsid=${id}`),
-          timeoutPromise
-        ]);
+        // ✅ NRI content — use the link directly, it already has lang=en or lang=ta
+        if (nriDetailLink) {
+          console.log('🔍 NRI fetch using nriDetailLink:', nriDetailLink);
+          res = await Promise.race([
+            mainApi.get(nriDetailLink),
+            timeoutPromise
+          ]);
+        } else {
+          // ✅ Regular news — use standard endpoint
+          res = await Promise.race([
+            mainApi.get(`/detaildata?newsid=${id}`),
+            timeoutPromise
+          ]);
+        }
       } catch (error) {
-        // If main endpoint fails, try NRI-specific endpoint
-        console.log('Main endpoint failed, trying NRI endpoint for ID:', id);
+        // If main endpoint fails, try NRI-specific endpoint as fallback
+        // Detect language from the newsItem or use default
+        const isEnglishMode = isNriEnglish || newsItem?.com_cat === 'en' || 
+                             newsItem?.newsenglishtitle === 'nri' ||
+                             newsItem?.slug?.includes('world-news-nri-en');
+        
+        const lang = isEnglishMode ? 'en' : 'ta';
+        console.log('Main endpoint failed, trying NRI endpoint for ID:', id, 'language:', lang);
         res = await Promise.race([
-          mainApi.get(`/nridetail?cat=${id}&lang=ta`),
+          mainApi.get(`/nridetail?cat=${id}&lang=${lang}`),
           timeoutPromise
         ]);
       }
@@ -931,54 +945,19 @@ export default function NewsDetailsScreen() {
       console.log('🔍 Extracted article:', article);
       console.log('🔍 Article keys:', article ? Object.keys(article) : 'no article');
 
-      // Update state in batches to reduce re-renders
-      const updates = {};
-
-      if (data?.comments?.data && Array.isArray(data.comments.data)) {
-        updates.newsComments = data.comments.data;
-      } else if (Array.isArray(data?.comments)) {
-        updates.newsComments = data.comments;
-      } else if (article?.comments?.data) {
-        updates.newsComments = article.comments.data;
-      } else if (Array.isArray(article?.comments)) {
-        updates.newsComments = article.comments;
-      } else {
-        updates.newsComments = [];
-      }
-
-      updates.commentTotal = parseInt(data?.comments?.total, 10) || 0;
-      updates.nextNews = data?.detailnews?.nextnews || null;
-      updates.prevNews = data?.detailnews?.previousnews || null;
-      updates.relatedNewsData = data?.detailnews?.relatednews || [];
-      updates.detail = article || newsItem || null;
-      updates.taboolaAds = data?.taboola_ads?.mobile || null;
-      updates.googleFollowData = data?.googlefollowus?.[0] || null;
-      updates.trendingData = data?.trending || null;
-      updates.specialData = data?.specialtoday || null;
-      updates.mdescription = article?.mdescription || null;
-      updates.morenewsLink = data?.morenewslink || null;
-
-      // Debug logging for morenewslink extraction
-      // console.log('fetchDetail - data.morenewslink:', data?.morenewslink);
-      // console.log('fetchDetail - updates.morenewsLink:', updates.morenewsLink);
-
-      // Apply all updates at once
-      Object.entries(updates).forEach(([key, value]) => {
-        switch (key) {
-          case 'newsComments': setNewsComments(value); break;
-          case 'commentTotal': setCommentTotal(value); break;
-          case 'nextNews': setNextNews(value); break;
-          case 'prevNews': setPrevNews(value); break;
-          case 'relatedNewsData': setRelatedNewsData(value); break;
-          case 'detail': setDetail(value); break;
-          case 'taboolaAds': setTaboolaAds(value); break;
-          case 'googleFollowData': setGoogleFollowData(value); break;
-          case 'trendingData': setTrendingData(value); break;
-          case 'specialData': setSpecialData(value); break;
-          case 'mdescription': setMdescription(value); break;
-          case 'morenewsLink': setMorenewsLink(value); break;
-        }
-      });
+      // ✅ Only now set detail - from API response (not from newsItem)
+      setDetail(article || null);
+      setNextNews(data?.detailnews?.nextnews || null);
+      setPrevNews(data?.detailnews?.previousnews || null);
+      setRelatedNewsData(data?.detailnews?.relatednews || data?.relatednews || []);
+      setTaboolaAds(data?.taboola_ads?.mobile || null);
+      setGoogleFollowData(data?.googlefollowus?.[0] || null);
+      setTrendingData(data?.trending || null);
+      setSpecialData(data?.specialtoday || null);
+      setMdescription(article?.mdescription || null);
+      setMorenewsLink(data?.morenewslink || null);
+      setCommentTotal(parseInt(data?.comments?.total, 10) || 0);
+      setNewsComments(data?.comments?.data || []);
 
       // Fetch shorts data after detail is loaded
       fetchShorts();
@@ -991,14 +970,13 @@ export default function NewsDetailsScreen() {
 
     } catch (err) {
       console.error('Detail fetch error:', err?.message);
-      if (!detail) {
-        setDetail(newsItem || null);
-        if (!newsItem) setError('செய்தியை ஏற்ற முடியவில்லை.');
-      }
+      // ✅ Only fall back to newsItem on error
+      setDetail(newsItem || null);
+      if (!newsItem) setError('செய்தியை ஏற்ற முடியவில்லை.');
     } finally {
       setLoading(false);
     }
-  }, [newsId, newsItem]);
+  }, [newsId, newsItem, nriDetailLink, isNriEnglish]);
 
   // Check bookmark status when detail changes
   useEffect(() => {
@@ -1460,7 +1438,7 @@ return (
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.white, paddingTop: Platform.OS === 'android' ? vs(0) : 0 },
+  container: { flex: 1, backgroundColor: COLORS.white, paddingTop: Platform.OS === 'android' ? vs(20) : 20 },
   panLayer: { flex: 1, overflow: 'hidden' },
   animLayer: { flex: 1 },
   edgeBtnLeft: {
