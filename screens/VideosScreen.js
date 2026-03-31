@@ -15,11 +15,10 @@ import {
   Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Ionicons from '@expo/vector-icons/Ionicons';
+import { Shorts } from '../assets/svg/Icons';
 import RenderHtml from 'react-native-render-html';
 import AppHeaderComponent from '../components/AppHeaderComponent';
 import TopMenuStrip from '../components/TopMenuStrip';
-import CommentsModal from '../components/CommentsModal';
 import DrawerMenu from '../components/DrawerMenu';
 import LocationDrawer from '../components/LocationDrawer';
 import { ms, s, vs } from '../utils/scaling';
@@ -27,6 +26,7 @@ import { CDNApi, API_ENDPOINTS } from '../config/api';
 import { FONTS, NewsCard } from '../utils/constants';
 import { useFontSize } from '../context/FontSizeContext';
 import WebView from 'react-native-webview';
+import { Ionicons } from '@expo/vector-icons';
 
 // ─── Palette ────────────────────────────────────────────────────────────────────
 const PALETTE = {
@@ -97,7 +97,7 @@ const ShortCard = ({ video, onPress }) => {
         {/* Play overlay */}
         <View style={styles.shortCardPlayOverlay}>
           <View style={styles.shortCardPlayButton}>
-            <Ionicons name="videocam" size={s(12)} color="#fff" />
+            <Shorts size={s(15)} color="#fff" />
           </View>
         </View>
         {/* Title at bottom */}
@@ -113,36 +113,40 @@ const ShortCard = ({ video, onPress }) => {
   );
 };
 
-// ─── Shorts Section Row (horizontal scroll strip) ───────────────────────────────
-// Now receives `items` (the grouped reels for this strip) instead of all shorts
-const ShortsSectionRow = ({ items, onPress }) => {
+// ─── Shorts Section Grid (2-column grid like HomeScreen) ────────────────────────
+const ShortsSectionGrid = ({ items, onPress }) => {
   const { sf } = useFontSize();
   if (!items || items.length === 0) return null;
 
+  // Split data into 2 columns
+  const column1Data = items.filter((_, index) => index % 2 === 0);
+  const column2Data = items.filter((_, index) => index % 2 === 1);
+
   return (
-    <View style={styles.shortsSectionContainer}>
-      {/* <View style={styles.shortsSectionHeader}>
-        <View style={styles.shortsSectionTitleWrap}>
-          <Text style={[styles.shortsSectionTitle, { fontSize: sf(14) }]}>Shorts</Text>
-          <View style={styles.shortsSectionUnderline} />
+    <View style={styles.shortsGridContainer}>
+      <View style={styles.shortsColumnsContainer}>
+        {/* Column 1 */}
+        <View style={styles.shortsColumn}>
+          {column1Data.map((video, index) => (
+            <ShortCard
+              key={`shorts-col1-${index}-${video.videoid || video.id || index}`}
+              video={video}
+              onPress={onPress}
+            />
+          ))}
         </View>
-      </View> */}
-      <ScrollView
-        horizontal={true}
-        showsHorizontalScrollIndicator={false}
-        showsVerticalScrollIndicator={false}
-        nestedScrollEnabled={true}
-        contentContainerStyle={styles.shortsSectionScroll}
-        style={styles.shortsSectionScrollView}
-      >
-        {items.map((video, index) => (
-          <ShortCard
-            key={`short-${index}-${video.videoid || video.id || index}`}
-            video={video}
-            onPress={onPress}
-          />
-        ))}
-      </ScrollView>
+
+        {/* Column 2 */}
+        <View style={styles.shortsColumn}>
+          {column2Data.map((video, index) => (
+            <ShortCard
+              key={`shorts-col2-${index}-${video.videoid || video.id || index}`}
+              video={video}
+              onPress={onPress}
+            />
+          ))}
+        </View>
+      </View>
     </View>
   );
 };
@@ -185,7 +189,7 @@ function ImageWithFallback({ source, style, resizeMode = 'cover', iconSize = 40 
 }
 
 // ─── Video Card ─────────────────────────────────────────────────────────────────
-const VideoCard = ({ video, onPress, onCommentsPress, districtLabel }) => {
+const VideoCard = ({ video, onPress, districtLabel }) => {
   const { sf } = useFontSize();
 
   // Skip reels — they render in the shorts strip
@@ -195,7 +199,6 @@ const VideoCard = ({ video, onPress, onCommentsPress, districtLabel }) => {
   if (video.type === 'googlead') return null;
 
   const timeAgo = getTimeAgo(video.videodate);
-  const commentCount = parseInt(video.nmcomment || 0);
 
   // If a district is selected, show the district name as the pill label
   // Otherwise show the video's own category title
@@ -218,7 +221,7 @@ const VideoCard = ({ video, onPress, onCommentsPress, districtLabel }) => {
           {/* Duration badge */}
           {!!video.duration && (
             <View style={styles.durationBadge}>
-              <Text style={[styles.durationText, { fontSize: sf(11) }]}>{video.duration}</Text>
+              <Text style={[styles.durationText, { fontSize: ms(14) }]}>{video.duration}</Text>
             </View>
           )}
         </View>
@@ -230,12 +233,7 @@ const VideoCard = ({ video, onPress, onCommentsPress, districtLabel }) => {
             {video.videotitle}
           </Text>
 
-          {/* Date below title */}
-          <Text style={[NewsCard.timeText, { fontSize: sf(13) }]}>
-            {timeAgo || video.standarddate}
-          </Text>
-
-          {/* Category and comments in same row */}
+          {/* Category pill and ago text in same row */}
           <View style={[NewsCard.metaRow, {
             // marginBottom: vs(8),
             marginTop: vs(8)
@@ -248,16 +246,11 @@ const VideoCard = ({ video, onPress, onCommentsPress, districtLabel }) => {
                 </Text>
               </View>
             )}
-
-            {/* Comments button on right */}
-            <View style={NewsCard.metaRight}>
-              <TouchableOpacity style={NewsCard.commentRow} onPress={() => onCommentsPress?.(video)} activeOpacity={0.8}>
-                <Ionicons name="chatbox" size={s(15)} color={PALETTE.grey700} />
-                {!!commentCount && commentCount !== '0' && (
-                  <Text style={[NewsCard.commentText, { fontSize: sf(12) }]}> {commentCount}</Text>
-                )}
-              </TouchableOpacity>
-            </View>
+            
+            {/* Ago text on right */}
+            <Text style={[NewsCard.timeText, { fontSize: sf(12), marginLeft: 'auto' }]}>
+              {timeAgo || video.standarddate}
+            </Text>
           </View>
         </View>
       </TouchableOpacity>
@@ -497,7 +490,6 @@ const VideosScreen = ({ navigation, route }) => {
   const [selectedDistrictLabel, setSelectedDistrictLabel] = useState('உள்ளூர்');
   const [isDrawerVisible, setIsDrawerVisible] = useState(false);
   const [isLocDrawerOpen, setIsLocDrawerOpen] = useState(false);
-  const [commentsVisible, setCommentsVisible] = useState(false);
   const [selectedVideo, setSelectedVideo] = useState(null);
   const flatListRef = useRef(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
@@ -521,11 +513,20 @@ const VideosScreen = ({ navigation, route }) => {
       const params = new URLSearchParams();
 
       if (district) {
-        // District filter — use VIDEO_MAIN with cat=1585&districtid=xxx
-        params.append('cat', '1585');
-        params.append('districtid', district);
-        if (date) params.append('date', date);
-        if (page > 1) params.append('page', String(page));
+        // District filter with category combination
+        if (cat && cat !== '1585') {
+          // District + specific category (e.g., indhavaram + arasiyam)
+          params.append('cat', cat);
+          params.append('districtid', district);
+          if (date) params.append('date', date);
+          if (page > 1) params.append('page', String(page));
+        } else {
+          // District only (default to district news category 1585)
+          params.append('cat', '1585');
+          params.append('districtid', district);
+          if (date) params.append('date', date);
+          if (page > 1) params.append('page', String(page));
+        }
 
         const query = params.toString();
         endpoint = `${API_ENDPOINTS.VIDEO_MAIN}?${query}`;
@@ -702,37 +703,37 @@ const VideosScreen = ({ navigation, route }) => {
   const handleCategoryPress = (value) => {
     setActiveCategory(value);
     setSelectedFilter('');
-    setSelectedDistrict('');
+    // Don't clear selectedDistrict - keep district selection
 
     if (value === '1585' || value?.toString() === '1585') {
       fetchVideos({ cat: value, date: '', district: selectedDistrict || '' });
     } else {
-      fetchVideos({ cat: value, date: '', district: '' });
+      fetchVideos({ cat: value, date: '', district: selectedDistrict || '' });
     }
   };
 
-  // ── Date filter press — keeps district selection ──────────────────────────────
+  // ── Date filter press — keeps district and category selection ───────────────────
   const handleSelectFilter = (ename) => {
     const nextFilter = selectedFilter === ename ? '' : ename;
     setSelectedFilter(nextFilter);
-    setActiveCategory('');
+    // Don't clear activeCategory - keep category selection
     // Keep selectedDistrict — if district is also selected, filter by both
     fetchVideos({
-      cat: '',
+      cat: activeCategory, // keep current category
       date: nextFilter,
       district: selectedDistrict, // keep current district
     });
     setFilterVisible(false);
   };
 
-  // ── District press — keeps date filter selection ──────────────────────────────
+  // ── District press — keeps date filter and category selection ───────────────────
   const handleSelectDistrict = (id) => {
     const nextDistrict = selectedDistrict === id ? '' : id;
     setSelectedDistrict(nextDistrict);
-    setActiveCategory('');
+    // Don't clear activeCategory - keep category selection
     // Keep selectedFilter — if date is also selected, filter by both
     fetchVideos({
-      cat: '',
+      cat: activeCategory, // keep current category
       date: selectedFilter, // keep current date filter
       district: nextDistrict,
     });
@@ -745,8 +746,8 @@ const VideosScreen = ({ navigation, route }) => {
     setIsLocDrawerOpen(false);
     if (district.id) {
       setSelectedDistrict(String(district.id));
-      // Fetch videos for selected district
-      fetchVideos({ cat: '1585', date: '', district: String(district.id) });
+      // Fetch videos for selected district, keeping current category
+      fetchVideos({ cat: activeCategory || '1585', date: selectedFilter || '', district: String(district.id) });
     }
   };
 
@@ -802,20 +803,11 @@ const VideosScreen = ({ navigation, route }) => {
   const handleSearch = () => navigation?.navigate?.('Search');
   const handleNotification = () => console.log('Notifications');
 
-  // ── Comment press handler ─────────────────────────────────────────────────────
-  const handleCommentsPress = (video) => {
-    navigation?.navigate('VideoDetailScreen', { 
-      video: video,
-      fromScreen: 'VideosScreen'
-    });
-  };
 
   const hasActiveFilter = !!selectedFilter || !!selectedDistrict;
 
   const activeFilterLabel =
     filterOptions.find((f) => f.ename === selectedFilter)?.name;
-  const activeDistrictLabel =
-    districtOptions.find((d) => String(d.id) === selectedDistrict)?.title;
 
   // ── Build listData preserving API order ───────────────────────────────────────
   // Walks allVideos in original order.
@@ -1022,10 +1014,10 @@ const VideosScreen = ({ navigation, route }) => {
           return item.videoid || item.id || `video_${idx}`;
         }}
         renderItem={({ item, index }) => {
-          // ── Shorts strip ───────────────────────────────────────────────
+          // ── Shorts grid ───────────────────────────────────────────────
           if (item._type === 'shorts_strip') {
             return (
-              <ShortsSectionRow
+              <ShortsSectionGrid
                 items={item.items}
                 onPress={(v) => {
                   // Open shorts link in Chrome instead of VideoDetailScreen
@@ -1056,7 +1048,6 @@ const VideosScreen = ({ navigation, route }) => {
             <VideoCard
               video={item}
               onPress={(v) => navigation?.navigate?.('VideoDetailScreen', { video: v })}
-              onCommentsPress={handleCommentsPress}
               districtLabel={selectedDistrict
                 ? districtOptions.find(d => String(d.id) === selectedDistrict)?.title || ''
                 : ''
@@ -1091,15 +1082,6 @@ const VideosScreen = ({ navigation, route }) => {
           setFilterVisible(false);
         }}
       />
-      {/* Comments Modal */}
-      <CommentsModal
-        visible={commentsVisible}
-        onClose={() => setCommentsVisible(false)}
-        newsId={selectedVideo?.videoid}
-        newsTitle={selectedVideo?.videotitle}
-        commentCount={parseInt(selectedVideo?.nmcomment || 0)}
-      />
-
       {/* Drawer Menu */}
       <DrawerMenu
         isVisible={isDrawerVisible}
@@ -1276,11 +1258,11 @@ const styles = StyleSheet.create({
     borderLeftColor: PALETTE.white,
   },
   durationBadge: {
-    position: 'absolute', bottom: 0, right: s(5),
+    position: 'absolute', bottom: 4, right: s(2),
     backgroundColor: 'rgba(0,0,0,0.72)',
     paddingHorizontal: s(7), paddingVertical: vs(2),
   },
-  durationText: { color: PALETTE.white, fontSize: ms(15), fontWeight: '700' },
+  durationText: { color: PALETTE.white, fontSize: ms(13), fontWeight: '700' ,fontFamily:FONTS.muktaMalar.semibold},
   commentIndicator: {
     position: 'absolute', top: s(8), right: s(8),
     backgroundColor: 'rgba(0,0,0,0.72)',
@@ -1322,7 +1304,7 @@ const styles = StyleSheet.create({
   },
   playButtonOverlay: {
     position: 'absolute',
-    bottom: s(8), left: s(8),
+    bottom: s(5), left: s(5),
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1334,21 +1316,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  durationBadge: {
-    position: 'absolute',
-    bottom: s(8),
-    right: s(8),
-    backgroundColor: 'rgba(0,0,0,0.8)',
-    paddingHorizontal: s(6),
-    paddingVertical: vs(2),
-    borderRadius: s(4),
-  },
-  durationText: {
-    color: '#FFFFFF',
-    fontSize: ms(11),
-    fontWeight: '600',
-    fontFamily: FONTS.muktaMalar.medium,
-  },
+ 
+ 
   commentBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1494,28 +1463,44 @@ const styles = StyleSheet.create({
     marginLeft: s(8), color: PALETTE.grey600, fontFamily: FONTS.muktaMalar.regular,
   },
 
+  // ─── Shorts Section Grid ──────────────────────────────────────────────────────
+  shortsGridContainer: {
+    backgroundColor: PALETTE.white,
+    paddingVertical: vs(12),
+    borderBottomWidth: 1,
+    borderBottomColor: PALETTE.grey300,
+  },
+  shortsColumnsContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: s(12),
+    justifyContent: 'space-between',
+  },
+  shortsColumn: {
+    flex: 1,
+    marginHorizontal: s(2),
+  },
+
   // ─── Short Card (HomeScreen ShortsCard style) ────────────────────────────────
   shortCard: {
-    width: s(120),
-    marginRight: s(12),
-    flexShrink: 0,
+    width: '100%',
+    marginBottom: vs(8),
   },
   shortCardImageContainer: {
-    width: s(120),
-    height: vs(200),
+    width: '100%',
+    height: vs(250),
     borderRadius: s(8),
     overflow: 'hidden',
     backgroundColor: PALETTE.grey200,
   },
   shortCardImage: {
-    width: s(120),
-    height: vs(200),
+    width: '100%',
+    height: '100%',
   },
   shortCardPlayOverlay: {
     position: 'absolute',
     top: 0, left: 0,
-    width: s(120),
-    height: vs(200),
+    width: '100%',
+    height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
     // backgroundColor: 'rgba(0,0,0,0.3)',
@@ -1524,10 +1509,10 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: s(8),
     right: s(8),
-    width: s(32),
-    height: s(32),
-    borderRadius: s(16),
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    width: s(28),
+    height: s(28),
+    borderRadius: s(14),
+    backgroundColor: 'rgba(0,0,0,0.7)',
     justifyContent: 'center',
     alignItems: 'center',
     paddingLeft: s(2),
@@ -1543,8 +1528,7 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.muktaMalar.bold,
     color: '#FFFFFF',
     textAlign: 'center',
-    textShadowColor: 'rgba(0,0,0,0.8)',
-    textShadowOffset: { width: 1, height: 1 },
+    fontSize: ms(10),
   },
 
   // ─── Shorts Section Row ──────────────────────────────────────────────────────
