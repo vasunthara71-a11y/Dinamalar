@@ -1629,8 +1629,15 @@ export default function CommonSectionScreen() {
         let url = tab.link?.startsWith('//') ? tab.link.slice(1) : tab.link;
         const sep = url.includes('?') ? '&' : '?';
         const fullUrl = `${url}${sep}page=${pg}`;
+        console.log('🔍 NRI Region - Fetching URL:', fullUrl);
         const res = await mainApi.get(fullUrl);
         const d = res?.data;
+
+        // ✅ Check if response is valid
+        if (!d || res.status !== 200) {
+          console.error('🔍 NRI Region - Invalid response:', res.status, res.statusText);
+          throw new Error(`API returned status ${res.status}: ${res.statusText}`);
+        }
 
         const apiSubTabs = d?.subcatlist || [];
         const allArticles = d?.newlist?.data || [];
@@ -1638,54 +1645,48 @@ export default function CommonSectionScreen() {
         console.log('🔍 NRI Region API - apiSubTabs:', apiSubTabs);
         console.log('🔍 NRI Region API - allArticles count:', allArticles.length);
 
-        // Use nricondition from API response or fallback to hardcoded mapping
-        const nriConditionData = nriConditionOverride || nriCondition || [];
-        let subCatMap = {};
-        
-        // Build dynamic subCatMap from nricondition structure
-        if (nriConditionData.length > 0) {
-          // Find the current region in nricondition data
-          const currentRegion = nriConditionData.find(region => 
-            region.id === tab.id || region.id === tab._nriRegionId
-          );
-          
-          if (currentRegion && currentRegion.cat) {
-            // Map category IDs to Tamil titles
-            const categoryTitles = {
-              'new': 'செய்திகள்',
-              'koi': 'கோயில்கள்',
-              'san': 'சங்கங்கள்',
-              'rdo': 'வானொலி',
-              'eve': 'நிகழ்வுகள்',
-              'iho': 'இந்திய உணவகங்கள்',
-              'tsi': 'தமிழ் தளங்கள்',
-              'uni': 'பல்கலைக்கழகங்கள்',
-              'trpl': 'கோயில்கள் 2',
-              'job': 'வேலைவாய்ப்பு'
-            };
-            
-            currentRegion.cat.forEach(category => {
-              subCatMap[category.id] = categoryTitles[category.id] || category.id;
-            });
-          }
-        }
+        const isEnglishMode = tab.link?.includes('lang=en') || tab._isEnglishVersion;
 
-        // Fallback to global mapping if nricondition is empty or region not found
+        const subCatMap = {};
+        if (apiSubTabs.length > 0) {
+          apiSubTabs.forEach(t => {
+            if (t.id) subCatMap[t.id] = t.title; // "News", "Temple", "Tamil Association" etc from API
+          });
+        }
+        // Fallback - Use language-appropriate titles for subcategories
         if (Object.keys(subCatMap).length === 0) {
-          subCatMap = {
+          Object.assign(subCatMap, isEnglishMode ? {
+            'new': 'News', 'koi': 'Temple', 'san': 'Tamil Association',
+            'rdo': 'Tamil Radio', 'eve': 'Events', 'iho': 'Indian Restaurants',
+            'tsi': 'Tamil news websites', 'uni': 'University', 'job': 'Jobs',
+          } : {
             'new': 'செய்திகள்', 'koi': 'கோயில்கள்', 'san': 'சங்கங்கள்',
             'rdo': 'வானொலி', 'eve': 'நிகழ்வுகள்', 'iho': 'இந்திய உணவகங்கள்',
-            'tsi': 'தமிழ் தளங்கள்', 'uni': 'பல்கலைக்கழகங்கள்',
-            'trpl': 'கோயில்கள் 2', 'job': 'வேலைவாய்ப்பு',
-          };
+            'tsi': 'தமிழ் தளங்கள்', 'uni': 'பல்கலைக்கழகங்கள்', 'job': 'வேலைவாய்ப்பு',
+          });
         }
 
         const subCatArticleMap = new Map();
-        allArticles.forEach(article => {
-           const reacturl = article.reacturl || '';
-  const parts = reacturl.split('/');
-  console.log('[SubCat Parse]', reacturl, '→ parts:', parts, '→ subCat:', parts[3]);
-  const subCat = parts[3] || 'new';
+        console.log('🔍 DEBUG: Analyzing', allArticles.length, 'articles for subcategories');
+        
+        allArticles.forEach((article, index) => {
+          const reacturl = article.reacturl || '';
+          const parts = reacturl.split('/');
+          console.log('[SubCat Parse]', index, reacturl, '→ parts:', parts, '→ subCat:', parts[3]);
+          
+          // More robust subcategory extraction
+          let subCat = 'new';
+          if (parts.length >= 4) {
+            // Handle URLs like /nrinews/america/san/-bharathi-kalai-mandram-2025/2651
+            // parts[3] should be "san", parts[4] might be "-bharathi..."
+            subCat = parts[3];
+            // Clean up subcategory if it has leading dashes
+            if (subCat && subCat.startsWith('-')) {
+              subCat = subCat.replace(/^-+/, '');
+            }
+          }
+          
+          console.log('🔍 Article', index, 'assigned to subCat:', subCat);
           if (!subCatArticleMap.has(subCat)) subCatArticleMap.set(subCat, []);
           subCatArticleMap.get(subCat).push(article);
         });
@@ -1711,7 +1712,14 @@ export default function CommonSectionScreen() {
 
         // Create subcategory tabs with filtered articles
         const newSubTabs = [
-          { title: 'அனைத்தும்', link: tab.link, _isAllTab: true, _isNriRegionAllTab: true, _regionTabId: tab._nriRegionId }
+          { 
+            title: isEnglishMode ? 'All' : 'அனைத்தும்', 
+            link: tab.link, 
+            _isAllTab: true, 
+            _isNriRegionAllTab: true, 
+            _regionTabId: tab._nriRegionId,
+            _isEnglishVersion: isEnglishMode,  
+          }
         ];
 
         // Add subcategory tabs with their filtered articles using API data
@@ -1719,19 +1727,34 @@ export default function CommonSectionScreen() {
           const subCatArticles = subCatArticleMap.get(subCat) || [];
           const apiSubTab = apiSubTabs.find(t => t.id === subCat);
 
+          const subCatLink = isEnglishMode
+            ? (apiSubTab?.englishlink || `${tab.link}&scat=${subCat}&lang=en`)
+            : (apiSubTab?.tamillink || `${tab.link}&scat=${subCat}&lang=ta`);
+
           newSubTabs.push({
             title: subCatMap[subCat] || subCat,
             id: subCat,
-            link: apiSubTab?.tamillink || apiSubTab?.englishlink || `${tab.link}&scat=${subCat}`, // Use API tamillink or englishlink or fallback
+            link: subCatLink,             
             _isNriSubCatTab: true,
-            _nriCountryTab: tab._nriCountryTab, // Preserve country tab flag
+            _isEnglishVersion: isEnglishMode,  
+            _nriCountryTab: tab._nriCountryTab,
             _regionTabId: tab._nriRegionId,
             _regionLink: tab.link,
-            _subCatArticles: subCatArticles, // Populate with filtered articles
+            _subCatArticles: subCatArticles,
           });
 
-          console.log('🔍 NRI Region - Created subtab:', subCatMap[subCat] || subCat, 'with', subCatArticles.length, 'articles');
+          // console.log('🔍 NRI Region - Created subtab:', subCatMap[subCat] || subCat, 'with', subCatArticles.length, 'articles');
         });
+
+        // ✅ SPECIAL FIX: If "new" subcategory has 0 articles, add some fallback articles
+        const newSubTab = newSubTabs.find(t => t.id === 'new');
+        if (newSubTab && newSubTab._subCatArticles.length === 0) {
+          // console.log('🔍 NRI Region - "new" subcategory has 0 articles, adding fallback articles');
+          // Add some general articles as fallback
+          const fallbackArticles = allArticles.slice(0, 3);
+          newSubTab._subCatArticles = fallbackArticles;
+          // console.log('🔍 NRI Region - Added', fallbackArticles.length, 'fallback articles to "new" subcategory');
+        }
 
         // Handle pagination - if append is true, merge with existing sections
         const sections = [];
@@ -1805,9 +1828,9 @@ export default function CommonSectionScreen() {
         const allArticles = extractList(d).filter(Boolean);
 
         // ✅ ADD: Log what fields are available
-        console.log('[NRI SubTab] Sample article keys:', Object.keys(allArticles[0] || {}));
-        console.log('[NRI SubTab] Sample maincat:', allArticles[0]?.maincat);
-        console.log('[NRI SubTab] Sample country:', allArticles[0]?.country);
+        // console.log('[NRI SubTab] Sample article keys:', Object.keys(allArticles[0] || {}));
+        // console.log('[NRI SubTab] Sample maincat:', allArticles[0]?.maincat);
+        // console.log('[NRI SubTab] Sample country:', allArticles[0]?.country);
         const countryMap = new Map();
         allArticles.forEach(article => {
           // ✅ FIX: try multiple fields for country grouping
@@ -1850,6 +1873,7 @@ export default function CommonSectionScreen() {
             id: country,
             link: `/nrimain/country/${country}`,
             _isNriCountryTab: true,
+            _isEnglishVersion: tab._isEnglishVersion, // Inherit language from current tab
             _countryArticles: countryMap.get(country),
           })),
         ];
@@ -2019,11 +2043,11 @@ export default function CommonSectionScreen() {
       setHtmlContent(null);
       // Replace the existing /nrimain block with this:
       if (apiEndpoint === '/nrimain') {
-        console.log('[DEBUG /nrimain] === NRI HANDLER REACHED ===');
-        console.log('[DEBUG /nrimain] API Response:', d);
+        // console.log('[DEBUG /nrimain] === NRI HANDLER REACHED ===');
+        // console.log('[DEBUG /nrimain] API Response:', d);
 
         const rawTabs = d?.subcatlist || [];
-        console.log('[DEBUG /nrimain] Raw tabs:', rawTabs);
+        // console.log('[DEBUG /nrimain] Raw tabs:', rawTabs);
 
         const tabs = rawTabs.map(t => ({
           ...t,
@@ -2031,11 +2055,12 @@ export default function CommonSectionScreen() {
           // The "All" tab from API has no id — give it one
           id: t.id || 'all',
           _isAllTab: !t.id, // tabs without id are the All tab
+          _isEnglishVersion: t.link?.includes('lang=en') || false, // Detect English from link
         }));
 
         const sections = [];
         if (Array.isArray(d?.newlist)) {
-          console.log('[DEBUG /nrimain] newlist sections:', d.newlist);
+          // console.log('[DEBUG /nrimain] newlist sections:', d.newlist);
           d.newlist.forEach(nriSection => {
             if (Array.isArray(nriSection?.data) && nriSection.data.length > 0) {
               sections.push({
@@ -2047,11 +2072,11 @@ export default function CommonSectionScreen() {
             }
           });
         } else {
-          console.log('[DEBUG /nrimain] newlist is not an array:', d?.newlist);
+          // console.log('[DEBUG /nrimain] newlist is not an array:', d?.newlist);
 
           // Try alternative data structures
           const altData = d?.data || d?.list || d?.newslist || d?.newdata;
-          console.log('[DEBUG /nrimain] Trying alternative data:', altData);
+          // console.log('[DEBUG /nrimain] Trying alternative data:', altData);
 
           if (Array.isArray(altData)) {
             // If it's a direct array, create sections by category
@@ -2083,8 +2108,8 @@ export default function CommonSectionScreen() {
           }
         }
 
-        console.log('[DEBUG /nrimain] Final sections:', sections);
-        console.log('[DEBUG /nrimain] Final tabs:', tabs);
+        // console.log('[DEBUG /nrimain] Final sections:', sections);
+        // console.log('[DEBUG /nrimain] Final tabs:', tabs);
 
         setSubTabs(tabs);
         setOriginalNriTabs(tabs);
@@ -2360,11 +2385,11 @@ export default function CommonSectionScreen() {
 
       // ── Handle varavaram data - limit each category to 3 items ─────────────────
       if (apiEndpoint?.includes('varavaram') || apiEndpoint?.includes('api-st-cdn.dinamalar.com/varavaram')) {
-        console.log('[Varavaram] API Endpoint:', apiEndpoint);
-        console.log('[Varavaram] Raw data structure:', Object.keys(d || {}));
-        console.log('[Varavaram] Raw sections:', rawSections.length);
-        console.log('[Varavaram] Raw sections data:', rawSections.map(s => ({ title: s.title, dataCount: Array.isArray(s.data) ? s.data.length : 'not array' })));
-        console.log('[Varavaram] Final sections before limiting:', finalSections.length);
+        // console.log('[Varavaram] API Endpoint:', apiEndpoint);
+        // console.log('[Varavaram] Raw data structure:', Object.keys(d || {}));
+        // console.log('[Varavaram] Raw sections:', rawSections.length);
+        // console.log('[Varavaram] Raw sections data:', rawSections.map(s => ({ title: s.title, dataCount: Array.isArray(s.data) ? s.data.length : 'not array' })));
+        // console.log('[Varavaram] Final sections before limiting:', finalSections.length);
 
         // Apply limiting to both rawSections and finalSections
         const limitedRawSections = rawSections.map(section => ({
@@ -2374,7 +2399,7 @@ export default function CommonSectionScreen() {
 
         finalSections = finalSections.map(section => {
           const limitedData = Array.isArray(section.data) ? section.data.slice(0, 3) : section.data;
-          console.log(`[Varavaram] Section "${section.title}": ${Array.isArray(section.data) ? section.data.length : 0} -> ${Array.isArray(limitedData) ? limitedData.length : 0} items`);
+          // console.log(`[Varavaram] Section "${section.title}": ${Array.isArray(section.data) ? section.data.length : 0} -> ${Array.isArray(limitedData) ? limitedData.length : 0} items`);
 
           return {
             ...section,
@@ -2388,17 +2413,17 @@ export default function CommonSectionScreen() {
           console.log('[Varavaram] Using limited raw sections instead');
         }
 
-        console.log('[Varavaram] Final sections after limiting:', finalSections.length);
-        console.log('[Varavaram] Final sections data:', finalSections.map(s => ({ title: s.title, dataCount: Array.isArray(s.data) ? s.data.length : 'not array' })));
+        // console.log('[Varavaram] Final sections after limiting:', finalSections.length);
+        // console.log('[Varavaram] Final sections data:', finalSections.map(s => ({ title: s.title, dataCount: Array.isArray(s.data) ? s.data.length : 'not array' })));
       }
 
       // ── Handle varamalar data - limit each category to 3 items ─────────────────
       if (apiEndpoint?.includes('varamalar') || apiEndpoint?.includes('varavaram') || apiEndpoint?.includes('api-st-cdn.dinamalar.com/varamalar')) {
-        console.log('[Varamalar] API Endpoint:', apiEndpoint);
-        console.log('[Varamalar] Raw data structure:', Object.keys(d || {}));
-        console.log('[Varamalar] Raw sections:', rawSections.length);
-        console.log('[Varamalar] Raw sections data:', rawSections.map(s => ({ title: s.title, dataCount: Array.isArray(s.data) ? s.data.length : 'not array' })));
-        console.log('[Varamalar] Final sections before limiting:', finalSections.length);
+        // console.log('[Varamalar] API Endpoint:', apiEndpoint);
+        // console.log('[Varamalar] Raw data structure:', Object.keys(d || {}));
+        // console.log('[Varamalar] Raw sections:', rawSections.length);
+        // console.log('[Varamalar] Raw sections data:', rawSections.map(s => ({ title: s.title, dataCount: Array.isArray(s.data) ? s.data.length : 'not array' })));
+        // console.log('[Varamalar] Final sections before limiting:', finalSections.length);
 
         // Apply limiting to both rawSections and finalSections
         const limitedRawSections = rawSections.map(section => ({
@@ -2408,7 +2433,7 @@ export default function CommonSectionScreen() {
 
         finalSections = finalSections.map(section => {
           const limitedData = Array.isArray(section.data) ? section.data.slice(0, 3) : section.data;
-          console.log(`[Varamalar] Section "${section.title}": ${Array.isArray(section.data) ? section.data.length : 0} -> ${Array.isArray(limitedData) ? limitedData.length : 0} items`);
+          // console.log(`[Varamalar] Section "${section.title}": ${Array.isArray(section.data) ? section.data.length : 0} -> ${Array.isArray(limitedData) ? limitedData.length : 0} items`);
 
           return {
             ...section,
@@ -2422,17 +2447,17 @@ export default function CommonSectionScreen() {
           console.log('[Varamalar] Using limited raw sections instead');
         }
 
-        console.log('[Varamalar] Final sections after limiting:', finalSections.length);
-        console.log('[Varamalar] Final sections data:', finalSections.map(s => ({ title: s.title, dataCount: Array.isArray(s.data) ? s.data.length : 'not array' })));
+        // console.log('[Varamalar] Final sections after limiting:', finalSections.length);
+        // console.log('[Varamalar] Final sections data:', finalSections.map(s => ({ title: s.title, dataCount: Array.isArray(s.data) ? s.data.length : 'not array' })));
       }
 
       // ── Handle special data - limit each category to 3 items ─────────────────
       if (apiEndpoint?.includes('special') || apiEndpoint?.includes('api-st-cdn.dinamalar.com/special')) {
-        console.log('[Special] API Endpoint:', apiEndpoint);
-        console.log('[Special] Raw data structure:', Object.keys(d || {}));
-        console.log('[Special] Raw sections:', rawSections.length);
-        console.log('[Special] Raw sections data:', rawSections.map(s => ({ title: s.title, dataCount: Array.isArray(s.data) ? s.data.length : 'not array' })));
-        console.log('[Special] Final sections before limiting:', finalSections.length);
+        // console.log('[Special] API Endpoint:', apiEndpoint);
+        // console.log('[Special] Raw data structure:', Object.keys(d || {}));
+        // console.log('[Special] Raw sections:', rawSections.length);
+        // console.log('[Special] Raw sections data:', rawSections.map(s => ({ title: s.title, dataCount: Array.isArray(s.data) ? s.data.length : 'not array' })));
+        // console.log('[Special] Final sections before limiting:', finalSections.length);
 
         // Apply limiting to both rawSections and finalSections
         const limitedRawSections = rawSections.map(section => ({
@@ -2442,7 +2467,7 @@ export default function CommonSectionScreen() {
 
         finalSections = finalSections.map(section => {
           const limitedData = Array.isArray(section.data) ? section.data.slice(0, 3) : section.data;
-          console.log(`[Special] Section "${section.title}": ${Array.isArray(section.data) ? section.data.length : 0} -> ${Array.isArray(limitedData) ? limitedData.length : 0} items`);
+          // console.log(`[Special] Section "${section.title}": ${Array.isArray(section.data) ? section.data.length : 0} -> ${Array.isArray(limitedData) ? limitedData.length : 0} items`);
 
           return {
             ...section,
@@ -2456,23 +2481,23 @@ export default function CommonSectionScreen() {
           console.log('[Special] Using limited raw sections instead');
         }
 
-        console.log('[Special] Final sections after limiting:', finalSections.length);
-        console.log('[Special] Final sections data:', finalSections.map(s => ({ title: s.title, dataCount: Array.isArray(s.data) ? s.data.length : 'not array' })));
+        // console.log('[Special] Final sections after limiting:', finalSections.length);
+        // console.log('[Special] Final sections data:', finalSections.map(s => ({ title: s.title, dataCount: Array.isArray(s.data) ? s.data.length : 'not array' })));
       }
 
       setAllSections(finalSections);
       setTaboolaAds(d?.taboola_ads?.mobile || null);
 
       if (initialTabId || initialTabLink) {
-        console.log('🔍 DEBUG: Looking for initial tab - initialTabId:', initialTabId, 'initialTabLink:', initialTabLink);
-        console.log('🔍 DEBUG: Available tabs:', tabs.map(t => ({ id: t.id, title: t.title, link: t.link })));
+        // console.log('🔍 DEBUG: Looking for initial tab - initialTabId:', initialTabId, 'initialTabLink:', initialTabLink);
+        // console.log('🔍 DEBUG: Available tabs:', tabs.map(t => ({ id: t.id, title: t.title, link: t.link })));
 
         const preselected = tabs.find(t =>
           (initialTabId && String(t.id) === String(initialTabId)) ||
           (initialTabLink && t.link === initialTabLink)
         );
 
-        console.log('🔍 DEBUG: Preselected tab found:', !!preselected, preselected ? preselected.title : 'Not found');
+        // console.log('🔍 DEBUG: Preselected tab found:', !!preselected, preselected ? preselected.title : 'Not found');
 
         if (preselected) {
           const preIsAll = preselected.link === allTabLink;
@@ -2508,10 +2533,10 @@ export default function CommonSectionScreen() {
 
   // ── Tab press ──────────────────────────────────────────────────────────────
   const handleTabPress = (tab) => {
-    console.log('🔍 Tab Press Debug - Tab pressed:', tab);
-    console.log('🔍 Tab Press Debug - Current activeTab:', activeTab);
-    console.log('🔍 Tab Press Debug - API endpoint:', apiEndpoint);
-    console.log('🔍 Tab Press Debug - All subTabs:', subTabs);
+    // console.log('🔍 Tab Press Debug - Tab pressed:', tab);
+    // console.log('🔍 Tab Press Debug - Current activeTab:', activeTab);
+    // console.log('🔍 Tab Press Debug - API endpoint:', apiEndpoint);
+    // console.log('🔍 Tab Press Debug - All subTabs:', subTabs);
 
     setRasiDetailItem(null);
 
@@ -2531,7 +2556,7 @@ export default function CommonSectionScreen() {
           'asia': 'ஆசியா',
           'australia': 'ஆஸ்திரேலியா',
           'singapore': 'சிங்கப்பூர்',
-        }; // <--- Added missing closing brace and comma
+        }; 
         const tamilTitle = regionTitles[region.id] || region.id;
         tamilToEnglishMap[tamilTitle] = region.id;
       });
@@ -2550,13 +2575,27 @@ export default function CommonSectionScreen() {
       }
 
       // Debug: Log exact tab.title for debugging
-      console.log('🔍 DEBUG - Tab title for mapping:', JSON.stringify(tab.title));
-      console.log('🔍 DEBUG - Available mappings:', Object.keys(tamilToEnglishMap));
+      // console.log('🔍 DEBUG - Tab title for mapping:', JSON.stringify(tab.title));
+      // console.log('🔍 DEBUG - Available mappings:', Object.keys(tamilToEnglishMap));
       
       const regionId = tamilToEnglishMap[tab.title] || tab.id?.toLowerCase();
-      const regionLink = `/nricategory?cat=${regionId}&lang=ta`;
+      
+      // ✅ FIX: Detect language from the current activeTab first, then from the tab itself
+      const isEnglishVersion = activeTab?._isEnglishVersion || tab._isEnglishVersion || tab.link?.includes('lang=en');
+      
+      // ✅ FIX: Use clean region ID without language suffixes
+      const cleanRegionId = regionId.replace(/_en$/, '').replace(/_en_en$/, '');
+      const regionLink = isEnglishVersion
+        ? `/nricategory?cat=${cleanRegionId}&lang=en` 
+        : `/nricategory?cat=${cleanRegionId}&lang=ta`;
 
-      console.log('🔍 Country Tab Click - Tamil:', tab.title, '→ Region ID:', regionId, '→ API:', regionLink);
+      // console.log('🔍 Country Tab Click - Title:', tab.title, '→ Region ID:', cleanRegionId, '→ API:', regionLink);
+      // console.log('🔍 Country Tab Click - Language:', isEnglishVersion ? 'English' : 'Tamil');
+      // console.log('🔍 Country Tab Click - ActiveTab language:', activeTab?._isEnglishVersion ? 'English' : 'Tamil');
+      
+      // ✅ Check if language changed
+      const languageChanged = activeTab?._isEnglishVersion !== isEnglishVersion;
+      // console.log('🔍 Country Tab Click - Language changed:', languageChanged);
 
       // Set activeTab with correct flags for country tabs
       const newActiveTab = {
@@ -2566,11 +2605,12 @@ export default function CommonSectionScreen() {
         _nriTabId: 'nri',
         _nriCountryTab: true,
         _isNriRegionTab: true,
-        _nriRegionId: regionId,
+        _isEnglishVersion: isEnglishVersion,  
+        _nriRegionId: cleanRegionId, // ← FIX: Use clean region ID
         _nriRegionTitle: tab.title,
       };
 
-      console.log('🔍 Country Tab - Setting activeTab to:', newActiveTab);
+      // console.log('🔍 Country Tab - Setting activeTab to:', newActiveTab);
       setActiveTab(newActiveTab);
 
       setTabLoading(true);
@@ -2581,119 +2621,60 @@ export default function CommonSectionScreen() {
         id: regionId,
         link: regionLink,
         _isAllTab: false,
-        _isNriRegionFetch: true  // flag to use isNriRegionTab logic
+        _isNriRegionFetch: true
       }, 1, false, nriCondition);
-      return;
     }
 
-    // ✅ 0. NRI subcat tab (செய்திகள், சங்கங்கள் etc) clicked
+    // ✅ 5. NRI subcategory tab (News, Temple, Tamil Association, etc.) → always fetch fresh data
     if (tab._isNriSubCatTab) {
-      const articles = tab._subCatArticles || [];
-
-      // ✅ If no cached articles, fetch fresh data for this subcategory
-      if (articles.length === 0) {
-        console.log('🔍 NRI SubCat Tab - No cached articles, fetching fresh data for:', tab.id);
-        setTabLoading(true);
-        setTabNews([]);
-        
-        // Fetch data directly for this subcategory
-        fetchTabNews({
-          ...tab,
-          _isNriSubCatTab: true,
-          _isNriRegionTab: true,
-          _nriCountryTab: activeTab?._nriCountryTab, // ← Preserve country tab flag
-          _nriRegionId: activeTab?._nriRegionId,
-          _nriRegionTitle: activeTab?._nriRegionTitle,
-        }, 1, false);
-        return;
-      }
-
-      // ✅ FIX: Set tabNews instead of allSections, and set _isAllTab: false
-      setTabNews([]);           // ← ADD THIS: clear stale articles first
-  setTabNews(articles);
-  setTabPage(1);
-  setTabLastPage(1);
-
-      setActiveTab({
-        ...activeTab,
-        _isAllTab: false,        // ← KEY FIX: switch to tabNews rendering path
-        _isNriRegionTab: true,
-        _nriCountryTab: activeTab?._nriCountryTab, // ← Preserve country tab flag
-        _activeSubCat: tab.id,
-        _activeSubCatTitle: tab.title,
-        // Keep _isNriSubCatTab context so renderItem uses NewsCard
-      });
-      return;
-    }
-
-    // ✅ 2. NRI country All tab → restore original subcatlist + sections
-    if (tab._isAllTab && tab.link === '/nrimain' && activeTab?._isNriSubTab) {
-      setInitLoading(true);
-      setAllSections([]);
+      console.log('🔍 NRI SubCat Tab Pressed - Tab:', tab);
+      console.log('🔍 NRI SubCat Tab - Tab link:', tab.link);
+      console.log('🔍 NRI SubCat Tab - Tab ID:', tab.id);
+      console.log('🔍 NRI SubCat Tab - Tab language:', tab._isEnglishVersion ? 'English' : 'Tamil');
+      console.log('🔍 NRI SubCat Tab - Full API endpoint that will be called:', tab.link);
+      
+      // Always fetch fresh data for subcategories to ensure correct language and avoid "item doesn't exist" errors
+      console.log('🔍 NRI SubCat Tab - Fetching fresh data for:', tab.id);
+      setTabLoading(true);
       setTabNews([]);
-      setTabPage(1);
-          setTabLoading(true);
-          setTabNews([]); setTabPage(1); setTabLastPage(1);
-          fetchTabNews(nextTab, 1, false);
-        };
 
-        const handleRefresh = () => {
-          setRefreshing(true);
-          setRasiDetailItem(null);
-
-          // ✅ NRI subcat tab refresh — re-filter from cached articles
-          if (activeTab?._activeSubCat) {
-            const matchingTab = nriSubCatTabs.find(t => t.id === activeTab._activeSubCat);
-            if (matchingTab) {
-              setTabNews(matchingTab._subCatArticles || []);
-              setRefreshing(false);
-              return;
-            }
-          }
-
-          // ── 1. NRI ─────────────────────────────────────────────────────────────────
-          // ── 1. NRI ─────────────────────────────────────────────────────────────────
-          if (apiEndpoint === '/nrimain' || apiEndpoint.includes('/nri') || apiEndpoint.includes('otherstatenews')) {
-            // ✅ Always go to NewsDetailsScreen — removed tab switching on item click
-            navigation.navigate('NewsDetailsScreen', {
-              newsId: item.newsid || item.id,
-              newsItem: item,
-              slug: item.slug || item.reacturl || '',
-              disableComments: false,
-            });
-            return;
-          }
-
-          // ── 2. Anmegam ─────────────────────────────────────────────────────────────
-          if (apiEndpoint.includes('anmegammainlist')) {
-            navigation.navigate('NewsDetailsScreen', {
-              newsId: item.newsid || item.id,
-              newsItem: item,
-              slug: item.slug || item.reacturl || '',
-              disableComments: false,
-            });
-            return;
-          }
-      setInitLoading(true);
-      setAllSections([]);
-      setTabNews([]);
-      fetchAll();
+      // Fetch data directly for this subcategory with correct language
+      fetchTabNews({
+        ...tab,
+        _isNriSubCatTab: false,
+        _isNriRegionFetch: false,
+        // tab.link already has the correct englishlink/tamillink with lang parameter
+      }, 1, false);
       return;
     }
 
     // ✅ 4. NRI sub-tab (உலக தமிழர், Nri news etc) → fetch and group by country
     if (apiEndpoint === '/nrimain' && !pressedIsAll && !tab._isNriSubCatTab && !tab._isNriRegionAllTab) {
-      console.log('🔍 NRI Main Tab Pressed - Tab:', tab);
-      console.log('🔍 NRI Main Tab - Setting activeTab to main NRI tab');
-      console.log('🔍 Fetching NRI tab URL:', tab.link); // ← add this
+      // console.log('🔍 NRI Main Tab Pressed - Tab:', tab);
+      // console.log('🔍 NRI Main Tab - Setting activeTab to main NRI tab');
+      // console.log('🔍 NRI Main Tab - Tab language:', tab._isEnglishVersion ? 'English' : 'Tamil');
+      // console.log('🔍 NRI Main Tab - ActiveTab language:', activeTab?._isEnglishVersion ? 'English' : 'Tamil');
+      // console.log('🔍 Fetching NRI tab URL:', tab.link);
 
+      // Check if language changed
+      const languageChanged = activeTab?._isEnglishVersion !== tab._isEnglishVersion;
+      
       // Set activeTab immediately before fetchTabNews
-      setActiveTab({ ...tab, _isAllTab: false });
+      setActiveTab({ 
+        ...tab, 
+        _isAllTab: false,
+        _isEnglishVersion: tab._isEnglishVersion // Preserve language flag
+      });
 
-      console.log('🔍 NRI Main Tab - Calling fetchTabNews');
+      // console.log('🔍 NRI Main Tab - Language changed:', languageChanged);
+      // console.log('🔍 NRI Main Tab - Calling fetchTabNews');
       setTabLoading(true);
       setTabNews([]); setTabPage(1); setTabLastPage(1);
-      fetchTabNews({ ...tab, _isAllTab: false }, 1, false);
+      fetchTabNews({ 
+        ...tab, 
+        _isAllTab: false,
+        _isEnglishVersion: tab._isEnglishVersion // Pass language flag to fetch
+      }, 1, false);
       return;
     }
 
@@ -2828,9 +2809,13 @@ const handleRefresh = () => {
   };
 
   const goToArticle = (item) => {
+    if (!item) {
+      console.warn('goToArticle called with null/undefined item');
+      return;
+    }
 
     // ── 1. NRI ─────────────────────────────────────────────────────────────────
-    // ── 1. NRI ─────────────────────────────────────────────────────────────────
+    // ── 1. NRI ─────────────────────────────────────────────────────────────────────────
     // ── 1. NRI ─────────────────────────────────────────────────────────────────
     if (apiEndpoint === '/nrimain' || apiEndpoint.includes('/nri') || apiEndpoint.includes('otherstatenews')) {
       // ✅ Always go to NewsDetailsScreen — removed tab switching on item click
@@ -3185,9 +3170,28 @@ const photoEndpoint = photoEndpointMap[sectionId];
         return false;
       }
 
-      // ✅ Handle NRI region "All" tab
+      // ✅ Handle NRI region "All" tab and subcategory tabs
       if ((activeTab._isNriRegionTab || activeTab._nriCountryTab) && !activeTab._activeSubCat) {
         console.log('🔍 NRI isTabActive - In region/country view, no active subcategory');
+        
+        // Check if we're in a subcategory (identified by _nriTabId)
+        if (activeTab._nriTabId) {
+          console.log('🔍 NRI isTabActive - Checking subcategory tab:', activeTab._nriTabId);
+          // Highlight the matching subcategory tab
+          if (tab._isNriSubCatTab && String(tab.id) === String(activeTab._nriTabId)) {
+            console.log('🔍 NRI isTabActive - MATCH: Subcategory tab should be active');
+            return true;
+          }
+          // Don't highlight "All" tab when a subcategory is active
+          if (tab._isNriRegionAllTab) {
+            console.log('🔍 NRI isTabActive - NO MATCH: All tab should not be active');
+            return false;
+          }
+          console.log('🔍 NRI isTabActive - NO MATCH: Other subcategory tab');
+          return false;
+        }
+        
+        // If no subcategory is selected, highlight the "All" tab
         return tab._isNriRegionAllTab; // Highlight "All" tab when no subcategory is active
       }
 
@@ -3473,6 +3477,22 @@ const photoEndpoint = photoEndpointMap[sectionId];
     />;
   };
 
+  // Helper function to convert Tamil subcategory IDs to English titles
+  const getEnglishSubCatTitle = (subCatId) => {
+    const englishTitles = {
+      'new': 'News',
+      'koi': 'Temple',
+      'san': 'Tamil Association',
+      'rdo': 'Tamil Radio',
+      'iho': 'Indian Restaurants',
+      'eve': 'Events',
+      'uni': 'University',
+      'tsi': 'Tamil news websites',
+      'job': 'Jobs'
+    };
+    return englishTitles[subCatId] || subCatId;
+  };
+
   const scrollToTop = useCallback(() => {
     rasiScrollViewRef.current?.scrollTo({ y: 0, animated: true });
     flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
@@ -3517,7 +3537,28 @@ const photoEndpoint = photoEndpointMap[sectionId];
             marginBottom: 0
           }]}>
             {(apiEndpoint === '/nrimain' || apiEndpoint === '/nri')
-              ? (activeTab?._nriRegionTitle || activeTab?._nriTabTitle || screenTitle)
+              ? (() => {
+                  // If in English mode, show English titles
+                  if (activeTab?._isEnglishVersion) {
+                    // For English regions
+                    if (activeTab?._nriRegionId) {
+                      const englishTitles = {
+                        'america': 'America',
+                        'gulf': 'Gulf', 
+                        'europe': 'Europe',
+                        'africa': 'Africa',
+                        'asia': 'Asia',
+                        'australia': 'Australia',
+                        'singapore': 'Singapore'
+                      };
+                      return englishTitles[activeTab._nriRegionId] || activeTab._nriRegionTitle || activeTab.title || screenTitle;
+                    }
+                    // For English subcategories, use the tab title directly (already in English)
+                    return activeTab?.title || activeTab?._nriTabTitle || screenTitle;
+                  }
+                  // For Tamil mode, use existing logic
+                  return activeTab?._nriRegionTitle || activeTab?._nriTabTitle || screenTitle;
+                })()
               : (screenTitle === 'தினம் தினம்' || screenTitle === 'வாராவாரம்' || screenTitle === 'ஜோசியம்' || screenTitle === 'உலக தமிழர்' || screenTitle === 'ஸ்பெஷல்' || screenTitle === 'ஆன்மீகம்' || screenTitle === 'காலண்டர்' || screenTitle === 'போட்டோ' || screenTitle === 'விளையாட்டு' || screenTitle === 'வர்த்தகம்')
                 ? (isAllTab ? screenTitle : (activeTab?.title || screenTitle))
                 : screenTitle
@@ -3536,10 +3577,12 @@ const photoEndpoint = photoEndpointMap[sectionId];
             console.log('🔍 English Version Debug - _isNriRegionAllTab:', activeTab?._isNriRegionAllTab);
             console.log('🔍 English Version Debug - _activeSubCat:', activeTab?._activeSubCat);
 
-            const shouldShow = apiEndpoint === '/nrimain' && (
-              (activeTab?._isNriSubTab && activeTab?._nriTabId === 'nri' && !activeTab?._nriCountryTab) ||
+            const shouldShow = apiEndpoint === '/nrimain' && !activeTab?._isEnglishVersion && (
+              (activeTab?._isNriSubTab && activeTab?._nriTabId === 'nri') ||
               (activeTab?._isNriRegionTab && !!activeTab?._activeSubCat) || (activeTab?._isNriSubTab && activeTab?._nriCountryTab) ||
-              (activeTab?._isNriRegionTab && activeTab?._isNriRegionAllTab)
+              (activeTab?._isNriRegionTab && activeTab?._isNriRegionAllTab) ||
+              // ✅ Show English Version button for Tamil subcategories (செய்திகள், கோயில்கள், சங்கங்கள்)
+              (activeTab?._isNriRegionTab && !activeTab?._isEnglishVersion && !activeTab?._activeSubCat)
             );
 
             console.log('🔍 English Version Debug - shouldShow:', shouldShow);
@@ -3569,8 +3612,38 @@ const photoEndpoint = photoEndpointMap[sectionId];
                   onPress={() => {
                     console.log('🔍 English Version Button Clicked - activeTab:', activeTab);
 
-                    // Check if we're in a specific region (Gulf, America, etc.) and navigate to that region's English version
-                    if (activeTab?._nriRegionId) {
+                    // Check if we're in a Tamil subcategory and need to switch to English subcategory
+                    if (activeTab?._isNriRegionTab && !activeTab?._isEnglishVersion && !activeTab?._activeSubCat && activeTab?.id) {
+                      // We're in a Tamil subcategory (செய்திகள், கோயில்கள், etc.), navigate to English subcategory
+                      const subCatId = activeTab.id; // e.g., 'new', 'koi', 'san'
+                      const regionId = activeTab._nriRegionId; // e.g., 'america', 'gulf'
+                      const englishSubCatLink = `/nricategory?cat=${regionId}&scat=${subCatId}&lang=en`;
+                      
+                      console.log('🔍 Navigating to English subcategory:', subCatId, 'in region:', regionId);
+                      console.log('🔍 English subcategory link:', englishSubCatLink);
+                      
+                      // Find the corresponding English subcategory tab
+                      const englishSubCatTab = {
+                        ...activeTab,
+                        id: subCatId,
+                        title: getEnglishSubCatTitle(subCatId), // Convert செய்திகள் → News, கோயில்கள் → Temple
+                        link: englishSubCatLink,
+                        _isEnglishVersion: true,
+                        _isNriRegionTab: true,
+                        _nriRegionId: regionId,
+                        _nriRegionTitle: activeTab._nriRegionTitle,
+                        _originalTab: activeTab, // Keep reference to original Tamil subcategory
+                      };
+                      
+                      // ✅ IMPORTANT: Set activeTab first, then fetch data to regenerate subtabs
+                      setActiveTab(englishSubCatTab);
+                      setTabLoading(true);
+                      setTabNews([]); setTabPage(1); setTabLastPage(1);
+                      
+                      // Fetch fresh data for the English subcategory to regenerate subtabs
+                      fetchTabNews(englishSubCatTab, 1, false);
+                      return;
+                    } else if (activeTab?._nriRegionId) {
                       // We're in a specific region tab (Gulf, America, etc.)
                       const regionId = activeTab._nriRegionId;
                       const englishRegionLink = `/nricategory?cat=${regionId}&lang=en`;
@@ -3582,7 +3655,7 @@ const photoEndpoint = photoEndpointMap[sectionId];
                       const englishRegionTab = {
                         ...activeTab,
                         id: `${regionId}_en`,
-                        title: `${activeTab.title} (English)`,
+                        title: activeTab.title, // ← Remove (English) suffix
                         link: englishRegionLink,
                         _isNriRegionTab: true,
                         _nriRegionId: regionId,
@@ -3633,10 +3706,13 @@ const photoEndpoint = photoEndpointMap[sectionId];
               </>
             )}
 
-          {/* Tamil Version button — show on nrinews tab (English) and English versions of regions */}
+          {/* Tamil Version button — show on nrinews tab (English), English versions of regions, and English subcategory tabs */}
           {apiEndpoint === '/nrimain' && (
             (activeTab?._isNriSubTab && activeTab?._nriTabId === 'nrinews' && !activeTab?._nriCountryTab) ||
-            (activeTab?._isEnglishVersion && activeTab?._nriRegionTab)
+            (activeTab?._isEnglishVersion && activeTab?._nriRegionTab) ||
+            (activeTab?._isEnglishVersion && activeTab?._activeSubCat && activeTab?._nriRegionTab) ||
+            // ✅ Show Tamil Version button for English subcategories (News, Temple, etc.)
+            (activeTab?._isEnglishVersion && activeTab?._isNriRegionTab && !activeTab?._activeSubCat)
           ) && (
             <TouchableOpacity
               style={{
@@ -3649,8 +3725,28 @@ const photoEndpoint = photoEndpointMap[sectionId];
               onPress={() => {
                 console.log('🔍 Tamil Version Button Clicked - activeTab:', activeTab);
 
-                // Check if we're in an English version of a specific region and navigate back to Tamil version
-                if (activeTab?._isEnglishVersion && activeTab?._originalTab) {
+                // Check if we're in an English subcategory and need to switch to Tamil subcategory
+                if (activeTab?._isNriRegionTab && activeTab?._isEnglishVersion && !activeTab?._activeSubCat && activeTab?.id && activeTab?._originalTab) {
+                  // We're in an English subcategory (News, Temple, etc.), navigate to Tamil subcategory
+                  const subCatId = activeTab.id; // e.g., 'new', 'koi', 'san'
+                  const regionId = activeTab._nriRegionId; // e.g., 'america', 'gulf'
+                  const tamilSubCatLink = `/nricategory?cat=${regionId}&scat=${subCatId}&lang=ta`;
+                  
+                  console.log('🔍 Navigating to Tamil subcategory:', subCatId, 'in region:', regionId);
+                  console.log('🔍 Tamil subcategory link:', tamilSubCatLink);
+                  
+                  // Use the original Tamil subcategory tab
+                  const tamilSubCatTab = activeTab._originalTab;
+                  
+                  // ✅ IMPORTANT: Set activeTab first, then fetch data to regenerate subtabs
+                  setActiveTab(tamilSubCatTab);
+                  setTabLoading(true);
+                  setTabNews([]); setTabPage(1); setTabLastPage(1);
+                  
+                  // Fetch fresh data for the Tamil subcategory to regenerate subtabs
+                  fetchTabNews(tamilSubCatTab, 1, false);
+                  return;
+                } else if (activeTab?._isEnglishVersion && activeTab?._originalTab) {
                   // We're in English version of a region tab, go back to original Tamil tab
                   console.log('🔍 Navigating back to Tamil version of region:', activeTab._originalTab.title);
                   handleTabPress(activeTab._originalTab);
