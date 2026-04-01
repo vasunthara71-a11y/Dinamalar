@@ -6,6 +6,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   Modal,
+  Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAudioPlayer, useAudioPlayerStatus, setAudioModeAsync } from 'expo-audio';
@@ -14,29 +15,57 @@ import { ms } from 'react-native-size-matters';
 import { FONTS } from '../utils/constants';
 import { useNavigation } from '@react-navigation/native';
 
-const MANUAL_TEST_DATA = [
-  {
+const SCREEN_HEIGHT = Dimensions.get('window').height;
+
+export default function SimplePodcastPlayer({ data, onMorePress, onPlayingChange }) {
+  const [isReady, setIsReady] = useState(false);
+  // 3 states: 'expanded' = mini player, 'collapsed' = tab strip, 'hidden' = fully gone
+  const [playerState, setPlayerState] = useState('expanded');
+  const [showFullPlayer, setShowFullPlayer] = useState(false);
+  const navigation = useNavigation();
+  const [isPlaying, setIsPlaying] = useState(false);
+
+  // Fallback test data for debugging
+  const testPodcast = {
     newsid: 58927,
     newstitle: 'தினமலர் மாலை 5 மணி செய்திகள் - 21 March 2026',
     audio: 'https://d.dinamalar.com/sm/upload/alexa/Podcast_05_21032026.mp3',
     standarddate: 'மார் 21, 2026',
     ago: '12 minutes ago',
-  },
-];
+  };
 
-export default function SimplePodcastPlayer({ data, onMorePress }) {
-  const [isReady, setIsReady] = useState(false);
-  // ✅ 3 states: 'expanded' = mini player, 'collapsed' = tab strip, 'hidden' = fully gone
-  const [playerState, setPlayerState] = useState('expanded');
-  const [showFullPlayer, setShowFullPlayer] = useState(false);
-  const navigation = useNavigation();
+  // Use actual podcast data or fallback to test data
+  const podcastData = data && data.length > 0 ? data : [testPodcast];
+  
+  // Extract the first podcast from the data array (handle nested structure)
+  let currentPodcast = null;
+  let audioUrl = testPodcast.audio; // fallback to test audio
+  
+  if (podcastData && podcastData.length > 0) {
+    // Handle different data structures
+    if (podcastData[0]?.audio) {
+      // Direct structure
+      currentPodcast = podcastData[0];
+      audioUrl = podcastData[0].audio;
+    } else if (podcastData[0]?.data && podcastData[0].data[0]?.audio) {
+      // Nested structure like API response
+      currentPodcast = podcastData[0].data[0];
+      audioUrl = podcastData[0].data[0].audio;
+    }
+  }
+  
+  console.log('🎙️ SimplePodcastPlayer - audioUrl:', audioUrl);
+  console.log('🎙️ SimplePodcastPlayer - data prop:', data);
+  console.log('🎙️ SimplePodcastPlayer - podcastData:', podcastData);
+  console.log('🎙️ SimplePodcastPlayer - currentPodcast:', currentPodcast);
+  console.log('🎙️ SimplePodcastPlayer - data.length:', data?.length);
+  console.log('🎙️ SimplePodcastPlayer - podcastData.length:', podcastData?.length);
 
-  const currentPodcast = MANUAL_TEST_DATA[0];
-  const audioUrl = currentPodcast.audio;
-
-  const player = useAudioPlayer({ uri: audioUrl });
+  // Initialize player with audio URL directly
+  const player = useAudioPlayer({ uri: audioUrl || '' });
   const status = useAudioPlayerStatus(player);
 
+  // Setup audio mode once
   useEffect(() => {
     setAudioModeAsync({
       playsInSilentMode: true,
@@ -47,15 +76,45 @@ export default function SimplePodcastPlayer({ data, onMorePress }) {
       .catch(() => setIsReady(true));
   }, []);
 
-  const handlePlayPause = () => {
-    if (!player || !isReady) return;
-    if (status.playing) {
-      player.pause();
-    } else {
-      if (status.didJustFinish) player.seekTo(0);
+const handlePlayPause = () => {
+  console.log('🎙️ handlePlayPause called');
+  console.log('🎙️ isPlaying:', isPlaying);
+  console.log('🎙️ player exists:', !!player);
+  console.log('🎙️ isReady:', isReady);
+  console.log('🎙️ audioUrl:', audioUrl);
+  console.log('🎙️ status:', status);
+  
+  if (!player || !isReady || !audioUrl) {
+    console.log('🎙️ Cannot play: missing player, isReady, or audioUrl');
+    return;
+  }
+  
+  if (isPlaying) {
+    console.log('🎙️ Pausing player');
+    player.pause();
+    setIsPlaying(false);
+  } else {
+    console.log('🎙️ Playing player');
+    console.log('🎙️ player methods:', Object.getOwnPropertyNames(player));
+    if (status?.didJustFinish) player.seekTo(0);
+    try {
       player.play();
+      setIsPlaying(true);
+      console.log('🎙️ player.play() called successfully');
+    } catch (error) {
+      console.log('🎙️ Error playing audio:', error);
     }
-  };
+  }
+};
+
+// Sync with real status to handle external stops/errors:
+useEffect(() => {
+  setIsPlaying(status?.playing ?? false);
+  // Notify parent of playing state change
+  if (onPlayingChange && status?.playing !== undefined) {
+    onPlayingChange(status.playing, currentPodcast);
+  }
+}, [status?.playing]);
 
   const handleStop = () => {
     if (player) {
@@ -65,14 +124,14 @@ export default function SimplePodcastPlayer({ data, onMorePress }) {
   };
 
   const handleSeekForward = () => {
-    if (!player || !status.duration) return;
-    const newTime = Math.min((status.currentTime || 0) + 15, status.duration);
+    if (!player || !status?.duration) return;
+    const newTime = Math.min((status?.currentTime || 0) + 15, status.duration);
     player.seekTo(newTime);
   };
 
   const handleSeekBackward = () => {
     if (!player) return;
-    const newTime = Math.max((status.currentTime || 0) - 15, 0);
+    const newTime = Math.max((status?.currentTime || 0) - 15, 0);
     player.seekTo(newTime);
   };
 
@@ -83,7 +142,21 @@ export default function SimplePodcastPlayer({ data, onMorePress }) {
     return `${m}:${sec.toString().padStart(2, '0')}`;
   };
 
-  const progress = status.duration > 0 ? status.currentTime / status.duration : 0;
+  const progress = (status?.duration ?? 0) > 0 
+  ? (status?.currentTime ?? 0) / status.duration 
+  : 0;
+
+  // Don't render if no data available
+  if (!podcastData || podcastData.length === 0) {
+    console.log('🎙️ SimplePodcastPlayer - No data available, not rendering');
+    return null;
+  }
+
+  // Don't render if no audio URL available
+  if (!audioUrl) {
+    console.log('🎙️ SimplePodcastPlayer - No audio URL available, not rendering');
+    return null;
+  }
 
   // ✅ COLLAPSED TAB — vertical strip shown when mini player is dismissed
   if (playerState === 'collapsed') {
@@ -134,7 +207,7 @@ export default function SimplePodcastPlayer({ data, onMorePress }) {
               <ActivityIndicator size="small" color="#fff" />
             ) : (
               <Ionicons
-                name={status.playing ? 'pause' : 'play'}
+                name={isPlaying ? 'pause' : 'play'}
                 size={s(20)}
                 color="#fff"
               />
@@ -172,20 +245,20 @@ export default function SimplePodcastPlayer({ data, onMorePress }) {
             </View>
 
             <View style={styles.artContainer}>
-              <View style={[styles.artCircle, status.playing && styles.artCircleActive]}>
+              <View style={[styles.artCircle, isPlaying && styles.artCircleActive]}>
                 <Ionicons name="radio" size={s(64)} color="#096dd2" />
               </View>
             </View>
 
-            <Text style={styles.fullTitle}>{currentPodcast.newstitle}</Text>
-            <Text style={styles.fullSubtitle}>{currentPodcast.standarddate}</Text>
+            <Text style={styles.fullTitle}>{currentPodcast?.newstitle || 'Podcast'}</Text>
+            <Text style={styles.fullSubtitle}>{currentPodcast?.standarddate || ''}</Text>
 
             <View style={styles.progressContainer}>
-              <Text style={styles.timeText}>{formatTime(status.currentTime)}</Text>
+              <Text style={styles.timeText}>{formatTime(status?.currentTime)}</Text>
               <View style={styles.progressBar}>
                 <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
               </View>
-              <Text style={styles.timeText}>{formatTime(status.duration)}</Text>
+              <Text style={styles.timeText}>{formatTime(status?.duration)}</Text>
             </View>
 
             <View style={styles.controlsRow}>
@@ -200,11 +273,11 @@ export default function SimplePodcastPlayer({ data, onMorePress }) {
                 onPress={handlePlayPause}
                 disabled={!isReady}
               >
-                {status.isBuffering ? (
+                {status?.isBuffering ? (
                   <ActivityIndicator size="large" color="#fff" />
                 ) : (
                   <Ionicons
-                    name={status.playing ? 'pause' : 'play'}
+                    name={isPlaying ? 'pause' : 'play'}
                     size={s(36)}
                     color="#fff"
                   />
@@ -224,7 +297,7 @@ export default function SimplePodcastPlayer({ data, onMorePress }) {
             <View style={styles.titleStrip}>
               <Ionicons name="musical-notes" size={s(14)} color="#096dd2" />
               <Text style={styles.titleStripText} numberOfLines={2}>
-                {currentPodcast.newstitle}
+                {currentPodcast?.newstitle || 'Podcast'}
               </Text>
             </View>
           </View>
@@ -241,7 +314,7 @@ const styles = StyleSheet.create({
   collapsedTab: {
     position: 'absolute',
     right: s(0),
-    top: '42%',
+    top: SCREEN_HEIGHT * 0.42,   // ← replaces '42%'
     backgroundColor: 'rgba(99, 115, 131, 0.95)',
     borderTopLeftRadius: s(10),
     borderBottomLeftRadius: s(10),
@@ -271,7 +344,7 @@ const styles = StyleSheet.create({
   miniPlayerContainer: {
     position: 'absolute',
     right: s(0),
-    top: '42%',
+    top: SCREEN_HEIGHT * 0.42,   // ← replaces '42%'
     backgroundColor: 'rgba(99, 115, 131, 0.95)',
     borderTopLeftRadius: s(10),
     borderBottomLeftRadius: s(10),
