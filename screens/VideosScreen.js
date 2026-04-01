@@ -1,5 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
+import axios from 'axios';
 import {
   View,
   Text,
@@ -483,209 +484,331 @@ const VideosScreen = ({ navigation, route }) => {
   // ── UI state ──────────────────────────────────────────────────────────────────
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [activeCategory, setActiveCategory] = useState('');
+  // const [activeCategory, setActiveCategory] = useState('');
   const [filterVisible, setFilterVisible] = useState(false);
-  const [selectedFilter, setSelectedFilter] = useState('');   // ename: weekly/monthly/yearly
-  const [selectedDistrict, setSelectedDistrict] = useState('');   // district id string
+  // const [selectedFilter, setSelectedFilter] = useState('');   // ename: weekly/monthly/yearly
+  // const [selectedDistrict, setSelectedDistrict] = useState('');   // district id string
   const [selectedDistrictLabel, setSelectedDistrictLabel] = useState('உள்ளூர்');
   const [isDrawerVisible, setIsDrawerVisible] = useState(false);
   const [isLocDrawerOpen, setIsLocDrawerOpen] = useState(false);
-  const [selectedVideo, setSelectedVideo] = useState(null);
+  // const [selectedVideo, setSelectedVideo] = useState(null);
   const flatListRef = useRef(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
-
+const [filters, setFilters] = useState({ category: '', date: '', district: '', districtSlug: '' });
   // ── Fetch: CDNApi + API_ENDPOINTS.VIDEO_MAIN (/videomain) ────────────────────
-  const fetchVideos = useCallback(async ({ cat = '', date = '', district = '', page = 1, append = false } = {}) => {
-    console.log('[VideosScreen] fetchVideos called with params:', { cat, date, district, page, append }); // Debug all params
+// In fetchVideos, replace the entire params building logic with this simpler version:
+const fetchVideos = useCallback(async ({ cat = '', date = '', district = '', districtSlug = '', page = 1, append = false } = {}) => {
+  if (!append) {
+    setLoading(true);
+    setCurrentPage(1);
+    setHasMore(true);
+  } else {
+    setLoadingMore(true);
+  }
+  setError(null);
 
-    if (!append) {
-      setLoading(true);
-      setCurrentPage(1);
-      setHasMore(true);
+  try {
+    if (cat === 'shorts') {
+      const response = await CDNApi.get(API_ENDPOINTS.SHORTS);
+      const raw = Array.isArray(response.data) ? response.data : [];
+      setAllVideos(raw);
+      setHasMore(false);
+      // set categories/filters from first load cache
+      return;
+    }
+
+    // Build endpoint based on filters
+    let endpoint;
+    let response;
+    let data;
+    
+    if (district) {
+      // District filtering: use /videomain with correct parameters
+      const p = new URLSearchParams();
+      p.append('cat', cat || '1585'); // district news category
+      p.append('district', district);
+      p.append('sort', 'desc'); // website always uses sort=desc
+      if (date) p.append('date', date);
+      if (page > 1) p.append('page', String(page));
+      
+      // Use /videomain endpoint for district filtering
+      const baseParams = p.toString();
+      endpoint = baseParams ? `${API_ENDPOINTS.VIDEO_MAIN}?${baseParams}` : API_ENDPOINTS.VIDEO_MAIN;
+      
+      console.log('[VideosScreen] fetching (district):', endpoint);
+      console.log('[VideosScreen] params → cat:', cat || '1585', '| district:', district, '| date:', date, '| sort: desc');
     } else {
-      setLoadingMore(true);
-    }
-    setError(null);
-
-    let endpoint = '';
-
-    try {
+      // Regular endpoint for non-district filters
       const params = new URLSearchParams();
+      if (cat) params.append('cat', cat);
+      if (date) params.append('date', date);
+      if (page > 1) params.append('page', String(page));
 
-      if (district) {
-        // District filter with category combination
-        if (cat && cat !== '1585') {
-          // District + specific category (e.g., indhavaram + arasiyam)
-          params.append('cat', cat);
-          params.append('districtid', district);
-          if (date) params.append('date', date);
-          if (page > 1) params.append('page', String(page));
-        } else {
-          // District only (default to district news category 1585)
-          params.append('cat', '1585');
-          params.append('districtid', district);
-          if (date) params.append('date', date);
-          if (page > 1) params.append('page', String(page));
-        }
-
-        const query = params.toString();
-        endpoint = `${API_ENDPOINTS.VIDEO_MAIN}?${query}`;
-      } else {
-        if (cat === 'shorts') {
-          endpoint = API_ENDPOINTS.SHORTS;
-          if (page > 1) {
-            setHasMore(false);
-            return;
-          }
-        } else {
-          if (cat) params.append('cat', cat);
-          if (date) params.append('date', date);
-          if (page > 1) params.append('page', String(page));
-
-          const query = params.toString();
-          endpoint = query
-            ? `${API_ENDPOINTS.VIDEO_MAIN}?${query}`
-            : API_ENDPOINTS.VIDEO_MAIN;
-        }
-      }
-
-      console.log('[VideosScreen] fetching:', endpoint); // ← helps debug
-
-      const response = await CDNApi.get(endpoint);
-      const data = response.data;
-
-      console.log('[VideosScreen] API response received, data keys:', Object.keys(data || {}));
-      console.log('[VideosScreen] Current category:', cat || 'All');
-      console.log('[VideosScreen] Endpoint used:', endpoint.includes('videomain') ? 'VIDEO_MAIN' : 'VIDEO_DATA');
-
-      if (cat === '5050') {
-        console.log('[VideosScreen] LIVE TAB API response structure:', JSON.stringify(data, null, 2));
-      } else if (cat === '') {
-        console.log('[VideosScreen] ALL TAB API response structure:', JSON.stringify(data, null, 2));
-      } else if (cat) {
-        console.log('[VideosScreen] CATEGORY TAB API response for cat=' + cat + ':', JSON.stringify(data, null, 2));
-      }
-
-      let raw = [];
-      let pagination = {};
-
-      if (cat === 'shorts') {
-        raw = Array.isArray(data) ? data : [];
-        pagination = {};
-      } else {
-        // Both regular and district filtered requests use videomix.data
-        raw = data?.videomix?.data ?? [];
-        pagination = data?.videomix || {};
-      }
-
-      let newsVideos;
-      if (cat === 'shorts') {
-        newsVideos = raw;
-      } else {
-        // For district filter (cat=1585) and all others, use all items as-is
-        // API already filters by district server-side via districtid param
-        newsVideos = raw;
-      }
-
-      console.log('[VideosScreen] Total videos received:', raw.length);
-      console.log('[VideosScreen] Videos after type filter:', newsVideos.length);
-      console.log('[VideosScreen] Raw data sample:', raw.slice(0, 2));
-
-      // API handles district filtering server-side — no client-side filtering needed
-      let finalVideos = newsVideos;
-
-      if (append) {
-        setAllVideos(prev => {
-          const existingIds = new Set(prev.map(v => v.videoid).filter(Boolean));
-          const newItems = finalVideos.filter(v => !v.videoid || !existingIds.has(v.videoid));
-          return [...prev, ...newItems];
-        });
-      } else {
-        setAllVideos(finalVideos);
-      }
-      if (data?.taboola_ads?.mobile) {
-        setTaboolaAds(prev => prev ?? data.taboola_ads.mobile);
-      }
-
-      setCurrentPage(pagination.current_page || page);
-      setLastPage(pagination.last_page || 1);
-      setHasMore((pagination.current_page || page) < (pagination.last_page || 1));
-
-      if (data?.category?.length) {
-        setCategories(prev => {
-          if (prev.length > 0) return prev;
-          const seen = new Set();
-          return data.category.filter((c) => {
-            const k = String(c.value ?? '');
-            if (seen.has(k)) return false;
-            seen.add(k);
-            return true;
-          });
-        });
-      }
-
-      if (data?.filter?.length) {
-        setFilterOptions(prev => prev.length > 0 ? prev : data.filter);
-      }
-
-      if (data?.districtlist?.data?.length) {
-        setDistrictOptions(prev => prev.length > 0 ? prev : data.districtlist.data);
-      }
-
-    } catch (err) {
-      console.error('VideosScreen fetch error:', err?.message);
-      console.error('VideosScreen fetch error details:', err);
-      console.error('VideosScreen fetch error code:', err?.code);
-      console.error('VideosScreen fetch error status:', err?.response?.status);
-      console.error('VideosScreen endpoint:', endpoint);
-
-      if (err?.code === 'ERR_NETWORK' || err?.message?.includes('Network Error')) {
-        setError('இணைப்பு பிழை. இணைய இணைப்பை சரிபார்க்கவும்.');
-      } else {
-        setError(err?.message || 'பிழை ஏற்பட்டது');
-      }
-    } finally {
-      if (append) setLoadingMore(false);
-      else setLoading(false);
+      const query = params.toString();
+      endpoint = query
+        ? `${API_ENDPOINTS.VIDEO_MAIN}?${query}`
+        : API_ENDPOINTS.VIDEO_MAIN;
+      
+      console.log('[VideosScreen] fetching (regular):', endpoint);
+      console.log('[VideosScreen] params → cat:', cat, '| date:', date);
     }
-  }, []);
+    
+    response = await CDNApi.get(endpoint);
+    data = response.data;
+    
+    // Safe data processing to prevent property storage errors
+    const safeProcessData = (data) => {
+      try {
+        // Check if data is too large (rough estimate)
+        const dataSize = JSON.stringify(data).length;
+        if (dataSize > 300000) { // 300KB limit
+          console.warn('[VideosScreen] Response too large, limiting data processing');
+          return {
+            ...data,
+            videomix: data.videomix ? {
+              ...data.videomix,
+              data: (data.videomix.data || []).slice(0, 50) // Limit to 50 videos
+            } : undefined,
+            districtnews: data.districtnews ? 
+              (Array.isArray(data.districtnews) ? data.districtnews.slice(0, 50) : []) : [],
+            category: (data.category || []).slice(0, 20), // Limit categories
+            filter: (data.filter || []).slice(0, 10), // Limit filters
+            districtlist: data.districtlist ? {
+              ...data.districtlist,
+              data: (data.districtlist.data || []).slice(0, 30) // Limit districts
+            } : undefined
+          };
+        }
+        return data;
+      } catch (sizeError) {
+        console.error('[VideosScreen] Error checking data size:', sizeError.message);
+        return data; // Return original data if size check fails
+      }
+    };
+
+    // Process the data safely
+    const safeData = safeProcessData(data);
+    
+    console.log('[fetch] response keys:', Object.keys(safeData));
+    console.log('[fetch] filterOptions:', JSON.stringify(filterOptions));
+    console.log('[fetch] districtlist in response?', !!safeData?.districtlist);
+    console.log('[fetch] first video ctitle:', safeData?.videomix?.data?.[0]?.ctitle);
+    console.log('[fetch] first video district:', safeData?.videomix?.data?.[0]?.district);
+    
+    // Log districtnews content details
+    console.log('[fetch] districtnews first 3:', 
+      (safeData?.districtnews || safeData?.videomix?.data || [])
+        .slice(0, 3)
+        .map(v => ({ title: v.videotitle?.slice(0, 30), ctitle: v.ctitle, districtid: v.districtid }))
+    );
+    
+    // Log selected district info
+    if (district) {
+      const selectedDistrict = districtOptions.find(d => String(d.id) === district);
+      console.log('[fetch] selected district ID:', district);
+      console.log('[fetch] selected district label:', selectedDistrict?.title);
+      console.log('[fetch] selected district full obj:', JSON.stringify(selectedDistrict));
+    }
+
+    // /videodata returns videos under videomix.data OR districtnews
+    let raw = safeData?.videomix?.data ?? safeData?.districtnews ?? [];
+    const pagination = safeData?.videomix || {};
+
+    // If district is selected, filter videos using strict web approach
+    if (district && raw.length > 0) {
+      const selectedDistrict = districtOptions.find(d => String(d.id) === String(district));
+      const districtName = selectedDistrict?.title;
+      
+      console.log('[fetch] filtering videos by district (strict web method):', districtName);
+      console.log('[fetch] selected district ID:', district);
+      console.log('[fetch] selected district object:', JSON.stringify(selectedDistrict));
+      console.log('[fetch] selected district districtname field:', selectedDistrict?.districtname);
+      
+      if (districtName) {
+        const beforeFilter = raw.length;
+        
+        // Log some sample video district tags to debug
+        console.log('[fetch] sample video district tags:', 
+          raw.slice(0, 10).map(v => ({
+            title: v.title?.slice(0, 30),
+            districttag: v.districttag,
+            districtengtag: v.districtengtag,
+            district: v.district,
+            districtid: v.districtid
+          }))
+        );
+        
+        // Strict web approach: Only show videos that explicitly belong to selected district
+        raw = raw.filter(video => {
+          // Method 1: Check if video has districtid that matches selected district
+          if (video.districtid && String(video.districtid) === String(district)) {
+            console.log('[filter] included by districtid:', video.districtid, 'for district:', districtName);
+            return true;
+          }
+          
+          // Method 2: Check if video district tags exactly match selected district name
+          if (video.districttag === districtName) {
+            console.log('[filter] included by districttag:', video.districttag, 'for district:', districtName);
+            return true;
+          }
+          
+          // Only check districtengtag if both are defined (not undefined)
+          if (video.districtengtag && selectedDistrict?.districtname && 
+              video.districtengtag === selectedDistrict.districtname) {
+            console.log('[filter] included by districtengtag:', video.districtengtag, 'for district:', districtName);
+            return true;
+          }
+          
+          // Exclude videos that belong to other districts
+          if (video.districttag && video.districttag !== districtName) {
+            console.log('[filter] EXCLUDED by wrong districttag:', video.districttag, 'expected:', districtName);
+            return false;
+          }
+          
+          // Only exclude by districtengtag if both are defined
+          if (video.districtengtag && selectedDistrict?.districtname && 
+              video.districtengtag !== selectedDistrict.districtname) {
+            console.log('[filter] EXCLUDED by wrong districtengtag:', video.districtengtag, 'expected:', selectedDistrict.districtname);
+            return false;
+          }
+          
+          // If video has no district info at all, exclude it (can't verify it belongs to selected district)
+          if (!video.districtid && !video.districttag && !video.districtengtag) {
+            console.log('[filter] EXCLUDED - no district info');
+            return false;
+          }
+          
+          console.log('[filter] EXCLUDED - default case for video:', video.title?.slice(0, 30));
+          return false;
+        });
+        
+        console.log('[fetch] district filter results (strict web method):', beforeFilter, '→', raw.length, 'videos');
+        
+        // Log filtered results to verify
+        if (raw.length > 0) {
+          console.log('[fetch] filtered videos district tags:', 
+            raw.slice(0, 5).map(v => ({
+              title: v.title?.slice(0, 30),
+              districttag: v.districttag,
+              districtengtag: v.districtengtag,
+              districtid: v.districtid
+            }))
+          );
+        } else {
+          console.log('[fetch] NO VIDEOS PASSED FILTER - showing empty state for:', districtName);
+        }
+      }
+    }
+
+    // Log full news card results
+    console.log('[fetch] ===== FULL VIDEO RESULTS =====');
+    console.log('[fetch] total videos found:', raw.length);
+    console.log('[fetch] first 5 video cards with full details:');
+    raw.slice(0, 5).forEach((video, index) => {
+      console.log(`[fetch] Video ${index + 1}:`, {
+        videoid: video.videoid,
+        title: video.title || video.videotitle,
+        ctitle: video.ctitle,
+        district: video.district,
+        districtid: video.districtid,
+        category: video.category,
+        date: video.date,
+        type: video.type,
+        image: video.image,
+        duration: video.duration,
+        created_at: video.created_at,
+        published_at: video.published_at
+      });
+    });
+    console.log('[fetch] ===== END VIDEO RESULTS =====');
+
+    if (append) {
+      setAllVideos(prev => {
+        const existingIds = new Set(prev.map(v => v.videoid).filter(Boolean));
+        return [...prev, ...raw.filter(v => !v.videoid || !existingIds.has(v.videoid))];
+      });
+    } else {
+      setAllVideos(raw);
+    }
+
+    if (safeData?.taboola_ads?.mobile) setTaboolaAds(prev => prev ?? safeData.taboola_ads.mobile);
+    
+    // Debug pagination data
+    console.log('[fetch] pagination data:', {
+      currentPage: pagination.current_page,
+      lastPage: pagination.last_page,
+      requestedPage: page,
+      hasMoreBefore: hasMore
+    });
+    
+    setCurrentPage(pagination.current_page || page);
+    setLastPage(pagination.last_page || 1);
+    setHasMore((pagination.current_page || page) < (pagination.last_page || 1));
+    
+    console.log('[fetch] hasMore set to:', (pagination.current_page || page) < (pagination.last_page || 1));
+
+    if (safeData?.category?.length) {
+      setCategories(prev => {
+        if (prev.length > 0) return prev;
+        const seen = new Set();
+        return safeData.category.filter(c => {
+          const k = String(c.value ?? '');
+          if (seen.has(k)) return false;
+          seen.add(k);
+          return true;
+        });
+      });
+    }
+    if (safeData?.filter?.length) setFilterOptions(prev => prev.length > 0 ? prev : safeData.filter);
+    if (safeData?.districtlist?.data?.length) {
+      console.log('[fetch] sample district obj:', JSON.stringify(safeData.districtlist.data[0]));
+      console.log('[fetch] all district options:', 
+        JSON.stringify(safeData.districtlist.data.map(d => ({ id: d.id, title: d.title })))
+      );
+      setDistrictOptions(prev => prev.length > 0 ? prev : safeData.districtlist.data);
+    }
+
+  } catch (err) {
+    console.error('VideosScreen fetch error:', err?.message);
+    setError(err?.message || 'பிழை ஏற்பட்டது');
+  } finally {
+    if (append) setLoadingMore(false);
+    else setLoading(false);
+  }
+}, []);
 
   const handleScroll = useCallback((e) => {
     setShowScrollTop(e.nativeEvent.contentOffset.y > 300);
   }, []);
 
-  useEffect(() => {
-    if (!initialTabKey || initialTabApplied.current) return;
-    if (categories.length === 0) return;  // wait for categories to load
+useEffect(() => {
+  if (!initialTabKey || initialTabApplied.current) return;
+  if (categories.length === 0) return;
+  const keywords = TAB_KEY_KEYWORDS[initialTabKey] || [];
+  const matched = categories.find(cat =>
+    keywords.some(kw => (cat.title || '').toLowerCase().includes(kw.toLowerCase()))
+  );
+  if (matched) {
+    initialTabApplied.current = true;
+    const catValue = String(matched.value ?? '');
+    setFilters(prev => ({ ...prev, category: catValue }));
+    fetchVideos({ cat: catValue });
+  }
+}, [categories, initialTabKey]);
+  // useEffect(() => {
+  //   if (!initialTabKey) {
+  //     fetchVideos();
+  //   }
+  // }, [fetchVideos]);
 
-    const keywords = TAB_KEY_KEYWORDS[initialTabKey] || [];
-    const matched = categories.find(cat =>
-      keywords.some(kw =>
-        (cat.title || '').toLowerCase().includes(kw.toLowerCase())
-      )
-    );
-
-    if (matched) {
-      initialTabApplied.current = true;
-      const catValue = String(matched.value ?? '');
-      setActiveCategory(catValue);
-      fetchVideos({ cat: catValue });
-    }
-  }, [categories, initialTabKey]);
-  useEffect(() => {
-    if (!initialTabKey) {
-      fetchVideos();
-    }
-  }, [fetchVideos]);
-
-  useEffect(() => {
-    if (initialCategory) {
-      setActiveCategory(initialCategory);
-      fetchVideos({ cat: initialCategory });
-    } else {
-      fetchVideos();
-    }
-  }, [fetchVideos, initialCategory]);
+useEffect(() => {
+  if (initialCategory) {
+    setFilters(prev => ({ ...prev, category: initialCategory }));
+    fetchVideos({ cat: initialCategory });
+  } else if (!initialTabKey) {
+    fetchVideos();
+  }
+}, [fetchVideos, initialCategory]);
   // Refresh data when screen comes into focus
   useFocusEffect(
     useCallback(() => {
@@ -699,61 +822,73 @@ const VideosScreen = ({ navigation, route }) => {
     }, [fetchVideos, initialTabKey])
   );
 
-  // ── Category tab press ────────────────────────────────────────────────────────
   const handleCategoryPress = (value) => {
-    setActiveCategory(value);
-    setSelectedFilter('');
-    // Don't clear selectedDistrict - keep district selection
-
-    if (value === '1585' || value?.toString() === '1585') {
-      fetchVideos({ cat: value, date: '', district: selectedDistrict || '' });
-    } else {
-      fetchVideos({ cat: value, date: '', district: selectedDistrict || '' });
-    }
-  };
-
-  // ── Date filter press — keeps district and category selection ───────────────────
-  const handleSelectFilter = (ename) => {
-    const nextFilter = selectedFilter === ename ? '' : ename;
-    setSelectedFilter(nextFilter);
-    // Don't clear activeCategory - keep category selection
-    // Keep selectedDistrict — if district is also selected, filter by both
+    const updated = {
+      ...filters,
+      category: filters.category === value ? '' : value,
+    };
+    setFilters(updated);
+    console.log('[handleCategoryPress] updated filters:', updated);
     fetchVideos({
-      cat: activeCategory, // keep current category
-      date: nextFilter,
-      district: selectedDistrict, // keep current district
+      cat: updated.category,
+      date: updated.date,        // ← keeps active date
+      district: updated.district, // ← keeps active district
     });
-    setFilterVisible(false);
   };
 
-  // ── District press — keeps date filter and category selection ───────────────────
-  const handleSelectDistrict = (id) => {
-    const nextDistrict = selectedDistrict === id ? '' : id;
-    setSelectedDistrict(nextDistrict);
-    // Don't clear activeCategory - keep category selection
-    // Keep selectedFilter — if date is also selected, filter by both
+  // ── Date filter press — keeps district and category selection ─────────────────--
+const handleSelectFilter = (ename) => {
+  const updated = {
+    ...filters,
+    date: filters.date === ename ? '' : ename,
+  };
+  setFilters(updated);
+  fetchVideos({
+    cat: updated.category,
+    date: updated.date,
+    district: updated.district,   // ← keeps active district
+    districtSlug: updated.districtSlug,
+  });
+  setFilterVisible(false);
+};
+
+const handleSelectDistrict = (id) => {
+  const districtObj = districtOptions.find(d => String(d.id) === id);
+  console.log('[district] selected obj:', JSON.stringify(districtObj));
+  
+  const updated = {
+    ...filters,
+    district: filters.district === id ? '' : id,
+    districtSlug: filters.district === id ? '' : districtObj?.slug || '',
+  };
+  setFilters(updated);
+  fetchVideos({
+    cat: updated.category,     // ← keeps active category
+    date: updated.date,        // ← keeps active date
+    district: updated.district,
+    districtSlug: updated.districtSlug,
+  });
+  setFilterVisible(false);
+};
+
+const handleLocationSelectDistrict = (district) => {
+  setSelectedDistrictLabel(district.title);
+  setIsLocDrawerOpen(false);
+  if (district.id) {
+    const updated = { ...filters, district: String(district.id) };
+    setFilters(updated);
     fetchVideos({
-      cat: activeCategory, // keep current category
-      date: selectedFilter, // keep current date filter
-      district: nextDistrict,
+      cat: updated.category,
+      date: updated.date,
+      district: updated.district,
     });
-    setFilterVisible(false);
-  };
+  }
+};
 
-  // ── District selection for LocationDrawer (matches VideoDetailScreen) ──────
-  const handleLocationSelectDistrict = (district) => {
-    setSelectedDistrictLabel(district.title);
-    setIsLocDrawerOpen(false);
-    if (district.id) {
-      setSelectedDistrict(String(district.id));
-      // Fetch videos for selected district, keeping current category
-      fetchVideos({ cat: activeCategory || '1585', date: selectedFilter || '', district: String(district.id) });
-    }
-  };
-
-  // ── Nav ───────────────────────────────────────────────────────────────────────
-  const handleMenuPress = (menuItem) => {
-    // Debug: Log the menu item structure
+// ── Nav ───────────────────────────────────────────────────────────────────────
+const handleMenuPress = (menuItem) => {
+  // Debug: Log the menu item structure
+  console.log('TopMenuStrip menu item clicked:', menuItem);
     console.log('TopMenuStrip menu item clicked:', menuItem);
 
     // Handle menu item navigation based on menu item properties
@@ -803,16 +938,12 @@ const VideosScreen = ({ navigation, route }) => {
   const handleSearch = () => navigation?.navigate?.('Search');
   const handleNotification = () => console.log('Notifications');
 
-
-  const hasActiveFilter = !!selectedFilter || !!selectedDistrict;
-
-  const activeFilterLabel =
-    filterOptions.find((f) => f.ename === selectedFilter)?.name;
+  // const activeFilterLabel =
+  //   filterOptions.find((f) => f.ename === selectedFilter)?.name;
 
   // ── Build listData preserving API order ───────────────────────────────────────
-  // Walks allVideos in original order.
-  // Consecutive reels get buffered and flushed as a single shorts_strip item.
-  // Result: [video, video, shorts_strip([r,r,r]), video, shorts_strip([r]), video...]
+  // Walks allVideos and prioritizes regular videos over shorts
+  // Result: [video, video, video, shorts_strip([r,r,r]), video, shorts_strip([r]), video...]
   const listData = useMemo(() => {
     if (allVideos.length === 0) return [];
 
@@ -831,130 +962,171 @@ const VideosScreen = ({ navigation, route }) => {
       reelsBuffer = [];
     };
 
-    allVideos.forEach((video) => {
-      if (video.type === 'reels') {
-        // Accumulate consecutive reels together
-        reelsBuffer.push(video);
-      } else if (video.type === 'googlead') {
-        // Skip googleads
-        flushReels();
-      } else {
-        // Regular video — flush any buffered reels first
-        flushReels();
+    // Separate regular videos and shorts
+    const regularVideos = allVideos.filter(video => video.type !== 'reels' && video.type !== 'googlead');
+    const shortsVideos = allVideos.filter(video => video.type === 'reels');
 
-        result.push({ ...video, _type: 'video' });
-        adCounter++;
+    console.log('[listData] regular videos:', regularVideos.length, 'shorts:', shortsVideos.length);
 
-        // Insert taboola ad every AD_INTERVAL regular videos
-        if (taboolaAds?.midmain && adCounter % AD_INTERVAL === 0) {
-          result.push({
-            _type: 'taboola_ad',
-            _key: `taboola_${adCounter}`,
-            ...taboolaAds.midmain,
-          });
-        }
+    // Check if any filters are active (district, date, category)
+    const hasActiveFilters = !!filters.district || !!filters.date || !!filters.category;
+    
+    // Show shorts only when no filters are active OR when shorts category is explicitly selected
+    const shouldShowShorts = !hasActiveFilters || filters.category === 'shorts';
+
+    console.log('[listData] hasActiveFilters:', hasActiveFilters, 'shouldShowShorts:', shouldShowShorts);
+
+    // Process regular videos first
+    regularVideos.forEach((video) => {
+      result.push({ ...video, _type: 'video' });
+      adCounter++;
+
+      // Insert taboola ad every AD_INTERVAL regular videos
+      if (taboolaAds?.midmain && adCounter % AD_INTERVAL === 0) {
+        result.push({
+          _type: 'taboola_ad',
+          _key: `taboola_${adCounter}`,
+          ...taboolaAds.midmain,
+        });
       }
     });
 
-    // Flush any remaining reels at the end
-    flushReels();
+    // Then process shorts only if we should show them
+    if (shouldShowShorts) {
+      shortsVideos.forEach((video) => {
+        reelsBuffer.push(video);
+      });
+
+      // Flush all shorts at the end
+      flushReels();
+    }
 
     return result;
-  }, [allVideos, taboolaAds]);
+  }, [allVideos, taboolaAds, filters]);
 
   // ── List header ───────────────────────────────────────────────────────────────
-  const ListHeader = () => {
-    if (loading) {
-      return <VideoSkeletonLoader />;
-    }
+const ListHeader = () => {
+  if (loading) return <VideoSkeletonLoader />;
 
-    return (
-      <View>
-        {/* Category tabs + Filter icon */}
-        <View style={styles.catRow}>
-          <TouchableOpacity
-            style={[styles.filterIconBtn, hasActiveFilter && styles.filterIconBtnActive]}
-            onPress={() => setFilterVisible(true)}
-            activeOpacity={0.8}
-          >
-            <Ionicons
-              name="filter"
-              size={20}
-              color={hasActiveFilter ? PALETTE.primary : PALETTE.grey600}
-            />
-            {hasActiveFilter && <View style={styles.filterDot} />}
-          </TouchableOpacity>
+  // Build active pills
+  const activePills = [];
+  if (filters.date) {
+    const label = filterOptions.find(f => f.ename === filters.date)?.name || filters.date;
+    activePills.push({ key: 'date', label, onRemove: () => {
+      const updated = { ...filters, date: '' };
+      setFilters(updated);
+      fetchVideos({ cat: updated.category, date: '', district: updated.district });
+    }});
+  }
+  if (filters.district) {
+    const label = districtOptions.find(d => String(d.id) === filters.district)?.title || filters.district;
+    activePills.push({ key: 'district', label, onRemove: () => {
+      const updated = { ...filters, district: '' };
+      setFilters(updated);
+      fetchVideos({ cat: updated.category, date: updated.date, district: '' });
+    }});
+  }
+  if (filters.category) {
+    const label = categories.find(c => String(c.value) === filters.category)?.title || filters.category;
+    activePills.push({ key: 'category', label, onRemove: () => {
+      const updated = { ...filters, category: '' };
+      setFilters(updated);
+      fetchVideos({ cat: '', date: updated.date, district: updated.district });
+    }});
+  }
 
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.catTabsContent}
-            style={{ flex: 1 }}
-          >
-            {categories.map((cat, idx) => {
-              const isActive = activeCategory === String(cat.value ?? '') && !selectedFilter;
-              return (
-                <TouchableOpacity
-                  key={`cat_${cat.value ?? idx}`}
-                  onPress={() => handleCategoryPress(String(cat.value ?? ''))}
-                  style={[styles.catTab, isActive && styles.catTabActive]}
-                  activeOpacity={0.8}
-                >
-                  {String(cat.value) === '5050' && (
-                    <View style={[styles.liveDot, isActive && { backgroundColor: PALETTE.white }]} />
-                  )}
-                  <Text style={[styles.catTabText, isActive && styles.catTabTextActive, { fontSize: sf(12) }]}>
-                    {cat.title}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-        </View>
+  return (
+    <View>
+      {/* Category tabs + Filter icon */}
+      <View style={styles.catRow}>
+        <TouchableOpacity
+          style={[styles.filterIconBtn, (filters.date || filters.district) && styles.filterIconBtnActive]}
+          onPress={() => setFilterVisible(true)}
+          activeOpacity={0.8}
+        >
+          <Ionicons
+            name="filter"
+            size={20}
+            color={(filters.date || filters.district) ? PALETTE.primary : PALETTE.grey600}
+          />
+          {(filters.date || filters.district) && <View style={styles.filterDot} />}
+        </TouchableOpacity>
 
-        {/* Active filter bar — shown when a date filter is selected */}
-        {/* {!!selectedFilter && (
-          <View style={styles.activeFilterBar}>
-            <Ionicons name="calendar-outline" size={s(14)} color={PALETTE.primary} />
-            <Text style={[styles.activeFilterBarText, { fontSize: sf(12) }]}>
-              {filterOptions.find(f => f.ename === selectedFilter)?.name || selectedFilter}
-            </Text>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.catTabsContent}
+          style={{ flex: 1 }}
+        >
+          {categories.map((cat, idx) => {
+            const isActive = filters.category === String(cat.value ?? '');
+            return (
+              <TouchableOpacity
+                key={`cat_${cat.value ?? idx}`}
+                onPress={() => handleCategoryPress(String(cat.value ?? ''))}
+                style={[styles.catTab, isActive && styles.catTabActive]}
+                activeOpacity={0.8}
+              >
+                {String(cat.value) === '5050' && (
+                  <View style={[styles.liveDot, isActive && { backgroundColor: PALETTE.white }]} />
+                )}
+                <Text style={[styles.catTabText, isActive && styles.catTabTextActive, { fontSize: sf(12) }]}>
+                  {cat.title}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      </View>
+
+      {/* ── Active filter pills ── */}
+      {activePills.length > 0 && (
+        <View style={styles.activePillsRow}>
+          {activePills.map(pill => (
+            <View key={pill.key} style={styles.activePill}>
+              <Text style={styles.activePillText}>{pill.label}</Text>
+              <TouchableOpacity
+                onPress={pill.onRemove}
+                hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="close-circle" size={s(16)} color={PALETTE.primary} />
+              </TouchableOpacity>
+            </View>
+          ))}
+          {/* Clear all button — only show when 2+ filters active */}
+          {activePills.length > 1 && (
             <TouchableOpacity
               onPress={() => {
-                setSelectedFilter('');
-                fetchVideos({ cat: activeCategory, date: '', district: selectedDistrict });
+                setFilters({ category: '', date: '', district: '' });
+                fetchVideos({});
               }}
-              style={styles.activeFilterClearBtn}
+              style={styles.clearAllBtn}
               activeOpacity={0.8}
             >
-              <Ionicons name="close-circle" size={s(16)} color={PALETTE.primary} />
+              <Text style={styles.clearAllText}>அனைத்தும் நீக்கு</Text>
             </TouchableOpacity>
-          </View>
-        )} */}
-      </View>
-    );
-  };
+          )}
+        </View>
+      )}
+    </View>
+  );
+};
 
   // ── Load more handler ───────────────────────────────────────────────────────────
-  const handleLoadMore = () => {
-    if (!hasMore || loadingMore || loading) return;
-
-    // Disable pagination for shorts tab only
-    if (activeCategory === 'shorts') {
-      console.log('[VideosScreen] Pagination disabled for shorts tab');
-      setHasMore(false);
-      return;
-    }
-
-    // Allow pagination for all other cases including date filters and category tabs
-    fetchVideos({
-      cat: activeCategory,
-      date: selectedFilter,
-      district: selectedDistrict,
-      page: currentPage + 1,
-      append: true,
-    });
-  };
+const handleLoadMore = () => {
+  // Check if there are more pages available before loading
+  if (loadingMore || loading || !hasMore) return;
+  if (filters.category === 'shorts') { setHasMore(false); return; }
+  fetchVideos({
+    cat: filters.category,
+    date: filters.date,
+    district: filters.district,
+    districtSlug: filters.districtSlug,
+    page: currentPage + 1,
+    append: true,
+  });
+};
 
   // ── Footer component ───────────────────────────────────────────────────────────
   const ListFooter = () => {
@@ -968,26 +1140,29 @@ const VideosScreen = ({ navigation, route }) => {
   };
 
   // ── Empty state component ───────────────────────────────────────────────────────
-  const ListEmpty = () => {
-    if (loading) return null;
-
-    return (
-      <View style={styles.centeredState}>
-        <Text style={styles.stateIcon}>📭</Text>
-        <Text style={[styles.stateText, { fontSize: sf(14) }]}>தகவல் இல்லை</Text>
-        <Text style={[styles.stateSubText, { fontSize: sf(12) }]}>
-          {selectedDistrict
-            ? `${districtOptions.find(d => String(d.id) === selectedDistrict)?.title || ''} மாவட்டத்தில் இல்லை`
-            : 'தகவல் இல்லை'
-          }
-        </Text>
-      </View>
-    );
-  };
-
-  // ─────────────────────────────────────────────────────────────────────────────
+const ListEmpty = () => {
+  if (loading) return null;
+  
+  const isDistrictFiltered = !!filters.district;
+  const districtName = districtOptions.find(d => String(d.id) === filters.district)?.title;
+  
   return (
-    <SafeAreaView style={styles.safe}>
+    <View style={styles.centeredState}>
+      <Text style={styles.stateIcon}>📭</Text>
+      <Text style={[styles.stateText, { fontSize: sf(14) }]}>
+        {isDistrictFiltered 
+          ? `${districtName} மாவட்டத்திற்கு தகவல்கள் இல்லை` 
+          : 'தகவல் இல்லை'
+        }
+      </Text>
+    </View>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+return (
+  <SafeAreaView style={styles.safe}>
+    <StatusBar barStyle="dark-content" backgroundColor={PALETTE.white} />
       <StatusBar barStyle="dark-content" backgroundColor={PALETTE.white} />
 
       <TopMenuStrip
@@ -1045,14 +1220,14 @@ const VideosScreen = ({ navigation, route }) => {
           }
           // ── Regular video card ───────────────────────────────────────────
           return (
-            <VideoCard
-              video={item}
-              onPress={(v) => navigation?.navigate?.('VideoDetailScreen', { video: v })}
-              districtLabel={selectedDistrict
-                ? districtOptions.find(d => String(d.id) === selectedDistrict)?.title || ''
-                : ''
-              }
-            />
+         <VideoCard
+  video={item}
+  onPress={(v) => navigation?.navigate?.('VideoDetailScreen', { video: v })}
+  districtLabel={filters.district
+    ? districtOptions.find(d => String(d.id) === filters.district)?.title || ''
+    : ''
+  }
+/>
           );
         }}
         ListHeaderComponent={ListHeader}
@@ -1064,24 +1239,21 @@ const VideosScreen = ({ navigation, route }) => {
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.5}
       />
-
-      <FilterSheet
-        visible={filterVisible}
-        onClose={() => setFilterVisible(false)}
-        filterOptions={filterOptions}
-        selectedFilter={selectedFilter}
-        onSelectFilter={handleSelectFilter}
-        districtOptions={districtOptions}
-        selectedDistrict={selectedDistrict}
-        onSelectDistrict={handleSelectDistrict}
-        onClearAll={() => {
-          setSelectedFilter('');
-          setSelectedDistrict('');
-          setActiveCategory('');
-          fetchVideos({ cat: '', date: '', district: '' });
-          setFilterVisible(false);
-        }}
-      />
+<FilterSheet
+  visible={filterVisible}
+  onClose={() => setFilterVisible(false)}
+  filterOptions={filterOptions}
+  selectedFilter={filters.date}          // ← was selectedFilter
+  onSelectFilter={handleSelectFilter}
+  districtOptions={districtOptions}
+  selectedDistrict={filters.district}    // ← was selectedDistrict
+  onSelectDistrict={handleSelectDistrict}
+  onClearAll={() => {
+    setFilters({ category: '', date: '', district: '', districtSlug: '' });
+    fetchVideos({});
+    setFilterVisible(false);
+  }}
+/>
       {/* Drawer Menu */}
       <DrawerMenu
         isVisible={isDrawerVisible}
@@ -1228,6 +1400,47 @@ const styles = StyleSheet.create({
   activeFilterClearBtn: {
     padding: s(2),
   },
+  // Add these to StyleSheet.create({...})
+activePillsRow: {
+  flexDirection: 'row',
+  flexWrap: 'wrap',
+  gap: s(8),
+  paddingHorizontal: s(12),
+  paddingVertical: vs(8),
+  backgroundColor: '#EBF5FF',
+  borderBottomWidth: 1,
+  borderBottomColor: PALETTE.primary + '25',
+  alignItems: 'center',
+},
+activePill: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  gap: s(4),
+  backgroundColor: PALETTE.white,
+  borderWidth: 1,
+  borderColor: PALETTE.primary,
+  borderRadius: s(16),
+  paddingHorizontal: s(10),
+  paddingVertical: vs(4),
+},
+activePillText: {
+  fontSize: ms(12),
+  color: PALETTE.primary,
+  fontFamily: FONTS.muktaMalar.semibold,
+  fontWeight: '600',
+},
+clearAllBtn: {
+  paddingHorizontal: s(10),
+  paddingVertical: vs(4),
+  borderRadius: s(16),
+  backgroundColor: PALETTE.primary,
+},
+clearAllText: {
+  fontSize: ms(12),
+  color: PALETTE.white,
+  fontFamily: FONTS.muktaMalar.semibold,
+  fontWeight: '600',
+},
 
   // Card
   card: { backgroundColor: PALETTE.white, paddingHorizontal: ms(14) },
