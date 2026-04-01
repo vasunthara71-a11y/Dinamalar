@@ -2894,12 +2894,12 @@ export default function HomeScreen() {
         api.getPremium(),
         axios.get('https://cinema.dinamalar.com/api/cinema'),
         CDNApi.get('/movies'),
-        CDNApi.get('/photos'), // Add photos API call
-        CDNApi.get('/latestnotify'), // Add notification API call
+        CDNApi.get('/photos'),
+        CDNApi.get('/latestnotify'),
       ]);
 
       // ── Get commodity data locally (don't rely on state) ──────────────────
-      const commodityData = varthagamRes.status === 'fulfilled'
+      const commodityData = varthagamRes?.status === 'fulfilled'
         ? (varthagamRes.value?.data?.commodity || null)
         : null;
 
@@ -2910,7 +2910,7 @@ export default function HomeScreen() {
       let cinemaNews = [];
       let cinemaVideos = [];
 
-      if (homeRes.status === 'fulfilled') {
+      if (homeRes?.status === 'fulfilled') {
         const d = homeRes.value?.data;
         
         // Debug logging for entire home data
@@ -3516,7 +3516,7 @@ export default function HomeScreen() {
         }
 
         // ... (rest of the code remains the same)
-        if (cinemaRes.status === 'fulfilled' && cinemaRes.value?.data) {
+        if (cinemaRes?.status === 'fulfilled' && cinemaRes.value?.data) {
           cinemaNews = cinemaRes.value.data?.slice(0, 2) || [];
           cinemaVideos = cinemaRes.value.video?.slice(0, 2) || [];
         }
@@ -3532,7 +3532,7 @@ export default function HomeScreen() {
             hideDescription: true // Hide descriptions like Aanmegam
           });
 
-          if (vimarsanamRes.status === 'fulfilled' && vimarsanamRes.value?.data) {
+          if (vimarsanamRes?.status === 'fulfilled' && vimarsanamRes.value?.data) {
 
           }
 
@@ -3693,12 +3693,12 @@ export default function HomeScreen() {
         }
 
         // ── Short News (from CDN) ──────────────────────────────────────────
-        if (shortsRes.status === 'fulfilled' && shortsRes.value?.data?.length > 0) {
+        if (shortsRes?.status === 'fulfilled' && shortsRes.value?.data?.length > 0) {
           sections.push({ title: 'சிறுசெய்திகள்', data: shortsRes.value.data, type: 'shorts' });
         }
 
         // ── Varthagam News (from CDN) ──────────────────────────────────────
-        if (varthagamRes.status === 'fulfilled') {
+        if (varthagamRes?.status === 'fulfilled') {
           const varthagamData = [];
           const newlist = varthagamRes.value?.newlist || [];
           newlist.forEach((item) => {
@@ -3712,7 +3712,7 @@ export default function HomeScreen() {
 
 
         // ── Varavaram ──────────────────────────────────────────────────────
-        if (varavaramRes.status === 'fulfilled') {
+        if (varavaramRes?.status === 'fulfilled') {
           const data = varavaramRes.value?.data;
 
           // Handle both "varavaram" and "varamalar" response structures
@@ -3747,7 +3747,7 @@ export default function HomeScreen() {
 
       // ── Process Notification Data ────────────────────────────────────────
       console.log('🔔 Processing notification data...');
-      if (notifRes.status === 'fulfilled') {
+      if (notifRes?.status === 'fulfilled') {
         const notifData = notifRes.value?.data;
         console.log('🔔 Full notification response:', notifData);
         
@@ -3757,9 +3757,9 @@ export default function HomeScreen() {
         setNotifCount(notifItems.length);
         console.log('🔔 Final notification count:', notifItems.length);
       } else {
-        console.log('🔔 Notification request failed:', notifRes.status);
+        console.log('🔔 Notification request failed:', notifRes?.status);
         setNotifCount(0);
-        console.log('🔔 Failed to fetch notifications:', notifRes.reason);
+        console.log('🔔 Failed to fetch notifications:', notifRes?.reason);
       }
     } catch (e) {
       console.error('HomeScreen loadAll error:', e);
