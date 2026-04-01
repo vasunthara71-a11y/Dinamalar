@@ -152,6 +152,11 @@ const AlsoSeeThis = ({ item, onPress, scrollY = 0, playerPageY = 0 }) => {
   const videoPath    = item.videopath || '';
   const ytId         = getYouTubeId(videoPath);
 
+  // Check if this is a video section ("இதையும் பாருங்க") and has video content
+  const isVideoSection = sectionTitle === 'இதையும் பாருங்க';
+  const hasVideoContent = videoPath || ytId;
+  const shouldShowVideoPlayer = isVideoSection && hasVideoContent;
+
   return (
     // ✅ Wrap in ScrollView so we can detect scroll inside this component
     <ScrollView
@@ -166,87 +171,106 @@ const AlsoSeeThis = ({ item, onPress, scrollY = 0, playerPageY = 0 }) => {
         <View style={styles.card}>
 
           {/* ── Player Slot ─────────────────────────────────────────── */}
-          <View
-            style={[styles.playerContainer, { height: VH }]}
-            onLayout={(e) => {
-              // ✅ Record absolute Y of player slot for PIP trigger
-              e.target.measure((x, y, w, h, px, py) => {
-                slotY.current = py;
-              });
-            }}
-          >
-            {playing ? (
-              pip ? (
-                // ✅ When PIP active — show placeholder in slot
-                <View style={[StyleSheet.absoluteFill, { backgroundColor: '#000', justifyContent: 'center', alignItems: 'center' }]}>
-                  <Ionicons name="play-circle-outline" size={s(40)} color="rgba(255,255,255,0.3)" />
-                  <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: sf(12), marginTop: vs(6) }}>
-                    Mini player இயங்குகிறது
-                  </Text>
-                </View>
-              ) : (
-                // ✅ Full player
-                ytId ? (
-                  <YoutubePlayer
-                    height={VH}
-                    width={SW}
-                    videoId={ytId}
-                    play={true}
-                    webViewStyle={{ backgroundColor: '#000', opacity: 0.99 }}
-                    webViewProps={{ androidLayerType: 'hardware' }}
-                    initialPlayerParams={{
-                      rel: false,
-                      modestbranding: true,
-                      controls: true,
-                      autoplay: 1,
-                    }}
-                  />
-                ) : (
-                  <WebView
-                    source={{ html: buildIframeHtml(videoPath) }}
-                    style={{ flex: 1, backgroundColor: '#000' }}
-                    allowsFullscreenVideo
-                    javaScriptEnabled
-                    domStorageEnabled
-                    mediaPlaybackRequiresUserAction={false}
-                    allowsInlineMediaPlayback
-                    scrollEnabled={false}
-                    originWhitelist={['*']}
-                    mixedContentMode="always"
-                  />
-                )
-              )
-            ) : (
-              // ✅ Thumbnail — tap to play
-              <TouchableOpacity
-                style={StyleSheet.absoluteFill}
-                onPress={() => setPlaying(true)}
-                activeOpacity={0.9}
-              >
-                <Image
-                  source={{ uri: image }}
-                  style={StyleSheet.absoluteFill}
-                  resizeMode="contain"
-                />
-                <View style={styles.overlay} />
-                <View style={styles.playCenter}>
-                  <View style={styles.playBtn}>
-                    <Ionicons name="play" size={s(26)} color="#fff" />
-                  </View>
-                </View>
-                {!!duration && (
-                  <View style={styles.durationBadge}>
-                    <Text style={[styles.durationText, { fontSize: sf(11) }]}>
-                      {duration}
+          {shouldShowVideoPlayer ? (
+            <View
+              style={[styles.playerContainer, { height: VH }]}
+              onLayout={(e) => {
+                // ✅ Record absolute Y of player slot for PIP trigger
+                e.target.measure((x, y, w, h, px, py) => {
+                  slotY.current = py;
+                });
+              }}
+            >
+              {playing ? (
+                pip ? (
+                  // ✅ When PIP active — show placeholder in slot
+                  <View style={[StyleSheet.absoluteFill, { backgroundColor: '#000', justifyContent: 'center', alignItems: 'center' }]}>
+                    <Ionicons name="play-circle-outline" size={s(40)} color="rgba(255,255,255,0.3)" />
+                    <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: sf(12), marginTop: vs(6) }}>
+                      Mini player இயங்குகிறது
                     </Text>
                   </View>
-                )}
-              </TouchableOpacity>
-            )}
-          </View>
+                ) : (
+                  // ✅ Full player
+                  ytId ? (
+                    <YoutubePlayer
+                      height={VH}
+                      width={SW}
+                      videoId={ytId}
+                      play={true}
+                      webViewStyle={{ backgroundColor: '#000', opacity: 0.99 }}
+                      webViewProps={{ androidLayerType: 'hardware' }}
+                      initialPlayerParams={{
+                        rel: false,
+                        modestbranding: true,
+                        controls: true,
+                        autoplay: 1,
+                      }}
+                    />
+                  ) : (
+                    <WebView
+                      source={{ html: buildIframeHtml(videoPath) }}
+                      style={{ flex: 1, backgroundColor: '#000' }}
+                      allowsFullscreenVideo
+                      javaScriptEnabled
+                      domStorageEnabled
+                      mediaPlaybackRequiresUserAction={false}
+                      allowsInlineMediaPlayback
+                      scrollEnabled={false}
+                      originWhitelist={['*']}
+                      mixedContentMode="always"
+                    />
+                  )
+                )
+              ) : (
+                // ✅ Thumbnail — tap to play
+                <TouchableOpacity
+                  style={StyleSheet.absoluteFill}
+                  onPress={() => setPlaying(true)}
+                  activeOpacity={0.9}
+                >
+                  <Image
+                    source={{ uri: image }}
+                    style={StyleSheet.absoluteFill}
+                    resizeMode="contain"
+                  />
+                  <View style={styles.overlay} />
+                  <View style={styles.playCenter}>
+                    <View style={styles.playBtn}>
+                      <Ionicons name="play" size={s(26)} color="#fff" />
+                    </View>
+                  </View>
+                  {!!duration && (
+                    <View style={styles.durationBadge}>
+                      <Text style={[styles.durationText, { fontSize: sf(11) }]}>
+                        {duration}
+                      </Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              )}
+            </View>
+          ) : (
+            // ✅ Simple image display for reading sections ("இதையும் படிங்க")
+            <TouchableOpacity
+              style={[styles.playerContainer, { height: VH }]}
+              onPress={() => onPress && onPress(item)}
+              activeOpacity={0.9}
+            >
+              <Image
+                source={{ uri: image }}
+                style={StyleSheet.absoluteFill}
+                resizeMode="contain"
+              />
+            </TouchableOpacity>
+          )}
 
           {/* ── Text content ────────────────────────────────────────── */}
-          <View style={styles.textContent}>
+          <TouchableOpacity
+            style={styles.textContent}
+            onPress={() => onPress && onPress(item)}
+            activeOpacity={0.9}
+          >
             <Text
               style={[styles.newsTitle, { fontSize: sf(14), lineHeight: sf(22) }]}
               numberOfLines={3}
@@ -261,7 +285,7 @@ const AlsoSeeThis = ({ item, onPress, scrollY = 0, playerPageY = 0 }) => {
               )}
               <Text style={[styles.timeText, { fontSize: sf(12) }]}>{ago}</Text>
             </View>
-          </View>
+          </TouchableOpacity>
 
         </View>
       </View>
