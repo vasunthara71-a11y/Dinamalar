@@ -856,16 +856,12 @@ export default function NewsDetailsScreen() {
   const fetchDetail = useCallback(async () => {
     const id = newsId || newsItem?.id || newsItem?.newsid;
 
-    console.log('🔍 NewsDetailsScreen fetchDetail called');
-    console.log('🔍 newsId:', newsId);
-    console.log('🔍 newsItem:', newsItem);
-    console.log('🔍 Extracted ID:', id);
-    console.log('🔍 newsItem keys:', newsItem ? Object.keys(newsItem) : 'no newsItem');
+    console.log('🔍 NewsDetailsScreen fetchDetail called for ID:', id);
 
     // Check if this is flash news - if so, don't fetch API, just show the flash news data
     const isFlashNews = newsItem && (
       newsItem.clr === 'flashnews_Y' || 
-      newsItem.target === '' ||
+      (newsItem.target === '' && newsItem.link && newsItem.link.includes('latestmain')) ||
       (newsItem.link && newsItem.link.includes('latestmain'))
     );
 
@@ -881,7 +877,13 @@ export default function NewsDetailsScreen() {
     }
 
     if (!id) {
-      if (newsItem) { setDetail(newsItem); setLoading(false); return; }
+      if (newsItem) { 
+        console.log('🔍 No ID found, using newsItem as detail');
+        setDetail(newsItem); 
+        setLoading(false); 
+        return; 
+      }
+      console.log('🔍 No news ID or newsItem available');
       setError('செய்தி ID கிடைக்கவில்லை');
       setLoading(false);
       return;
@@ -909,12 +911,19 @@ export default function NewsDetailsScreen() {
           ]);
         } else {
           // ✅ Regular news — use standard endpoint
+          console.log('🔍 Regular fetch using detaildata endpoint for ID:', id);
+          const detailUrl = `/detaildata?newsid=${id}`;
+          
           res = await Promise.race([
-            mainApi.get(`/detaildata?newsid=${id}`),
+            mainApi.get(detailUrl),
             timeoutPromise
           ]);
+          
+          console.log('🔍 API Response status:', res.status);
         }
       } catch (error) {
+        console.log('🔍 Main endpoint failed, error:', error.message);
+        
         // If main endpoint fails, try NRI-specific endpoint as fallback
         // Detect language from the newsItem or use default
         const isEnglishMode = isNriEnglish || newsItem?.com_cat === 'en' || 
@@ -922,7 +931,7 @@ export default function NewsDetailsScreen() {
                              newsItem?.slug?.includes('world-news-nri-en');
         
         const lang = isEnglishMode ? 'en' : 'ta';
-        console.log('Main endpoint failed, trying NRI endpoint for ID:', id, 'language:', lang);
+        console.log('🔍 Trying NRI endpoint for ID:', id, 'language:', lang);
         res = await Promise.race([
           mainApi.get(`/nridetail?cat=${id}&lang=${lang}`),
           timeoutPromise
@@ -931,7 +940,6 @@ export default function NewsDetailsScreen() {
 
       const data = res.data;
 
-      console.log('🔍 API Response data structure:', data);
       console.log('🔍 API Response keys:', Object.keys(data));
 
       const article =
@@ -942,34 +950,52 @@ export default function NewsDetailsScreen() {
         (Array.isArray(data) ? data[0] : null) ||
         null;
 
-      console.log('🔍 Extracted article:', article);
-      console.log('🔍 Article keys:', article ? Object.keys(article) : 'no article');
+      console.log('🔍 Extracted article:', !!article);
 
       // ✅ Only now set detail - from API response (not from newsItem)
-      setDetail(article || null);
-      setNextNews(data?.detailnews?.nextnews || null);
-      setPrevNews(data?.detailnews?.previousnews || null);
-      setRelatedNewsData(data?.detailnews?.relatednews || data?.relatednews || []);
-      setTaboolaAds(data?.taboola_ads?.mobile || null);
-      setGoogleFollowData(data?.googlefollowus?.[0] || null);
-      setTrendingData(data?.trending || null);
-      setSpecialData(data?.specialtoday || null);
-      setMdescription(article?.mdescription || null);
-      setMorenewsLink(data?.morenewslink || null);
-      setCommentTotal(parseInt(data?.comments?.total, 10) || 0);
-      setNewsComments(data?.comments?.data || []);
+      if (article) {
+        console.log('🔍 Setting detail from API response');
+        setDetail(article);
+        setNextNews(data?.detailnews?.nextnews || null);
+        setPrevNews(data?.detailnews?.previousnews || null);
+        setRelatedNewsData(data?.detailnews?.relatednews || data?.relatednews || []);
+        setTaboolaAds(data?.taboola_ads?.mobile || null);
+        setGoogleFollowData(data?.googlefollowus?.[0] || null);
+        setTrendingData(data?.trending || null);
+        setSpecialData(data?.specialtoday || null);
+        setMdescription(article?.mdescription || null);
+        setMorenewsLink(data?.morenewslink || null);
+        setCommentTotal(parseInt(data?.comments?.total, 10) || 0);
+        setNewsComments(data?.comments?.data || []);
 
-      // Fetch shorts data after detail is loaded
-      fetchShorts();
+        // Fetch shorts data after detail is loaded
+        fetchShorts();
 
-      // Extract author ID from the article data
-      const authorIdToSet = article?.author_id || article?.authorid;
-      if (authorIdToSet) {
-        setAuthorId(authorIdToSet);
+        // Extract author ID from the article data
+        const authorIdToSet = article?.author_id || article?.authorid;
+        if (authorIdToSet) {
+          setAuthorId(authorIdToSet);
+        }
+      } else {
+        console.log('🔍 No article found in API response, checking if we can use newsItem');
+        
+        // Check if newsItem has enough content to display
+        if (newsItem && (newsItem.content || newsItem.description || newsItem.newsdescription)) {
+          console.log('🔍 Using newsItem as fallback with content');
+          setDetail(newsItem);
+        } else if (newsItem) {
+          console.log('🔍 Using newsItem as fallback (limited content)');
+          setDetail(newsItem);
+        } else {
+          console.log('🔍 No fallback available');
+          setDetail(null);
+          setError('செய்தியை ஏற்ற முடியவில்லை.');
+        }
       }
 
     } catch (err) {
-      console.error('Detail fetch error:', err?.message);
+      console.error('🔍 Detail fetch error:', err?.message);
+      console.log('🔍 Falling back to newsItem due to error');
       // ✅ Only fall back to newsItem on error
       setDetail(newsItem || null);
       if (!newsItem) setError('செய்தியை ஏற்ற முடியவில்லை.');
@@ -1041,7 +1067,22 @@ const image = d.largeimages || d.images || ni.largeimages || ni.images || '';
 const catKey = d.maincat || ni.maincat || '';
 const ago = d.ago || ni.ago || '';
 const date = d.standarddate || ni.standarddate || '';
-const content = d.newsdescription || d.content || ni.content || '';
+
+// Enhanced content extraction for different data structures
+const content = d.newsdescription || 
+                d.content || 
+                d.description || 
+                d.body || 
+                d.text || 
+                d.full_content ||
+                d.news_content ||
+                ni.content || 
+                ni.description || 
+                ni.body || 
+                ni.text ||
+                ni.newsdescription ||
+                '';
+
 const videoPath = d.path || ni.path || '';
 const AddedDate = d.adddate;
 const UpdateDate = d.updateddate;
@@ -1245,25 +1286,38 @@ return (
             )}
 
             {/* HTML body */}
-            {!!safeContent && (
-              <Animated.View
-                style={[styles.contentSection, { opacity: pulseAnim }]}
-                onLayout={(e) => { const w = e.nativeEvent.layout.width; if (w > 0) setContentWidth(w); }}
-              >
-                <RenderHtml
-                  contentWidth={contentWidth}
-                  source={{ html: safeContent }}
-                  baseStyle={baseStyle}
-                  tagsStyles={tagsStyles}
-                  ignoredDomTags={['script', 'style', 'meta', 'head', 'html', 'body', 'subtitle']}
-                  enableExperimentalMarginCollapsing
-                  systemFonts={SYSTEM_FONTS}
-                  renderersProps={{
-                    a: { onPress: (_e, href) => { if (href) Linking.openURL(href); } },
-                    img: { enableExperimentalPercentWidth: true },
-                  }}
-                />
-              </Animated.View>
+            {!loading && !error && (
+              <>
+                {!!safeContent ? (
+                  <Animated.View
+                    style={[styles.contentSection, { opacity: pulseAnim }]}
+                    onLayout={(e) => { const w = e.nativeEvent.layout.width; if (w > 0) setContentWidth(w); }}
+                  >
+                    <RenderHtml
+                      contentWidth={contentWidth}
+                      source={{ html: safeContent }}
+                      baseStyle={baseStyle}
+                      tagsStyles={tagsStyles}
+                      ignoredDomTags={['script', 'style', 'meta', 'head', 'html', 'body', 'subtitle']}
+                      enableExperimentalMarginCollapsing
+                      systemFonts={SYSTEM_FONTS}
+                      renderersProps={{
+                        a: { onPress: (_e, href) => { if (href) Linking.openURL(href); } },
+                        img: { enableExperimentalPercentWidth: true },
+                      }}
+                    />
+                  </Animated.View>
+                ) : (
+                  <View style={[styles.contentSection, { padding: s(20), alignItems: 'center' }]}>
+                    <Text style={{ fontSize: sf(14), color: COLORS.text, textAlign: 'center' }}>
+                      செய்தி உள்ளடக்கம் கிடைக்கவில்லை
+                    </Text>
+                    <Text style={{ fontSize: sf(12), color: COLORS.grey600, textAlign: 'center', marginTop: vs(10) }}>
+                      செய்தி விவரங்கள் ஏற்றப்படுகிறது...
+                    </Text>
+                  </View>
+                )}
+              </>
             )}
 
             {/* Share and top elements - only show after data loads */}
@@ -1455,7 +1509,7 @@ return (
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.white, paddingTop: Platform.OS === 'android' ? vs(0) : 20 },
+  container: { flex: 1, backgroundColor: COLORS.white, paddingTop: Platform.OS === 'android' ? vs(30) : 20 },
   panLayer: { flex: 1, overflow: 'hidden' },
   animLayer: { flex: 1 },
   edgeBtnLeft: {
