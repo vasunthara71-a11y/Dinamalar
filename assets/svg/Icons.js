@@ -583,3 +583,84 @@ export const TrendingIcon = ({ color = 'rgb(9, 109, 210)', size = 22, style = {}
     <Path d="M14 7l7 0l0 7" />
   </Svg>
 );
+
+export const DocumentIcon = ({ color = 'currentColor', size = 20, style = {} }) => (
+  <Svg 
+    stroke={color} 
+    fill="none" 
+    strokeWidth="32" 
+    viewBox="0 0 512 512" 
+    height={size} 
+    width={size} 
+    xmlns="http://www.w3.org/2000/svg" 
+    style={style}
+  >
+    <Path strokeLinejoin="round" d="M368 415.86V72a24.07 24.07 0 00-24-24H72a24.07 24.07 0 00-24 24v352a40.12 40.12 0 0040 40h328" />
+    <Path strokeLinejoin="round" d="M416 464h0a48 48 0 01-48-48V128h72a24 24 0 0124 24v264a48 48 0 01-48 48z" />
+    <Path strokeLinecap="round" strokeLinejoin="round" d="M240 128h64m-64 64h64m-192 64h192m-192 64h192m-192 64h192" />
+    <Path fill={color} d="M176 208h-64a16 16 0 01-16-16v-64a16 16 0 0116-16h64a16 16 0 0116 16v64a16 16 0 01-16 16z" />
+  </Svg>
+);
+
+export const LatestVideoIcon = ({ color = 'currentColor', size = 20, style = {} }) => (
+  <Svg 
+    stroke={color} 
+    fill={color} 
+    strokeWidth="0" 
+    viewBox="0 0 24 24" 
+    height={size} 
+    width={size} 
+    xmlns="http://www.w3.org/2000/svg" 
+    style={style}
+  >
+    <Path fill="none" d="M0 0h24v24H0V0z" />
+    <Path fill={color} d="M10 16.5l6-4.5-6-4.5zM12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" />
+  </Svg>
+);
+
+export const PhotoIcon = ({ color = 'currentColor', size = 20, style = {} }) => (
+  <Svg 
+    stroke="currentColor" 
+    fill="currentColor" 
+    strokeWidth="0" 
+    viewBox="0 0 24 24" 
+    height={size} 
+    width={size} 
+    xmlns="http://www.w3.org/2000/svg" 
+    style={style}
+  >
+    <Path fill="none" d="M0 0h24v24H0V0z" />
+    <Path d="M14.12 4l1.83 2H20v12H4V6h4.05l1.83-2h4.24M15 2H9L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2h-3.17L15 2zm-3 7c1.65 0 3 1.35 3 3s-1.35 3-3 3-3-1.35-3-3 1.35-3 3-3m0-2c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5z" />
+  </Svg>
+);
+
+export const AudioIcon = ({ color = 'currentColor', size = 18, style = {} }) => (
+  <Svg 
+    stroke="currentColor" 
+    fill="currentColor" 
+    strokeWidth="0" 
+    viewBox="0 0 352 512" 
+    height={size} 
+    width={size} 
+    xmlns="http://www.w3.org/2000/svg" 
+    style={style}
+  >
+    <Path d="M336 192h-16c-8.84 0-16 7.16-16 16v48c0 74.8-64.49 134.82-140.79 127.38C96.71 376.89 48 317.11 48 250.3V208c0-8.84-7.16-16-16-16H16c-8.84 0-16 7.16-16 16v40.16c0 89.64 63.97 169.55 152 181.69V464H96c-8.84 0-16 7.16-16 16v16c0 8.84 7.16 16 16 16h160c8.84 0 16-7.16 16-16v-16c0-8.84-7.16-16-16-16h-56v-33.77C285.71 418.47 352 344.9 352 256v-48c0-8.84-7.16-16-16-16zM176 352c53.02 0 96-42.98 96-96h-85.33c-5.89 0-10.67-3.58-10.67-8v-16c0-4.42 4.78-8 10.67-8H272v-32h-85.33c-5.89 0-10.67-3.58-10.67-8v-16c0-4.42 4.78-8 10.67-8H272v-32h-85.33c-5.89 0-10.67-3.58-10.67-8v-16c0-4.42 4.78-8 10.67-8H272c0-53.02-42.98-96-96-96S80 42.98 80 96v160c0 53.02 42.98 96 96 96z" />
+  </Svg>
+);
+
+export const FlashIcon = ({ color = 'currentColor', size = 20, style = {} }) => (
+  <Svg 
+    stroke="currentColor" 
+    fill="currentColor" 
+    strokeWidth="0" 
+    viewBox="0 0 24 24" 
+    height={size} 
+    width={size} 
+    xmlns="http://www.w3.org/2000/svg" 
+    style={style}
+  >
+    <Path fill="none" d="M0 0h24v24H0z" />
+    <Path d="M7 2v11h3v9l7-12h-4l4-8z" />
+  </Svg>
+);

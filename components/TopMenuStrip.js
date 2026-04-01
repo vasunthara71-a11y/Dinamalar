@@ -84,6 +84,8 @@ function MenuIcon({ uri }) {
 export default function TopMenuStrip({ onMenuPress, onNotification, notifCount = 0, navigation }) {
   const { sf } = useFontSize();
 
+  console.log('🔔 TopMenuStrip notifCount prop:', notifCount);
+
   const [menuItems, setMenuItems] = useState(_cachedMenuItems || []);
   const [loading, setLoading] = useState(_cachedMenuItems === null);
   const [activeMenu, setActiveMenu] = useState(null);
@@ -195,8 +197,9 @@ export default function TopMenuStrip({ onMenuPress, onNotification, notifCount =
         })}
       </ScrollView>
 
-      <TouchableOpacity style={styles.notifButton} onPress={onNotification} activeOpacity={0.7}>
+      <TouchableOpacity style={styles.notifButton} onPress={() => navigation.navigate('TimelineScreen')} activeOpacity={0.7}>
         <Ionicons name="notifications" size={s(24)} color={COLORS.primary} />
+        {console.log('🔔 Badge condition check:', notifCount, notifCount > 0)}
         {notifCount > 0 && (
           <View style={styles.notifBadge}>
             <Text style={styles.notifBadgeText}>{notifCount > 99 ? '99+' : notifCount}</Text>

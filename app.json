@@ -15,7 +15,9 @@
       "supportsTablet": true,
       "googleMobileAdsAppId": "ca-app-pub-3940256099942544~1458002511",
       "bundleIdentifier": "com.vasunthara71.Dinamalar",
-      "associatedDomains": ["applinks:www.dinamalar.com"]
+      "associatedDomains": [
+        "applinks:www.dinamalar.com"
+      ]
     },
     "android": {
       "package": "com.vasunthara71.Dinamalar",
@@ -42,7 +44,10 @@
               "pathPrefix": "/news"
             }
           ],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         },
         {
           "action": "VIEW",
@@ -51,7 +56,10 @@
               "scheme": "dinamalar"
             }
           ],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ]
     },
@@ -70,9 +78,18 @@
           ]
         }
       ],
-      ["expo-av"],
-      ["expo-audio"],
-      ["expo-asset"]
+      [
+        "expo-av"
+      ],
+      [
+        "expo-audio"
+      ],
+      [
+        "expo-asset"
+      ],
+      "expo-secure-store",
+      "expo-sharing",
+      "expo-video"
     ],
     "extra": {
       "eas": {

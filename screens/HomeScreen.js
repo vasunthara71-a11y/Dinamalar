@@ -2517,6 +2517,7 @@ export default function HomeScreen() {
   const [sections, setSections] = useState([]);
   const [taboolaAdHtml, setTaboolaAdHtml] = useState(null);
   const [promoBanners, setPromoBanners] = useState([]);
+  const [notifCount, setNotifCount] = useState(0);
 
   const flatListRef = useRef(null);
 
@@ -2881,7 +2882,7 @@ export default function HomeScreen() {
       const [
         homeRes, shortRes, shortsRes, varthagamRes, varavaramRes,
         joshiyamRes, districtRes, premiumRes, cinemaRes, cinemaRes2, vimarsanamRes,
-        photosRes, // Add photos API call
+        photosRes, notifRes, // Add photos and notification API calls
       ] = await Promise.allSettled([
         fetchHomeData(),
         fetchShortNews(),
@@ -2894,6 +2895,7 @@ export default function HomeScreen() {
         axios.get('https://cinema.dinamalar.com/api/cinema'),
         CDNApi.get('/movies'),
         CDNApi.get('/photos'), // Add photos API call
+        CDNApi.get('/latestnotify'), // Add notification API call
       ]);
 
       // ── Get commodity data locally (don't rely on state) ──────────────────
@@ -3742,13 +3744,30 @@ export default function HomeScreen() {
                 d?.trending || []
         );
       }
+
+      // ── Process Notification Data ────────────────────────────────────────
+      console.log('🔔 Processing notification data...');
+      if (notifRes.status === 'fulfilled') {
+        const notifData = notifRes.value?.data;
+        console.log('🔔 Full notification response:', notifData);
+        
+        // Extract notification items from newlist.data array
+        const notifItems = notifData?.newlist?.data || [];
+        console.log('🔔 Notification items count:', notifItems.length);
+        setNotifCount(notifItems.length);
+        console.log('🔔 Final notification count:', notifItems.length);
+      } else {
+        console.log('🔔 Notification request failed:', notifRes.status);
+        setNotifCount(0);
+        console.log('🔔 Failed to fetch notifications:', notifRes.reason);
+      }
     } catch (e) {
       console.error('HomeScreen loadAll error:', e);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [setNotifCount]);
 
   useEffect(() => { loadAll(); }, []);
 
@@ -5310,7 +5329,8 @@ export default function HomeScreen() {
       <TopMenuStrip
         onMenuPress={handleMenuPress}
         onNotification={goToNotifs}
-        notifCount={3}
+        notifCount={notifCount}
+        navigation={navigation}
       />
 
       <AppHeaderComponent

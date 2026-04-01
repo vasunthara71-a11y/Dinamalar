@@ -4,11 +4,18 @@ import {
   ActivityIndicator, RefreshControl, Dimensions,
   Animated, StyleSheet, Platform, Linking,
 } from 'react-native';
-import { SpeakerIcon } from '../assets/svg/Icons';
+import { 
+  SpeakerIcon, 
+  AudioIcon, 
+  PhotoIcon, 
+  FlashIcon, 
+  DocumentIcon, 
+  LatestVideoIcon 
+} from '../assets/svg/Icons';
 import { WebView } from 'react-native-webview';
 import RenderHtml from 'react-native-render-html';
 import axios from 'axios';
-import { CDNApi, API_ENDPOINTS, API_BASE_URLS } from '../config/api';
+import { dmrApi, API_ENDPOINTS, API_BASE_URLS } from '../config/api';
 import { COLORS, FONTS, NewsCard } from '../utils/constants';
 import { s, vs, scaledSizes } from '../utils/scaling';
 import { useNavigation } from '@react-navigation/native';
@@ -36,11 +43,12 @@ const PALETTE = {
 };
 
 const CAT_CONFIG = {
-  photo: { label: 'புகைப்படம்', color: '#e91e8c', icon: 'image-outline' },
-  video: { label: 'வீடியோ', color: '#f44336', icon: 'play-circle-outline' },
-  podcast: { label: 'பாட்காஸ்ட்', color: '#9c27b0', icon: 'mic-outline' },
-  seithigal: { label: 'செய்திகள்', color: '#1565c0', icon: 'newspaper-outline' },
-  default: { label: 'செய்தி', color: COLORS.primary, icon: 'radio-outline' },
+  photo: { label: 'புகைப்படம்', color: '#e91e8c', icon: PhotoIcon },
+  video: { label: 'வீடியோ', color: '#f44336', icon: LatestVideoIcon },
+  podcast: { label: 'பாட்காஸ்ட்', color: '#9c27b0', icon: AudioIcon },
+  seithigal: { label: 'செய்திகள்', color: '#1565c0', icon: DocumentIcon },
+  flash: { label: 'ஃபிளாஷ்', color: '#ff6b35', icon: FlashIcon },
+  default: { label: 'செய்தி', color: COLORS.primary, icon: FlashIcon },
 };
 const getCat = (maincat) => CAT_CONFIG[maincat] || CAT_CONFIG.default;
 
@@ -78,21 +86,16 @@ const getDinaVideoId = (item) => {
 };
 
 // ─── Play Icon ──────────────────────────────────────────────────────────────────
-const PlayIcon = ({ size = 28 }) => {
-  const { sf } = useFontSize();
-  const scaledSize = sf(size); // Scale the size based on font size settings
-  
-  return (
-    <View style={[vtStyles.playCircle, { width: scaledSize, height: scaledSize, borderRadius: scaledSize / 2 }]}>
-      <View style={[vtStyles.playTriangle, {
-        borderTopWidth: scaledSize * 0.12,
-        borderBottomWidth: scaledSize * 0.12,
-        borderLeftWidth: scaledSize * 0.25,
-        marginLeft: scaledSize * 0.06,
-      }]} />
-    </View>
-  );
-};
+const PlayIcon = ({ size = 52 }) => (
+  <View style={[vtStyles.playCircle, { width: size, height: size, borderRadius: size / 2 }]}>
+    <View style={[vtStyles.playTriangle, {
+      borderTopWidth: size * 0.22,
+      borderBottomWidth: size * 0.22,
+      borderLeftWidth: size * 0.36,
+      marginLeft: size * 0.07
+    }]} />
+  </View>
+);
 
 // ─── VideoThumbnailCard ───────────────────────────────────────────────
 // Shows video thumbnail with play button overlay.
@@ -159,14 +162,16 @@ const VideoThumbnailCard = ({ item, onPress }) => {
         <Image 
           source={{ uri: finalThumbUrl }} 
           style={vtStyles.thumb} 
-          resizeMode="cover" 
+          resizeMode="contain" 
           onError={() => setImageError(true)}
         />
       )}
       {/* Subtle dark overlay */}
       <View style={vtStyles.overlay} />
-      {/* Centered play circle */}
-      <PlayIcon size={28} />
+      {/* LatestVideoIcon in bottom-left corner */}
+      <View style={vtStyles.videoIconOverlay}>
+        <LatestVideoIcon size={s(24)} color={COLORS.white} />
+      </View>
       {/* Duration badge bottom-right */}
       {!!duration && (
         <View style={vtStyles.durationBadge}>
@@ -188,11 +193,14 @@ const vtStyles = StyleSheet.create({
   overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.25)' },
   playCircle: {
     position: 'absolute',
-    top: s(8), left: s(6),
-    width: s(40), height: s(40), borderRadius: s(20),
-    backgroundColor: PALETTE.primary,
-    borderWidth: 2, borderColor: 'rgba(255,255,255,0.9)',
-    justifyContent: 'center', alignItems: 'center',
+    top: s(6), left: s(6),  // Top-left corner
+    width: s(48), height: s(48), borderRadius: s(24),
+    backgroundColor: 'rgba(9, 109, 210, 0.85)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingLeft: s(3),
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.6)',
   },
   playTriangle: {
     width: 0, height: 0, borderStyle: 'solid',
@@ -206,6 +214,14 @@ const vtStyles = StyleSheet.create({
     paddingHorizontal: s(6), paddingVertical: s(2),
   },
   durationText: { fontSize: ms(10), color: '#fff', fontFamily: FONTS.muktaMalar.regular },
+  videoIconOverlay: {
+    position: 'absolute',
+    top: s(6), left: s(6),  // Top-left corner
+    width: s(28), height: s(28), borderRadius: s(16),
+    backgroundColor: PALETTE.primary,  // Primary color background
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
 });
 
 // ─── Navigation Route Map ─────────────────────────────────────────────
@@ -344,12 +360,18 @@ function NotificationCard({ item, onPress }) {
                 />
               </View>
             ) : (
-              <Image 
-                source={{ uri: imageUrl }} 
-                style={ncStyles.image} 
-                resizeMode="cover" 
-                onError={() => setImageError(true)}
-              />
+              <>
+                <Image 
+                  source={{ uri: imageUrl }} 
+                  style={ncStyles.image} 
+                  resizeMode="cover" 
+                  onError={() => setImageError(true)}
+                />
+                {/* Document icon in top-left corner for news items */}
+                <View style={ncStyles.documentIconOverlay}>
+                  <DocumentIcon size={s(18)} color={COLORS.white} />
+                </View>
+              </>
             )}
           </View>
         </TouchableOpacity>
@@ -423,6 +445,14 @@ const ncStyles = StyleSheet.create({
   commentRow: { flexDirection: 'row', alignItems: 'center' },
   commentText: { fontFamily: FONTS.muktaMalar.regular, color: PALETTE.grey700 },
   divider: { height: vs(6), backgroundColor: PALETTE.grey200 },
+  documentIconOverlay: {
+    position: 'absolute',
+    top: s(6), left: s(6),  // Top-left corner
+    width: s(28), height: s(28), borderRadius: s(14),
+    backgroundColor: PALETTE.primary,  // Primary color background
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
 });
 
 // ─── Timeline Item ────────────────────────────────────────────────────
@@ -511,10 +541,10 @@ function TimelineItem({ item, isLast, onPress }) {
         {/* Category icon badge — circular, sits ON the centered line */}
         <View style={[tlStyles.iconBadge, {
           width: ICON_SIZE, height: ICON_SIZE, borderRadius: ICON_RADIUS,
-          borderColor: cat.color,
+          borderColor: COLORS.grey500,
           backgroundColor: PALETTE.white,
         }]}>
-          <Ionicons name={cat.icon} size={s(14)} color={cat.color} />
+          {cat.icon({ size: s(14), color: COLORS.primary})}
         </View>
 
       </View>
@@ -789,6 +819,56 @@ function TimelineSkeleton() {
   );
 }
 
+// ─── Load More Button Component ───────────────────────────────────────────
+function LoadMoreButton({ onPress, loading }) {
+  return (
+    <View style={loadMoreStyles.container}>
+      <TouchableOpacity
+        style={loadMoreStyles.button}
+        onPress={onPress}
+        disabled={loading}
+        activeOpacity={0.8}
+      >
+        {loading ? (
+          <ActivityIndicator size="small" color={COLORS.white} />
+        ) : (
+          <>
+            <Text style={loadMoreStyles.buttonText}>மேலும் பார்க்க</Text>
+            <Ionicons name="chevron-down" size={16} color={COLORS.white} style={loadMoreStyles.icon} />
+          </>
+        )}
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+const loadMoreStyles = StyleSheet.create({
+  container: {
+    paddingHorizontal: s(16),
+    paddingVertical: vs(20),
+    alignItems: 'center',
+  },
+  button: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: s(20),
+    paddingVertical: vs(12),
+    borderRadius: s(8),
+    minWidth: s(120),
+    justifyContent: 'center',
+  },
+  buttonText: {
+    color: COLORS.white,
+    fontSize: ms(14),
+    fontFamily: FONTS.muktaMalar.bold,
+    marginRight: s(8),
+  },
+  icon: {
+    marginLeft: s(4),
+  },
+});
+
 // ─── Main Screen ──────────────────────────────────────────────────────
 export default function TimelineScreen() {
   const { sf } = useFontSize();
@@ -806,6 +886,7 @@ export default function TimelineScreen() {
   const [notifTitle, setNotifTitle] = useState('');
   const [latestTitle, setLatestTitle] = useState('நேரடி செய்திகள்');
   const [news, setNews] = useState([]);
+  const [mostCommented, setMostCommented] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -850,14 +931,15 @@ export default function TimelineScreen() {
       }
 
       const requests = [
-        CDNApi.get('/latestmain')
+        dmrApi.get('/latestmain', { params: { page: pageNum } })
       ];
       if (pageNum === 1) requests.push(
-        CDNApi.get('/latestnotify')
+        dmrApi.get('/latestnotify'),
+        dmrApi.get('/mostcommented')
       );
 
       console.log('=== Timeline API Attempt ===');
-      console.log('Trying CDNApi:', `${API_BASE_URLS.CDN}/latestmain?page=${pageNum}`);
+      console.log('Trying dmrApi:', `${API_BASE_URLS.CDN}/latestmain?page=${pageNum}`);
 
       let results;
       try {
@@ -867,12 +949,12 @@ export default function TimelineScreen() {
         results = [{ status: 'rejected', reason: error }];
       }
 
-      // If CDNApi fails, show error details
+      // If dmrApi fails, show error details
       if (results[0].status === 'rejected') {
-        console.log('❌ CDNApi failed');
+        console.log('❌ dmrApi failed');
         console.log('Error Details:', results[0].reason);
       } else {
-        console.log('✅ CDNApi SUCCESS');
+        console.log('✅ dmrApi SUCCESS');
       }
 
       // mainData.detail — the news items are in the detail array
@@ -894,7 +976,17 @@ export default function TimelineScreen() {
         console.log('Setting news state with', mainItems.length, 'items');
         setNews(prev => pageNum === 1 ? mainItems : [...prev, ...mainItems]);
         setPage(pageNum);
-        setHasMore(mainItems.length >= 10);
+        
+        // Use pagination info from API response
+        const pagination = mainData?.pagination;
+        if (pagination) {
+          setHasMore(pagination.current_page < pagination.last_page);
+          console.log('Pagination info:', pagination);
+        } else {
+          // Fallback to item count if pagination not available
+          setHasMore(mainItems.length >= 10);
+        }
+        
         console.log('News state updated for page', pageNum);
       } else {
         console.log('No items found, setting empty news array');
@@ -913,6 +1005,16 @@ export default function TimelineScreen() {
         } else {
           setNotifications([]);
           setNotifTitle('');
+        }
+        
+        // Handle most commented data (results[2])
+        if (results[2]?.status === 'fulfilled') {
+          const mostCommentedData = results[2].value.data;
+          const mostCommentedItems = (mostCommentedData?.data || []).filter(item => item != null);
+          console.log('Most commented items:', mostCommentedItems.length);
+          setMostCommented(mostCommentedItems);
+        } else {
+          setMostCommented([]);
         }
       }
     } catch (err) {
@@ -974,11 +1076,53 @@ export default function TimelineScreen() {
       out.push({ _type: 'item', _key: `item-${item.id}-${idx}`, _isLast: isLast, ...item });
     });
 
+    // Add load more button - always visible if there are news items
+    if (news.length > 0 && !loading) {
+      out.push({ _type: 'loadMore', _key: 'load-more' });
+    }
+
+    // Add most commented section if data is available (always show)
+    if (mostCommented.length > 0) {
+      out.push({ _type: 'thickDivider', _key: 'thick-most-commented' });
+      out.push({ _type: 'sectionHeader', _key: 'sh-most-commented', title: 'அதிகம் விமர்ச்சிக்கப்பட்டவை' });
+      
+      mostCommented.forEach((item, idx) => {
+        // Convert most commented item to timeline item format
+        const timelineItem = {
+          id: item.newsid,
+          newsid: item.newsid,
+          newstitle: item.newstitle,
+          newsdate: item.newsdate,
+          standarddate: item.standarddate,
+          date: item.date,
+          time: item.time,
+          ago: item.ago,
+          images: item.images,
+          newscomment: item.newscomment,
+          maincat: item.maincat,
+          maincatid: item.maincatid,
+          audio: item.audio,
+          video: item.video,
+          path: item.path,
+          slug: item.slug,
+          reacturl: item.reacturl,
+          catslug: item.catslug,
+        };
+        
+        const isLast = idx === mostCommented.length - 1;
+        out.push({ _type: 'item', _key: `most-commented-${item.newsid}-${idx}`, _isLast: isLast, ...timelineItem });
+        
+        if (idx < mostCommented.length - 1) {
+          out.push({ _type: 'divider', _key: `mc-divider-${idx}` });
+        }
+      });
+    }
+
     console.log('Final listData length:', out.length);
     console.log('=== End listData Creation ===');
 
     return out;
-  }, [notifications, news, notifTitle, latestTitle]);
+  }, [notifications, news, notifTitle, latestTitle, mostCommented]);
 
   const renderItem = ({ item }) => {
     switch (item._type) {
@@ -988,6 +1132,7 @@ export default function TimelineScreen() {
       case 'date': return <DateSeparator date={item.date} />;
       case 'divider': return <View style={{ height: vs(1), backgroundColor: PALETTE.grey200 }} />;
       case 'thickDivider': return <View style={{ height: vs(8), backgroundColor: PALETTE.grey200 }} />;
+      case 'loadMore': return <LoadMoreButton onPress={() => fetchAll(page + 1)} loading={loadingMore} />;
       default: return null;
     }
   };
@@ -1050,8 +1195,6 @@ export default function TimelineScreen() {
           renderItem={renderItem}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
-          onEndReached={onEndReached}
-          onEndReachedThreshold={0.4}
           onScroll={e => setShowScrollTop(e.nativeEvent.contentOffset.y > 400)}
           scrollEventThrottle={16}
           ListFooterComponent={
