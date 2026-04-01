@@ -15,7 +15,7 @@ import {
 import { WebView } from 'react-native-webview';
 import RenderHtml from 'react-native-render-html';
 import axios from 'axios';
-import { dmrApi, API_ENDPOINTS, API_BASE_URLS } from '../config/api';
+import { CDNApi, API_ENDPOINTS, API_BASE_URLS } from '../config/api';
 import { COLORS, FONTS, NewsCard } from '../utils/constants';
 import { s, vs, scaledSizes } from '../utils/scaling';
 import { useNavigation } from '@react-navigation/native';
@@ -931,15 +931,15 @@ export default function TimelineScreen() {
       }
 
       const requests = [
-        dmrApi.get('/latestmain', { params: { page: pageNum } })
+        CDNApi.get('/latestmain', { params: { page: pageNum } })
       ];
       if (pageNum === 1) requests.push(
-        dmrApi.get('/latestnotify'),
-        dmrApi.get('/mostcommented')
+        CDNApi.get('/latestnotify'),
+        CDNApi.get('/mostcommented')
       );
 
       console.log('=== Timeline API Attempt ===');
-      console.log('Trying dmrApi:', `${API_BASE_URLS.CDN}/latestmain?page=${pageNum}`);
+      console.log('Trying CDNApi:', `${API_BASE_URLS.CDN}/latestmain?page=${pageNum}`);
 
       let results;
       try {
@@ -949,12 +949,12 @@ export default function TimelineScreen() {
         results = [{ status: 'rejected', reason: error }];
       }
 
-      // If dmrApi fails, show error details
+      // If CDNApi fails, show error details
       if (results[0].status === 'rejected') {
-        console.log('❌ dmrApi failed');
+        console.log('❌ CDNApi failed');
         console.log('Error Details:', results[0].reason);
       } else {
-        console.log('✅ dmrApi SUCCESS');
+        console.log('✅ CDNApi SUCCESS');
       }
 
       // mainData.detail — the news items are in the detail array
