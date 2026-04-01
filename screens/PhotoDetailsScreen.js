@@ -39,7 +39,21 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const AUTO_SLIDE_INTERVAL = 4000;
 
 export default function PhotoDetailsScreen({ route, navigation }) {
-  const { screenTitle = 'போட்டோ', photoItem, apiEndpoint = '/photodata', isFromAllTab = false } = route.params || {};
+  const {
+    screenTitle = 'போட்டோ',
+    photoItem,
+    apiEndpoint,
+    isFromAllTab = false,
+    // ↓ These come from deep link: /photo/81/481602
+    catid,
+    eventid,
+  } = route.params || {};
+
+  // Map catid → correct API endpoint
+  const resolvedEndpoint = apiEndpoint || (catid ? `/photoitem?cat=${catid}` : '/photodata');
+
+  // Build photoItem from deep link if not passed directly
+  const resolvedPhotoItem = photoItem || (eventid ? { eventid: Number(eventid) } : null);
 
   const [photoData, setPhotoData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -52,13 +66,13 @@ export default function PhotoDetailsScreen({ route, navigation }) {
   const currentIndexRef = useRef(0);
   const totalRef = useRef(0);
 
-// ─── Fetch ────────────────────────────────────────────────────────────────
+// ─── Fetch ────────────────────────────────────────────────────────
 const fetchPhotoData = useCallback(async () => {
   try {
     setLoading(true);
     setError(null);
 
-    const endpoint = apiEndpoint || '/photodetails?cat=81';
+    const endpoint = resolvedEndpoint || '/photodetails?cat=81';
     const response = await CDNApi.get(endpoint);
     const data = response?.data || [];
 
@@ -91,10 +105,10 @@ const fetchPhotoData = useCallback(async () => {
     totalRef.current = photos.length;
     setPhotoData(photos);
 
-    if (photoItem && photos.length > 0) {
+    if (resolvedPhotoItem && photos.length > 0) {
       const idx = photos.findIndex(p =>
-        (p.eventid && p.eventid === photoItem.eventid) ||
-        (p.id && p.id === photoItem.id)
+        (p.eventid && p.eventid === resolvedPhotoItem.eventid) ||
+        (p.id && p.id === resolvedPhotoItem.id)
       );
       const targetIdx = idx !== -1 ? idx : 0;
       currentIndexRef.current = targetIdx;
@@ -111,13 +125,13 @@ const fetchPhotoData = useCallback(async () => {
   } finally {
     setLoading(false);
   }
-}, [photoItem, apiEndpoint]);
+}, [resolvedPhotoItem, resolvedEndpoint]);
 
   useEffect(() => {
     fetchPhotoData();
   }, [fetchPhotoData]);
 
-  // ─── Auto-slide ───────────────────────────────────────────────────────────
+  // ─── Auto-slide ───────────────────────────────────────────────────
   const startAutoSlide = useCallback(() => {
     if (autoSlideTimer.current) clearInterval(autoSlideTimer.current);
     autoSlideTimer.current = setInterval(() => {
@@ -183,6 +197,14 @@ const fetchPhotoData = useCallback(async () => {
 
   const getCategory = (photo) => photo?.maincat || '';
 
+  // Generate deep links from your share buttons using reacturl
+const getShareUrl = (photo) => {
+  const path = photo?.reacturl || photo?.slug || '';
+  return path
+    ? `https://www.dinamalar.com${path}`
+    : 'https://www.dinamalar.com';
+};
+
   // ─── Render carousel item ─────────────────────────────────────────────────
   const renderItem = ({ item: photo }) => (
     <View style={styles.slideContainer}>
@@ -218,7 +240,7 @@ const fetchPhotoData = useCallback(async () => {
     </View>
   );
 
-  // ─── Loading ──────────────────────────────────────────────────────────────
+  // ─── Loading ──────────────────────────────────────────────────────
   if (loading) {
     return (
       <View style={styles.container}>
@@ -231,7 +253,7 @@ const fetchPhotoData = useCallback(async () => {
     );
   }
 
-  // ─── Error ────────────────────────────────────────────────────────────────
+  // ─── Error ────────────────────────────────────────────────────────
   if (error) {
     return (
       <View style={styles.container}>
@@ -249,7 +271,7 @@ const fetchPhotoData = useCallback(async () => {
 
   const currentPhoto = photoData[currentIndex] || {};
 
-  // ─── Main render ──────────────────────────────────────────────────────────
+  // ─── Main render ──────────────────────────────────────────────────
   return (
     <View style={styles.container}>
       <Header navigation={navigation} title={screenTitle} />
@@ -300,7 +322,6 @@ const fetchPhotoData = useCallback(async () => {
         <View style={styles.infoCard}>
 
 
-
           {/* Caption / Footnote */}
           {getFootnote(currentPhoto) ? (
             <Text style={styles.footnoteText}>{getFootnote(currentPhoto)}</Text>
@@ -340,36 +361,28 @@ const fetchPhotoData = useCallback(async () => {
                 icon: 'logo-facebook',
                 bg: '#1877F2',
                 onPress: () => Linking.openURL(
-                  `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
-                    currentPhoto.slug ? `https://www.dinamalar.com${currentPhoto.slug}` : 'https://www.dinamalar.com'
-                  )}`
+                  `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(getShareUrl(currentPhoto))}`
                 ),
               },
               {
                 icon: 'logo-twitter',
                 bg: '#000000',
                 onPress: () => Linking.openURL(
-                  `https://twitter.com/intent/tweet?url=${encodeURIComponent(
-                    currentPhoto.slug ? `https://www.dinamalar.com${currentPhoto.slug}` : 'https://www.dinamalar.com'
-                  )}`
+                  `https://twitter.com/intent/tweet?url=${encodeURIComponent(getShareUrl(currentPhoto))}`
                 ),
               },
               {
                 icon: 'logo-whatsapp',
                 bg: '#25D366',
                 onPress: () => Linking.openURL(
-                  `whatsapp://send?text=${encodeURIComponent(
-                    `${getFootnote(currentPhoto) || currentPhoto.title || ''} ${currentPhoto.slug ? `https://www.dinamalar.com${currentPhoto.slug}` : ''}`
-                  )}`
+                  `whatsapp://send?text=${encodeURIComponent(`${getFootnote(currentPhoto)}\n${getShareUrl(currentPhoto)}`)}`
                 ),
               },
               {
                 icon: 'paper-plane-outline',
                 bg: '#2AABEE',
                 onPress: () => Linking.openURL(
-                  `https://t.me/share/url?url=${encodeURIComponent(
-                    currentPhoto.slug ? `https://www.dinamalar.com${currentPhoto.slug}` : 'https://www.dinamalar.com'
-                  )}`
+                  `https://t.me/share/url?url=${encodeURIComponent(getShareUrl(currentPhoto))}`
                 ),
               },
               {
@@ -377,10 +390,7 @@ const fetchPhotoData = useCallback(async () => {
                 bg: PALETTE.grey400,
                 onPress: async () => {
                   try {
-                    const url = currentPhoto.slug
-                      ? `https://www.dinamalar.com${currentPhoto.slug}`
-                      : 'https://www.dinamalar.com';
-                    await Share.share({ message: `${getFootnote(currentPhoto) || currentPhoto.title || ''}\n${url}` });
+                    await Share.share({ message: `${getFootnote(currentPhoto)}\n${getShareUrl(currentPhoto)}` });
                   } catch (_) { }
                 },
               },
@@ -434,7 +444,7 @@ const fetchPhotoData = useCallback(async () => {
   );
 }
 
-// ─── Header ───────────────────────────────────────────────────────────────────
+// ─── Header ───────────────────────────────────────────────────────────
 function Header({ navigation, title }) {
   return (
     <View style={styles.header}>
@@ -450,7 +460,7 @@ function Header({ navigation, title }) {
   );
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
+// ─── Styles ───────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -619,100 +629,87 @@ const styles = StyleSheet.create({
     borderRadius: s(3),
   },
   dotInactive: {
-    width: s(6),
+    width: s(18),
     height: s(6),
-    backgroundColor: 'rgba(255,255,255,0.35)',
+    backgroundColor: PALETTE.grey400,
     borderRadius: s(3),
   },
 
   // Info card
   infoCard: {
-    padding: s(16),
-    gap: vs(10),
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  categoryPill: {
-    alignSelf: 'flex-start',
-    backgroundColor: '#EBF4FF',
-    borderRadius: s(20),
-    paddingHorizontal: s(12),
-    paddingVertical: vs(3),
-  },
-  categoryText: {
-    fontSize: ms(11),
-    color: PALETTE.primary,
-    fontFamily: FONTS.muktaMalar.medium,
-    fontWeight: '600',
+    backgroundColor: '#fff',
+    marginHorizontal: s(12),
+    padding: s(12),
+    borderRadius: s(8),
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: vs(2) },
+    shadowOpacity: 0.1,
+    shadowRadius: s(4),
+    marginTop: vs(-4),
   },
   footnoteText: {
     fontSize: ms(14),
-    color: PALETTE.grey700,
+    color: PALETTE.textDark,
     fontFamily: FONTS.muktaMalar.regular,
-    lineHeight: ms(24),
+    lineHeight: vs(20),
+    marginBottom: vs(8),
   },
   metaRow: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
+    alignItems: 'center',
     marginTop: vs(4),
   },
   metaLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: s(5),
-  },
-  metaRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: s(12),
-  },
-  dateText: {
-    fontSize: ms(13),
-    color: PALETTE.grey500,
-    fontFamily: FONTS.muktaMalar.regular,
-  },
-  metaBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
     gap: s(4),
   },
-  metaBtnText: {
+  dateText: {
     fontSize: ms(12),
     color: PALETTE.grey500,
     fontFamily: FONTS.muktaMalar.regular,
   },
+  metaRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: s(8),
+  },
+  metaBtn: {
+    padding: s(6),
+    borderRadius: s(12),
+    backgroundColor: PALETTE.grey100,
+  },
 
-  // Thumbnail strip
+  // Thumbnail strip (commented out)
   thumbSection: {
-    paddingTop: vs(16),
-    paddingHorizontal: s(16),
+    marginTop: vs(12),
   },
   thumbSectionTitle: {
     fontSize: ms(14),
-    fontWeight: '600',
-    color: PALETTE.grey700,
-    fontFamily: FONTS.muktaMalar?.semibold || FONTS.bold,
-    marginBottom: vs(10),
+    fontFamily: FONTS.muktaMalar.medium,
+    color: PALETTE.textDark,
+    marginBottom: vs(8),
+    paddingHorizontal: s(12),
   },
   thumbRow: {
     flexDirection: 'row',
     gap: s(8),
-    paddingBottom: vs(4),
   },
   thumb: {
-    width: s(72),
-    height: s(52),
-    borderRadius: s(6),
-    overflow: 'hidden',
+    width: s(60),
+    height: s(60),
+    borderRadius: s(4),
+    backgroundColor: PALETTE.grey200,
   },
   thumbActive: {
     borderWidth: 2,
     borderColor: PALETTE.primary,
-    borderRadius: s(6),
   },
   thumbImage: {
     width: '100%',
     height: '100%',
+    borderRadius: s(4),
   },
 });

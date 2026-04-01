@@ -13,7 +13,9 @@
     },
     "ios": {
       "supportsTablet": true,
-      "googleMobileAdsAppId": "ca-app-pub-3940256099942544~1458002511"
+      "googleMobileAdsAppId": "ca-app-pub-3940256099942544~1458002511",
+      "bundleIdentifier": "com.vasunthara71.Dinamalar",
+      "associatedDomains": ["applinks:www.dinamalar.com"]
     },
     "android": {
       "package": "com.vasunthara71.Dinamalar",
@@ -23,7 +25,35 @@
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
-      }
+      },
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "www.dinamalar.com",
+              "pathPrefix": "/photos"
+            },
+            {
+              "scheme": "https",
+              "host": "www.dinamalar.com",
+              "pathPrefix": "/news"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        },
+        {
+          "action": "VIEW",
+          "data": [
+            {
+              "scheme": "dinamalar"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -40,15 +70,9 @@
           ]
         }
       ],
-      [
-        "expo-av"
-      ],
-      [
-        "expo-audio"
-      ],
-      [
-        "expo-asset"
-      ]
+      ["expo-av"],
+      ["expo-audio"],
+      ["expo-asset"]
     ],
     "extra": {
       "eas": {
