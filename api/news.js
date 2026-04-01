@@ -13,6 +13,7 @@ export const fetchHomeData = async () => {
     return response;
   } catch (error) {
     console.error('Error fetching home data:', error);
+    // Return a rejected promise so Promise.allSettled can handle it properly
     throw error;
   }
 };
@@ -33,6 +34,7 @@ export const fetchShortNews = async () => {
     return response;
   } catch (error) {
     console.error('Error fetching short news:', error);
+    // Return a rejected promise so Promise.allSettled can handle it properly
     throw error;
   }
 };

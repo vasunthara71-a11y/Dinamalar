@@ -1224,7 +1224,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: PALETTE.grey200,
-    paddingTop: Platform.OS === 'android' ? vs(30) : 0,
+    paddingTop: Platform.OS === 'android' ? vs(0) : 0,
   },
   listContent: { paddingBottom: vs(40) },
   footerLoader: { justifyContent: 'center', alignItems: 'center', paddingVertical: vs(16) },
