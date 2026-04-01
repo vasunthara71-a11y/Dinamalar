@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Dinamalar",
-    "slug": "Dinamalar",
+    "slug": "dinamalarmobileapplication",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -13,88 +13,26 @@
     },
     "ios": {
       "supportsTablet": true,
-      "googleMobileAdsAppId": "ca-app-pub-3940256099942544~1458002511",
-      "bundleIdentifier": "com.vasunthara71.Dinamalar",
       "associatedDomains": [
         "applinks:www.dinamalar.com"
       ]
     },
     "android": {
-      "package": "com.vasunthara71.Dinamalar",
-      "googleMobileAdsAppId": "ca-app-pub-3940256099942544~3347511713",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
-      },
-      "intentFilters": [
-        {
-          "action": "VIEW",
-          "autoVerify": true,
-          "data": [
-            {
-              "scheme": "https",
-              "host": "www.dinamalar.com",
-              "pathPrefix": "/photos"
-            },
-            {
-              "scheme": "https",
-              "host": "www.dinamalar.com",
-              "pathPrefix": "/news"
-            }
-          ],
-          "category": [
-            "BROWSABLE",
-            "DEFAULT"
-          ]
-        },
-        {
-          "action": "VIEW",
-          "data": [
-            {
-              "scheme": "dinamalar"
-            }
-          ],
-          "category": [
-            "BROWSABLE",
-            "DEFAULT"
-          ]
-        }
-      ]
+      }
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "plugins": [
-      [
-        "expo-font",
-        {
-          "fonts": [
-            "./assets/fonts/mukta/Mukta_Malar/MuktaMalar-Regular.ttf",
-            "./assets/fonts/mukta/Mukta_Malar/MuktaMalar-Bold.ttf",
-            "./assets/fonts/mukta/Mukta_Malar/MuktaMalar-Medium.ttf",
-            "./assets/fonts/mukta/Mukta_Malar/MuktaMalar-SemiBold.ttf"
-          ]
-        }
-      ],
-      [
-        "expo-av"
-      ],
-      [
-        "expo-audio"
-      ],
-      [
-        "expo-asset"
-      ],
-      "expo-secure-store",
-      "expo-sharing",
-      "expo-video"
-    ],
     "extra": {
       "eas": {
-        "projectId": "32bed8d9-8f9a-4505-a9f8-347f429ac9f7"
+        "projectId": "014e592e-d3e5-4958-9178-5ba4e58bd9aa"
       }
-    }
+    },
+    "owner": "dinamalar"
   }
 }
