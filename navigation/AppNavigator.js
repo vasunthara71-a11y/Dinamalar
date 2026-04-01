@@ -32,13 +32,14 @@ import AuthorScreen from '../screens/AuthorScreen';
 import TagsScreen from '../screens/TagsScreen';
 import SpecialTodayScreen from '../screens/SpecialTodayScreen';
 import EditorChoiceScreen from '../screens/EditorChoiceScreen';
+import linking from './linking';
   
 const Stack = createNativeStackNavigator();
 
 // Stack Navigator for individual screens
 const AppNavigator = () => {
   return (
-    <NavigationContainer>
+    <NavigationContainer linking={linking}>
       <Stack.Navigator
         screenOptions={{
           headerShown: false,

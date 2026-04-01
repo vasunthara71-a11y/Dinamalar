@@ -1234,13 +1234,15 @@ return (
             )}
 
             {/* Podcast */}
-            <AudioPlayerCard
-              audioUrl={podcastAudioUrl}
-              data={{
-                spotify: d.spotifylink || d.spotify || null,
-                alexa: d.alexalink || d.amazon || null,
-              }}
-            />
+            {(podcastAudioUrl && isPodcast) && (
+              <AudioPlayerCard
+                audioUrl={podcastAudioUrl}
+                data={{
+                  spotify: d.spotifylink || d.spotify || null,
+                  alexa: d.alexalink || d.amazon || null,
+                }}
+              />
+            )}
 
             {/* HTML body */}
             {!!safeContent && (
@@ -1280,11 +1282,26 @@ return (
               <AlsoSeeThis 
                 item={alsoSeeThisItem}
                 onPress={(item) => {
-                  // Navigate to NewsDetailsScreen with the news ID
-                  if (item.newsid) {
-                    navigation.navigate('NewsDetailsScreen', { newsId: item.newsid });
+                  console.log('AlsoSeeThis item pressed:', item);
+                  
+                  // Try different possible ID fields for navigation
+                  const newsId = item.newsid || item.id || item.news_id || item.articleid;
+                  
+                  if (newsId) {
+                    console.log('Navigating to NewsDetailsScreen with newsId:', newsId);
+                    navigation.navigate('NewsDetailsScreen', { 
+                      newsId: newsId,
+                      newsItem: item // Pass the full item as newsItem for better context
+                    });
                   } else {
-                    console.log('No newsid found for item:', item);
+                    console.log('No valid news ID found in item:', item);
+                    // If no ID found, try to navigate using link if available
+                    if (item.link || item.url) {
+                      console.log('Opening external link:', item.link || item.url);
+                      Linking.openURL(item.link || item.url);
+                    } else {
+                      console.log('No navigation method available for this item');
+                    }
                   }
                 }}
               />
@@ -1438,7 +1455,7 @@ return (
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.white, paddingTop: Platform.OS === 'android' ? vs(20) : 20 },
+  container: { flex: 1, backgroundColor: COLORS.white, paddingTop: Platform.OS === 'android' ? vs(0) : 20 },
   panLayer: { flex: 1, overflow: 'hidden' },
   animLayer: { flex: 1 },
   edgeBtnLeft: {
