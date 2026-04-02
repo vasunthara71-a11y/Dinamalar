@@ -27,7 +27,7 @@ const FeedbackCard = ({ newsId }) => {
 
   const handlePress = () => {
     const feedbackUrl = newsId ? `/feedback?page=/news/${newsId}` : '/feedback';
-    // navigation.navigate('FeedbackScreen', { page: feedbackUrl });
+    navigation.navigate('FeedbackFormScreen', { page: feedbackUrl });
   };
 
   return (
