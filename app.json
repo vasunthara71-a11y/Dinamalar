@@ -12,21 +12,41 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
+    "plugins": [
+      [
+        "expo-font",
+        {
+          "fonts": [
+            "./assets/fonts/mukta/Mukta_Malar/MuktaMalar-Regular.ttf",
+            "./assets/fonts/mukta/Mukta_Malar/MuktaMalar-Bold.ttf",
+            "./assets/fonts/mukta/Mukta_Malar/MuktaMalar-Medium.ttf",
+            "./assets/fonts/Anek/AnekTamil-Regular.ttf",
+            "./assets/fonts/Anek/AnekTamil-Bold.ttf",
+            "./assets/fonts/Anek/AnekTamil-Medium.ttf"
+          ]
+        }
+      ],
+      "@react-native-firebase/app",
+      "@react-native-firebase/crashlytics"
+    ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.vasunthara71.Dinamalar",
+      "bundleIdentifier": "com.dinamalarMobileApp",
       "associatedDomains": [
         "applinks:www.dinamalar.com"
       ]
     },
     "android": {
-      "package": "com.vasunthara71.Dinamalar",
+      "package": "com.dinamalarMobileApp",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
-      }
+      },
+      "permissions": [
+        "INTERNET"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"

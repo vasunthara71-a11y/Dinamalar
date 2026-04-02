@@ -6,6 +6,8 @@ import { FontSizeProvider } from './context/FontSizeContext';
 import { View } from 'react-native';
 import { useAppOptimization } from './hooks/useAppOptimization';
 import ErrorBoundary from './components/ErrorBoundary';
+import { useEffect } from 'react';
+import { installCrashReporter, logAction, setUser } from './utils/crashReporter';
 
 function AppContent() {
   // Initialize app optimizations
@@ -15,6 +17,14 @@ function AppContent() {
 }
 
 export default function App() {
+  useEffect(() => {
+    installCrashReporter();
+    logAction('App launched');
+
+    // Optional: set logged-in user info
+    // setUser('user123', 'user@email.com', 'John');
+  }, []);
+
   const [fontsLoaded] = useFonts({
     // MuktaMalar fonts
     'MuktaMalar-Light':     require('./assets/fonts/mukta/Mukta_Malar/MuktaMalar-Light.ttf'),
