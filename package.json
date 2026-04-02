@@ -48,6 +48,7 @@
   },
   "private": true,
   "devDependencies": {
+    "babel-preset-expo": "^55.0.13",
     "react-native-svg-transformer": "^1.5.3"
   }
 }
