@@ -6,8 +6,15 @@ import { FontSizeProvider } from './context/FontSizeContext';
 import { View } from 'react-native';
 import { useAppOptimization } from './hooks/useAppOptimization';
 import ErrorBoundary from './components/ErrorBoundary';
+import CrashReportingService from './services/CrashReportingService';
+import { useEffect } from 'react';
 
 function AppContent() {
+  // Initialize crash reporting
+  useEffect(() => {
+    CrashReportingService.initialize();
+  }, []);
+
   // Initialize app optimizations
   useAppOptimization();
 

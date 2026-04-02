@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text } from 'react-native';
+import CrashReportingService from '../services/CrashReportingService';
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -18,6 +19,10 @@ class ErrorBoundary extends React.Component {
       componentStack: errorInfo.componentStack,
       timestamp: new Date().toISOString()
     });
+
+    // Report error to crashlytics with email context
+    CrashReportingService.recordError(error, `ErrorBoundary: ${errorInfo.componentStack}`);
+    CrashReportingService.log('Error caught by ErrorBoundary component');
 
     this.setState({ hasError: true, error });
   }
