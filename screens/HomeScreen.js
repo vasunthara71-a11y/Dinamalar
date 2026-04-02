@@ -44,6 +44,8 @@ import { titles } from '../utils/textStyles';
 import { Ionicons } from '@expo/vector-icons';
 import AdvertisementBanner from '../components/AdvertisementBanner';
 import PromoBanners from '../components/PromoBanners';
+import crashlytics from '@react-native-firebase/crashlytics';
+import { logAction } from '../utils/crashReporter';
 
 // --- Palette ------------------------------------------------------------------
 const PALETTE = {
@@ -5544,6 +5546,27 @@ export default function HomeScreen() {
         onLocation={() => setIsLocationDrawerVisible(true)}
         selectedDistrict={selectedDistrict}
       />
+
+      {/* Test Crash Button - Remove after confirming Crashlytics works */}
+      <View style={{ paddingHorizontal: s(12), paddingVertical: vs(8) }}>
+        <TouchableOpacity
+          onPress={() => {
+            logAction('Test crash button pressed');
+            crashlytics().crash();
+          }}
+          style={{
+            backgroundColor: '#ff4757',
+            paddingVertical: vs(8),
+            paddingHorizontal: s(16),
+            borderRadius: s(6),
+            alignItems: 'center'
+          }}
+        >
+          <Text style={{ color: '#fff', fontFamily: FONTS.muktaMalar.bold, fontSize: ms(14) }}>
+            Test Crash (Remove after testing)
+          </Text>
+        </TouchableOpacity>
+      </View>
 
       <DrawerMenu
         isVisible={isDrawerVisible}
