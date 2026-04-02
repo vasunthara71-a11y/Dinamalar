@@ -6,11 +6,11 @@
   <component name="ChangeListManager">
     <list default="true" id="7dff0835-ba21-4555-8c27-70a8bbe09433" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app.json" beforeDir="false" afterPath="$PROJECT_DIR$/app.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/eas.json" beforeDir="false" afterPath="$PROJECT_DIR$/eas.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/package-lock.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/screens/NewsDetailsScreen.js" beforeDir="false" afterPath="$PROJECT_DIR$/screens/NewsDetailsScreen.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/App.js" beforeDir="false" afterPath="$PROJECT_DIR$/App.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/screens/CommonSectionScreen.js" beforeDir="false" afterPath="$PROJECT_DIR$/screens/CommonSectionScreen.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/screens/SportsScreen.js" beforeDir="false" afterPath="$PROJECT_DIR$/screens/SportsScreen.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/screens/TharpothaiyaSeithigalScreen.js" beforeDir="false" afterPath="$PROJECT_DIR$/screens/TharpothaiyaSeithigalScreen.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/screens/VarthagamScreen.js" beforeDir="false" afterPath="$PROJECT_DIR$/screens/VarthagamScreen.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
