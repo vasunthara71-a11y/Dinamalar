@@ -14,13 +14,13 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.vasunthara71.Dinamalar",
+      "bundleIdentifier": "com.dinamalarMobileApp",
       "associatedDomains": [
         "applinks:www.dinamalar.com"
       ]
     },
     "android": {
-      "package": "com.vasunthara71.Dinamalar",
+      "package": "com.dinamalarMobileApp",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
