@@ -694,6 +694,7 @@ function SectionHeader({ title, onSeeMore }) {
     >
       <Text style={[styles.sectionTitle, { fontSize: sf(17) }]}>{title}</Text>
       <View style={styles.sectionUnderline} />
+      <View style={styles.greyLine} />
     </TouchableOpacity>
   );
 }
@@ -1297,14 +1298,14 @@ function NewsCard({ item, onPress, isSocialMedia = false, isPremium = false, hid
         initialTabLink: '/newsdata?cat=1597&scat=1726'
       });
     } else if (normalizedCategory === 'தினமலர் டிவி' || normalizedCategory === 'dinamalartv' || normalizedCategory === 'dinamalar tv' ||
-               normalizedCategory === 'live' || normalizedCategory === 'அரசியல்' || normalizedCategory === 'politics' ||
-               normalizedCategory === 'பொது' || normalizedCategory === 'general' || normalizedCategory === 'சம்பவம்' ||
-               normalizedCategory === 'event' || normalizedCategory === 'சினிமா வீடியோ' || normalizedCategory === 'cinema video' ||
-               normalizedCategory === 'டிரைலர்' || normalizedCategory === 'trailer' || normalizedCategory === 'செய்திச்சுருக்கம்' ||
-               normalizedCategory === 'short news' || normalizedCategory === 'விளையாட்டு' || normalizedCategory === 'sports video' ||
-               normalizedCategory === 'சிறப்பு தொகுப்புகள்' || normalizedCategory === 'exclusive videos' ||
-               normalizedCategory === 'ஆன்மிகம் வீடியோ' || normalizedCategory === 'spiritual video' ||
-               normalizedCategory === 'மாவட்ட செய்திகள்' || normalizedCategory === 'district news') {
+      normalizedCategory === 'live' || normalizedCategory === 'அரசியல்' || normalizedCategory === 'politics' ||
+      normalizedCategory === 'பொது' || normalizedCategory === 'general' || normalizedCategory === 'சம்பவம்' ||
+      normalizedCategory === 'event' || normalizedCategory === 'சினிமா வீடியோ' || normalizedCategory === 'cinema video' ||
+      normalizedCategory === 'டிரைலர்' || normalizedCategory === 'trailer' || normalizedCategory === 'செய்திச்சுருக்கம்' ||
+      normalizedCategory === 'short news' || normalizedCategory === 'விளையாட்டு' || normalizedCategory === 'sports video' ||
+      normalizedCategory === 'சிறப்பு தொகுப்புகள்' || normalizedCategory === 'exclusive videos' ||
+      normalizedCategory === 'ஆன்மிகம் வீடியோ' || normalizedCategory === 'spiritual video' ||
+      normalizedCategory === 'மாவட்ட செய்திகள்' || normalizedCategory === 'district news') {
       console.log('🎯 Dinamalar TV category matched! Navigating to VideoScreen...');
       // Navigate to VideoScreen for Dinamalar TV categories
       navigation.navigate('VideoScreen');
@@ -2513,10 +2514,45 @@ export default function HomeScreen() {
   const [selectedDistrict, setSelectedDistrict] = useState('உள்ளூர்');
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [commodity, setCommodity] = useState(null);
-  const [podcastData, setPodcastData] = useState([]);
+  const [podcastData, setPodcastData] = useState([
+    // Test data to ensure player shows
+    {
+      newsid: 58927,
+      newstitle: 'தினமலர் மாலை 5 மணி செய்திகள் - 21 March 2026',
+      audio: 'https://d.dinamalar.com/sm/upload/alexa/Podcast_05_21032026.mp3',
+      standarddate: 'மார் 21, 2026',
+      ago: '12 minutes ago',
+    }
+  ]);
   const [sections, setSections] = useState([]);
   const [taboolaAdHtml, setTaboolaAdHtml] = useState(null);
   const [promoBanners, setPromoBanners] = useState([]);
+  const [notifCount, setNotifCount] = useState(0);
+
+  // Fetch podcast data
+  useEffect(() => {
+    console.log('🎙️ PODCAST USE EFFECT - Running...');
+    const fetchPodcastData = async () => {
+      try {
+        console.log('🎙️ FETCHING PODCAST DATA...');
+        const response = await api.getAudio();
+        console.log('🎙️ PODCAST API RESPONSE:', response);
+        console.log('🎙️ PODCAST API RESPONSE.DATA:', response?.data);
+        console.log('🎙️ PODCAST API RESPONSE.DATA.NEWLIST:', response?.data?.newlist);
+
+        if (response && response.data && response.data.newlist) {
+          setPodcastData(response.data.newlist);
+          console.log('🎙️ PODCAST DATA SET:', response.data.newlist);
+        } else {
+          console.log('🎙️ PODCAST DATA - Invalid response structure');
+        }
+      } catch (error) {
+        console.error('🎙️ ERROR FETCHING PODCAST DATA:', error);
+      }
+    };
+
+    fetchPodcastData();
+  }, []);
 
   const flatListRef = useRef(null);
 
@@ -2542,8 +2578,8 @@ export default function HomeScreen() {
   // Handle category press from CategoryTab component
   const handleCategoryPress = (categoryId) => {
     console.log('🏷️ CategoryTab pressed:', categoryId);
-    
-   if (normalizedCategory === 'தமிழகம்' || normalizedCategory === 'tamilagam' || normalizedCategory === 'tamil nadu') {
+
+    if (normalizedCategory === 'தமிழகம்' || normalizedCategory === 'tamilagam' || normalizedCategory === 'tamil nadu') {
       // Navigate to TharpothaiyaSeithigalScreen with Tamilagam tab
       navigation.navigate('TharpothaiyaSeithigalScreen', {
         tabId: 'tamilagam',
@@ -2854,7 +2890,7 @@ export default function HomeScreen() {
         initialTabLink: '/newsdata?cat=1597&scat=1726'
       });
     }
-   };
+  };
 
   // -- Rasi Icon Mapping -------------------------------------------------------
   const getRasiIconUrl = (rasiId, title) => {
@@ -2879,9 +2915,18 @@ export default function HomeScreen() {
   const loadAll = useCallback(async () => {
     try {
       const [
-        homeRes, shortRes, shortsRes, varthagamRes, varavaramRes,
-        joshiyamRes, districtRes, premiumRes, cinemaRes, cinemaRes2, vimarsanamRes,
-        photosRes, // Add photos API call
+        homeRes,        // fetchHomeData()
+        shortRes,       // fetchShortNews()
+        shortsRes,      // SHORTS
+        varthagamRes,   // VARthagam
+        varavaramRes,   // varavaram
+        joshiyamRes,    // JOSHIYAM
+        districtRes,    // DISTRICT
+        premiumRes,     // getPremium()
+        cinemaRes,      // cinema api
+        photosRes,      // /photos
+        notifRes,       // /latestnotify
+        kalvimalarRes,  // getKalvimalar()
       ] = await Promise.allSettled([
         fetchHomeData(),
         fetchShortNews(),
@@ -2892,12 +2937,13 @@ export default function HomeScreen() {
         CDNApi.get(API_ENDPOINTS.DISTRICT),
         api.getPremium(),
         axios.get('https://cinema.dinamalar.com/api/cinema'),
-        CDNApi.get('/movies'),
-        CDNApi.get('/photos'), // Add photos API call
+        CDNApi.get('/photos'),
+        CDNApi.get('/latestnotify'),
+        api.getKalvimalar(),
       ]);
 
       // ── Get commodity data locally (don't rely on state) ──────────────────
-      const commodityData = varthagamRes.status === 'fulfilled'
+      const commodityData = varthagamRes?.status === 'fulfilled'
         ? (varthagamRes.value?.data?.commodity || null)
         : null;
 
@@ -2908,9 +2954,9 @@ export default function HomeScreen() {
       let cinemaNews = [];
       let cinemaVideos = [];
 
-      if (homeRes.status === 'fulfilled') {
+      if (homeRes?.status === 'fulfilled') {
         const d = homeRes.value?.data;
-        
+
         // Debug logging for entire home data
         console.log('🏠 HOME DATA DEBUG:', {
           hasData: !!d,
@@ -3036,7 +3082,7 @@ export default function HomeScreen() {
         // ── Promo Banners ─────────────────────────────────────────────
         // Check multiple possible locations for promo banners
         let mobilePromoBanners = [];
-        
+
         // Try different possible data locations
         if (d?.mobile?.data && Array.isArray(d.mobile.data)) {
           mobilePromoBanners = d.mobile.data;
@@ -3077,7 +3123,7 @@ export default function HomeScreen() {
         } else {
           console.log('🎯 No promo banners found in any expected location');
         }
-      
+
         // Debug logging
         console.log('🎯 PROMO BANNERS DEBUG:', {
           hasMobileData: !!d?.mobile,
@@ -3105,7 +3151,7 @@ export default function HomeScreen() {
             return acc;
           }, {}) : {}
         });
-        
+
         // Set promo banners for display below flash news
         setPromoBanners(mobilePromoBanners);
 
@@ -3116,7 +3162,7 @@ export default function HomeScreen() {
           altname: 'ad',
           target: '_blank'
         }];
-        
+
         sections.push({
           type: 'subscription_banner',
           data: subscriptionBannerData
@@ -3514,7 +3560,7 @@ export default function HomeScreen() {
         }
 
         // ... (rest of the code remains the same)
-        if (cinemaRes.status === 'fulfilled' && cinemaRes.value?.data) {
+        if (cinemaRes?.status === 'fulfilled' && cinemaRes.value?.data) {
           cinemaNews = cinemaRes.value.data?.slice(0, 2) || [];
           cinemaVideos = cinemaRes.value.video?.slice(0, 2) || [];
         }
@@ -3530,21 +3576,21 @@ export default function HomeScreen() {
             hideDescription: true // Hide descriptions like Aanmegam
           });
 
-          if (vimarsanamRes.status === 'fulfilled' && vimarsanamRes.value?.data) {
 
-          }
 
           // Add cinema wrapper using first item largeimages and vimarsanam
           const firstCinemaItem = [...cinemaNews, ...cinemaVideos][0];
           console.log('🎬 First cinema item:', firstCinemaItem);
           console.log('🎬 Cinema item keys:', Object.keys(firstCinemaItem || {}));
 
-          // Handle the specific cinema data structure you provided
-          const largeImage = 'https://images.dinamalar.com/data/cini//CineGallery/VM_20240428133507000000.jpg?im=Resize,width=300';
-          const reviewText = firstCinemaItem?.vimarsanam ||
-            firstCinemaItem?.review ||
-            firstCinemaItem?.description ||
-            firstCinemaItem?.newsdescription;
+          const vimarsanamData = cinemaRes?.status === 'fulfilled'
+            ? cinemaRes.value?.vimarsanam?.[0]
+            : d?.cinema?.vimarsanam?.[0];
+
+          const largeImage = vimarsanamData?.largeimages || vimarsanamData?.images || firstCinemaItem?.largeimages || '';
+          const reviewText = vimarsanamData?.vimarsanam || firstCinemaItem?.vimarsanam || '';
+          const starRating = vimarsanamData?.starrating || firstCinemaItem?.starrating || '';
+          const movieTitle = vimarsanamData?.title || firstCinemaItem?.title || firstCinemaItem?.newstitle || 'சினிமா';
 
           console.log('🎬 Large image:', largeImage);
           console.log('🎬 Review text length:', reviewText?.length || 0);
@@ -3555,16 +3601,16 @@ export default function HomeScreen() {
               title: '', // No title for cinema wrapper
               data: [{
                 newsid: 'cinema-wrapper',
-                newstitle: firstCinemaItem.title || firstCinemaItem.newstitle || 'சினிமா',
+                newstitle: movieTitle,
                 images: largeImage || '',
                 largeimages: largeImage || '',
                 vimarsanam: reviewText || '',
-                external_link: firstCinemaItem.link || firstCinemaItem.slug || 'https://www.dinamalar.com/cinema',
-                slug: firstCinemaItem.link || firstCinemaItem.slug || '',
-                standarddate: firstCinemaItem.standarddate || firstCinemaItem.ago || '',
-                ago: firstCinemaItem.standarddate || firstCinemaItem.ago || '',
+                external_link: vimarsanamData?.link || firstCinemaItem.link || firstCinemaItem.slug || 'https://www.dinamalar.com/cinema',
+                slug: vimarsanamData?.link || firstCinemaItem.link || firstCinemaItem.slug || '',
+                standarddate: vimarsanamData?.ago || firstCinemaItem.standarddate || firstCinemaItem.ago || '',
+                ago: vimarsanamData?.ago || firstCinemaItem.standarddate || firstCinemaItem.ago || '',
                 maincat: '',
-                starrating: firstCinemaItem.starrating || '',
+                starrating: starRating,
               }],
               type: 'cinema_review_with_image',
               hideDescription: true,
@@ -3640,6 +3686,84 @@ export default function HomeScreen() {
           }
         }
 
+        // ── Kalvi Malar ──────────────────────────────────────────────────────
+        // Kalvi malar data is in the main home response (d.kalvimalar), not from separate API
+        console.log('🎓 KALVI MALAR FROM HOME DATA:', {
+          hasKalvimalar: !!d?.kalvimalar,
+          kalvimalarData: d?.kalvimalar
+        });
+        
+        if (d?.kalvimalar) {
+          const kalvimalarData = d.kalvimalar;
+          
+          console.log('🎓 KALVI MALAR DATA STRUCTURE:', {
+            dataType: typeof kalvimalarData,
+            isArray: Array.isArray(kalvimalarData),
+            hasDataProperty: !!kalvimalarData?.data,
+            hasNewlistProperty: !!kalvimalarData?.newlist,
+            newlistLength: kalvimalarData?.newlist?.length,
+            keys: Object.keys(kalvimalarData || {}),
+            fullStructure: kalvimalarData
+          });
+          
+          // Handle kalvimalar data structure - it has newlist array with data objects
+          if (kalvimalarData?.newlist && Array.isArray(kalvimalarData.newlist)) {
+            // Collect all items from newlist data arrays
+            const allKalviItems = [];
+            kalvimalarData.newlist.forEach((category, index) => {
+              console.log(`🎓 KALVI CATEGORY ${index}:`, {
+                title: category?.title,
+                hasData: !!category?.data,
+                dataLength: category?.data?.length || 0
+              });
+              
+              if (category?.data && Array.isArray(category.data)) {
+                allKalviItems.push(...category.data);
+              }
+            });
+
+            console.log('🎓 KALVI TOTAL ITEMS COLLECTED:', {
+              totalItems: allKalviItems.length,
+              sampleItem: allKalviItems[0]
+            });
+
+            if (allKalviItems.length > 0) {
+              console.log('🎓 ADDING KALVI MALAR SECTION (newlist data) - TAMIL TITLE: கல்வி மலர்', {
+                totalItems: allKalviItems.length,
+                itemsToShow: 1
+              });
+              sections.push({
+                title: 'கல்வி மலர்', // Force Tamil title (with space like API)
+                data: allKalviItems.slice(0, 1),
+                hideDescription: true
+              });
+              console.log('🎓 KALVI MALAR SECTION ADDED SUCCESSFULLY');
+            } else {
+              console.log('🎓 NO KALVI MALAR ITEMS FOUND IN NEWLIST');
+            }
+          } else if (kalvimalarData?.data?.length > 0) {
+            console.log('🎓 ADDING KALVI MALAR SECTION (data property) - TAMIL TITLE: கல்வி மலர்');
+            sections.push({
+              title: 'கல்வி மலர்', // Force Tamil title (with space like API)
+              data: kalvimalarData.data.slice(0, 1),
+              hideDescription: true
+            });
+            console.log('🎓 KALVI MALAR SECTION ADDED SUCCESSFULLY (data property)');
+          } else if (Array.isArray(kalvimalarData) && kalvimalarData.length > 0) {
+            console.log('🎓 ADDING KALVI MALAR SECTION (direct array) - TAMIL TITLE: கல்வி மலர்');
+            sections.push({
+              title: 'கல்வி மலர்', // Force Tamil title (with space like API)
+              data: kalvimalarData.slice(0, 1),
+              hideDescription: true
+            });
+            console.log('🎓 KALVI MALAR SECTION ADDED SUCCESSFULLY (direct array)');
+          } else {
+            console.log('🎓 NO KALVI MALAR DATA TO DISPLAY - CHECK STRUCTURE');
+          }
+        } else {
+          console.log('🎓 NO KALVI MALAR DATA IN HOME RESPONSE');
+        }
+
         //------Special-----
         if (d?.special?.data?.length > 0) {
           const allSpecialNews = [];
@@ -3680,6 +3804,46 @@ export default function HomeScreen() {
           console.log('Possible web/story keys:', possibleKeys);
         }
 
+        // ── Photos ──────────────────────────────────────────────────────
+        console.log('📸 Photos data:', d?.photo);
+        if (d?.photo?.data && Array.isArray(d.photo.data)) {
+          // Collect all photo items from all categories
+          const allPhotoItems = [];
+          d.photo.data.forEach((category) => {
+            console.log(`📸 Photo category: ${category.title}, items: ${category.data?.length || 0}`);
+            if (category?.data && Array.isArray(category.data)) {
+              // Transform photo items to match NewsCard format
+              category.data.forEach((item) => {
+                const photoItem = {
+                  newsid: item.eventid || item.id,
+                  newstitle: item.title || item.phototitle || category.title,
+                  images: item.largeimages || item.images || 'https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_default.jpg?im=Resize,width=400',
+                  largeimages: item.largeimages || item.images || 'https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_default.jpg?im=Resize,width=400',
+                  newsdescription: item.footnote || '',
+                  maincat: category.title || 'புகைகள்',
+                  standarddate: item.standarddate || item.ago || '',
+                  ago: item.ago || item.standarddate || '',
+                  slug: item.slug || '',
+                  external_link: item.link || item.slug || '',
+                  newscomment: item.comments || 0,
+                  key: 'photo'
+                };
+                allPhotoItems.push(photoItem);
+              });
+            }
+          });
+
+          console.log('📸 Total photo items collected:', allPhotoItems.length);
+
+          if (allPhotoItems.length > 0) {
+            sections.push({
+              title: 'போட்டோ', // Photo in Tamil
+              data: allPhotoItems.slice(0, 2), // Show only 2 photos
+              hideDescription: true,
+              type: 'photos_swiper' // Custom type for swiper rendering
+            });
+          }
+        }
 
 
         // ── Aanmigam ───────────────────────────────────────────────────────
@@ -3691,12 +3855,12 @@ export default function HomeScreen() {
         }
 
         // ── Short News (from CDN) ──────────────────────────────────────────
-        if (shortsRes.status === 'fulfilled' && shortsRes.value?.data?.length > 0) {
+        if (shortsRes?.status === 'fulfilled' && shortsRes.value?.data?.length > 0) {
           sections.push({ title: 'சிறுசெய்திகள்', data: shortsRes.value.data, type: 'shorts' });
         }
 
         // ── Varthagam News (from CDN) ──────────────────────────────────────
-        if (varthagamRes.status === 'fulfilled') {
+        if (varthagamRes?.status === 'fulfilled') {
           const varthagamData = [];
           const newlist = varthagamRes.value?.newlist || [];
           newlist.forEach((item) => {
@@ -3710,7 +3874,7 @@ export default function HomeScreen() {
 
 
         // ── Varavaram ──────────────────────────────────────────────────────
-        if (varavaramRes.status === 'fulfilled') {
+        if (varavaramRes?.status === 'fulfilled') {
           const data = varavaramRes.value?.data;
 
           // Handle both "varavaram" and "varamalar" response structures
@@ -3733,7 +3897,6 @@ export default function HomeScreen() {
           }
         }
 
-
         setAllNewsSections(sections);
         setTrendingTags(
           d?.trending?.data?.length > 0 ? d.trending.data :
@@ -3742,13 +3905,30 @@ export default function HomeScreen() {
                 d?.trending || []
         );
       }
+
+      // ── Process Notification Data ────────────────────────────────────────
+      console.log('🔔 Processing notification data...');
+      if (notifRes?.status === 'fulfilled') {
+        const notifData = notifRes.value?.data;
+        console.log('🔔 Full notification response:', notifData);
+
+        // Extract notification items from newlist.data array
+        const notifItems = notifData?.newlist?.data || [];
+        console.log('🔔 Notification items count:', notifItems.length);
+        setNotifCount(notifItems.length);
+        console.log('🔔 Final notification count:', notifItems.length);
+      } else {
+        console.log('🔔 Notification request failed:', notifRes?.status);
+        setNotifCount(0);
+        console.log('🔔 Failed to fetch notifications:', notifRes?.reason);
+      }
     } catch (e) {
       console.error('HomeScreen loadAll error:', e);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [setNotifCount]);
 
   useEffect(() => { loadAll(); }, []);
 
@@ -4066,8 +4246,8 @@ export default function HomeScreen() {
                 </View>
               ) : section.type === 'webstories' ? (
                 <View key={`sec-${si}`}>
-                  <SectionHeader 
-                    title={section.title} 
+                  <SectionHeader
+                    title={section.title}
                     onSeeMore={() => {
                       console.log('📱 WEBSTORIES SECTION HEADER CLICKED - Navigating to CommonSectionScreen with photodata webstories tab');
                       navigation?.navigate('CommonSectionScreen', {
@@ -4197,7 +4377,15 @@ export default function HomeScreen() {
                 </View>
               ) : section.type === 'books' ? (
                 <View key={`sec-${si}`}>
-                  <SectionHeader title={section.title} />
+                  <SectionHeader
+                    title={section.title}
+                    onSeeMore={() => {
+                      console.log('📚 BOOKS SECTION HEADER CLICKED - Opening books.dinamalar.com');
+                      Linking.openURL('https://books.dinamalar.com/').catch(() => {
+                        console.log('Failed to open books URL');
+                      });
+                    }}
+                  />
                   <ScrollView
                     horizontal
                     showsHorizontalScrollIndicator={false}
@@ -4262,7 +4450,43 @@ export default function HomeScreen() {
                       );
                     })}
                   </ScrollView>
-                </View>) : section.type === 'photos' ? (
+                </View>) : section.type === 'photos_swiper' ? (
+                  <View key={`sec-${si}`}>
+                    <SectionHeader 
+                      title={section.title}
+                      onSeeMore={() => {
+                        console.log('📸 Photo section header clicked - navigating to CommonSectionScreen');
+                        navigation?.navigate('CommonSectionScreen', {
+                          screenTitle: 'போட்டோ',
+                          apiEndpoint: 'https://api-st-cdn.dinamalar.com/photodata',
+                          initialTabId: '1' // Try tab 1 for photos
+                        });
+                      }}
+                    />
+                    <View style={{ paddingHorizontal: s(12), paddingVertical: vs(8) }}>
+                      {section.data?.map((item, i) => (
+                        <View key={`photo-swiper-${i}-${item.newsid || item.id || i}`} style={{ marginBottom: s(12) }}>
+                          <NewsCard
+                            item={item}
+                            hideCategory={true}
+                            hideDescription={true}
+                            navigation={navigation}
+                            onPress={() => {
+                              const link = item.link || item.slug || item.external_link || '';
+                              if (link && (link.startsWith('http://') || link.startsWith('https://'))) {
+                                Linking.openURL(link).catch(() => console.log('Failed to open photo link'));
+                              } else if (item.newsid || item.id) {
+                                goToArticle(item);
+                              } else {
+                                console.log('No valid navigation target for photo item');
+                              }
+                            }}
+                          />
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+                ) : section.type === 'photos' ? (
                   <View key={`sec-${si}`}>
                     <SectionHeader title={section.title} />
                     <ScrollView
@@ -4675,7 +4899,8 @@ export default function HomeScreen() {
                               {reviewText.replace(/<br\/>/g, '\n').replace(/<[^>]*>/g, '')}
                             </Text>
 
-                            {!!item.standarddate && (
+                            {/* Date removed for cinema section */}
+                            {/* {!!item.standarddate && (
                               <Text style={{
                                 fontSize: ms(12),
                                 color: PALETTE.grey500,
@@ -4685,7 +4910,7 @@ export default function HomeScreen() {
                               }}>
                                 {item.standarddate}
                               </Text>
-                            )}
+                            )} */}
                           </View>
                         </TouchableOpacity>
                       );
@@ -4737,7 +4962,7 @@ export default function HomeScreen() {
 
                             {/* Content below image */}
                             <View style={{ padding: s(16) }}>
-                              {/* <Text style={{
+                              <Text style={{
                                 fontSize: ms(16),
                                 fontWeight: '700',
                                 color: PALETTE.textDark,
@@ -4746,44 +4971,48 @@ export default function HomeScreen() {
                                 marginBottom: vs(8),
                               }}>
                                 {item.newstitle}
-                              </Text> */}
+                              </Text>
 
-                              {/* {starRating && (
+                              {starRating && (
                                 <View style={{
                                   flexDirection: 'row',
                                   justifyContent: 'center',
                                   alignItems: 'center',
                                   marginBottom: vs(8),
                                 }}>
-                                  <Text style={{
-                                    fontSize: ms(14),
-                                    color: '#f39c12',
-                                    marginRight: s(4),
-                                  }}>
-                                    ⭐
-                                  </Text>
+                                  {[1, 2, 3, 4, 5].map((star) => {
+                                    const rating = parseFloat(starRating);
+                                    let starContent = '⭐';
+                                    let starColor = '#ddd'; // Default gray/empty
+                                    
+                                    if (star <= Math.floor(rating)) {
+                                      // Full star - yellow
+                                      starColor = '#f39c12';
+                                    } else if (star - 0.5 <= rating && star > rating - 0.5) {
+                                      // Half star - yellow (only if rating has .5 or more)
+                                      starColor = '#f39c12';
+                                    }
+                                    
+                                    return (
+                                      <Text key={star} style={{
+                                        fontSize: ms(14),
+                                        color: starColor,
+                                        marginRight: s(2),
+                                      }}>
+                                        {starContent}
+                                      </Text>
+                                    );
+                                  })}
                                   <Text style={{
                                     fontSize: ms(14),
                                     color: PALETTE.textDark,
                                     fontFamily: FONTS.muktaMalar.regular,
+                                    marginLeft: s(4),
                                   }}>
                                     {starRating}/5
                                   </Text>
                                 </View>
-                              )} */}
-
-                              {/* {reviewText && (
-                                <Text style={{
-                                  fontSize: ms(13),
-                                  color: PALETTE.textDark,
-                                  fontFamily: FONTS.muktaMalar.regular,
-                                  lineHeight: vs(20),
-                                  textAlign: 'justify',
-                                  maxHeight: vs(150),
-                                }} numberOfLines={6}>
-                                  {reviewText.replace(/<br\/>/g, '\n').replace(/<[^>]*>/g, '')}
-                                </Text>
-                              )} */}
+                              )}
 
                               {/* Debug: Show if no review text */}
                               {/* {!reviewText && (
@@ -4798,7 +5027,8 @@ export default function HomeScreen() {
                                 </Text>
                               )} */}
 
-                              {!!item.standarddate && (
+                              {/* Date removed for cinema section */}
+                              {/* {!!item.standarddate && (
                                 <Text style={{
                                   fontSize: ms(12),
                                   color: PALETTE.grey500,
@@ -4808,7 +5038,7 @@ export default function HomeScreen() {
                                 }}>
                                   {item.standarddate}
                                 </Text>
-                              )}
+                              )} */}
                             </View>
                           </View>
                         </TouchableOpacity>
@@ -4835,162 +5065,162 @@ export default function HomeScreen() {
                             console.warn('Failed to open books website:', error);
                           });
                         } :
-                      // ULAGA THAMIZAR SECTION
-                      section.title?.includes('உலக தமிழர் செய்திகள்') ?
-                        () => {
-                          console.log('🔍 ULAGA THAMIZAR SECTION HEADER CLICKED - Navigating to CommonSectionScreen');
-                          navigation?.navigate('CommonSectionScreen', {
-                            screenTitle: 'உலக தமிழர் செய்திகள்',
-                            apiEndpoint: '/nrimain',
-                            allTabLink: '/nrimain'
-                          });
-                        } : section.title && (section.title?.includes('தமிழகம்') || section.title?.includes('tamilagam')) ?
+                        // ULAGA THAMIZAR SECTION
+                        section.title?.includes('உலக தமிழர் செய்திகள்') ?
                           () => {
-                            console.log('📰 TAMILAGAM SECTION HEADER CLICKED - Navigating to TharpothaiyaSeithigalScreen with tamilagam tab');
-                            navigation?.navigate('TharpothaiyaSeithigalScreen', {
-                              tabId: 'tamilagam'
+                            console.log('🔍 ULAGA THAMIZAR SECTION HEADER CLICKED - Navigating to CommonSectionScreen');
+                            navigation?.navigate('CommonSectionScreen', {
+                              screenTitle: 'உலக தமிழர் செய்திகள்',
+                              apiEndpoint: '/nrimain',
+                              allTabLink: '/nrimain'
                             });
-                          } : section.title && (section.title?.includes('இந்தியா') || section.title?.includes('india')) ?
+                          } : section.title && (section.title?.includes('தமிழகம்') || section.title?.includes('tamilagam')) ?
                             () => {
-                              console.log('📰 INDIA SECTION HEADER CLICKED - Navigating to TharpothaiyaSeithigalScreen with india tab');
+                              console.log('📰 TAMILAGAM SECTION HEADER CLICKED - Navigating to TharpothaiyaSeithigalScreen with tamilagam tab');
                               navigation?.navigate('TharpothaiyaSeithigalScreen', {
-                                tabId: 'india'
+                                tabId: 'tamilagam'
                               });
-                            } : section.title && (section.title?.includes('தினம் தினம்') || section.title?.includes('dinamdinam')) ?
+                            } : section.title && (section.title?.includes('இந்தியா') || section.title?.includes('india')) ?
                               () => {
-                                console.log('📰 DINAMDINAM SECTION HEADER CLICKED - Navigating to CommonSectionScreen with dinamdinam data');
-                                navigation?.navigate('CommonSectionScreen', {
-                                  screenTitle: 'தினம் தினம்',
-                                  apiEndpoint: '/dinamdinam',
-                                  allTabLink: '/dinamdinam'
+                                console.log('📰 INDIA SECTION HEADER CLICKED - Navigating to TharpothaiyaSeithigalScreen with india tab');
+                                navigation?.navigate('TharpothaiyaSeithigalScreen', {
+                                  tabId: 'india'
                                 });
-                              } : section.title && (section.title?.includes('சிறுசெய்திகள்') || section.title?.includes('short news') || section.title?.includes('shortnews')) ?
+                              } : section.title && (section.title?.includes('தினம் தினம்') || section.title?.includes('dinamdinam')) ?
                                 () => {
-                                  console.log('📰 SHORT NEWS SECTION HEADER CLICKED - Navigating to ShortNewsSwiperScreen');
-                                  navigation?.navigate('ShortNewsSwiperScreen');
-                                } : section.title && (section.title?.includes('விளையாட்டு') || section.title?.includes('sports')) ?
+                                  console.log('📰 DINAMDINAM SECTION HEADER CLICKED - Navigating to CommonSectionScreen with dinamdinam data');
+                                  navigation?.navigate('CommonSectionScreen', {
+                                    screenTitle: 'தினம் தினம்',
+                                    apiEndpoint: '/dinamdinam',
+                                    allTabLink: '/dinamdinam'
+                                  });
+                                } : section.title && (section.title?.includes('சிறுசெய்திகள்') || section.title?.includes('short news') || section.title?.includes('shortnews')) ?
                                   () => {
-                                    console.log('🏏 SPORTS SECTION HEADER CLICKED - Navigating to SportsScreen');
-                                    navigation?.navigate('SportsScreen');
-                                  } : section.title && (section.title?.includes('உள்ளூர் செய்திகள்') || section.title?.includes('ullur seithigal') || section.title?.includes('உள்ளூர்')) ?
+                                    console.log('📰 SHORT NEWS SECTION HEADER CLICKED - Navigating to ShortNewsSwiperScreen');
+                                    navigation?.navigate('ShortNewsSwiperScreen');
+                                  } : section.title && (section.title?.includes('விளையாட்டு') || section.title?.includes('sports')) ?
                                     () => {
-                                      console.log('📍 DISTRICT NEWS SECTION HEADER CLICKED - Navigating to DistrictNewsScreen');
-                                      navigation?.navigate('DistrictNewsScreen');
-                                    } : section.title && (section.title?.includes('வர்த்தகம்') || section.title?.includes('varthagam')) ?
+                                      console.log('🏏 SPORTS SECTION HEADER CLICKED - Navigating to SportsScreen');
+                                      navigation?.navigate('SportsScreen');
+                                    } : section.title && (section.title?.includes('உள்ளூர் செய்திகள்') || section.title?.includes('ullur seithigal') || section.title?.includes('உள்ளூர்')) ?
                                       () => {
-                                        console.log('💰 VARTHAGAM SECTION HEADER CLICKED - Navigating to VarthagamScreen');
-                                        navigation?.navigate('VarthagamScreen');
-                                      } : section.title && (section.title?.includes('ஜோசியம்') || section.title?.includes('joshiyam')) ?
+                                        console.log('📍 DISTRICT NEWS SECTION HEADER CLICKED - Navigating to DistrictNewsScreen');
+                                        navigation?.navigate('DistrictNewsScreen');
+                                      } : section.title && (section.title?.includes('வர்த்தகம்') || section.title?.includes('varthagam')) ?
                                         () => {
-                                          console.log('🔮 JOSHIYAM SECTION HEADER CLICKED - Navigating to CommonSectionScreen with joshiyam data');
-                                          navigation?.navigate('CommonSectionScreen', {
-                                            screenTitle: 'ஜோசியம்',
-                                            apiEndpoint: '/joshiyam',
-                                            allTabLink: '/joshiyam'
-                                          });
-                                        } : section.title && (section.title?.includes('தற்போதைய செய்திகள்') || section.title?.includes('tharpothaiya') ||
-                                          section.title?.includes('தற்போதைய') || section.title?.includes('தற்போதைய செய்திகள்')) ?
+                                          console.log('💰 VARTHAGAM SECTION HEADER CLICKED - Navigating to VarthagamScreen');
+                                          navigation?.navigate('VarthagamScreen');
+                                        } : section.title && (section.title?.includes('ஜோசியம்') || section.title?.includes('joshiyam')) ?
                                           () => {
-                                            console.log('📰 THARPOTHAIYA SECTION HEADER CLICKED - Navigating to TharpothaiyaSeithigalScreen');
-                                            navigation?.navigate('TharpothaiyaSeithigalScreen');
-                                          } : section.title && section.title?.includes('சினிமா') ?
+                                            console.log('🔮 JOSHIYAM SECTION HEADER CLICKED - Navigating to CommonSectionScreen with joshiyam data');
+                                            navigation?.navigate('CommonSectionScreen', {
+                                              screenTitle: 'ஜோசியம்',
+                                              apiEndpoint: '/joshiyam',
+                                              allTabLink: '/joshiyam'
+                                            });
+                                          } : section.title && (section.title?.includes('தற்போதைய செய்திகள்') || section.title?.includes('tharpothaiya') ||
+                                            section.title?.includes('தற்போதைய') || section.title?.includes('தற்போதைய செய்திகள்')) ?
                                             () => {
-                                              console.log('🎬 CINEMA SECTION HEADER CLICKED - Opening in browser');
-                                              const link = 'https://www.dinamalar.com/cinema';
-                                              Linking.openURL(link).catch(() => console.log('Failed to open cinema link'));
-                                            } : section.title && section.title?.includes('வாராவாரம்') || section.title?.includes('varavaram') ?
+                                              console.log('📰 THARPOTHAIYA SECTION HEADER CLICKED - Navigating to TharpothaiyaSeithigalScreen');
+                                              navigation?.navigate('TharpothaiyaSeithigalScreen');
+                                            } : section.title && section.title?.includes('சினிமா') ?
                                               () => {
-                                                console.log('📰 VARAVARAM SECTION HEADER CLICKED - Navigating to CommonSectionScreen with varavaram data');
-                                                navigation?.navigate('CommonSectionScreen', {
-                                                  screenTitle: 'வாராவாரம்',
-                                                  apiEndpoint: 'https://api-st-cdn.dinamalar.com/varavaram',
-                                                  allTabLink: 'https://api-st-cdn.dinamalar.com/varavaram'
-                                                });
-                                              } : section.title && (section.title?.includes('வாரமலர்') || section.title?.includes('varamalar')) ?
+                                                console.log('🎬 CINEMA SECTION HEADER CLICKED - Opening in browser');
+                                                const link = 'https://www.dinamalar.com/cinema';
+                                                Linking.openURL(link).catch(() => console.log('Failed to open cinema link'));
+                                              } : section.title && section.title?.includes('வாராவாரம்') || section.title?.includes('varavaram') ?
                                                 () => {
-                                                  console.log('📰 VARAMALAR SECTION HEADER CLICKED - Navigating to CommonSectionScreen with varamalar tab');
+                                                  console.log('📰 VARAVARAM SECTION HEADER CLICKED - Navigating to CommonSectionScreen with varavaram data');
                                                   navigation?.navigate('CommonSectionScreen', {
-                                                    screenTitle: 'வாரமலர்',
-                                                    apiEndpoint: 'https://api-st-cdn.dinamalar.com/malargal',
-                                                    initialTabId: '2'
+                                                    screenTitle: 'வாராவாரம்',
+                                                    apiEndpoint: 'https://api-st-cdn.dinamalar.com/varavaram',
+                                                    allTabLink: 'https://api-st-cdn.dinamalar.com/varavaram'
                                                   });
-                                                } : section.title && (section.title?.includes('இணைப்பு மலர்') || section.title?.includes('inaippu')) ?
-                                                () => {
-                                                  console.log('📰 INAIPPU MALAR SECTION HEADER CLICKED - Navigating to CommonSectionScreen with inaippu tab');
-                                                  navigation?.navigate('CommonSectionScreen', {
-                                                    screenTitle: 'இணைப்பு மலர்',
-                                                    apiEndpoint: 'https://api-st-cdn.dinamalar.com/malargal',
-                                                    initialTabId: '3'
-                                                  });
-                                                } : section.title && (section.title?.includes('ஸ்பெஷல்') || section.title?.includes('special')) ?
-                                                () => {
-                                                  console.log('📰 SPECIAL SECTION HEADER CLICKED - Navigating to CommonSectionScreen with special data');
-                                                  navigation?.navigate('CommonSectionScreen', {
-                                                    screenTitle: 'ஸ்பெஷல்',
-                                                    apiEndpoint: 'https://api-st-cdn.dinamalar.com/specialmain',
-                                                    initialTabId: '1611'
-                                                  });
-                                                } : section.title && (section.title?.includes('கார்ட்ஸ்') || section.title?.includes('cards') ||
-                                                section.title?.includes('கார்ட்ஸ்') || section.title?.includes('card')) ?
-                                                () => {
-                                                  console.log('📰 CARDS/SOCIAL MEDIA SECTION HEADER CLICKED - Navigating to CommonSectionScreen with cards');
-                                                  navigation?.navigate('CommonSectionScreen', {
-                                                    screenTitle: 'கார்ட்ஸ்',
-                                                    apiEndpoint: 'https://api-st-cdn.dinamalar.com/cards',
-                                                    allTabLink: 'https://api-st-cdn.dinamalar.com/cards'
-                                                  });
-                                                } : section.title && (section.title?.includes('கோயில்கள்') || section.title?.includes('kovilgal')) ?
-                                                () => {
-                                                  console.log('🏛️ KOVILGAL SECTION HEADER CLICKED - Opening temple website in browser');
-                                                  const link = 'https://temple.dinamalar.com';
-                                                  Linking.openURL(link).catch(() => console.log('Failed to open temple website link'));
-                                                } : section.title && (section.title?.includes('எடிட்டர் லைக்ஸ்') || section.title?.includes('editor') || section.title?.includes('Editor')) ?
+                                                } : section.title && (section.title?.includes('வாரமலர்') || section.title?.includes('varamalar')) ?
                                                   () => {
-                                                    console.log('📰 SPECIAL SECTION HEADER CLICKED - Navigating to CommonSectionScreen with special data');
+                                                    console.log('📰 VARAMALAR SECTION HEADER CLICKED - Navigating to CommonSectionScreen with varamalar tab');
                                                     navigation?.navigate('CommonSectionScreen', {
-                                                      screenTitle: 'ஸ்பெஷல்',
-                                                      apiEndpoint: 'https://api-st-cdn.dinamalar.com/specialmain',
-                                                      initialTabId: '1611'
+                                                      screenTitle: 'வாரமலர்',
+                                                      apiEndpoint: 'https://api-st-cdn.dinamalar.com/malargal',
+                                                      initialTabId: '2'
                                                     });
-                                                  } : section.title?.includes('கார்ட்ஸ்') || section.title?.includes('cards') ||
-                                                  section.title?.includes('கார்ட்ஸ்') || section.title?.includes('card') ?
+                                                  } : section.title && (section.title?.includes('இணைப்பு மலர்') || section.title?.includes('inaippu')) ?
                                                     () => {
-                                                      console.log('📰 CARDS/SOCIAL MEDIA SECTION HEADER CLICKED - Navigating to CommonSectionScreen with cards');
+                                                      console.log('📰 INAIPPU MALAR SECTION HEADER CLICKED - Navigating to CommonSectionScreen with inaippu tab');
                                                       navigation?.navigate('CommonSectionScreen', {
-                                                        screenTitle: 'கார்ட்ஸ்',
-                                                        apiEndpoint: 'https://api-st-cdn.dinamalar.com/cards',
-                                                        allTabLink: 'https://api-st-cdn.dinamalar.com/cards'
+                                                        screenTitle: 'இணைப்பு மலர்',
+                                                        apiEndpoint: 'https://api-st-cdn.dinamalar.com/malargal',
+                                                        initialTabId: '3'
                                                       });
-                                                    } : section.title?.includes('கோயில்கள்') || section.title?.includes('kovilgal') ?
+                                                    } : section.title && (section.title?.includes('ஸ்பெஷல்') || section.title?.includes('special')) ?
                                                       () => {
-                                                        console.log('🏛️ KOVILGAL SECTION HEADER CLICKED - Opening temple website in browser');
-                                                        const link = 'https://temple.dinamalar.com';
-                                                        Linking.openURL(link).catch(() => console.log('Failed to open temple website link'));
-                                                      } : section.title?.includes('எடிட்டர் லைக்ஸ்') || section.title?.includes('editor') || section.title?.includes('Editor') ?
+                                                        console.log('📰 SPECIAL SECTION HEADER CLICKED - Navigating to CommonSectionScreen with special data');
+                                                        navigation?.navigate('CommonSectionScreen', {
+                                                          screenTitle: 'ஸ்பெஷல்',
+                                                          apiEndpoint: 'https://api-st-cdn.dinamalar.com/specialmain',
+                                                          initialTabId: '1611'
+                                                        });
+                                                      } : section.title && (section.title?.includes('கார்ட்ஸ்') || section.title?.includes('cards') ||
+                                                        section.title?.includes('கார்ட்ஸ்') || section.title?.includes('card')) ?
                                                         () => {
-                                                          console.log('📝 EDITOR LIKES SECTION HEADER CLICKED - Navigating to EditorChoiceScreen');
-                                                          navigation?.navigate('EditorChoiceScreen');
-                                                        } : section.title?.includes('ஆன்மிகம்') || section.title?.includes('aanmegam') || section.title?.includes('anmegam') ?
+                                                          console.log('📰 CARDS/SOCIAL MEDIA SECTION HEADER CLICKED - Navigating to CommonSectionScreen with cards');
+                                                          navigation?.navigate('CommonSectionScreen', {
+                                                            screenTitle: 'கார்ட்ஸ்',
+                                                            apiEndpoint: 'https://api-st-cdn.dinamalar.com/cards',
+                                                            allTabLink: 'https://api-st-cdn.dinamalar.com/cards'
+                                                          });
+                                                        } : section.title && (section.title?.includes('கோயில்கள்') || section.title?.includes('kovilgal')) ?
                                                           () => {
-                                                            navigation?.navigate('CommonSectionScreen', {
-                                                              screenTitle: 'ஆன்மிகம்',
-                                                              apiEndpoint: '/anmegam',
-                                                              allTabLink: '/anmegam'
-                                                            });
-                                                          }
-                                                          : section.title && (section.title?.includes('ஐ - பேப்பர்') || section.title?.includes('ipaper') || section.title?.includes('ஐபேப்பர்')) ?
+                                                            console.log('🏛️ KOVILGAL SECTION HEADER CLICKED - Opening temple website in browser');
+                                                            const link = 'https://temple.dinamalar.com';
+                                                            Linking.openURL(link).catch(() => console.log('Failed to open temple website link'));
+                                                          } : section.title && (section.title?.includes('எடிட்டர் லைக்ஸ்') || section.title?.includes('editor') || section.title?.includes('Editor')) ?
                                                             () => {
-                                                              Linking.openURL('https://play.google.com/store/apps/details?id=com.dinamalar.ipaper&hl=en_IN').catch(console.warn);
-                                                            }
-                                                            : section.title && (section.title?.includes('உலக தமிழர்') || section.title?.includes('ulaga thamizar')) ?
+                                                              console.log('📰 SPECIAL SECTION HEADER CLICKED - Navigating to CommonSectionScreen with special data');
+                                                              navigation?.navigate('CommonSectionScreen', {
+                                                                screenTitle: 'ஸ்பெஷல்',
+                                                                apiEndpoint: 'https://api-st-cdn.dinamalar.com/specialmain',
+                                                                initialTabId: '1611'
+                                                              });
+                                                            } : section.title?.includes('கார்ட்ஸ்') || section.title?.includes('cards') ||
+                                                              section.title?.includes('கார்ட்ஸ்') || section.title?.includes('card') ?
                                                               () => {
+                                                                console.log('📰 CARDS/SOCIAL MEDIA SECTION HEADER CLICKED - Navigating to CommonSectionScreen with cards');
                                                                 navigation?.navigate('CommonSectionScreen', {
-                                                                  screenTitle: 'உலக தமிழர் செய்திகள்',
-                                                                  apiEndpoint: '/nrimain',
-                                                                  allTabLink: '/nrimain'
+                                                                  screenTitle: 'கார்ட்ஸ்',
+                                                                  apiEndpoint: 'https://api-st-cdn.dinamalar.com/cards',
+                                                                  allTabLink: 'https://api-st-cdn.dinamalar.com/cards'
                                                                 });
-                                                              }
-                                                              : undefined
+                                                              } : section.title?.includes('கோயில்கள்') || section.title?.includes('kovilgal') ?
+                                                                () => {
+                                                                  console.log('🏛️ KOVILGAL SECTION HEADER CLICKED - Opening temple website in browser');
+                                                                  const link = 'https://temple.dinamalar.com';
+                                                                  Linking.openURL(link).catch(() => console.log('Failed to open temple website link'));
+                                                                } : section.title?.includes('எடிட்டர் லைக்ஸ்') || section.title?.includes('editor') || section.title?.includes('Editor') ?
+                                                                  () => {
+                                                                    console.log('📝 EDITOR LIKES SECTION HEADER CLICKED - Navigating to EditorChoiceScreen');
+                                                                    navigation?.navigate('EditorChoiceScreen');
+                                                                  } : section.title?.includes('ஆன்மிகம்') || section.title?.includes('aanmegam') || section.title?.includes('anmegam') ?
+                                                                    () => {
+                                                                      navigation?.navigate('CommonSectionScreen', {
+                                                                        screenTitle: 'ஆன்மிகம்',
+                                                                        apiEndpoint: '/anmegam',
+                                                                        allTabLink: '/anmegam'
+                                                                      });
+                                                                    }
+                                                                    : section.title && (section.title?.includes('ஐ - பேப்பர்') || section.title?.includes('ipaper') || section.title?.includes('ஐபேப்பர்')) ?
+                                                                      () => {
+                                                                        Linking.openURL('https://play.google.com/store/apps/details?id=com.dinamalar.ipaper&hl=en_IN').catch(console.warn);
+                                                                      }
+                                                                      : section.title && (section.title?.includes('உலக தமிழர்') || section.title?.includes('ulaga thamizar')) ?
+                                                                        () => {
+                                                                          navigation?.navigate('CommonSectionScreen', {
+                                                                            screenTitle: 'உலக தமிழர் செய்திகள்',
+                                                                            apiEndpoint: '/nrimain',
+                                                                            allTabLink: '/nrimain'
+                                                                          });
+                                                                        }
+                                                                        : undefined
                     }
                   />
                   {section.data?.map((item, i) => {
@@ -5310,7 +5540,8 @@ export default function HomeScreen() {
       <TopMenuStrip
         onMenuPress={handleMenuPress}
         onNotification={goToNotifs}
-        notifCount={3}
+        notifCount={notifCount}
+        navigation={navigation}
       />
 
       <AppHeaderComponent
@@ -5347,28 +5578,29 @@ export default function HomeScreen() {
         }}
         selectedDistrict={selectedDistrict}
       />
-
-      <FlatList
-        ref={flatListRef}
-        data={[]}
-        renderItem={null}
-        keyExtractor={(_, i) => `empty-${i}`}
-        ListHeaderComponent={ListHeader}
-        ListFooterComponent={!loading ? <FooterMenu /> : null}
-        contentContainerStyle={styles.feedContent}
-        showsVerticalScrollIndicator={false}
-        onScroll={handleScroll}
-        scrollEventThrottle={16}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            colors={[PALETTE.primary]}
-            tintColor={PALETTE.primary}
-          />
-        }
-      />
-      <SimplePodcastPlayer data={podcastData} />
+      <View style={{ flex: 1 }}>
+        <FlatList
+          ref={flatListRef}
+          data={[]}
+          renderItem={null}
+          keyExtractor={(_, i) => `empty-${i}`}
+          ListHeaderComponent={ListHeader}
+          ListFooterComponent={!loading ? <FooterMenu /> : null}
+          contentContainerStyle={styles.feedContent}
+          showsVerticalScrollIndicator={false}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={[PALETTE.primary]}
+              tintColor={PALETTE.primary}
+            />
+          }
+        />
+        <SimplePodcastPlayer data={podcastData} />
+      </View>
 
       {showScrollTop && (
         <TouchableOpacity style={styles.scrollTopBtn} onPress={scrollToTop} activeOpacity={0.85}>
@@ -5386,6 +5618,8 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: PALETTE.grey100,
     paddingTop: Platform.OS === 'android' ? vs(0) : 20,
+    // ADD THIS:
+    position: 'relative',
   },
 
   appHeader: {
@@ -5454,6 +5688,11 @@ const styles = StyleSheet.create({
     height: vs(3),
     width: s(40),
     backgroundColor: PALETTE.primary,
+
+  },
+  greyLine: {
+    borderBottomWidth: 0.75,
+    borderBottomColor: COLORS.grey300
   },
 
   scrollTopBtn: {
