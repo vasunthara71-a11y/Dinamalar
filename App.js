@@ -5,6 +5,7 @@ import { ThemeProvider } from './theme/ThemeContext';
 import { FontSizeProvider } from './context/FontSizeContext';
 import { View } from 'react-native';
 import { useAppOptimization } from './hooks/useAppOptimization';
+import ErrorBoundary from './components/ErrorBoundary';
 
 function AppContent() {
   // Initialize app optimizations
@@ -61,7 +62,9 @@ export default function App() {
       <FontSizeProvider>
         <View style={{ flex: 1 }}>
           <StatusBar style="dark" backgroundColor="#fff" />
-          <AppContent />
+          <ErrorBoundary>
+            <AppContent />
+          </ErrorBoundary>
         </View>
       </FontSizeProvider>
     </ThemeProvider>

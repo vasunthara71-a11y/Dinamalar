@@ -11,6 +11,7 @@ import {
   RefreshControl,
   ScrollView,
   Platform,
+  PanResponder,        // ← NEW: for swipe gesture detection
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -496,6 +497,33 @@ export default function VarthagamScreen() {
   const [selectedDistrict, setSelectedDistrict] = useState('உள்ளூர்');
 
   const flatListRef = useRef(null);
+  const tabScrollRef = useRef(null);   // ref for horizontal tab ScrollView
+  const tabLayoutsRef = useRef({});   // stores {[tabKey]: {x, width}} after layout
+
+  // ── Refs to keep latest values accessible inside PanResponder ────────────
+  const subTabsRef = useRef([]);
+  const activeTabRef = useRef(null);
+
+  // Keep refs in sync with state
+  useEffect(() => { subTabsRef.current = subTabs; }, [subTabs]);
+  useEffect(() => { activeTabRef.current = activeTab; }, [activeTab]);
+
+  // Auto-scroll tab bar so active tab is always fully visible
+  useEffect(() => {
+    if (!activeTab || !tabScrollRef.current) return;
+    const key = activeTab.title === 'All' ? 'All' : String(activeTab.id);
+    const layout = tabLayoutsRef.current[key];
+    if (!layout) return;
+    
+    // Use requestAnimationFrame to prevent conflicts
+    requestAnimationFrame(() => {
+      if (tabScrollRef.current) {
+        // Centre the active tab: scroll so tab sits in middle of scroll view
+        const scrollX = Math.max(0, layout.x - layout.width);
+        tabScrollRef.current.scrollTo({ x: scrollX, animated: true });
+      }
+    });
+  }, [activeTab]);
 
   const handleScroll = useCallback((e) => {
     setShowScrollTop(e.nativeEvent.contentOffset.y > 300);
@@ -514,7 +542,9 @@ const fetchAll = useCallback(async () => {
 
     // ── Pick initial tab based on initialTabId param ──
     if (initialTabId) {
-      const matchedTab = tabs.find(t => String(t.id) === String(initialTabId));
+      const matchedTab = tabs.find(t =>
+        String(t.id) === String(initialTabId)
+      );
       if (matchedTab) {
         setActiveTab(matchedTab);
         // Fetch that tab's news immediately
@@ -594,6 +624,91 @@ const fetchAll = useCallback(async () => {
       setRefreshing(false);
     }
   }, []);
+
+  // ── Swipe to next / previous tab ─────────────────────────────────────────
+  //
+  //  Swipe LEFT  → go to NEXT tab  (e.g. All → Cricket → Tennis →…)
+  //  Swipe RIGHT → go to PREV tab  (e.g. Tennis → Cricket → All)
+  //
+  //  Thresholds:
+  //    dx >  50 px  AND velocity > 0.3  → right-swipe  (go prev)
+  //    dx < -50 px  AND velocity > 0.3  → left-swipe   (go next)
+  //
+  const SWIPE_THRESHOLD = 50;   // minimum horizontal distance (px)
+  const SWIPE_VELOCITY  = 0.3;  // minimum velocity
+
+  const panResponder = useRef(
+    PanResponder.create({
+      // Only claim the gesture when horizontal movement clearly dominates
+      onMoveShouldSetPanResponder: (_, gs) => {
+        return (
+          Math.abs(gs.dx) > Math.abs(gs.dy) &&   // horizontal dominates
+          Math.abs(gs.dx) > 10                     // at least 10 px moved
+        );
+      },
+      onPanResponderRelease: (_, gs) => {
+        const tabs     = subTabsRef.current;
+        const curTab   = activeTabRef.current;
+        if (!tabs.length) return;
+
+        // Find the index of the current tab
+        const curIndex = curTab
+          ? tabs.findIndex(t =>
+              curTab.title === 'All'
+                ? t.title === 'All'
+                : String(t.id) === String(curTab.id)
+            )
+          : 0;
+
+        const isRightSwipe = gs.dx > SWIPE_THRESHOLD && Math.abs(gs.vx) > SWIPE_VELOCITY;
+        const isLeftSwipe  = gs.dx < -SWIPE_THRESHOLD && Math.abs(gs.vx) > SWIPE_VELOCITY;
+
+        if (isRightSwipe && curIndex > 0) {
+          // Go to previous tab
+          const prevTab = tabs[curIndex - 1];
+          // Use setActiveTab + fetchTabNews directly (avoid stale closure in handleTabPress)
+          setActiveTab(prevTab);
+          if (prevTab.title === 'All') {
+            setTabNews([]);
+          } else {
+            setTabLoading(true);
+            setTabNews([]);
+            setTabPage(1);
+            setTabLastPage(1);
+          }
+        } else if (isLeftSwipe && curIndex < tabs.length - 1) {
+          // Go to next tab
+          const nextTab = tabs[curIndex + 1];
+          setActiveTab(nextTab);
+          if (nextTab.title === 'All') {
+            setTabNews([]);
+          } else {
+            setTabLoading(true);
+            setTabNews([]);
+            setTabPage(1);
+            setTabLastPage(1);
+          }
+        }
+      },
+    })
+  ).current;
+
+  // Whenever activeTab changes via swipe, fetch news for the new tab
+  // (We can't call fetchTabNews inside PanResponder due to stale closures,
+  //  so we watch activeTab here instead.)
+  const prevActiveTabRef = useRef(null);
+  useEffect(() => {
+    if (!activeTab) return;
+    const prev = prevActiveTabRef.current;
+    // Skip on first mount (fetchAll already handles it)
+    if (!prev) { prevActiveTabRef.current = activeTab; return; }
+    // Check if tab actually changed
+    const changed = prev.title !== activeTab.title || String(prev.id) !== String(activeTab.id);
+    if (changed && activeTab.title !== 'All') {
+      fetchTabNews(activeTab, 1, false);
+    }
+    prevActiveTabRef.current = activeTab;
+  }, [activeTab]);
 
   const handleTabPress = (tab) => {
     if (activeTab?.id === tab.id && activeTab?.title === tab.title) return;
@@ -724,6 +839,7 @@ const fetchAll = useCallback(async () => {
       {subTabs.length > 0 && (
         <View style={styles.tabsWrap}>
           <ScrollView
+            ref={tabScrollRef}
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.tabsContent}
@@ -737,74 +853,80 @@ const fetchAll = useCallback(async () => {
               return (
                 <TouchableOpacity
                   key={`tab-${tab.id || index}-${index}`}
-                  style={styles.tab}
+                  style={[styles.tab, isActive && styles.tabActive]}
                   onPress={() => handleTabPress(tab)}
                   activeOpacity={0.8}
+                  onLayout={(e) => {
+                    const tabKey = tab.title === 'All' ? 'All' : String(tab.id);
+                    tabLayoutsRef.current[tabKey] = {
+                      x: e.nativeEvent.layout.x,
+                      width: e.nativeEvent.layout.width,
+                    };
+                  }}
                 >
                   <Text style={[styles.tabText, isActive && styles.tabTextActive, { fontSize: sf(13) }]}>
                     {tab.title}
                   </Text>
-                  {isActive && <View style={styles.tabUnderline} />}
                 </TouchableOpacity>
-
               );
             })}
           </ScrollView>
-          {/* bottom red line same as TharpothaiyaSeithigalScreen */}
-          {/* <View style={styles.tabsBottomLine} /> */}
+          <View style={styles.tabsBottomLine} />
         </View>
       )}
 
-      {/* ── Content ── */}
-      {isLoading ? (
-        <FlatList
-          data={[1, 2, 3, 4]}
-          keyExtractor={i => `sk-${i}`}
-          renderItem={() => <SkeletonCard />}
-          contentContainerStyle={styles.listContent}
-          style={styles.list}
-        />
-      ) : (
-        <FlatList
-          ref={flatListRef}
-          data={flatData}
-          keyExtractor={(row, i) =>
-            row.type === 'section'
-              ? `sec-${i}-${row.title}`
-              : `news-${i}-${row.item?.newsid || row.item?.id || i}`
-          }
-          renderItem={renderItem}
-          ListHeaderComponent={<ListHeader />}
-          contentContainerStyle={styles.listContent}
-          style={styles.list}
-          showsVerticalScrollIndicator={false}
-          onScroll={handleScroll}
-          scrollEventThrottle={16}
-          onEndReached={handleLoadMore}
-          onEndReachedThreshold={0.4}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={handleRefresh}
-              colors={[COLORS.primary]}
-              tintColor={COLORS.primary}
-            />
-          }
-          ListEmptyComponent={
-            <View style={styles.emptyWrap}>
-              <Ionicons name="bar-chart-outline" size={s(48)} color={COLORS.subtext} />
-              <Text style={[styles.emptyText, { fontSize: sf(15), color: COLORS.subtext }]}>செய்திகள் இல்லை</Text>
-            </View>
-          }
-          ListFooterComponent={
-            tabLoadMore ? (
-              <View style={styles.footerLoader}>
-                <ActivityIndicator size="small" color={COLORS.primary} />
+      {/* ── Content — wrapped with panResponder for swipe detection ── */}
+      <View style={styles.swipeArea} {...panResponder.panHandlers}>
+        {isLoading ? (
+          <FlatList
+            data={[1, 2, 3, 4]}
+            keyExtractor={i => `sk-${i}`}
+            renderItem={() => <SkeletonCard />}
+            contentContainerStyle={styles.listContent}
+            style={styles.list}
+          />
+        ) : (
+          <FlatList
+            ref={flatListRef}
+            data={flatData}
+            keyExtractor={(row, i) =>
+              row.type === 'section'
+                ? `sec-${i}-${row.title}`
+                : `news-${i}-${row.item?.newsid || row.item?.id || i}`
+            }
+            renderItem={renderItem}
+            ListHeaderComponent={<ListHeader />}
+            contentContainerStyle={styles.listContent}
+            style={styles.list}
+            showsVerticalScrollIndicator={false}
+            onScroll={handleScroll}
+            scrollEventThrottle={16}
+            onEndReached={handleLoadMore}
+            onEndReachedThreshold={0.4}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={handleRefresh}
+                colors={[COLORS.primary]}
+                tintColor={COLORS.primary}
+              />
+            }
+            ListEmptyComponent={
+              <View style={styles.emptyWrap}>
+                <Ionicons name="bar-chart-outline" size={s(48)} color={COLORS.subtext} />
+                <Text style={[styles.emptyText, { fontSize: sf(15), color: COLORS.subtext }]}>செய்திகள் இல்லை</Text>
               </View>
-            ) : <View style={{ height: vs(40) }} />
-          }
-        />
-      )}
+            }
+            ListFooterComponent={
+              tabLoadMore ? (
+                <View style={styles.footerLoader}>
+                  <ActivityIndicator size="small" color={COLORS.primary} />
+                </View>
+              ) : <View style={{ height: vs(40) }} />
+            }
+          />
+        )}
+      </View>
 
       {/* ── Scroll To Top ── */}
       {showScrollTop && (
@@ -838,14 +960,13 @@ const styles = StyleSheet.create({
   // ── Tabs ──
   tabsWrap: {
     backgroundColor: COLORS.white,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: vs(1) },
+    shadowOpacity: 0.08,
+    shadowRadius: s(2),
   },
-  tabsBottomLine: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: COLORS.primary,
-  },
-  tabsContent: { paddingHorizontal: s(8) },
+  tabsContent: { paddingHorizontal: s(20), alignItems: 'center' },
   tab: {
     paddingHorizontal: s(12),
     paddingVertical: vs(12),
@@ -853,21 +974,21 @@ const styles = StyleSheet.create({
     borderBottomWidth: vs(3),
     borderBottomColor: 'transparent',
   },
+  tabActive: { borderBottomColor: COLORS.primary },
   tabText: {
     fontSize: ms(16),
-    color: COLORS.grey700,
-    fontWeight: '500',
-    fontFamily: FONTS.muktaMalar.regular,
+    fontFamily: FONTS.muktaMalar.medium,
+    color: COLORS.black,
   },
-  // tabTextActive: { color: COLORS.text, fontWeight: '700', fontFamily: FONTS.muktaMalar.regular, },
-  tabUnderline: {
-    position: 'absolute',
-    bottom: 0,
-    left: s(6),
-    right: s(6),
-    height: vs(4),
-    backgroundColor: COLORS.primary,
+  tabTextActive: {
+    fontSize: ms(13),
+    fontFamily: FONTS.muktaMalar.bold,
+    color: COLORS.primary,
   },
+  tabsBottomLine: { height: StyleSheet.hairlineWidth, backgroundColor: '#e0e0e0' },
+
+  // ── Swipe area wraps the entire content below tabs ──
+  swipeArea: { flex: 1 },
 
   list: { flex: 1 },
   listContent: {

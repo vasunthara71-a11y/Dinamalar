@@ -12,6 +12,7 @@ import {
   ScrollView,
   Platform,
   Dimensions,
+  PanResponder,        // ← NEW: for swipe gesture detection
 } from 'react-native';
 import { SpeakerIcon } from '../assets/svg/Icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -215,6 +216,32 @@ export default function TharpothaiyaSeithigalScreen({ route }) {
   const topTabScrollRef = useRef(null);
   const subTabScrollRef = useRef(null);
   const flatListRef = useRef(null);
+  const tabLayoutsRef = useRef({});   // stores {[tabKey]: {x, width}} after layout
+
+  // ── Refs to keep latest values accessible inside PanResponder ────────────
+  const topTabsRef = useRef([]);
+  const activeTopTabRef = useRef(null);
+
+  // Keep refs in sync with state
+  useEffect(() => { topTabsRef.current = ALL_DISPLAY_TABS; }, []);
+  useEffect(() => { activeTopTabRef.current = activeTopTab; }, [activeTopTab]);
+
+  // Auto-scroll tab bar so active tab is always fully visible
+  useEffect(() => {
+    if (!activeTopTab || !topTabScrollRef.current) return;
+    const key = activeTopTab.id;
+    const layout = tabLayoutsRef.current[key];
+    if (!layout) return;
+    
+    // Use requestAnimationFrame to prevent conflicts
+    requestAnimationFrame(() => {
+      if (topTabScrollRef.current) {
+        // Centre the active tab: scroll so tab sits in middle of scroll view
+        const scrollX = Math.max(0, layout.x - layout.width);
+        topTabScrollRef.current.scrollTo({ x: scrollX, animated: true });
+      }
+    });
+  }, [activeTopTab]);
 
   // ✅ On every focus: if tabId is a nav-only tab, redirect immediately
   useEffect(() => {
@@ -345,6 +372,63 @@ export default function TharpothaiyaSeithigalScreen({ route }) {
     fetchNews(activeTopTab, activeSubTab, page + 1, true);
   };
 
+  // ── Swipe to next / previous tab ─────────────────────────────────────────
+  //
+  //  Swipe LEFT  → go to NEXT tab  (e.g. tharpothaiya → tamilagam → india →…)
+  //  Swipe RIGHT → go to PREV tab  (e.g. india → tamilagam → tharpothaiya)
+  //
+  //  Thresholds:
+  //    dx >  50 px  AND velocity > 0.3  → right-swipe  (go prev)
+  //    dx < -50 px  AND velocity > 0.3  → left-swipe   (go next)
+  //
+  const SWIPE_THRESHOLD = 50;   // minimum horizontal distance (px)
+  const SWIPE_VELOCITY  = 0.3;  // minimum velocity
+
+  const panResponder = useRef(
+    PanResponder.create({
+      // Only claim the gesture when horizontal movement clearly dominates
+      onMoveShouldSetPanResponder: (_, gs) => {
+        return (
+          Math.abs(gs.dx) > Math.abs(gs.dy) &&   // horizontal dominates
+          Math.abs(gs.dx) > 10                     // at least 10 px moved
+        );
+      },
+      onPanResponderRelease: (_, gs) => {
+        const tabs = topTabsRef.current;
+        const curTab = activeTopTabRef.current;
+        if (!tabs.length) return;
+
+        // Find the index of the current tab
+        const curIndex = curTab
+          ? tabs.findIndex(t => t.id === curTab.id)
+          : 0;
+
+        const isRightSwipe = gs.dx > SWIPE_THRESHOLD && Math.abs(gs.vx) > SWIPE_VELOCITY;
+        const isLeftSwipe  = gs.dx < -SWIPE_THRESHOLD && Math.abs(gs.vx) > SWIPE_VELOCITY;
+
+        if (isRightSwipe && curIndex > 0) {
+          // Go to previous tab
+          const prevTab = tabs[curIndex - 1];
+          const navOnly = NAV_ONLY_TABS.find(t => t.id === prevTab.id);
+          if (navOnly) {
+            navigation.navigate(navOnly.screen);
+          } else {
+            setActiveTopTab(prevTab);
+          }
+        } else if (isLeftSwipe && curIndex < tabs.length - 1) {
+          // Go to next tab
+          const nextTab = tabs[curIndex + 1];
+          const navOnly = NAV_ONLY_TABS.find(t => t.id === nextTab.id);
+          if (navOnly) {
+            navigation.navigate(navOnly.screen);
+          } else {
+            setActiveTopTab(nextTab);
+          }
+        }
+      },
+    })
+  ).current;
+
   const goToArticle = (item) => {
     navigation.navigate('NewsDetailsScreen', {
       newsId: item.newsid || item.id,
@@ -428,6 +512,12 @@ export default function TharpothaiyaSeithigalScreen({ route }) {
                 key={tab.id}
                 style={[styles.tab, isActive && styles.tabActive]}
                 onPress={() => handleTopTabPress(tab)}
+                onLayout={(e) => {
+                  tabLayoutsRef.current[tab.id] = {
+                    x: e.nativeEvent.layout.x,
+                    width: e.nativeEvent.layout.width,
+                  };
+                }}
               >
                 <Text style={[styles.tabText, isActive && styles.tabTextActive,]}>
                   {tab.title}
@@ -439,8 +529,10 @@ export default function TharpothaiyaSeithigalScreen({ route }) {
         <View style={styles.tabsBottomLine} />
       </View>
 
-      {/* ── News List ── */}
-      {loading ? (
+      {/* ── News List — wrapped with panResponder for swipe detection ── */}
+      <View style={styles.swipeArea} {...panResponder.panHandlers}>
+      <>
+        {loading ? (
         <FlatList
           data={[1, 2, 3, 4]}
           keyExtractor={i => `sk-${i}`}
@@ -492,7 +584,8 @@ export default function TharpothaiyaSeithigalScreen({ route }) {
           }
         />
       )}
-
+      </>
+      </View>
       {/* ── Scroll To Top ── */}
       {showScrollTop && (
         <TouchableOpacity
@@ -503,7 +596,6 @@ export default function TharpothaiyaSeithigalScreen({ route }) {
           <Ionicons name="arrow-up" size={s(20)} color="#fff" />
         </TouchableOpacity>
       )}
-
     </View>
   );
 }
@@ -608,6 +700,9 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
     fontFamily: FONTS.muktaMalar.bold,
   },
+
+  // ── Swipe area wraps the entire content below tabs ──
+  swipeArea: { flex: 1 },
 
   listContent: {
     paddingTop: vs(6),
