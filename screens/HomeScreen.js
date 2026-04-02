@@ -15,7 +15,6 @@ import {
   Platform,
   Animated,
   Linking,
-  Button,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
@@ -45,7 +44,6 @@ import { titles } from '../utils/textStyles';
 import { Ionicons } from '@expo/vector-icons';
 import AdvertisementBanner from '../components/AdvertisementBanner';
 import PromoBanners from '../components/PromoBanners';
-import CrashReportingService from '../services/CrashReportingService';
 
 // --- Palette ------------------------------------------------------------------
 const PALETTE = {
@@ -3694,10 +3692,10 @@ export default function HomeScreen() {
           hasKalvimalar: !!d?.kalvimalar,
           kalvimalarData: d?.kalvimalar
         });
-
+        
         if (d?.kalvimalar) {
           const kalvimalarData = d.kalvimalar;
-
+          
           console.log('🎓 KALVI MALAR DATA STRUCTURE:', {
             dataType: typeof kalvimalarData,
             isArray: Array.isArray(kalvimalarData),
@@ -3707,7 +3705,7 @@ export default function HomeScreen() {
             keys: Object.keys(kalvimalarData || {}),
             fullStructure: kalvimalarData
           });
-
+          
           // Handle kalvimalar data structure - it has newlist array with data objects
           if (kalvimalarData?.newlist && Array.isArray(kalvimalarData.newlist)) {
             // Collect all items from newlist data arrays
@@ -3718,7 +3716,7 @@ export default function HomeScreen() {
                 hasData: !!category?.data,
                 dataLength: category?.data?.length || 0
               });
-
+              
               if (category?.data && Array.isArray(category.data)) {
                 allKalviItems.push(...category.data);
               }
@@ -4450,7 +4448,7 @@ export default function HomeScreen() {
                   </ScrollView>
                 </View>) : section.type === 'photos_swiper' ? (
                   <View key={`sec-${si}`}>
-                    <SectionHeader
+                    <SectionHeader 
                       title={section.title}
                       onSeeMore={() => {
                         console.log('📸 Photo section header clicked - navigating to CommonSectionScreen');
@@ -4980,7 +4978,7 @@ export default function HomeScreen() {
                                     const rating = parseFloat(starRating);
                                     let starContent = '⭐';
                                     let starColor = '#ddd'; // Default gray/empty
-
+                                    
                                     if (star <= Math.floor(rating)) {
                                       // Full star - yellow
                                       starColor = '#f39c12';
@@ -4988,7 +4986,7 @@ export default function HomeScreen() {
                                       // Half star - yellow (only if rating has .5 or more)
                                       starColor = '#f39c12';
                                     }
-
+                                    
                                     return (
                                       <Text key={star} style={{
                                         fontSize: ms(14),
@@ -5573,11 +5571,6 @@ export default function HomeScreen() {
           }
         }}
         selectedDistrict={selectedDistrict}
-      />
-
-      <Button
-        title="Test Crash"
-        onPress={() => CrashReportingService.testCrash()}
       />
       <View style={{ flex: 1 }}>
         <FlatList
