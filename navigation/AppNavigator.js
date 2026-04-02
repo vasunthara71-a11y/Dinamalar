@@ -33,6 +33,7 @@ import TagsScreen from '../screens/TagsScreen';
 import SpecialTodayScreen from '../screens/SpecialTodayScreen';
 import EditorChoiceScreen from '../screens/EditorChoiceScreen';
 import linking from './linking';
+import FeedbackForm from '../screens/FeedbackForm';
   
 const Stack = createNativeStackNavigator();
 
@@ -87,6 +88,7 @@ const AppNavigator = () => {
         <Stack.Screen name='TagsScreen' component={TagsScreen}/>
         <Stack.Screen name='SpecialTodayScreen' component={SpecialTodayScreen}/>
         <Stack.Screen name='EditorChoiceScreen' component={EditorChoiceScreen}/>
+        <Stack.Screen name='FeedbackFormScreen' component={FeedbackForm}/>
         
       </Stack.Navigator>
     </NavigationContainer>
