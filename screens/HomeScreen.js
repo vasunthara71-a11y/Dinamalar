@@ -4152,12 +4152,8 @@ export default function HomeScreen() {
             onPress={(item) => {
               if (item && item.title) {
                 console.log('📰 Flash News clicked:', item);
-                // Navigate to news details for flash news
-                navigation?.navigate('NewsDetailsScreen', {
-                  newsId: item.newsid || item.id,
-                  newsItem: item,
-                  slug: item.slug || '',
-                });
+                // Navigate to TimelineScreen for flash news
+                navigation?.navigate('TimelineScreen');
               }
             }}
           />
