@@ -2936,7 +2936,7 @@ export default function HomeScreen() {
         CDNApi.get(API_ENDPOINTS.JOSHIYAM),
         CDNApi.get(API_ENDPOINTS.DISTRICT),
         api.getPremium(),
-        axios.get('https://cinema.dinamalar.com/api/cinema'),
+        axios.get('https://cinema.dinamalar.com/'),
         CDNApi.get('/photos'),
         CDNApi.get('/latestnotify'),
         api.getKalvimalar(),
@@ -4670,14 +4670,12 @@ export default function HomeScreen() {
                           hideDescription={true}
                           navigation={navigation}
                           onPress={() => {
-                            const link = item.slug || item.link || item.url || item.weburl;
-                            if (link && (link.startsWith('http://') || link.startsWith('https://'))) {
-                              Linking.openURL(link).catch(() => goToArticle(item));
-                            } else if (item.newsid) {
-                              goToArticle(item);
-                            } else {
-                              console.log('No valid navigation target for banner item');
-                            }
+                            console.log('📰 BANNER NEWS ITEM CLICKED - Navigating to NewsDetailsScreen');
+                            navigation?.navigate('NewsDetailsScreen', {
+                              newsId: item.newsid || item.id,
+                              newsItem: item,
+                              slug: item.slug || '',
+                            });
                           }}
                         />
                       );

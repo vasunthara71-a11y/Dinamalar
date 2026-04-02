@@ -1,9 +1,10 @@
-﻿import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
   Image,
   Linking,
+  PanResponder,
   Platform,
   RefreshControl,
   ScrollView,
@@ -919,7 +920,7 @@ const rd = StyleSheet.create({
   retryBtn: { paddingHorizontal: s(20), paddingVertical: vs(8), backgroundColor: COLORS.primary, borderRadius: s(6) },
   retryText: { color: '#fff', fontSize: ms(13), fontFamily: FONTS.muktaMalar.medium, fontWeight: '700' },
 
-  // ??????
+  // More section
   moreStrip: { paddingHorizontal: s(14), paddingVertical: vs(14), borderTopWidth: 1, borderTopColor: '#eee', marginTop: vs(16) },
   moreText: { fontSize: ms(15), fontFamily: FONTS.muktaMalar.medium || FONTS.muktaMalar.bold, color: '#222', fontWeight: '700' },
 });
@@ -1564,7 +1565,11 @@ const isPhotoScreen = (endpoint) =>
   endpoint?.includes('photodata') ||
   endpoint?.includes('photoitem') ||
   endpoint?.includes('photodetails') ||   // ? ADD
-  endpoint?.includes('getsocialmedia');
+  endpoint?.includes('photo') ||
+  PHOTO_SECTION_IDS.some(id => endpoint?.includes(id));
+
+const isWebstoriesScreen = (endpoint) =>
+  endpoint?.includes('webstories');
 
 // Add this helper near the top of CommonSectionScreen:
 const normalizePhotoEndpoint = (link = '') => {
@@ -1737,10 +1742,17 @@ export default function CommonSectionScreen() {
 
   const [isDrawerVisible, setIsDrawerVisible] = useState(false);
   const [isLocationDrawerVisible, setIsLocationDrawerVisible] = useState(false);
-  const [selectedDistrict, setSelectedDistrict] = useState('???????');
+  const [selectedDistrict, setSelectedDistrict] = useState('');
 
   const flatListRef = useRef(null);
   const rasiScrollViewRef = useRef(null);
+  const tabScrollRef = useRef(null);   // ref for horizontal tab ScrollView
+  const tabLayoutsRef = useRef({});   // stores {[tabKey]: {x, width}} after layout
+
+  // ── Refs to keep latest values accessible inside PanResponder ────────────
+  const subTabsRef = useRef([]);
+  const activeTabRef = useRef(null);
+
   const [originalNriTabs, setOriginalNriTabs] = useState([]);
   const [nriCondition, setNriCondition] = useState([]);
   const [nriSubCatTabs, setNriSubCatTabs] = useState([]);
@@ -1748,6 +1760,27 @@ export default function CommonSectionScreen() {
   const handleScroll = useCallback((e) => {
     setShowScrollTop(e.nativeEvent.contentOffset.y > 300);
   }, []);
+
+  // Keep refs in sync with state
+  useEffect(() => { subTabsRef.current = subTabs; }, [subTabs]);
+  useEffect(() => { activeTabRef.current = activeTab; }, [activeTab]);
+
+  // Auto-scroll tab bar so active tab is always fully visible
+  useEffect(() => {
+    if (!activeTab || !tabScrollRef.current) return;
+    const key = activeTab.title === 'All' ? 'All' : String(activeTab.id);
+    const layout = tabLayoutsRef.current[key];
+    if (!layout) return;
+    
+    // Use requestAnimationFrame to prevent conflicts
+    requestAnimationFrame(() => {
+      if (tabScrollRef.current) {
+        // Centre the active tab: scroll so tab sits in middle of scroll view
+        const scrollX = Math.max(0, layout.x - layout.width);
+        tabScrollRef.current.scrollTo({ x: scrollX, animated: true });
+      }
+    });
+  }, [activeTab]);
 
   const fetchTabNews = useCallback(async (tab, pg, append = false, nriConditionOverride = null) => {
     console.log('[DEBUG] fetchTabNews called with:', {
@@ -1809,9 +1842,9 @@ export default function CommonSectionScreen() {
             'rdo': 'Tamil Radio', 'eve': 'Events', 'iho': 'Indian Restaurants',
             'tsi': 'Tamil news websites', 'uni': 'University', 'job': 'Jobs',
           } : {
-            'new': '?????????', 'koi': '?????????', 'san': '?????????',
-            'rdo': '??????', 'eve': '??????????', 'iho': '?????? ?????????',
-            'tsi': '????? ???????', 'uni': '????????????????', 'job': '????????????',
+            'new': 'செய்திகள்', 'koi': 'கோயில்கள்', 'san': 'தமிழ் சங்கங்கள்',
+            'rdo': 'தமிழ் வானொலி', 'eve': 'நிகழ்வுகள்', 'iho': 'இந்திய உணவகங்கள்',
+            'tsi': 'தமிழ் செய்தி வலைதளங்கள்', 'uni': 'பல்கலைக்கழகம்', 'job': 'வேலைவாய்ப்பு',
           });
         }
 
@@ -1862,7 +1895,7 @@ export default function CommonSectionScreen() {
         // Create subcategory tabs with filtered articles
         const newSubTabs = [
           {
-            title: isEnglishMode ? 'All' : '?????????',
+            title: isEnglishMode ? 'All' : 'அனைத்தும்',
             link: tab.link,
             _isAllTab: true,
             _isNriRegionAllTab: true,
@@ -1921,7 +1954,7 @@ export default function CommonSectionScreen() {
         // ? ADD: Most Commented section for all NRI subcategory tabs
         if (d?.mostcommented?.data && Array.isArray(d.mostcommented.data) && d.mostcommented.data.length > 0) {
           sections.push({
-            title: d.mostcommented.title || '?????? ????????????????????',
+            title: d.mostcommented.title || 'அதிகம் கருத்துரைக்கப்பட்டவை',
             id: 'most_commented',
             data: d.mostcommented.data.map(item => ({
               ...item,
@@ -2357,7 +2390,7 @@ export default function CommonSectionScreen() {
         // ? ADD: Most Commented and Most Viewed sections for Ulaga Tamilar All tab
         if (d?.mostcommented?.data && Array.isArray(d.mostcommented.data) && d.mostcommented.data.length > 0) {
           sections.push({
-            title: d.mostcommented.title || '?????? ????????????????????',
+            title: d.mostcommented.title || 'அதிகம் கருத்துரைக்கப்பட்டவை',
             id: 'most_commented',
             data: d.mostcommented.data.map(item => ({
               ...item,
@@ -2372,7 +2405,7 @@ export default function CommonSectionScreen() {
 
         if (d?.top10?.data && Array.isArray(d.top10.data) && d.top10.data.length > 0) {
           sections.push({
-            title: d.top10.title || '?????? ????????????',
+            title: d.top10.title || 'அதிகம் பார்வையிடப்பட்டவை',
             id: 'most_viewed',
             data: d.top10.data.map(item => ({
               ...item,
@@ -2444,22 +2477,22 @@ export default function CommonSectionScreen() {
         const photoSections = [];
 
         if (d?.indraiyephoto?.data?.length > 0)
-          photoSections.push({ title: '?????? ??????', id: '81', data: d.indraiyephoto.data });
+          photoSections.push({ title: 'இன்றைய புகைப்படம்', id: '81', data: d.indraiyephoto.data });
 
         if (d?.pogaimadam?.data?.length > 0)
-          photoSections.push({ title: '???????? ??????', id: '5001', data: d.pogaimadam.data });
+          photoSections.push({ title: 'பொகை மடம் புகைப்படம்', id: '5001', data: d.pogaimadam.data });
 
         if (d?.cartoons?.data?.length > 0)
-          photoSections.push({ title: '????????????', id: '5002', data: d.cartoons.data });
+          photoSections.push({ title: 'கார்ட்டூன்ஸ்', id: '5002', data: d.cartoons.data });
 
         if (d?.nri?.data?.length > 0)
-          photoSections.push({ title: 'NRI ??????', id: '5003', data: d.nri.data });
+          photoSections.push({ title: 'NRI புகைப்படம்', id: '5003', data: d.nri.data });
 
         if (d?.top10?.data?.length > 0)
-          photoSections.push({ title: '?????? ????????????', id: 'top10', data: d.top10.data });
+          photoSections.push({ title: 'அதிகம் பார்வையிடப்பட்டவை', id: 'top10', data: d.top10.data });
 
         if (d?.mostcommented?.data?.length > 0)
-          photoSections.push({ title: '?????? ????????????????????', id: 'mostcommented', data: d.mostcommented.data });
+          photoSections.push({ title: 'அதிகம் கருத்துரைக்கப்பட்டவை', id: 'mostcommented', data: d.mostcommented.data });
 
         const tabs = d?.subcatlisting || [];
         setSubTabs(tabs);
@@ -3046,7 +3079,7 @@ export default function CommonSectionScreen() {
       return;
     }
 
-    // ? 4. NRI sub-tab (??? ??????, Nri news etc) ? fetch and group by country
+    // ? 4. NRI sub-tab (செய்திகள், Nri news etc) ? fetch and group by country
     if (apiEndpoint === '/nrimain' && !pressedIsAll && !tab._isNriSubCatTab && !tab._isNriRegionAllTab) {
       // console.log('?? NRI Main Tab Pressed - Tab:', tab);
       // console.log('?? NRI Main Tab - Setting activeTab to main NRI tab');
@@ -3076,7 +3109,7 @@ export default function CommonSectionScreen() {
       return;
     }
 
-    // -- /anmegam parent ? clicking ?????/??????? etc ? push /anmegammain screen
+    // -- /anmegam parent ? clicking கோயில்கள்/ஆன்மிகம் etc ? push /anmegammain screen
     if (
       apiEndpoint.includes('anmegam') &&
       !apiEndpoint.includes('anmegammain') &&
@@ -3092,7 +3125,7 @@ export default function CommonSectionScreen() {
       return;
     }
 
-    // -- /anmegammain ? clicking ??????????/???????? etc ? push /anmegammainlist screen
+    // -- /anmegammain ? clicking ஆன்மிகம்/ஜோசியம் etc ? push /anmegammainlist screen
     if (
       apiEndpoint.includes('anmegammainlist') &&
       !pressedIsAll &&
@@ -3111,7 +3144,7 @@ export default function CommonSectionScreen() {
     // -- Webstories tab from photo section ? navigate to webstories screen --
     if (apiEndpoint.includes('photodata') && tab.id === 'webstories') {
       navigation.push('CommonSectionScreen', {
-        screenTitle: '????????????',
+        screenTitle: 'வெப்ஸ்டோரிகள்',
         apiEndpoint: '/webstoriesupdate',
         allTabLink: '/webstoriesupdate',
         useFullUrl: false,
@@ -3180,6 +3213,91 @@ export default function CommonSectionScreen() {
     setTabNews([]); setTabPage(1); setTabLastPage(1);
     fetchTabNews(nextTab, 1, false);
   };
+
+  // ── Swipe to next / previous tab ─────────────────────────────────────────
+  //
+  //  Swipe LEFT  → go to NEXT tab  (e.g. All → Cricket → Tennis →…)
+  //  Swipe RIGHT → go to PREV tab  (e.g. Tennis → Cricket → All)
+  //
+  //  Thresholds:
+  //    dx >  50 px  AND velocity > 0.3  → right-swipe  (go prev)
+  //    dx < -50 px  AND velocity > 0.3  → left-swipe   (go next)
+  //
+  const SWIPE_THRESHOLD = 50;   // minimum horizontal distance (px)
+  const SWIPE_VELOCITY  = 0.3;  // minimum velocity
+
+  const panResponder = useRef(
+    PanResponder.create({
+      // Only claim the gesture when horizontal movement clearly dominates
+      onMoveShouldSetPanResponder: (_, gs) => {
+        return (
+          Math.abs(gs.dx) > Math.abs(gs.dy) &&   // horizontal dominates
+          Math.abs(gs.dx) > 10                     // at least 10 px moved
+        );
+      },
+      onPanResponderRelease: (_, gs) => {
+        const tabs     = subTabsRef.current;
+        const curTab   = activeTabRef.current;
+        if (!tabs.length) return;
+
+        // Find the index of the current tab
+        const curIndex = curTab
+          ? tabs.findIndex(t =>
+              curTab.title === 'All'
+                ? t.title === 'All'
+                : String(t.id) === String(curTab.id)
+            )
+          : 0;
+
+        const isRightSwipe = gs.dx > SWIPE_THRESHOLD && Math.abs(gs.vx) > SWIPE_VELOCITY;
+        const isLeftSwipe  = gs.dx < -SWIPE_THRESHOLD && Math.abs(gs.vx) > SWIPE_VELOCITY;
+
+        if (isRightSwipe && curIndex > 0) {
+          // Go to previous tab
+          const prevTab = tabs[curIndex - 1];
+          // Use setActiveTab + fetchTabNews directly (avoid stale closure in handleTabPress)
+          setActiveTab(prevTab);
+          if (prevTab.title === 'All') {
+            setTabNews([]);
+          } else {
+            setTabLoading(true);
+            setTabNews([]);
+            setTabPage(1);
+            setTabLastPage(1);
+          }
+        } else if (isLeftSwipe && curIndex < tabs.length - 1) {
+          // Go to next tab
+          const nextTab = tabs[curIndex + 1];
+          setActiveTab(nextTab);
+          if (nextTab.title === 'All') {
+            setTabNews([]);
+          } else {
+            setTabLoading(true);
+            setTabNews([]);
+            setTabPage(1);
+            setTabLastPage(1);
+          }
+        }
+      },
+    })
+  ).current;
+
+  // Whenever activeTab changes via swipe, fetch news for the new tab
+  // (We can't call fetchTabNews inside PanResponder due to stale closures,
+  //  so we watch activeTab here instead.)
+  const prevActiveTabRef = useRef(null);
+  useEffect(() => {
+    if (!activeTab) return;
+    const prev = prevActiveTabRef.current;
+    // Skip on first mount (fetchAll already handles it)
+    if (!prev) { prevActiveTabRef.current = activeTab; return; }
+    // Check if tab actually changed
+    const changed = prev.title !== activeTab.title || String(prev.id) !== String(activeTab.id);
+    if (changed && activeTab.title !== 'All') {
+      fetchTabNews(activeTab, 1, false);
+    }
+    prevActiveTabRef.current = activeTab;
+  }, [activeTab]);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -3354,10 +3472,10 @@ export default function CommonSectionScreen() {
           const tabId = String(item.maincatid || item.scatid || item.subcatid);
           const targetTab = subTabs.find(t => String(t.id) === tabId);
 
-          if (targetTab && targetTab.title === '????????') {
+          if (targetTab && targetTab.title === 'நிஜக்கதி') {
             console.log('?? Nijakkathi item clicked - opening in CommonSectionScreen with nijakkathi tab');
             navigation.push('CommonSectionScreen', {
-              screenTitle: '????????',
+              screenTitle: 'நிஜக்கதி',
               apiEndpoint: 'https://api-st-cdn.dinamalar.com/varavaram',
               initialTabId: '644',
               allTabLink: 'https://api-st-cdn.dinamalar.com/varavaram'
@@ -3403,7 +3521,7 @@ export default function CommonSectionScreen() {
       // Sub-tab already active � use its link directly
       if (!isAllTab && activeTab?.link) {
         navigation.navigate('PhotoDetailsScreen', {
-          screenTitle: activeTab?.title || '??????',
+          screenTitle: activeTab?.title || 'புகைப்படங்கள்',
           photoItem: item,
           apiEndpoint: normalizePhotoEndpoint(activeTab.link),
           isFromAllTab: false,
@@ -3443,15 +3561,15 @@ export default function CommonSectionScreen() {
 
       // Fallback by maincat title
       const titleToId = {
-        '?????? ??????': '81',
-        '???????? ??????': '5001',
-        '????????????': '5002',
-        'NRI ??????': '5003',
+        'இன்றைய புகைப்படம்': '81',
+        'பொகை மடம் புகைப்படம்': '5001',
+        'கார்ட்டூன்ஸ்': '5002',
+        'NRI புகைப்படம்': '5003',
       };
       const fallbackId = titleToId[item.maincat || ''];
       if (fallbackId) {
         navigation.navigate('PhotoDetailsScreen', {
-          screenTitle: item.maincat || '??????',
+          screenTitle: item.maincat || 'புகைப்படங்கள்',
           photoItem: item,
           apiEndpoint: `/photodetails?cat=${fallbackId}`,
           isFromAllTab: isAllTab,
@@ -3650,7 +3768,7 @@ export default function CommonSectionScreen() {
       console.log('?? NRI isTabActive - tab._isNriSubCatTab:', tab._isNriSubCatTab);
       console.log('?? NRI isTabActive - tab.id:', tab.id);
 
-      // ? Handle NRI subcategory tabs (?????????, ?????????, etc.)
+      // ? Handle NRI subcategory tabs (செய்திகள், கோயில்கள், etc.)
       if ((activeTab._isNriRegionTab || activeTab._nriCountryTab) && activeTab._activeSubCat) {
         console.log('?? NRI isTabActive - In region/country view with active subcategory');
         console.log('?? NRI isTabActive - Checking tab:', tab.id, tab.title, 'isSubCatTab:', tab._isNriSubCatTab);
@@ -3701,7 +3819,7 @@ export default function CommonSectionScreen() {
         // ? Country sub-tabs showing � highlight the original parent tab (not All)
         if (activeTab._nriCountryTab) {
           // A specific country is selected � highlight the original NRI sub-tab
-          // e.g. if we're in otherstatenews > ??????????, highlight otherstatenews tab
+          // e.g. if we're in otherstatenews > செய்திகள், highlight otherstatenews tab
           if (tab._isAllTab || tab.link === '/nrimain') return false; // ? All tab NOT active
           return String(tab.id) === String(activeTab._nriTabId); // ? highlight the correct sub-tab
         }
@@ -4083,7 +4201,7 @@ if (row.type === 'rasi' || row.type === 'individualRasi')
               (activeTab?._isNriSubTab && activeTab?._nriTabId === 'nri') ||
               (activeTab?._isNriRegionTab && !!activeTab?._activeSubCat) || (activeTab?._isNriSubTab && activeTab?._nriCountryTab) ||
               (activeTab?._isNriRegionTab && activeTab?._isNriRegionAllTab) ||
-              // ? Show English Version button for Tamil subcategories (?????????, ?????????, ?????????)
+              // ? Show English Version button for Tamil subcategories (செய்திகள், கோயில்கள், ஜோசியம்)
               (activeTab?._isNriRegionTab && !activeTab?._isEnglishVersion && !activeTab?._activeSubCat)
             );
 
@@ -4116,7 +4234,7 @@ if (row.type === 'rasi' || row.type === 'individualRasi')
 
                     // Check if we're in a Tamil subcategory and need to switch to English subcategory
                     if (activeTab?._isNriRegionTab && !activeTab?._isEnglishVersion && !activeTab?._activeSubCat && activeTab?.id) {
-                      // We're in a Tamil subcategory (?????????, ?????????, etc.), navigate to English subcategory
+                      // We're in a Tamil subcategory (செய்திகள், கோயில்கள், etc.), navigate to English subcategory
                       const subCatId = activeTab.id; // e.g., 'new', 'koi', 'san'
                       const regionId = activeTab._nriRegionId; // e.g., 'america', 'gulf'
                       const englishSubCatLink = `/nricategory?cat=${regionId}&scat=${subCatId}&lang=en`;
@@ -4128,7 +4246,7 @@ if (row.type === 'rasi' || row.type === 'individualRasi')
                       const englishSubCatTab = {
                         ...activeTab,
                         id: subCatId,
-                        title: getEnglishSubCatTitle(subCatId), // Convert ????????? ? News, ????????? ? Temple
+                        title: getEnglishSubCatTitle(subCatId), // Convert செய்திகள் → News, கோயில்கள் → Temple
                         link: englishSubCatLink,
                         _isEnglishVersion: true,
                         _isNriRegionTab: true,
@@ -4256,7 +4374,7 @@ if (row.type === 'rasi' || row.type === 'individualRasi')
                     // We're in main NRI English tab, navigate to main NRI Tamil tab
                     const nriTab =
                       originalNriTabs.find(t => t.id === 'nri') ||
-                      originalNriTabs.find(t => t.title === '??? ??????') ||
+                      originalNriTabs.find(t => t.title === 'என்ஆர்ஐ செய்திகள்') ||
                       originalNriTabs.find(t => t.link?.includes('nri'));
                     if (nriTab) {
                       console.log('?? Navigating to main NRI Tamil tab');
@@ -4266,7 +4384,7 @@ if (row.type === 'rasi' || row.type === 'individualRasi')
                     // Fallback: try to find main NRI Tamil tab
                     const nriTab =
                       originalNriTabs.find(t => t.id === 'nri') ||
-                      originalNriTabs.find(t => t.title === '??? ??????') ||
+                      originalNriTabs.find(t => t.title === 'என்ஆர்ஐ செய்திகள்') ||
                       originalNriTabs.find(t => t.link?.includes('nri'));
                     if (nriTab) {
                       handleTabPress(nriTab);
@@ -4276,7 +4394,7 @@ if (row.type === 'rasi' || row.type === 'individualRasi')
                 activeOpacity={0.8}
               >
                 <Text style={{ fontSize: ms(13), fontFamily: FONTS.muktaMalar.medium, color: COLORS.primary, fontWeight: '600' }}>
-                  ????? ??????
+                  தமிழ் பதிப்பு
                 </Text>
               </TouchableOpacity>
             )}
@@ -4295,6 +4413,7 @@ if (row.type === 'rasi' || row.type === 'individualRasi')
         ) : (
           <View style={styles.tabsWrap}>
             <ScrollView
+              ref={tabScrollRef}
               horizontal
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.tabsContent}
@@ -4307,6 +4426,13 @@ if (row.type === 'rasi' || row.type === 'individualRasi')
                     style={[styles.tab, active && styles.tabActive]}
                     onPress={() => handleTabPress(tab)}
                     activeOpacity={0.8}
+                    onLayout={(e) => {
+                      const tabKey = tab.title === 'All' ? 'All' : String(tab.id);
+                      tabLayoutsRef.current[tabKey] = {
+                        x: e.nativeEvent.layout.x,
+                        width: e.nativeEvent.layout.width,
+                      };
+                    }}
                   >
                     <Text style={[styles.tabText, active && styles.tabTextActive, { fontSize: ms(16) }]}>
                       {tab.title || ''}
@@ -4321,131 +4447,122 @@ if (row.type === 'rasi' || row.type === 'individualRasi')
       )}
 
       {/* -- Content -- */}
-      {isLoading ? (
-        <FlatList
-          data={[1, 2, 3, 4]}
-          keyExtractor={i => `sk-${i}`}
-          renderItem={() => <SkeletonCard />}
-          contentContainerStyle={styles.listContent}
-          style={styles.list}
-        />
-      ) : htmlContent ? (
-        <WebView
-          source={{ html: htmlContent, baseUrl: 'https://www.dinamalar.com' }}
-          style={styles.webView}
-          javaScriptEnabled
-          domStorageEnabled
-          startInLoadingState={true}
-          renderLoading={() => (
-            <View style={styles.webViewLoader}>
-              <ActivityIndicator size="large" color={PALETTE.primary} />
+      <View style={styles.swipeArea} {...panResponder.panHandlers}>
+        {isLoading ? (
+          <FlatList
+            data={[1, 2, 3, 4]}
+            keyExtractor={i => `sk-${i}`}
+            renderItem={() => <SkeletonCard />}
+            contentContainerStyle={styles.listContent}
+            style={styles.list}
+          />
+        ) : htmlContent ? (
+          <WebView
+            source={{ html: htmlContent, baseUrl: 'https://www.dinamalar.com' }}
+            style={styles.webView}
+            javaScriptEnabled
+            domStorageEnabled
+            startInLoadingState={true}
+            renderLoading={() => (
+              <View style={styles.webViewLoader}>
+                <ActivityIndicator size="large" color={PALETTE.primary} />
+              </View>
+            )}
+          />
+        ) : isRasiTab && rasiDetailItem ? (
+          <RasiDetailView
+            key={`${activeTab?.id}-${rasiDetailItem.jcat}`}
+            tabId={String(activeTab?.id || '')}
+            tabTitle={activeTab?.title || screenTitle}
+            initialJcat={rasiDetailItem.jcat}
+            initialItem={rasiDetailItem.item}
+            onBack={() => setRasiDetailItem(null)}
+            subTabs={subTabs}
+            onTabChange={(tab) => handleTabPress(tab)}
+          />
+        ) : isRasiTab ? (
+          <ScrollView
+            ref={rasiScrollViewRef}
+            style={styles.list}
+            contentContainerStyle={styles.rasiGridContent}
+            showsVerticalScrollIndicator={false}
+            onScroll={handleScroll}
+            scrollEventThrottle={16}
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={handleRefresh}
+                colors={[COLORS.primary]} tintColor={COLORS.primary} />
+            }
+          >
+            <View style={{ paddingHorizontal: s(12), paddingVertical: vs(10), backgroundColor: '#fff' }}>
+              <Text style={{
+                fontSize: ms(16),
+                fontFamily: FONTS.muktaMalar.bold,
+                color: '#111',
+                fontWeight: '700'
+              }}>
+                {`${activeTab?.title || screenTitle} - ( ${new Date().toLocaleDateString('ta-IN', {
+                  day: '2-digit', month: 'short', year: 'numeric'
+                })} )`}
+              </Text>
             </View>
-          )}
-        />
-      ) : isRasiTab && rasiDetailItem ? (
-        <RasiDetailView
-          key={`${activeTab?.id}-${rasiDetailItem.jcat}`}
-          tabId={String(activeTab?.id || '')}
-          tabTitle={activeTab?.title || screenTitle}
-          initialJcat={rasiDetailItem.jcat}
-          initialItem={rasiDetailItem.item}
-          onBack={() => setRasiDetailItem(null)}
-          subTabs={subTabs}
-          onTabChange={(tab) => handleTabPress(tab)}
-        />
-      ) : isRasiTab ? (
-        <ScrollView
-          ref={rasiScrollViewRef}
-          style={styles.list}
-          contentContainerStyle={styles.rasiGridContent}
-          showsVerticalScrollIndicator={false}
-          onScroll={handleScroll}
-          scrollEventThrottle={16}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh}
-              colors={[COLORS.primary]} tintColor={COLORS.primary} />
-          }
-        >
-          <View style={{ paddingHorizontal: s(12), paddingVertical: vs(10), backgroundColor: '#fff' }}>
-      <Text style={{
-        fontSize: ms(16),
-        fontFamily: FONTS.muktaMalar.bold,
-        color: '#111',
-        fontWeight: '700'
-      }}>
-        {`${activeTab?.title || screenTitle} - ( ${new Date().toLocaleDateString('ta-IN', {
-          day: '2-digit', month: 'short', year: 'numeric'
-        })} )`}
-      </Text>
-    </View>
-           {flatData.map((row, index) => (
-      <RasiCard
-        key={row.item?.id || index}
-        item={row.item}
-        onPress={() => goToRasiDetails(row.item)}
-      />
-    ))}
-        </ScrollView>
-      ) : (
-        <FlatList
-          ref={flatListRef}
-          data={flatData}
-          keyExtractor={(row, i) =>
-            row.type === 'dateHeader'
-              ? `date-${row.dateKey}-${i}`
-              : row.type === 'section'
-                ? `sec-${row.id || i}-${row.title}`
-                : `news-${i}-${row.item?.newsid || row.item?.id || row.item?.eventid || row.item?.rasiid || i}`
-          }
-          renderItem={renderItem}
-          contentContainerStyle={styles.listContent}
-          style={styles.list}
-          showsVerticalScrollIndicator={false}
-          onScroll={handleScroll}
-          scrollEventThrottle={16}
-          onEndReached={handleLoadMore}
-          onEndReachedThreshold={0.4}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh}
-              colors={[COLORS.primary]} tintColor={COLORS.primary} />
-          }
-          key={(apiEndpoint?.includes('webstories') || activeTab?.link?.includes('webstories')) ? 'webstories-grid' : 'single-column'}
-          numColumns={apiEndpoint?.includes('webstories') || activeTab?.link?.includes('webstories') ? 2 : 1}
-          ListHeaderComponent={
-            taboolaAds?.midmain ? (
-              <TaboolaWidget
-                pageUrl={`https://www.dinamalar.com${apiEndpoint}`}
-                mode={taboolaAds.midmain.mode}
-                container={`${taboolaAds.midmain.container}_header`}
-                placement={taboolaAds.midmain.placement}
-                targetType="mix"
+            {flatData.map((row, index) => (
+              <RasiCard
+                key={row.item?.id || index}
+                item={row.item}
+                onPress={() => goToRasiDetails(row.item)}
               />
-            ) : null
-          }
-          ListEmptyComponent={
-            <View style={styles.emptyWrap}>
-              <Ionicons name="newspaper-outline" size={s(48)} color="#ccc" />
-              <Text style={[styles.emptyText, { fontSize: sf(15) }]}>????????? ?????</Text>
-            </View>
-          }
-          ListFooterComponent={
-            <>
-              {taboolaAds?.midmain && (
-                <TaboolaWidget
-                  pageUrl={`https://www.dinamalar.com${apiEndpoint}`}
-                  mode={taboolaAds.midmain.mode}
-                  container={`${taboolaAds.midmain.container}_footer`}
-                  placement={taboolaAds.midmain.placement}
-                  targetType="mix"
-                />
-              )}
-              {tabLoadMore
-                ? <View style={styles.footerLoader}><ActivityIndicator size="small" color={COLORS.primary} /></View>
-                : <View style={{ height: vs(40) }} />}
-            </>
-          }
-        />
-      )}
+            ))}
+          </ScrollView>
+        ) : (
+          <FlatList
+            ref={flatListRef}
+            data={flatData}
+            key={isWebstoriesScreen(apiEndpoint) || isWebstoriesScreen(activeTab?.link) ? 'webstories' : 'default'}
+            numColumns={isWebstoriesScreen(apiEndpoint) || isWebstoriesScreen(activeTab?.link) ? 2 : 1}
+            keyExtractor={(row, i) =>
+              row.type === 'dateHeader'
+                ? `date-${row.dateKey}-${i}`
+                : row.type === 'section'
+                  ? `sec-${row.id || i}-${row.title}`
+                  : `news-${i}-${row.item?.newsid || row.item?.id || row.item?.eventid || row.item?.rasiid || i}`
+            }
+            renderItem={renderItem}
+            contentContainerStyle={styles.listContent}
+            style={styles.list}
+            showsVerticalScrollIndicator={false}
+            onScroll={handleScroll}
+            scrollEventThrottle={16}
+            onEndReached={handleLoadMore}
+            onEndReachedThreshold={0.4}
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={handleRefresh}
+                colors={[COLORS.primary]} tintColor={COLORS.primary} />
+            }
+            ListEmptyComponent={
+              <View style={styles.emptyWrap}>
+                <Ionicons name="newspaper-outline" size={s(48)} color="#ccc" />
+                <Text style={[styles.emptyText, { fontSize: sf(15) }]}>செய்திகள் இல்லை</Text>
+              </View>
+            }
+            ListFooterComponent={
+              <>
+                {taboolaAds?.midmain && (
+                  <TaboolaWidget
+                    pageUrl={`https://www.dinamalar.com${apiEndpoint}`}
+                    mode={taboolaAds.midmain.mode}
+                    container={`${taboolaAds.midmain.container}_footer`}
+                    placement={taboolaAds.midmain.placement}
+                    targetType="mix"
+                  />
+                )}
+                {tabLoadMore
+                  ? <View style={styles.footerLoader}><ActivityIndicator size="small" color={COLORS.primary} /></View>
+                  : <View style={{ height: vs(40) }} />}
+              </>
+            }
+          />
+        )}
+      </View>
 
       {/* -- Scroll To Top -- */}
       {showScrollTop && !rasiDetailItem && (
@@ -4485,6 +4602,9 @@ const styles = StyleSheet.create({
   rasiGridContent: { flexDirection: 'column', paddingBottom: vs(30) },
   webView: { flex: 1 },
   webViewLoader: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' },
+
+  // ── Swipe area wraps the entire content below tabs ──
+  swipeArea: { flex: 1 },
 
   sectionWrap: { paddingHorizontal: s(12), paddingTop: vs(16), paddingBottom: vs(4), backgroundColor: '#f2f2f2' },
   emptyWrap: { alignItems: 'center', justifyContent: 'center', paddingVertical: vs(80), gap: vs(12) },
