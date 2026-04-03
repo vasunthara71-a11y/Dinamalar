@@ -7,11 +7,13 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
+
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
+
     "plugins": [
       [
         "expo-font",
@@ -27,8 +29,14 @@
         }
       ],
       "@react-native-firebase/app",
-      "@react-native-firebase/crashlytics"
+      "@react-native-firebase/crashlytics",
+      "expo-asset",
+      "expo-audio",
+      "expo-secure-store",
+      "expo-sharing",
+      "expo-video"
     ],
+
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.dinamalarMobileApp",
@@ -36,26 +44,33 @@
         "applinks:www.dinamalar.com"
       ]
     },
+
     "android": {
       "package": "com.dinamalarMobileApp",
+
+"googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
+
       "permissions": [
         "INTERNET"
       ]
     },
+
     "web": {
       "favicon": "./assets/favicon.png"
     },
+
     "extra": {
       "eas": {
         "projectId": "014e592e-d3e5-4958-9178-5ba4e58bd9aa"
       }
     },
+
     "owner": "dinamalar"
   }
 }
