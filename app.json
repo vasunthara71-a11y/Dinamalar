@@ -47,8 +47,8 @@
 
     "android": {
       "package": "com.dinamalarMobileApp",
-
-"googleServicesFile": "./google-services.json",
+      "windowSoftInputMode": "adjustNothing",
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",

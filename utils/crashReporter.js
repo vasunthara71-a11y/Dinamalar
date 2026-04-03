@@ -1,12 +1,21 @@
-import crashlytics from '@react-native-firebase/crashlytics';
-import * as Device from 'expo-device';
-import * as Application from 'expo-application';
+import { Platform } from 'react-native';
+
+// ─── Safe Firebase import (works in Expo Go + APK) ───────────────
+let crashlytics = null;
+try {
+  crashlytics = require('@react-native-firebase/crashlytics').default;
+} catch (e) {
+  console.log('ℹ️ Crashlytics not available in Expo Go — skipping');
+}
 
 // ─── Set device context on app start ─────────────────────────────
 export const setDeviceContext = async () => {
+  if (!crashlytics) return;
   try {
-    const androidId = await Application.getAndroidId();
+    const Device = require('expo-device');
+    const Application = require('expo-application');
 
+    const androidId = await Application.getAndroidId();
     crashlytics().setUserId(androidId || 'unknown-device');
 
     await crashlytics().setAttributes({
@@ -27,6 +36,7 @@ export const setDeviceContext = async () => {
 
 // ─── Log user actions (breadcrumbs) ──────────────────────────────
 export const logAction = (action) => {
+  if (!crashlytics) return;
   try {
     crashlytics().log(action);
   } catch (_) {}
@@ -34,6 +44,7 @@ export const logAction = (action) => {
 
 // ─── Log non-fatal errors ─────────────────────────────────────────
 export const logError = (error, context = '') => {
+  if (!crashlytics) return;
   try {
     if (context) crashlytics().setAttribute('error_context', context);
     crashlytics().recordError(error);
@@ -42,6 +53,7 @@ export const logError = (error, context = '') => {
 
 // ─── Track current screen ─────────────────────────────────────────
 export const logScreen = (screenName) => {
+  if (!crashlytics) return;
   try {
     crashlytics().setAttribute('current_screen', screenName);
     crashlytics().log(`Screen: ${screenName}`);
@@ -50,6 +62,7 @@ export const logScreen = (screenName) => {
 
 // ─── Track API errors ─────────────────────────────────────────────
 export const logApiError = (endpoint, statusCode, message) => {
+  if (!crashlytics) return;
   try {
     crashlytics().log(`API Error: ${endpoint} → ${statusCode}: ${message}`);
     crashlytics().setAttribute('last_api_error', endpoint);
@@ -62,12 +75,14 @@ export const installCrashReporter = () => {
 
   ErrorUtils.setGlobalHandler(async (error, isFatal) => {
     try {
-      crashlytics().setAttribute('is_fatal', String(isFatal));
-      crashlytics().log(`CRASH — Fatal:${isFatal} — ${error?.message}`);
-      crashlytics().recordError(error);
+      if (crashlytics) {
+        crashlytics().setAttribute('is_fatal', String(isFatal));
+        crashlytics().log(`CRASH — Fatal:${isFatal} — ${error?.message}`);
+        crashlytics().recordError(error);
+      }
     } catch (_) {}
     originalHandler?.(error, isFatal);
   });
 
-  console.log('✅ Firebase Crashlytics installed');
+  console.log('✅ Crash reporter installed');
 };
