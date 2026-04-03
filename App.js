@@ -1,4 +1,4 @@
- import { StatusBar } from 'expo-status-bar';
+import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import AppNavigator from './navigation/AppNavigator';
 import { ThemeProvider } from './theme/ThemeContext';
@@ -7,22 +7,18 @@ import { View } from 'react-native';
 import { useAppOptimization } from './hooks/useAppOptimization';
 import ErrorBoundary from './components/ErrorBoundary';
 import { useEffect } from 'react';
-import { installCrashReporter, logAction, setUser } from './utils/crashReporter';
+import { installCrashReporter, setDeviceContext, logAction } from './utils/crashReporter'; // ← updated
 
 function AppContent() {
-  // Initialize app optimizations
   useAppOptimization();
-
   return <AppNavigator />;
 }
 
 export default function App() {
   useEffect(() => {
     installCrashReporter();
+    setDeviceContext();      // ← sets device model, OS, app version
     logAction('App launched');
-
-    // Optional: set logged-in user info
-    // setUser('user123', 'user@email.com', 'John');
   }, []);
 
   const [fontsLoaded] = useFonts({
@@ -33,7 +29,7 @@ export default function App() {
     'MuktaMalar-SemiBold':  require('./assets/fonts/mukta/Mukta_Malar/MuktaMalar-SemiBold.ttf'),
     'MuktaMalar-Bold':      require('./assets/fonts/mukta/Mukta_Malar/MuktaMalar-Bold.ttf'),
     'MuktaMalar-ExtraBold': require('./assets/fonts/mukta/Mukta_Malar/MuktaMalar-ExtraBold.ttf'),
-    
+
     // AnekTamil fonts
     'AnekTamil-Thin':       require('./assets/fonts/Anek/AnekTamil-Thin.ttf'),
     'AnekTamil-ExtraLight': require('./assets/fonts/Anek/AnekTamil-ExtraLight.ttf'),
@@ -43,9 +39,9 @@ export default function App() {
     'AnekTamil-SemiBold':   require('./assets/fonts/Anek/AnekTamil-SemiBold.ttf'),
     'AnekTamil-Bold':       require('./assets/fonts/Anek/AnekTamil-Bold.ttf'),
     'AnekTamil-ExtraBold':  require('./assets/fonts/Anek/AnekTamil-ExtraBold.ttf'),
-    
+
     // AnekTamil Condensed fonts
-    'AnekTamil_Condensed-Thin':       require('./assets/fonts/Anek/AnekTamil_Condensed-Thin.ttf'),
+    'AnekTamil_Condensed-Thin':        require('./assets/fonts/Anek/AnekTamil_Condensed-Thin.ttf'),
     'AnekTamil_Condensed-ExtraLight':  require('./assets/fonts/Anek/AnekTamil_Condensed-ExtraLight.ttf'),
     'AnekTamil_Condensed-Light':       require('./assets/fonts/Anek/AnekTamil_Condensed-Light.ttf'),
     'AnekTamil_Condensed-Regular':     require('./assets/fonts/Anek/AnekTamil_Condensed-Regular.ttf'),
@@ -53,9 +49,9 @@ export default function App() {
     'AnekTamil_Condensed-SemiBold':    require('./assets/fonts/Anek/AnekTamil_Condensed-SemiBold.ttf'),
     'AnekTamil_Condensed-Bold':        require('./assets/fonts/Anek/AnekTamil_Condensed-Bold.ttf'),
     'AnekTamil_Condensed-ExtraBold':   require('./assets/fonts/Anek/AnekTamil_Condensed-ExtraBold.ttf'),
-    
+
     // AnekTamil Expanded fonts
-    'AnekTamil_Expanded-Thin':       require('./assets/fonts/Anek/AnekTamil_Expanded-Thin.ttf'),
+    'AnekTamil_Expanded-Thin':        require('./assets/fonts/Anek/AnekTamil_Expanded-Thin.ttf'),
     'AnekTamil_Expanded-ExtraLight':  require('./assets/fonts/Anek/AnekTamil_Expanded-ExtraLight.ttf'),
     'AnekTamil_Expanded-Light':       require('./assets/fonts/Anek/AnekTamil_Expanded-Light.ttf'),
     'AnekTamil_Expanded-Regular':     require('./assets/fonts/Anek/AnekTamil_Expanded-Regular.ttf'),

@@ -5548,7 +5548,7 @@ export default function HomeScreen() {
       />
 
       {/* Test Crash Button - Remove after confirming Crashlytics works */}
-      <View style={{ paddingHorizontal: s(12), paddingVertical: vs(8) }}>
+      {/* <View style={{ paddingHorizontal: s(12), paddingVertical: vs(8) }}>
         <TouchableOpacity
           onPress={() => {
             logAction('Test crash button pressed');
@@ -5566,7 +5566,7 @@ export default function HomeScreen() {
             Test Crash (Remove after testing)
           </Text>
         </TouchableOpacity>
-      </View>
+      </View> */}
 
       <DrawerMenu
         isVisible={isDrawerVisible}
