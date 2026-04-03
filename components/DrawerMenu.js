@@ -46,9 +46,9 @@ import DistrictDrawer from './DistrictDrawer';
 
 import TEXT_STYLES from '../utils/textStyles';
 
-import { SignOut, Home, RightArrow, Calendar, Joshiyam, Aanmigam, Varavaram, Inaippumalar, Photo, UlagaTamilar, Special, Kovil, Cinema, UllurSeithigal, DinamDinam, District, Malargal, Light } from '../assets/svg/Icons';
+import { SignOut, Home, RightArrow, Calendar, Joshiyam, Aanmigam, Varavaram, Inaippumalar, Photo, UlagaTamilar, Special, Kovil, Cinema, UllurSeithigal, DinamDinam, District, Malargal, Light, Logout, Login } from '../assets/svg/Icons';
 
-
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 
@@ -331,7 +331,6 @@ const DrawerMenu = ({ isVisible, onClose, onMenuPress, navigation }) => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
 
-
   const [menuData, setMenuData] = useState({ menu1: [], menu2: [], title: '', follow: [], menuIndex1: [] });
 
   const [loading, setLoading] = useState(true);
@@ -341,6 +340,9 @@ const DrawerMenu = ({ isVisible, onClose, onMenuPress, navigation }) => {
   const [district, setdistrict] = useState(null);
 
   const [expandedItem, setExpandedItem] = useState(null);
+
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userEmail, setUserEmail] = useState(null);
 
   const [dinamDinamSubcats, setDinamDinamSubcats] = useState(null);
 
@@ -388,7 +390,19 @@ const DrawerMenu = ({ isVisible, onClose, onMenuPress, navigation }) => {
 
     if (!isVisible) return;
 
+    const checkAuthStatus = async () => {
+      try {
+        const email = await AsyncStorage.getItem('userEmail');
+        setIsLoggedIn(!!email);
+        setUserEmail(email);
+      } catch (error) {
+        console.error('Error checking auth status:', error);
+        setIsLoggedIn(false);
+        setUserEmail(null);
+      }
+    };
 
+    checkAuthStatus();
 
     const fetchDrawerMenu = async () => {
 
@@ -474,6 +488,23 @@ const DrawerMenu = ({ isVisible, onClose, onMenuPress, navigation }) => {
 
     setExpandedItem((prev) => (prev === key ? null : key));
 
+  };
+
+  // Handle sign out
+  const handleSignOut = async () => {
+    try {
+      // Immediately hide email by clearing state
+      setUserEmail(null);
+      setIsLoggedIn(false);
+      
+      // Clear all user data from AsyncStorage
+      await AsyncStorage.multiRemove(['userEmail', 'savedEmail', 'savedPassword', 'rememberMe']);
+      
+      // Close drawer
+      onClose();
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
   };
 
 
@@ -773,73 +804,43 @@ const DrawerMenu = ({ isVisible, onClose, onMenuPress, navigation }) => {
 
 
 
+
           {/* ── Header ─────────────────────────────────────────────────── */}
-
           <View style={ds.drawerHeader}>
-
-            <Image
-
-              source={{ uri: 'https://stat.dinamalar.com/new/2025/images/dinamalar-pavala-vizha-logo-day.png' }}
-
-              style={ds.logo}
-
-              resizeMode="contain"
-
-            />
-
-            {/* ☀ Light pill */}
-
-            {/* <View style={ds.themeToggle}>
-
-              <Light color={P.grey700} size={s(22)} />
-
-              <Text style={{ fontFamily: FONTS.muktaMalar, fontSize: 16, color: P.grey700, marginLeft: s(3) }}>
-
-                Light
-
-              </Text>
-
-            </View> */}
+            <View style={ds.headerLeft}>
+              <Image
+                source={{ uri: 'https://stat.dinamalar.com/new/2025/images/dinamalar-pavala-vizha-logo-day.png' }}
+                style={ds.logo}
+                resizeMode="contain"
+              />
+             
+            </View>
 
             {/* X close button */}
-
             <TouchableOpacity
-
               onPress={onClose}
-
               style={ds.closeBtn}
-
               hitSlop={{ top: 14, bottom: 14, left: 14, right: 14 }}
-
               activeOpacity={0.7}
-
             >
-
               <Ionicons name="close" size={s(30)} color={P.grey700} />
-
             </TouchableOpacity>
-
           </View>
 
-
-
           {/* ── Sign Up ────────────────────────────────────────────────── */}
-
-          {/* <View style={ds.signUpWrap}>
-
-            <TouchableOpacity style={ds.signUpBtn} activeOpacity={0.8}>
-
+          <View style={ds.signUpWrap}>
+            <TouchableOpacity 
+              style={ds.signUpBtn} 
+              activeOpacity={0.8}
+              onPress={isLoggedIn ? handleSignOut : () => navigation?.replace('LoginScreen')}
+            >
               <Text style={{ fontFamily: FONTS.muktaMalar.semibold, fontSize: ms(16), color: P.grey700 }}>
-
-                Sign Up
-
+                {isLoggedIn ? 'Sign Out' : 'Sign Up'}
               </Text>
-
-              <SignOut color={P.grey700} size={16} />
-
+              {isLoggedIn ? <Logout color={P.grey700} size={16} /> : <Login color={P.grey700} size={16} />}
             </TouchableOpacity>
+          </View>
 
-          </View> */}
 
 
 
@@ -1450,6 +1451,25 @@ const ds = StyleSheet.create({
 
   logo: { width: s(120), height: vs(30) },
 
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+
+  userEmailText: {
+    fontFamily: FONTS.muktaMalar.semibold,
+    fontSize: ms(16),
+    color: P.primary,
+    marginLeft: s(10),
+  },
+
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: s(10),
+  },
+
 
 
   themeToggle: {
@@ -1490,7 +1510,7 @@ const ds = StyleSheet.create({
 
   // ── Sign Up ─────────────────────────────────────────────────────────────
 
-  signUpWrap: { paddingHorizontal: s(14), paddingVertical: vs(8) },
+  signUpWrap: { paddingHorizontal: s(14), paddingVertical: vs(8),flexDirection:"row",alignItems:"center",justifyContent:"space-between" },
 
   signUpBtn: {
 
@@ -1512,7 +1532,8 @@ const ds = StyleSheet.create({
 
     paddingVertical: vs(6),
 
-    justifyContent: "space-around"
+    justifyContent: "space-around",
+    gap:ms(5)
 
   },
 
@@ -1628,7 +1649,7 @@ const ds = StyleSheet.create({
 
     marginTop: vs(10),
 
-    borderTopWidth: 1,
+    // borderTopWidth: 1,
 
     borderTopColor: P.border,
 

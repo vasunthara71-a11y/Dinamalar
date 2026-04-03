@@ -664,3 +664,38 @@ export const FlashIcon = ({ color = 'currentColor', size = 20, style = {} }) => 
     <Path d="M7 2v11h3v9l7-12h-4l4-8z" />
   </Svg>
 );
+
+export const Logout = ({ color = 'currentColor', size = 20, style = {} }) => (
+  <Svg 
+    stroke={color} 
+    fill={color} 
+    strokeWidth="0" 
+    viewBox="0 0 24 24" 
+    height={size} 
+    width={size} 
+    xmlns="http://www.w3.org/2000/svg" 
+    style={style}
+  >
+    <Path d="M16 13v-2H7V8l-5 4 5 4v-3z" />
+    <Path d="M20 3h-9c-1.103 0-2 .897-2 2v4h2V5h9v14h-9v-4H9v4c0 1.103.897 2 2 2h9c1.103 0 2-.897 2-2V5c0-1.103-.897-2-2-2z" />
+  </Svg>
+);
+
+export const Login = ({ color = 'currentColor', size = 20, style = {} }) => (
+  <Svg 
+    stroke={color} 
+    fill="none" 
+    strokeWidth="2" 
+    viewBox="0 0 24 24" 
+    strokeLinecap="round" 
+    strokeLinejoin="round" 
+    height={size} 
+    width={size} 
+    xmlns="http://www.w3.org/2000/svg" 
+    style={{ marginLeft: 10, ...style }}
+  >
+    <Path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+    <Path d="M10 17l5-5-5-5" />
+    <Path d="M15 12H3" />
+  </Svg>
+);
