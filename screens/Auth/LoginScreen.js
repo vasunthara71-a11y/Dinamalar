@@ -265,7 +265,15 @@ export default function LoginScreen() {
       style={{ flex: 1 }}
       behavior={Platform.OS === 'ios' ? 'padding' : '0'}
     >
-      <View style={styles.container}>
+      <ScrollView>
+      <View style={{ marginTop: ms(30) }}>
+        <TouchableOpacity style={[styles.backButton, { backgroundColor: "#007BFF"}]} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back-circle-outline" size={ms(40)} color="white" />
+          <Text style={styles.backButtonText}>Back to News</Text>
+        </TouchableOpacity>
+      </View>
+      <ScrollView style={styles.container}>
+
         <View style={styles.logoContainer}>
           <Image
             source={{ uri: 'https://stat.dinamalar.com/new/2025/images/dinamalar-pavala-vizha-logo-day.png' }}
@@ -348,14 +356,14 @@ export default function LoginScreen() {
                       setErrors({ ...errors, password: newErrors.password });
                     }}
                   />
-                  <TouchableOpacity 
-                    style={styles.eyeIcon} 
+                  <TouchableOpacity
+                    style={styles.eyeIcon}
                     onPress={() => setShowLoginPassword(!showLoginPassword)}
                   >
-                    <Ionicons 
-                      name={showLoginPassword ? "eye-off" : "eye"} 
-                      size={20} 
-                      color="#666" 
+                    <Ionicons
+                      name={showLoginPassword ? "eye-off" : "eye"}
+                      size={20}
+                      color="#666"
                     />
                   </TouchableOpacity>
                 </View>
@@ -461,14 +469,14 @@ export default function LoginScreen() {
                       setErrors({ ...errors, password: !text ? 'Password is required' : text.length < 8 ? 'Password must be at least 8 characters' : !/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?])/.test(text) ? 'Password must contain uppercase, lowercase, number, and special character' : undefined });
                     }}
                   />
-                  <TouchableOpacity 
-                    style={styles.eyeIcon} 
+                  <TouchableOpacity
+                    style={styles.eyeIcon}
                     onPress={() => setShowSignupPassword(!showSignupPassword)}
                   >
-                    <Ionicons 
-                      name={showSignupPassword ? "eye-off" : "eye"} 
-                      size={20} 
-                      color="#666" 
+                    <Ionicons
+                      name={showSignupPassword ? "eye-off" : "eye"}
+                      size={20}
+                      color="#666"
                     />
                   </TouchableOpacity>
                 </View>
@@ -488,14 +496,14 @@ export default function LoginScreen() {
                       setErrors({ ...errors, confirmPassword: !text ? 'Confirm Password is required' : signupForm.password !== text ? 'Passwords do not match' : undefined });
                     }}
                   />
-                  <TouchableOpacity 
-                    style={styles.eyeIcon} 
+                  <TouchableOpacity
+                    style={styles.eyeIcon}
                     onPress={() => setShowConfirmPassword(!showConfirmPassword)}
                   >
-                    <Ionicons 
-                      name={showConfirmPassword ? "eye-off" : "eye"} 
-                      size={20} 
-                      color="#666" 
+                    <Ionicons
+                      name={showConfirmPassword ? "eye-off" : "eye"}
+                      size={20}
+                      color="#666"
                     />
                   </TouchableOpacity>
                 </View>
@@ -516,7 +524,7 @@ export default function LoginScreen() {
           )}
         </ScrollView>
 
-        <View style={styles.footerContainer}>
+        <View style={[styles.footerContainer, activeTab === 'login' && { marginTop: ms(40) }]}>
           {/* <View style={styles.dividerLine} /> */}
           <View style={styles.footerRow}>
             <Text style={styles.footerText}>
@@ -531,8 +539,21 @@ export default function LoginScreen() {
               </Text>
             </TouchableOpacity>
           </View>
+          <View style={styles.footerLinks}>
+            <Text style={styles.copyrightText}>Copyright @ 2026</Text>
+            <View style={styles.linksContainer}>
+              <TouchableOpacity>
+                <Text style={styles.linkText}>Contact Us</Text>
+              </TouchableOpacity>
+              <Text style={styles.linkSeparator}> | </Text>
+              <TouchableOpacity>
+                <Text style={styles.linkText}>Terms & Conditions</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
-      </View>
+      </ScrollView>
+      </ScrollView>
     </KeyboardAvoidingView >
   );
 }
@@ -542,7 +563,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#ffffff',
     paddingHorizontal: Platform.OS === 'ios' ? ms(20) : ms(24),
-    paddingTop: Platform.OS === 'ios' ? ms(40) : ms(40)
+    paddingTop: Platform.OS === 'ios' ? ms(40) : ms(0)
   },
   logoContainer: { alignItems: 'center', marginBottom: ms(10) },
   logo: {
@@ -578,7 +599,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: ms(15),
     paddingVertical: ms(12),
   },
-  rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginVertical: ms(15) },
+  rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',     marginBottom: ms(20),
+ },
   checkboxContainer: { flexDirection: 'row', alignItems: 'center' },
   rememberText: { marginLeft: ms(8), color: '#8E8E93', fontSize: ms(14) },
   forgotText: { color: '#007BFF', fontSize: ms(14) },
@@ -591,7 +613,47 @@ const styles = StyleSheet.create({
   dividerLine: { height: 1, backgroundColor: '#E5E7EB', marginBottom: ms(20) },
   footerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
   footerText: { fontSize: ms(14), color: '#8E8E93' },
-  footerButton: { backgroundColor: '#007BFF', paddingHorizontal: ms(15), paddingVertical: ms(8), borderRadius: ms(6), marginLeft: ms(10) },
+  footerButton: { backgroundColor: '#007BFF', paddingHorizontal: ms(15), paddingVertical: ms(10), borderRadius: ms(6), marginLeft: ms(10) },
   footerButtonText: { color: '#fff', fontWeight: '600' },
   errorText: { color: '#FF0000', fontSize: ms(12), marginBottom: ms(10), marginTop: ms(-15) },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#007BFF',
+    paddingHorizontal: ms(15),
+    paddingVertical: ms(5),
+    // borderRadius: ms(5),
+    // marginBottom: ms(20),
+    alignSelf: 'flex-start',
+    width: "100%"
+  },
+  backButtonText: {
+    color: 'white',
+    fontSize: ms(16),
+    fontWeight: '600',
+    marginLeft: ms(8)
+  },
+  footerLinks: {
+    alignItems: 'center',
+    marginTop: ms(20)
+  },
+  copyrightText: {
+    fontSize: ms(12),
+    color: '#8E8E93',
+    marginBottom: ms(10)
+  },
+  linksContainer: {
+    flexDirection: 'row',
+    alignItems: 'center'
+  },
+  linkText: {
+    fontSize: ms(12),
+        color: '#8E8E93',
+
+   },
+  linkSeparator: {
+    fontSize: ms(12),
+    color: '#8E8E93',
+    marginHorizontal: ms(5)
+  },
 });

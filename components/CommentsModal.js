@@ -22,6 +22,8 @@ import { s, vs, ms, scaledSizes } from '../utils/scaling';
 import FontSizeControl from './FontSizeControl';
 import { useFontSize } from '../context/FontSizeContext';
 import { addComment, addReply, getCommentsForNews, saveUserName, getUserName } from '../utils/commentStorage';
+import { useAuth } from '../context/AuthContext';
+import { useNavigation } from '@react-navigation/native';
 
 // Generate unique key with timestamp and random to avoid duplicates
 const generateUniqueKey = (item, index, prefix = 'comment') => {
@@ -217,6 +219,8 @@ function extractLastPage(d) {
 // ─── Main CommentsModal ───────────────────────────────────────────────────────
 export default function CommentsModal({ visible, onClose, newsId, newsTitle, commentCount = 0 }) {
   const { sf } = useFontSize();
+  const { user, isAuthenticated } = useAuth();
+  const navigation = useNavigation();
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
@@ -323,11 +327,17 @@ export default function CommentsModal({ visible, onClose, newsId, newsTitle, com
   const handlePostComment = async () => {
     if (!inputText.trim()) return;
 
+    // Check if user is authenticated
+    if (!isAuthenticated) {
+      navigation.navigate('LoginScreen');
+      return;
+    }
+
     const commentText = inputText.trim();
     setInputText('');
 
-    // Get or ask for user name
-    let name = userName.trim();
+    // Use authenticated user's name or fallback to saved name
+    let name = user?.displayName || user?.email?.split('@')[0] || userName.trim();
     if (!name) {
       setShowNameInput(true);
       return;
@@ -531,7 +541,13 @@ export default function CommentsModal({ visible, onClose, newsId, newsTitle, com
                     placeholder={replyingTo ? "பதில் எழுதுங்கள்..." : "உங்கள் கருத்தை பதிவிடுங்கள்..."}
                     placeholderTextColor="#bbb"
                     value={inputText}
-                    onChangeText={setInputText}
+                    onChangeText={(text) => {
+                      setInputText(text);
+                      // If user is not authenticated and starts typing, navigate directly to login
+                      if (!isAuthenticated && text.trim().length > 0) {
+                        navigation.navigate('LoginScreen');
+                      }
+                    }}
                     multiline
                     maxLength={500}
                     autoFocus={replyingTo !== null}
@@ -576,7 +592,6 @@ export default function CommentsModal({ visible, onClose, newsId, newsTitle, com
     </Modal>
   );
 }
-
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const modal = StyleSheet.create({
   overlay: { flex: 1, justifyContent: 'flex-end' },
@@ -671,5 +686,64 @@ const modal = StyleSheet.create({
   kavWrap: {
     justifyContent: 'flex-end',
     position: 'absolute', bottom: 0, left: 0, right: 0,
+  },
+});
+
+// Auth modal styles
+const authModal = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  container: {
+    backgroundColor: '#fff',
+    borderRadius: s(16),
+    padding: s(24),
+    marginHorizontal: s(20),
+    alignItems: 'center',
+    maxWidth: s(320),
+  },
+  iconContainer: {
+    marginBottom: vs(16),
+  },
+  title: {
+    fontFamily: FONTS.muktaMalar.bold,
+    color: '#1a1a1a',
+    marginBottom: vs(8),
+    textAlign: 'center',
+  },
+  message: {
+    fontFamily: FONTS.muktaMalar.regular,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: vs(24),
+    lineHeight: vs(20),
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    gap: s(12),
+    width: '100%',
+  },
+  button: {
+    flex: 1,
+    paddingVertical: vs(12),
+    borderRadius: s(8),
+    alignItems: 'center',
+  },
+  cancelButton: {
+    backgroundColor: '#f0f0f0',
+  },
+  loginButton: {
+    backgroundColor: COLORS.primary,
+  },
+  cancelButtonText: {
+    fontFamily: FONTS.muktaMalar.medium,
+    color: '#666',
+  },
+  loginButtonText: {
+    fontFamily: FONTS.muktaMalar.medium,
+    color: '#fff',
   },
 });

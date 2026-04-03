@@ -48,7 +48,7 @@ const AppNavigator = () => {
         screenOptions={{
           headerShown: false,
         }}
-        initialRouteName="LoginScreen"
+        initialRouteName="MainTabs"
       >
         <Stack.Screen name="MainTabs" component={TabNavigator} />
         <Stack.Screen name="HomeScreen" component={HomeScreen} />
