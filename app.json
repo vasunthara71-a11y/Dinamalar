@@ -51,34 +51,34 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "build": {
-      "development": {
-        "android": {
-          "env": {
-            "GOOGLE_SERVICES_JSON": "@google-services-json"
-          }
-        }
-      },
-      "preview": {
-        "android": {
-          "env": {
-            "GOOGLE_SERVICES_JSON": "@google-services-json"
-          }
-        }
-      },
-      "production": {
-        "android": {
-          "env": {
-            "GOOGLE_SERVICES_JSON": "@google-services-json"
-          }
-        }
-      }
-    },
     "extra": {
       "eas": {
         "projectId": "014e592e-d3e5-4958-9178-5ba4e58bd9aa"
       }
     },
     "owner": "dinamalar"
+  },
+  "build": {
+    "development": {
+      "android": {
+        "env": {
+          "GOOGLE_SERVICES_JSON": "@google-services-json"
+        }
+      }
+    },
+    "preview": {
+      "android": {
+        "env": {
+          "GOOGLE_SERVICES_JSON": "@google-services-json"
+        }
+      }
+    },
+    "production": {
+      "android": {
+        "env": {
+          "GOOGLE_SERVICES_JSON": "@google-services-json"
+        }
+      }
+    }
   }
 }
