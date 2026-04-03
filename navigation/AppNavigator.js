@@ -34,7 +34,9 @@ import SpecialTodayScreen from '../screens/SpecialTodayScreen';
 import EditorChoiceScreen from '../screens/EditorChoiceScreen';
 import linking from './linking';
 import FeedbackForm from '../screens/FeedbackForm';
-  
+import LoginScreen from '../screens/Auth/LoginScreen';
+// import SignupScreen from '../screens/Auth/SignUpScreen';
+   
 const Stack = createNativeStackNavigator();
 
 // Stack Navigator for individual screens
@@ -45,6 +47,7 @@ const AppNavigator = () => {
         screenOptions={{
           headerShown: false,
         }}
+        initialRouteName="LoginScreen"
       >
         <Stack.Screen name="MainTabs" component={TabNavigator} />
         <Stack.Screen name="HomeScreen" component={HomeScreen} />
@@ -89,6 +92,12 @@ const AppNavigator = () => {
         <Stack.Screen name='SpecialTodayScreen' component={SpecialTodayScreen}/>
         <Stack.Screen name='EditorChoiceScreen' component={EditorChoiceScreen}/>
         <Stack.Screen name='FeedbackFormScreen' component={FeedbackForm}/>
+
+
+
+        <Stack.Screen name='LoginScreen' component={LoginScreen}/>
+        {/* <Stack.Screen name='SignupScreen' component={SignupScreen}/> */}
+
         
       </Stack.Navigator>
     </NavigationContainer>
