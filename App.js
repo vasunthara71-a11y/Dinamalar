@@ -3,6 +3,7 @@ import { useFonts } from 'expo-font';
 import AppNavigator from './navigation/AppNavigator';
 import { ThemeProvider } from './theme/ThemeContext';
 import { FontSizeProvider } from './context/FontSizeContext';
+import { AuthProvider } from './context/AuthContext';
 import { View } from 'react-native';
 import { useAppOptimization } from './hooks/useAppOptimization';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -66,12 +67,14 @@ export default function App() {
   return (
     <ThemeProvider>
       <FontSizeProvider>
-        <View style={{ flex: 1 }}>
-          <StatusBar style="dark" backgroundColor="#fff" />
-          <ErrorBoundary>
-            <AppContent />
-          </ErrorBoundary>
-        </View>
+        <AuthProvider>
+          <View style={{ flex: 1 }}>
+            <StatusBar style="dark" backgroundColor="#fff" />
+            <ErrorBoundary>
+              <AppContent />
+            </ErrorBoundary>
+          </View>
+        </AuthProvider>
       </FontSizeProvider>
     </ThemeProvider>
   );
