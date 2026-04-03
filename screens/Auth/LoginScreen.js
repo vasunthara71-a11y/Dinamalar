@@ -1,63 +1,98 @@
-import React, { useState } from 'react';
+// LoginScreen.js
+import React, { useState, useEffect } from 'react';
 import {
     View, Text, TextInput, TouchableOpacity,
-    StyleSheet, ScrollView, Platform, Image
+    StyleSheet, ScrollView, Image, Alert,
+    Platform
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ms } from 'react-native-size-matters';
+import { useNavigation } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// ✅ Changed from @react-native-firebase to JS SDK
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
+import { collection, doc, setDoc, getDocs, query, where, serverTimestamp } from 'firebase/firestore';
+import { auth, db } from '../../firebaseConfig';
 
 export default function LoginScreen() {
+    const navigation = useNavigation();
     const [activeTab, setActiveTab] = useState('login');
     const [rememberMe, setRememberMe] = useState(true);
 
-    // Form states
-    const [loginForm, setLoginForm] = useState({
-        username: '',
-        password: ''
-    });
+    const [loginForm, setLoginForm] = useState({ email: '', password: '' });
     const [signupForm, setSignupForm] = useState({
-        name: '',
-        email: '',
-        password: '',
-        confirmPassword: ''
+        name: '', email: '', password: '', confirmPassword: ''
     });
     const [errors, setErrors] = useState({});
+    const [loginError, setLoginError] = useState('');
+
+    // Load saved credentials on component mount
+    useEffect(() => {
+        loadSavedCredentials();
+    }, []);
+
+    const loadSavedCredentials = async () => {
+        try {
+            const savedEmail = await AsyncStorage.getItem('savedEmail');
+            const savedPassword = await AsyncStorage.getItem('savedPassword');
+            const savedRememberMe = await AsyncStorage.getItem('rememberMe');
+
+            if (savedRememberMe === 'true' && savedEmail && savedPassword) {
+                setLoginForm({ email: savedEmail, password: savedPassword });
+                setRememberMe(true);
+            } else {
+                setRememberMe(false);
+            }
+        } catch (error) {
+            console.log('Error loading saved credentials:', error);
+        }
+    };
+
+    const saveCredentials = async (email, password) => {
+        try {
+            if (rememberMe) {
+                await AsyncStorage.setItem('savedEmail', email);
+                await AsyncStorage.setItem('savedPassword', password);
+                await AsyncStorage.setItem('rememberMe', 'true');
+            } else {
+                await AsyncStorage.removeItem('savedEmail');
+                await AsyncStorage.removeItem('savedPassword');
+                await AsyncStorage.setItem('rememberMe', 'false');
+            }
+        } catch (error) {
+            console.log('Error saving credentials:', error);
+        }
+    };
 
     const validateLoginForm = () => {
         const newErrors = {};
-        if (!loginForm.username) {
-            newErrors.username = 'Username is required';
+        if (!loginForm.email) {
+            newErrors.email = 'Email is required';
         } else {
-            // Check if input contains letters (English characters)
-            const hasLetters = /[a-zA-Z]/.test(loginForm.username);
-            // Check if input contains numbers
-            const hasNumbers = /\d/.test(loginForm.username);
-            
+            const hasLetters = /[a-zA-Z]/.test(loginForm.email);
+            const hasNumbers = /\d/.test(loginForm.email);
             if (hasLetters && !hasNumbers) {
-                // User entered letters only - validate as email
-                if (!loginForm.username.includes('@')) {
-                    newErrors.username = 'Please enter a valid email address (must contain @)';
-                } else if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(loginForm.username)) {
-                    newErrors.username = 'Invalid email address format';
+                if (!loginForm.email.includes('@')) {
+                    newErrors.email = 'Please enter a valid email address (must contain @)';
+                } else if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(loginForm.email)) {
+                    newErrors.email = 'Invalid email address format';
                 }
             } else if (hasNumbers && !hasLetters) {
-                // User entered numbers only - validate as mobile number
-                const cleanNumber = loginForm.username.replace(/\s/g, '');
+                const cleanNumber = loginForm.email.replace(/\s/g, '');
                 if (!/^[6-9]\d{9}$/.test(cleanNumber)) {
-                    newErrors.username = 'Invalid mobile number (10 digits starting with 6-9)';
+                    newErrors.email = 'Invalid mobile number (10 digits starting with 6-9)';
                 }
             } else if (hasLetters && hasNumbers) {
-                // User entered mixed characters - check if it's email
-                if (loginForm.username.includes('@')) {
-                    if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(loginForm.username)) {
-                        newErrors.username = 'Invalid email address format';
+                if (loginForm.email.includes('@')) {
+                    if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(loginForm.email)) {
+                        newErrors.email = 'Invalid email address format';
                     }
                 } else {
-                    newErrors.username = 'Please enter either email address or mobile number';
+                    newErrors.email = 'Please enter either email address or mobile number';
                 }
             } else {
-                // No valid characters
-                newErrors.username = 'Please enter email address or mobile number';
+                newErrors.email = 'Please enter email address or mobile number';
             }
         }
         if (!loginForm.password) {
@@ -73,13 +108,34 @@ export default function LoginScreen() {
 
     const validateSignupForm = () => {
         const newErrors = {};
-        if (!signupForm.name) {
-            newErrors.name = 'Name is required';
-        }
+        if (!signupForm.name) newErrors.name = 'Name is required';
         if (!signupForm.email) {
             newErrors.email = 'Email is required';
-        } else if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(signupForm.email)) {
-            newErrors.email = 'Invalid email address';
+        } else {
+            const hasLetters = /[a-zA-Z]/.test(signupForm.email);
+            const hasNumbers = /\d/.test(signupForm.email);
+            if (hasLetters && !hasNumbers) {
+                if (!signupForm.email.includes('@')) {
+                    newErrors.email = 'Please enter a valid email address (must contain @)';
+                } else if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(signupForm.email)) {
+                    newErrors.email = 'Invalid email address format';
+                }
+            } else if (hasNumbers && !hasLetters) {
+                const cleanNumber = signupForm.email.replace(/\s/g, '');
+                if (!/^[6-9]\d{9}$/.test(cleanNumber)) {
+                    newErrors.email = 'Invalid mobile number (10 digits starting with 6-9)';
+                }
+            } else if (hasLetters && hasNumbers) {
+                if (signupForm.email.includes('@')) {
+                    if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(signupForm.email)) {
+                        newErrors.email = 'Invalid email address format';
+                    }
+                } else {
+                    newErrors.email = 'Please enter either email address or mobile number';
+                }
+            } else {
+                newErrors.email = 'Please enter email address or mobile number';
+            }
         }
         if (!signupForm.password) {
             newErrors.password = 'Password is required';
@@ -97,30 +153,117 @@ export default function LoginScreen() {
         return Object.keys(newErrors).length === 0;
     };
 
-    const handleLoginSubmit = () => {
+    const handleLoginSubmit = async () => {
         if (validateLoginForm()) {
-            // Login API call
+            setLoginError(''); // Clear previous errors
+            try {
+                const cleanNumber = loginForm.email.replace(/\s/g, '');
+                const isEmail = loginForm.email.includes('@');
+                let email = loginForm.email;
+
+                // ✅ JS SDK: query Firestore for mobile number
+                if (!isEmail) {
+                    const usersRef = collection(db, 'users');
+                    const q = query(usersRef, where('mobileNumber', '==', cleanNumber));
+                    const usersSnapshot = await getDocs(q);
+
+                    if (usersSnapshot.empty) {
+                        setLoginError('User not found. Please create an account to continue.');
+                        return;
+                    }
+                    email = usersSnapshot.docs[0].data().email;
+                }
+
+                // ✅ JS SDK: signInWithEmailAndPassword
+                const userCredential = await signInWithEmailAndPassword(auth, email, loginForm.password);
+                console.log('User logged in:', userCredential.user.uid);
+
+                // Save credentials if remember me is checked
+                await saveCredentials(loginForm.email, loginForm.password);
+
+                // Navigate to home screen after successful login
+                navigation.replace('MainTabs');
+
+            } catch (error) {
+                let errorMessage = 'Login failed';
+                if (error.code === 'auth/user-not-found') errorMessage = 'User not found. Please create an account to continue.';
+                else if (error.code === 'auth/wrong-password') errorMessage = 'Incorrect password';
+                else if (error.code === 'auth/invalid-email') errorMessage = 'Invalid email address';
+                else if (error.code === 'auth/invalid-credential') errorMessage = 'User not found. Please create an account to continue.';
+                else if (error.code === 'auth/network-request-failed') errorMessage = 'Network error. Check your connection.';
+                else if (error.code === 'auth/too-many-requests') errorMessage = 'Too many attempts. Try again later.';
+                else errorMessage = error.message || 'Login failed';
+
+                setLoginError(errorMessage);
+            }
         }
     };
 
-    const handleSignupSubmit = () => {
+    const handleSignupSubmit = async () => {
         if (validateSignupForm()) {
-            // Signup API call
+            try {
+                const cleanNumber = signupForm.email.replace(/\s/g, '');
+                const isEmail = signupForm.email.includes('@');
+                let emailForAuth = signupForm.email;
+
+                // If it's a mobile number, we need to create a dummy email for Firebase Auth
+                if (!isEmail) {
+                    emailForAuth = `${cleanNumber}@dinamalar.app`;
+                }
+
+                // ✅ JS SDK: createUserWithEmailAndPassword
+                const userCredential = await createUserWithEmailAndPassword(
+                    auth,
+                    emailForAuth,
+                    signupForm.password
+                );
+
+                // ✅ JS SDK: setDoc instead of firestore().collection().doc().set()
+                await setDoc(doc(db, 'users', userCredential.user.uid), {
+                    name: signupForm.name,
+                    email: isEmail ? signupForm.email : '',
+                    mobileNumber: !isEmail ? cleanNumber : '',
+                    createdAt: serverTimestamp(),  // JS SDK serverTimestamp
+                    updatedAt: serverTimestamp()
+                });
+
+                console.log('User created:', userCredential.user.uid);
+
+                // Navigate to home screen after successful signup
+                navigation.replace('MainTabs');
+
+                setSignupForm({
+                    name: '', email: '', password: '', confirmPassword: ''
+                });
+
+            } catch (error) {
+                console.log('Signup error details:', error);
+                console.log('Error code:', error.code);
+                console.log('Error message:', error.message);
+
+                let errorMessage = 'Signup failed';
+                if (error.code === 'auth/email-already-in-use') errorMessage = 'Account already exists';
+                else if (error.code === 'auth/weak-password') errorMessage = 'Password is too weak';
+                else if (error.code === 'auth/invalid-email') errorMessage = 'Invalid email address';
+                else if (error.code === 'auth/network-request-failed') errorMessage = 'Network error. Check your connection.';
+                else if (error.code === 'auth/too-many-requests') errorMessage = 'Too many attempts. Try again later.';
+                else errorMessage = error.message || 'Signup failed';
+
+                Alert.alert('Error', errorMessage);
+            }
         }
     };
 
     return (
         <View style={styles.container}>
-            {/* Dinamalar Pavala Vizha Logo */}
             <View style={styles.logoContainer}>
-                <Image 
+                <Image
                     source={{ uri: 'https://stat.dinamalar.com/new/2025/images/dinamalar-pavala-vizha-logo-day.png' }}
                     style={styles.logo}
                     resizeMode="contain"
                 />
             </View>
-            
-            {/* Tab Navigation - Kept as per your requirement */}
+
             <View style={styles.tabContainer}>
                 <TouchableOpacity
                     style={[styles.tab, activeTab === 'login' && styles.activeTab]}
@@ -136,154 +279,41 @@ export default function LoginScreen() {
                 </TouchableOpacity>
             </View>
 
-            <ScrollView
-                style={{ flex: 1 }}
-                showsVerticalScrollIndicator={false}
-                keyboardShouldPersistTaps="handled"
-            >
+            <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
                 {activeTab === 'login' ? (
                     <View style={styles.formCard}>
                         <View style={styles.inputGroup}>
-                            <Text style={styles.label}>Username</Text>
+                            <Text style={styles.label}>Email/Mobile Number <Text style={{ color: 'red' }}>*</Text></Text>
                             <TextInput
                                 style={styles.input}
                                 placeholder="Enter Email / Mobile Number"
                                 placeholderTextColor="#666"
-                                value={loginForm.username}
+                                value={loginForm.email}
                                 onChangeText={(text) => {
-                                    setLoginForm({...loginForm, username: text});
-                                    const newErrors = {};
-                                    if (!text) {
-                                        newErrors.username = 'Username is required';
-                                    } else {
-                                        // Check if input contains letters (English characters)
-                                        const hasLetters = /[a-zA-Z]/.test(text);
-                                        // Check if input contains numbers
-                                        const hasNumbers = /\d/.test(text);
-                                        
-                                        if (hasLetters && !hasNumbers) {
-                                            // User entered letters only - validate as email
-                                            if (!text.includes('@')) {
-                                                newErrors.username = 'Please enter a valid email address (must contain @)';
-                                            } else if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(text)) {
-                                                newErrors.username = 'Invalid email address format';
-                                            }
-                                        } else if (hasNumbers && !hasLetters) {
-                                            // User entered numbers only - validate as mobile number
-                                            const cleanNumber = text.replace(/\s/g, '');
-                                            if (!/^[6-9]\d{9}$/.test(cleanNumber)) {
-                                                newErrors.username = 'Invalid mobile number (10 digits starting with 6-9)';
-                                            }
-                                        } else if (hasLetters && hasNumbers) {
-                                            // User entered mixed characters - check if it's email
-                                            if (text.includes('@')) {
-                                                if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(text)) {
-                                                    newErrors.username = 'Invalid email address format';
-                                                }
-                                            } else {
-                                                newErrors.username = 'Please enter either email address or mobile number';
-                                            }
-                                        } else {
-                                            // No valid characters
-                                            newErrors.username = 'Please enter email address or mobile number';
-                                        }
-                                    }
-                                    setErrors({...errors, username: newErrors.username});
-                                }}
-                            />
-                            {errors.username && <Text style={styles.errorText}>{errors.username}</Text>}
-                        </View>
-
-                        <View style={styles.inputGroup}>
-                            <Text style={styles.label}>Password</Text>
-                            <TextInput
-                                secureTextEntry
-                                style={styles.input}
-                                placeholder="Type your password"
-                                placeholderTextColor="#000"
-                                value={loginForm.password}
-                                onChangeText={(text) => {
-                                    setLoginForm({...loginForm, password: text});
-                                    const newErrors = {};
-                                    if (!text) {
-                                        newErrors.password = 'Password is required';
-                                    } else if (text.length < 8) {
-                                        newErrors.password = 'Password must be at least 8 characters';
-                                    } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?])/.test(text)) {
-                                        newErrors.password = 'Password must contain uppercase, lowercase, number, and special character';
-                                    }
-                                    setErrors({...errors, password: newErrors.password});
-                                }}
-                            />
-                            {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
-                        </View>
-
-                        <View style={styles.rowBetween}>
-                            <TouchableOpacity
-                                style={styles.checkboxContainer}
-                                onPress={() => setRememberMe(!rememberMe)}
-                            >
-                                <Ionicons
-                                    name={rememberMe ? "checkbox" : "square-outline"}
-                                    size={24}
-                                    color="#1D4ED8"
-                                />
-                                <Text style={styles.rememberText}>Remember me</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity>
-                                <Text style={styles.forgotText}>Forgot Password?</Text>
-                            </TouchableOpacity>
-                        </View>
-
-                        <TouchableOpacity style={[styles.primaryButton,{marginTop:ms(25)}]} onPress={handleLoginSubmit}>
-                            <Text style={styles.primaryButtonText}>Log In</Text>
-                        </TouchableOpacity>
-
-                        <View style={styles.dividerWrapper}>
-                            <Text style={styles.dividerText}>— or —</Text>
-                        </View>
-
-                        <TouchableOpacity style={styles.googleCircle}>
-                            <Ionicons name="logo-google" size={24} color="#fff" />
-                        </TouchableOpacity>
-                    </View>
-                ) : (
-                    <View style={styles.formCard}>
-                        {/* <Text style={styles.signupHeader}>Sign Up</Text> */}
-
-                        <View style={styles.inputGroup}>
-                            <Text style={styles.label}>Name <Text style={{ color: 'red' }}>*</Text></Text>
-                            <TextInput 
-                                style={styles.input} 
-                                placeholder="Type your Name"
-                                value={signupForm.name}
-                                onChangeText={(text) => {
-                                    setSignupForm({...signupForm, name: text});
-                                    const newErrors = {};
-                                    if (!text) {
-                                        newErrors.name = 'Name is required';
-                                    }
-                                    setErrors({...errors, name: newErrors.name});
-                                }}
-                            />
-                            {errors.name && <Text style={styles.errorText}>{errors.name}</Text>}
-                        </View>
-
-                        <View style={styles.inputGroup}>
-                            <Text style={styles.label}>Mobile Number or Email ID <Text style={{ color: 'red' }}>*</Text></Text>
-                            <TextInput 
-                                style={styles.input} 
-                                placeholder="Type your Mobile Number or Email"
-                                value={signupForm.email}
-                                onChangeText={(text) => {
-                                    setSignupForm({...signupForm, email: text});
+                                    setLoginForm({ ...loginForm, email: text });
                                     const newErrors = {};
                                     if (!text) {
                                         newErrors.email = 'Email is required';
-                                    } else if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(text)) {
-                                        newErrors.email = 'Invalid email address';
+                                    } else {
+                                        const hasLetters = /[a-zA-Z]/.test(text);
+                                        const hasNumbers = /\d/.test(text);
+                                        if (hasLetters && !hasNumbers) {
+                                            if (!text.includes('@')) newErrors.email = 'Please enter a valid email address (must contain @)';
+                                            else if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(text)) newErrors.email = 'Invalid email address format';
+                                        } else if (hasNumbers && !hasLetters) {
+                                            const cleanNumber = text.replace(/\s/g, '');
+                                            if (!/^[6-9]\d{9}$/.test(cleanNumber)) newErrors.email = 'Invalid mobile number (10 digits starting with 6-9)';
+                                        } else if (hasLetters && hasNumbers) {
+                                            if (text.includes('@')) {
+                                                if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(text)) newErrors.email = 'Invalid email address format';
+                                            } else {
+                                                newErrors.email = 'Please enter either email address or mobile number';
+                                            }
+                                        } else {
+                                            newErrors.email = 'Please enter email address or mobile number';
+                                        }
                                     }
-                                    setErrors({...errors, email: newErrors.email});
+                                    setErrors({ ...errors, email: newErrors.email });
                                 }}
                             />
                             {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
@@ -291,22 +321,122 @@ export default function LoginScreen() {
 
                         <View style={styles.inputGroup}>
                             <Text style={styles.label}>Password <Text style={{ color: 'red' }}>*</Text></Text>
-                            <TextInput 
-                                secureTextEntry 
-                                style={styles.input} 
+                            <TextInput
+                                secureTextEntry
+                                style={styles.input}
                                 placeholder="Type your password"
-                                value={signupForm.password}
+                                                               placeholderTextColor="#666"
+
+                                value={loginForm.password}
                                 onChangeText={(text) => {
-                                    setSignupForm({...signupForm, password: text});
+                                    setLoginForm({ ...loginForm, password: text });
+                                    const newErrors = {};
+                                    if (!text) newErrors.password = 'Password is required';
+                                    else if (text.length < 8) newErrors.password = 'Password must be at least 8 characters';
+                                    else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?])/.test(text))
+                                        newErrors.password = 'Password must contain uppercase, lowercase, number, and special character';
+                                    setErrors({ ...errors, password: newErrors.password });
+                                }}
+                            />
+                            {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
+                        </View>
+
+                        <View style={styles.rowBetween}>
+                            <View style={styles.checkboxContainer}>
+                                <TouchableOpacity onPress={() => setRememberMe(!rememberMe)}>
+                                    <Ionicons
+                                        name={rememberMe ? "checkbox" : "square-outline"}
+                                        size={20}
+                                        color="#007BFF"
+                                    />
+                                </TouchableOpacity>
+                                <Text style={styles.rememberText}>Remember Me</Text>
+                            </View>
+                            <TouchableOpacity onPress={() => navigation.navigate('ForgotPasswordScreen')}>
+                                <Text style={styles.forgotText}>Forgot Password?</Text>
+                            </TouchableOpacity>
+                        </View>
+
+                        <TouchableOpacity style={styles.primaryButton} onPress={handleLoginSubmit}>
+                            <Text style={styles.primaryButtonText}>Login</Text>
+                        </TouchableOpacity>
+
+                        {loginError && <Text style={[styles.errorText, { marginTop: ms(5) }]}>{loginError}</Text>}
+
+                        <View style={styles.dividerWrapper}>
+                            <Text style={styles.dividerText}>— or —</Text>
+                        </View>
+                        <TouchableOpacity style={styles.googleCircle}>
+                            <Ionicons name="logo-google" size={24} color="#fff" />
+                        </TouchableOpacity>
+                    </View>
+                ) : (
+                    <View style={styles.formCard}>
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>Name <Text style={{ color: 'red' }}>*</Text></Text>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Type your Name"
+                                                                placeholderTextColor="#666"
+
+                                value={signupForm.name}
+                                onChangeText={(text) => {
+                                    setSignupForm({ ...signupForm, name: text });
+                                    setErrors({ ...errors, name: !text ? 'Name is required' : undefined });
+                                }}
+                            />
+                            {errors.name && <Text style={styles.errorText}>{errors.name}</Text>}
+                        </View>
+
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>Email/Mobile Number <Text style={{ color: 'red' }}>*</Text></Text>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Enter Email / Mobile Number"
+                                placeholderTextColor="#666"
+                                value={signupForm.email}
+                                onChangeText={(text) => {
+                                    setSignupForm({ ...signupForm, email: text });
                                     const newErrors = {};
                                     if (!text) {
-                                        newErrors.password = 'Password is required';
-                                    } else if (text.length < 8) {
-                                        newErrors.password = 'Password must be at least 8 characters';
-                                    } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?])/.test(text)) {
-                                        newErrors.password = 'Password must contain uppercase, lowercase, number, and special character';
+                                        newErrors.email = 'Email is required';
+                                    } else {
+                                        const hasLetters = /[a-zA-Z]/.test(text);
+                                        const hasNumbers = /\d/.test(text);
+                                        if (hasLetters && !hasNumbers) {
+                                            if (!text.includes('@')) newErrors.email = 'Please enter a valid email address (must contain @)';
+                                            else if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(text)) newErrors.email = 'Invalid email address format';
+                                        } else if (hasNumbers && !hasLetters) {
+                                            const cleanNumber = text.replace(/\s/g, '');
+                                            if (!/^[6-9]\d{9}$/.test(cleanNumber)) newErrors.email = 'Invalid mobile number (10 digits starting with 6-9)';
+                                        } else if (hasLetters && hasNumbers) {
+                                            if (text.includes('@')) {
+                                                if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(text)) newErrors.email = 'Invalid email address format';
+                                            } else {
+                                                newErrors.email = 'Please enter either email address or mobile number';
+                                            }
+                                        } else {
+                                            newErrors.email = 'Please enter email address or mobile number';
+                                        }
                                     }
-                                    setErrors({...errors, password: newErrors.password});
+                                    setErrors({ ...errors, email: newErrors.email });
+                                }}
+                            />
+                            {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
+                        </View>
+
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>Password <Text style={{ color: 'red' }}>*</Text></Text>
+                            <TextInput
+                                secureTextEntry
+                                style={styles.input}
+                                placeholder="Type your password"
+                                value={signupForm.password}
+                                placeholderTextColor="#666"
+
+                                onChangeText={(text) => {
+                                    setSignupForm({ ...signupForm, password: text });
+                                    setErrors({ ...errors, password: !text ? 'Password is required' : text.length < 8 ? 'Password must be at least 8 characters' : !/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?])/.test(text) ? 'Password must contain uppercase, lowercase, number, and special character' : undefined });
                                 }}
                             />
                             {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
@@ -314,20 +444,14 @@ export default function LoginScreen() {
 
                         <View style={styles.inputGroup}>
                             <Text style={styles.label}>Confirm Password <Text style={{ color: 'red' }}>*</Text></Text>
-                            <TextInput 
-                                secureTextEntry 
-                                style={styles.input} 
+                            <TextInput
+                                secureTextEntry
+                                style={styles.input}
                                 placeholder="Re-type your password"
                                 value={signupForm.confirmPassword}
                                 onChangeText={(text) => {
-                                    setSignupForm({...signupForm, confirmPassword: text});
-                                    const newErrors = {};
-                                    if (!text) {
-                                        newErrors.confirmPassword = 'Confirm Password is required';
-                                    } else if (signupForm.password !== text) {
-                                        newErrors.confirmPassword = 'Passwords do not match';
-                                    }
-                                    setErrors({...errors, confirmPassword: newErrors.confirmPassword});
+                                    setSignupForm({ ...signupForm, confirmPassword: text });
+                                    setErrors({ ...errors, confirmPassword: !text ? 'Confirm Password is required' : signupForm.password !== text ? 'Passwords do not match' : undefined });
                                 }}
                             />
                             {errors.confirmPassword && <Text style={styles.errorText}>{errors.confirmPassword}</Text>}
@@ -340,7 +464,6 @@ export default function LoginScreen() {
                         <View style={styles.dividerWrapper}>
                             <Text style={styles.dividerText}>— or —</Text>
                         </View>
-
                         <TouchableOpacity style={styles.googleCircle}>
                             <Ionicons name="logo-google" size={24} color="#fff" />
                         </TouchableOpacity>
@@ -348,9 +471,8 @@ export default function LoginScreen() {
                 )}
             </ScrollView>
 
-            {/* Footer matches the blue button style in screenshot */}
             <View style={styles.footerContainer}>
-                <View style={styles.dividerLine} />
+                {/* <View style={styles.dividerLine} /> */}
                 <View style={styles.footerRow}>
                     <Text style={styles.footerText}>
                         {activeTab === 'login' ? "Don't have account? " : "Already have an account? "}
@@ -373,154 +495,37 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#ffffff',
-        paddingHorizontal: 24,
-        paddingTop: 20,
+        paddingHorizontal: Platform.OS === 'ios' ? ms(20) : ms(24),
+        paddingTop: Platform.OS === 'ios' ? ms(40) : ms(40)
     },
-    logoContainer: {
-        alignItems: 'center',
-        marginBottom: 10,
-    },
+    logoContainer: { alignItems: 'center', marginBottom: ms(10) },
     logo: {
-        width: 200,
-        height: 80,
+        width: Platform.OS === 'ios' ? ms(180) : ms(200),
+        height: Platform.OS === 'ios' ? ms(70) : ms(80)
     },
-    tabContainer: {
-        flexDirection: 'row',
-        backgroundColor: '#eeeeee',
-        borderRadius: 12,
-        // padding: 4,
-        marginBottom: 10,
-    },
-    tab: {
-        flex: 1,
-        paddingVertical: 15,
-        alignItems: 'center',
-        borderRadius: 10,
-    },
-    activeTab: {
-        backgroundColor: '#007BFF', // Match screenshot blue
-    },
-    tabText: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: '#666',
-    },
-    activeTabText: {
-        color: '#fff',
-    },
-    formCard: {
-        paddingVertical: 10,
-    },
-    signupHeader: {
-        fontSize: 20,
-        color: '#888',
-        textAlign: 'center',
-        marginBottom: 20,
-    },
-    label: {
-        fontSize: 16,
-        color: '#8E8E93',
-        marginBottom: 8,
-    },
-    input: {
-        borderWidth: 1,
-        borderColor: '#D1D9E6',
-        borderRadius: 5,
-        paddingVertical: 12,
-        paddingHorizontal: 15,
-        fontSize: 16,
-        marginBottom: 20,
-        color: '#000',
-        backgroundColor: '#fff', // White background for better contrast
-    },
-    rowBetween: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginVertical:ms(15)
-     },
-    checkboxContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    rememberText: {
-        marginLeft: 8,
-        color: '#8E8E93',
-        fontSize: 16,
-    },
-    forgotText: {
-        color: '#007BFF',
-        fontSize: 16,
-    },
-    primaryButton: {
-        backgroundColor: '#007BFF',
-        paddingVertical: 15,
-        borderRadius: 8,
-        alignItems: 'center',
-    },
-    primaryButtonText: {
-        color: '#fff',
-        fontSize: 18,
-        fontWeight: '600',
-    },
-    dividerWrapper: {
-        alignItems: 'center',
-        marginVertical: 20,
-    },
-    dividerText: {
-        color: '#8E8E93',
-        fontSize: 16,
-    },
-    googleCircle: {
-        alignSelf: 'center',
-        backgroundColor: '#EA4335', // Google Red
-        width: 60,
-        height: 60,
-        borderRadius: 30,
-        justifyContent: 'center',
-        alignItems: 'center',
-        elevation: 3,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.2,
-        shadowRadius: 2,
-    },
-    footerContainer: {
-        paddingBottom: 20,
-    },
-    dividerLine: {
-        height: 1,
-        backgroundColor: '#E5E7EB',
-        marginBottom: 20,
-    },
-    footerRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    footerText: {
-        fontSize: 16,
-        color: '#8E8E93',
-    },
-    footerButton: {
-        backgroundColor: '#007BFF',
-        paddingHorizontal: 15,
-        paddingVertical: 8,
-        borderRadius: 6,
-        marginLeft: 10,
-    },
-    footerButtonText: {
-        color: '#fff',
-        fontWeight: '600',
-    },
-    inputError: {
-        borderColor: '#FF0000',
-        borderWidth: 2,
-    },
-    errorText: {
-        color: '#FF0000',
-        fontSize: 12,
-        marginTop: -15,
-        marginBottom: 10,
-    },
+    tabContainer: { flexDirection: 'row', backgroundColor: '#eeeeee', borderRadius: ms(12), marginBottom: ms(10) },
+    tab: { flex: 1, paddingVertical: ms(15), alignItems: 'center', borderRadius: ms(10) },
+    activeTab: { backgroundColor: '#007BFF' },
+    tabText: { fontSize: ms(14), fontWeight: '600', color: '#666' },
+    activeTabText: { color: '#fff' },
+    formCard: { paddingVertical: ms(5) },
+    inputGroup: {},
+    label: { fontSize: ms(14), color: '#8E8E93', marginBottom: ms(8) },
+    input: { borderWidth: 1, borderColor: '#D1D9E6', borderRadius: ms(5), paddingVertical: ms(12), paddingHorizontal: ms(15), fontSize: ms(14), marginBottom: ms(20), color: '#000', backgroundColor: '#fff' },
+    rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginVertical: ms(15) },
+    checkboxContainer: { flexDirection: 'row', alignItems: 'center' },
+    rememberText: { marginLeft: ms(8), color: '#8E8E93', fontSize: ms(14) },
+    forgotText: { color: '#007BFF', fontSize: ms(14) },
+    primaryButton: { backgroundColor: '#007BFF', paddingVertical: ms(15), borderRadius: ms(8), alignItems: 'center' },
+    primaryButtonText: { color: '#fff', fontSize: ms(16), fontWeight: '600' },
+    dividerWrapper: { alignItems: 'center', marginVertical: ms(20) },
+    dividerText: { color: '#8E8E93', fontSize: ms(16) },
+    googleCircle: { alignSelf: 'center', backgroundColor: '#EA4335', width: ms(60), height: ms(60), borderRadius: ms(30), justifyContent: 'center', alignItems: 'center', elevation: 3 },
+    footerContainer: { paddingBottom: Platform.OS === 'ios' ? ms(50) : ms(30) },
+    dividerLine: { height: 1, backgroundColor: '#E5E7EB', marginBottom: ms(20) },
+    footerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
+    footerText: { fontSize: ms(14), color: '#8E8E93' },
+    footerButton: { backgroundColor: '#007BFF', paddingHorizontal: ms(15), paddingVertical: ms(8), borderRadius: ms(6), marginLeft: ms(10) },
+    footerButtonText: { color: '#fff', fontWeight: '600' },
+    errorText: { color: '#FF0000', fontSize: ms(12), marginBottom: ms(10), marginTop: ms(-15) },
 });
