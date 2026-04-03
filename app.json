@@ -38,6 +38,7 @@
     },
     "android": {
       "package": "com.dinamalarMobileApp",
+      "googleServicesFile": "./android/app/google-services.json",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -57,28 +58,5 @@
       }
     },
     "owner": "dinamalar"
-  },
-  "build": {
-    "development": {
-      "android": {
-        "env": {
-          "GOOGLE_SERVICES_JSON": "@google-services-json"
-        }
-      }
-    },
-    "preview": {
-      "android": {
-        "env": {
-          "GOOGLE_SERVICES_JSON": "@google-services-json"
-        }
-      }
-    },
-    "production": {
-      "android": {
-        "env": {
-          "GOOGLE_SERVICES_JSON": "@google-services-json"
-        }
-      }
-    }
   }
 }
