@@ -3,6 +3,7 @@ import * as SecureStore from 'expo-secure-store';
 
 const STORAGE_KEY = 'dinamalar_comments';
 const USER_NAME_KEY = 'dinamalar_user_name';
+const USER_EMAIL_KEY = 'dinamalar_user_email';
 
 // Generate unique ID for comments
 const generateId = () => {
@@ -145,6 +146,28 @@ export const getUserName = async () => {
     return name || null;
   } catch (error) {
     console.error('Error getting user name:', error);
+    return null;
+  }
+};
+
+// Save user email to local storage
+export const saveUserEmail = async (email) => {
+  try {
+    await SecureStore.setItemAsync(USER_EMAIL_KEY, email);
+    return true;
+  } catch (error) {
+    console.error('Error saving user email:', error);
+    return false;
+  }
+};
+
+// Get user email from local storage
+export const getUserEmail = async () => {
+  try {
+    const email = await SecureStore.getItemAsync(USER_EMAIL_KEY);
+    return email || null;
+  } catch (error) {
+    console.error('Error getting user email:', error);
     return null;
   }
 };

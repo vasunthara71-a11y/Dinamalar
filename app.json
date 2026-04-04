@@ -47,7 +47,7 @@
 
     "android": {
       "package": "com.dinamalarMobileApp",
-      "windowSoftInputMode": "adjustNothing",
+        "softwareKeyboardLayoutMode": "resize",
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
