@@ -16,14 +16,15 @@ import {
 } from 'react-native';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { Comment, CommentForChat } from '../assets/svg/Icons';
-import { CDNApi, mainApi,  } from '../config/api';
+import { CDNApi, mainApi, } from '../config/api';
 import { COLORS, FONTS } from '../utils/constants';
 import { s, vs, ms, scaledSizes } from '../utils/scaling';
 import FontSizeControl from './FontSizeControl';
 import { useFontSize } from '../context/FontSizeContext';
-import { addComment, addReply, getCommentsForNews, saveUserName, getUserName } from '../utils/commentStorage';
+import { addComment, addReply, getCommentsForNews, saveUserName, getUserName, saveUserEmail, getUserEmail } from '../utils/commentStorage';
 import { useAuth } from '../context/AuthContext';
 import { useNavigation } from '@react-navigation/native';
+import CommentUserForm from './CommentUserForm';
 
 // Generate unique key with timestamp and random to avoid duplicates
 const generateUniqueKey = (item, index, prefix = 'comment') => {
@@ -88,12 +89,12 @@ function CommentItem({ item, index, onReply, newsId, onLike, onDislike }) {
             <Ionicons name="thumbs-down-outline" size={ms(18)} color={item.userDisliked ? COLORS.primary : "#888"} />
             {dislikes > 0 && <Text style={[cs.actionTxt, { fontSize: ms(14), color: item.userDisliked ? COLORS.primary : "#888" }]}>{dislikes}</Text>}
           </TouchableOpacity>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={cs.actionBtn}
             onPress={() => onReply(item)}
           >
             <Ionicons name='chatbubble-outline' color={COLORS.grey600} size={20} />
-            <Text style={[cs.actionTxt, { fontSize:ms(14) }]}>பதில்</Text>
+            <Text style={[cs.actionTxt, { fontSize: ms(14) }]}>பதில்</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -124,7 +125,7 @@ const cs = StyleSheet.create({
   name: { fontSize: scaledSizes.font.md, fontFamily: FONTS.muktaMalar.semibold, color: '#1a1a1a', flex: 1 },
   date: { fontSize: scaledSizes.font.sm, fontFamily: FONTS.muktaMalar.regular, color: '#aaa', flexShrink: 0 },
   text: { fontSize: scaledSizes.font.md, fontFamily: FONTS.muktaMalar.regular, color: COLORS.text, lineHeight: ms(20) },
-  actions: { flexDirection: 'row', marginTop: vs(6), gap: s(14) ,alignItems:"center"},
+  actions: { flexDirection: 'row', marginTop: vs(6), gap: s(14), alignItems: "center" },
   actionBtn: { flexDirection: 'row', alignItems: 'center', gap: s(4) },
   actionTxt: { fontSize: ms(11), fontFamily: FONTS.muktaMalar.medium, color: '#888' },
   repliesContainer: { marginTop: vs(8), paddingLeft: s(20) },
@@ -143,17 +144,17 @@ const cs = StyleSheet.create({
   replyDeleteBtn: {
     padding: s(2),
   },
-  replyName: { 
-    fontSize: ms(12), fontFamily: FONTS.muktaMalar.semibold, 
-    color: '#666', marginBottom: vs(2) 
+  replyName: {
+    fontSize: ms(12), fontFamily: FONTS.muktaMalar.semibold,
+    color: '#666', marginBottom: vs(2)
   },
-  replyText: { 
-    fontSize: ms(12), fontFamily: FONTS.muktaMalar.regular, 
-    color: '#555', lineHeight: ms(16) 
+  replyText: {
+    fontSize: ms(12), fontFamily: FONTS.muktaMalar.regular,
+    color: '#555', lineHeight: ms(16)
   },
-  replyDate: { 
-    fontSize: ms(10), fontFamily: FONTS.muktaMalar.regular, 
-    color: '#999', marginTop: vs(2) 
+  replyDate: {
+    fontSize: ms(10), fontFamily: FONTS.muktaMalar.regular,
+    color: '#999', marginTop: vs(2)
   },
 });
 
@@ -229,19 +230,31 @@ export default function CommentsModal({ visible, onClose, newsId, newsTitle, com
   const [inputText, setInputText] = useState('');
   const [replyingTo, setReplyingTo] = useState(null);
   const [userName, setUserName] = useState('');
+  const [userEmail, setUserEmail] = useState('');
   const [showNameInput, setShowNameInput] = useState(false);
+  const [userDetailsLoaded, setUserDetailsLoaded] = useState(false);
 
   const slideAnim = useRef(new Animated.Value(300)).current;
 
-  // ── Load user name on component mount
+  // ── Load user name and email on component mount
   useEffect(() => {
-    const loadUserName = async () => {
-      const savedName = await getUserName();
-      if (savedName) {
-        setUserName(savedName);
+    const loadUserDetails = async () => {
+      try {
+        const savedName = await getUserName();
+        if (savedName) {
+          setUserName(savedName);
+        }
+        const savedEmail = await getUserEmail();
+        if (savedEmail) {
+          setUserEmail(savedEmail);
+        }
+      } catch (error) {
+        console.error('Error loading user details:', error);
+      } finally {
+        setUserDetailsLoaded(true);
       }
     };
-    loadUserName();
+    loadUserDetails();
   }, []);
 
   // ── Animate open ────────────────────────────────────────────────────────────
@@ -327,24 +340,45 @@ export default function CommentsModal({ visible, onClose, newsId, newsTitle, com
   const handlePostComment = async () => {
     if (!inputText.trim()) return;
 
-    // Check if user is authenticated
-    if (!isAuthenticated) {
-      navigation.navigate('LoginScreen');
-      return;
-    }
-
     const commentText = inputText.trim();
-    setInputText('');
 
-    // Use authenticated user's name or fallback to saved name
-    let name = user?.displayName || user?.email?.split('@')[0] || userName.trim();
-    if (!name) {
-      setShowNameInput(true);
-      return;
+    // For anonymous users, check if we have their details first
+    if (!isAuthenticated) {
+      // Wait for user details to load if not already loaded
+      if (!userDetailsLoaded) {
+        console.log('User details still loading...');
+        return;
+      }
+
+      let name = userName.trim();
+      let email = userEmail.trim();
+
+      // If we don't have user details, show the form
+      if (!name || !email) {
+        setShowNameInput(true);
+        return;
+      }
+
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        alert('Please enter a valid email address');
+        setShowNameInput(true);
+        return;
+      }
+
+      // Clear input only after validation passes
+      setInputText('');
+
+      // Save user details and post comment
+      // Only save if not already saved
+      if (!userName) await saveUserName(name);
+      if (!userEmail) await saveUserEmail(email);
+    } else {
+      setInputText('');
     }
 
-    // Save user name for future use
-    await saveUserName(name);
+    let name = isAuthenticated ? (user?.displayName || user?.email?.split('@')[0] || userName.trim()) : userName.trim();
 
     try {
       if (replyingTo) {
@@ -354,7 +388,7 @@ export default function CommentsModal({ visible, onClose, newsId, newsTitle, com
           comments: commentText,
           text: commentText
         });
-        
+
         if (reply) {
           // Update the comment in state
           setComments(prev => prev.map(comment => {
@@ -375,7 +409,7 @@ export default function CommentsModal({ visible, onClose, newsId, newsTitle, com
           comments: commentText,
           text: commentText
         });
-        
+
         if (comment) {
           setComments(prev => [comment, ...prev]);
         }
@@ -434,8 +468,9 @@ export default function CommentsModal({ visible, onClose, newsId, newsTitle, com
           userLiked: false,
           userDisliked: !comment.userDisliked
         };
+      } else {
+        return comment;
       }
-      return comment;
     }));
   };
 
@@ -450,77 +485,123 @@ export default function CommentsModal({ visible, onClose, newsId, newsTitle, com
       <View style={modal.overlay}>
         <TouchableOpacity style={modal.backdrop} activeOpacity={1} onPress={onClose} />
 
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={modal.kavWrap}
-        >
-          <Animated.View style={[modal.sheet, { transform: [{ translateY: slideAnim }] }]}>
-
-            {/* Handle */}
-            <View style={modal.handleWrap}>
-              <View style={modal.handle} />
-            </View>
-
-            {/* Header */}
-            <View style={modal.header}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: s(5) }}>
-                <CommentForChat size={22} color="#333" />
-                <Text style={[modal.headerTitle, { fontSize: vs(16) }]}>வாசகர்கள் கருத்துகள்</Text>
-                {totalCount > 0 && (
-                  <Text style={[modal.headerCount, { fontSize: vs(16) }]}>( {totalCount} )</Text>
-                )}
-              </View>
-              <TouchableOpacity
-                onPress={onClose}
-                style={modal.closeBtn}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              >
-                <Ionicons name="close" size={sf(22)} color="#333" />
-              </TouchableOpacity>
-            </View>
-
-            <View style={modal.divider} />
-
-            {/* List */}
-            {loading ? (
-              <FlatList
-                data={[1, 2, 3, 4, 5]}
-                keyExtractor={i => `sk-${i}`}
-                renderItem={() => <CommentSkeleton />}
-                style={{ flex: 1 }}
-                ListFooterComponent={
-                  loadingMore
-                    ? <ActivityIndicator size="small" color={COLORS.primary} style={{ margin: vs(16) }} />
-                    : <View style={{ height: vs(20) }} />
+        {showNameInput ? (
+          <CommentUserForm
+            userName={userName}
+            userEmail={userEmail}
+            onUserNameChange={setUserName}
+            onUserEmailChange={setUserEmail}
+            commentText={inputText}
+            onCommentChange={setInputText}
+            onSubmit={() => {
+              if (userName.trim() && userEmail.trim()) {
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(userEmail.trim())) {
+                  alert('Please enter a valid email address');
+                  return;
                 }
-              />
-            ) : (
-              <FlatList
-                data={comments}
-                keyExtractor={(item, i) => generateUniqueKey(item, i)}
-                renderItem={({ item, index }) => (
-                  <CommentItem 
-                    item={item} 
-                    index={index} 
-                    onReply={handleReply}
-                    onLike={handleLike}
-                    onDislike={handleDislike}
-                    newsId={newsId}
+                setShowNameInput(false);
+                if (inputText.trim()) {
+                  handlePostComment();
+                }
+              } else {
+                alert('Please enter your name and email');
+              }
+            }}
+            onCancel={() => {
+              setShowNameInput(false);
+              setUserName('');
+              setUserEmail('');
+              setInputText('');
+            }}
+            onBack={() => {
+              setShowNameInput(false);
+            }}
+            loading={false}
+          />
+        ) : (
+          <KeyboardAvoidingView
+            behavior="padding"
+            style={modal.kavWrap}
+            keyboardVerticalOffset={Platform.OS === 'android' ? 0 : 34}
+          >
+            <Animated.View style={[modal.sheet, { transform: [{ translateY: slideAnim }] }]}>
+              {/* After Animated.View closing tag, inside kavWrap */}
+              <View style={{
+                backgroundColor: '#fff',
+                height: vs(20),           // covers the rounded corner gap
+                position: 'absolute',
+                bottom: 0, left: 0, right: 0
+              }} />
+
+              {/* Handle */}
+              <View style={modal.handleWrap}>
+                <View style={modal.handle} />
+              </View>
+
+              {/* Header */}
+              <View style={modal.header}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: s(5) }}>
+                  <CommentForChat size={22} color="#333" />
+                  <Text style={[modal.headerTitle, { fontSize: vs(16) }]}>வாசகர்கள் கருத்துகள்</Text>
+                  {totalCount > 0 && (
+                    <Text style={[modal.headerCount, { fontSize: vs(16) }]}>( {totalCount} )</Text>
+                  )}
+                </View>
+                <TouchableOpacity
+                  onPress={onClose}
+                  style={modal.closeBtn}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Ionicons name="close" size={sf(22)} color="#333" />
+                </TouchableOpacity>
+              </View>
+
+              <View style={modal.divider} />
+
+              {/* List */}
+              <View style={{ flex: 1 }}>
+                {loading ? (
+                  <FlatList
+                    data={[1, 2, 3, 4, 5]}
+                    keyExtractor={i => `sk-${i}`}
+                    renderItem={() => <CommentSkeleton />}
+                    style={{ flex: 1 }}
+                    ListFooterComponent={
+                      loadingMore
+                        ? <ActivityIndicator size="small" color={COLORS.primary} style={{ margin: vs(16) }} />
+                        : <View style={{ height: vs(20) }} />
+                    }
+                  />
+                ) : (
+                  <FlatList
+                    data={comments}
+                    keyExtractor={(item, i) => generateUniqueKey(item, i)}
+                    renderItem={({ item, index }) => (
+                      <CommentItem
+                        item={item}
+                        index={index}
+                        onReply={handleReply}
+                        onLike={handleLike}
+                        onDislike={handleDislike}
+                        newsId={newsId}
+                      />
+                    )}
+                    ListEmptyComponent={<EmptyComments />}
+                    onEndReached={handleLoadMore}
+                    onEndReachedThreshold={0.4}
+                    style={{ flex: 1 }}
+                    showsVerticalScrollIndicator={false}
+                    ListFooterComponent={
+                      loadingMore
+                        ? <ActivityIndicator size="small" color={COLORS.primary} style={{ margin: vs(16) }} />
+                        : <View style={{ height: vs(20) }} />
+                    }
                   />
                 )}
-                ListEmptyComponent={<EmptyComments />}
-                onEndReached={handleLoadMore}
-                onEndReachedThreshold={0.4}
-                style={{ flex: 1 }}
-                showsVerticalScrollIndicator={false}
-                ListFooterComponent={
-                  loadingMore
-                    ? <ActivityIndicator size="small" color={COLORS.primary} style={{ margin: vs(16) }} />
-                    : <View style={{ height: vs(20) }} />
-                }
-              />
-            )}
-            {!showNameInput ? (
+              </View>
+
+              {/* Comment Input */}
               <View style={modal.inputWrap}>
                 {replyingTo && (
                   <View style={modal.replyingBar}>
@@ -538,15 +619,11 @@ export default function CommentsModal({ visible, onClose, newsId, newsTitle, com
                   </View>
                   <TextInput
                     style={modal.input}
-                    placeholder={replyingTo ? "பதில் எழுதுங்கள்..." : "உங்கள் கருத்தை பதிவிடுங்கள்..."}
+                    placeholder={replyingTo ? "Write your reply..." : "Share your thoughts..."}
                     placeholderTextColor="#bbb"
                     value={inputText}
                     onChangeText={(text) => {
                       setInputText(text);
-                      // If user is not authenticated and starts typing, navigate directly to login
-                      if (!isAuthenticated && text.trim().length > 0) {
-                        navigation.navigate('LoginScreen');
-                      }
                     }}
                     multiline
                     maxLength={500}
@@ -554,6 +631,13 @@ export default function CommentsModal({ visible, onClose, newsId, newsTitle, com
                   />
                   <TouchableOpacity
                     style={[modal.sendBtn, !!inputText.trim() && modal.sendBtnActive]}
+                    // onPress={() => {
+                    //   if (!isAuthenticated) {
+                    //     setShowNameInput(true);
+                    //   } else {
+                    //     handlePostComment();
+                    //   }
+                    // }}
                     onPress={handlePostComment}
                     disabled={!inputText.trim()}
                   >
@@ -561,33 +645,10 @@ export default function CommentsModal({ visible, onClose, newsId, newsTitle, com
                   </TouchableOpacity>
                 </View>
               </View>
-            ) : (
-              <View style={modal.nameInputWrap}>
-                <View style={modal.nameInputRow}>
-                  <Text style={[modal.nameLabel, { fontSize: sf(14) }]}>உங்கள் பெயர்:</Text>
-                  <TextInput
-                    style={modal.nameInput}
-                    placeholder="பெயரை உள்ளிடுக"
-                    placeholderTextColor="#bbb"
-                    value={userName}
-                    onChangeText={setUserName}
-                    maxLength={50}
-                    autoFocus
-                    onSubmitEditing={handleNameSubmit}
-                  />
-                  <TouchableOpacity
-                    style={[modal.nameSubmitBtn, !!userName.trim() && modal.sendBtnActive]}
-                    onPress={handleNameSubmit}
-                    disabled={!userName.trim()}
-                  >
-                    <Ionicons name="check" size={s(16)} color={userName.trim() ? '#fff' : '#ccc'} />
-                  </TouchableOpacity>
-                </View>
-              </View>
-            )}
 
-          </Animated.View>
-        </KeyboardAvoidingView>
+            </Animated.View>
+          </KeyboardAvoidingView>
+        )}
       </View>
     </Modal>
   );
@@ -600,8 +661,9 @@ const modal = StyleSheet.create({
     backgroundColor: '#fff',
     borderTopLeftRadius: s(20),
     borderTopRightRadius: s(20),
-    maxHeight: '100%',
+    // maxHeight: '90%',
     paddingBottom: Platform.OS === 'ios' ? vs(34) : vs(10),
+    height: "75%"
   },
   handleWrap: { alignItems: 'center', paddingTop: vs(10), paddingBottom: vs(4) },
   handle: { width: s(36), height: vs(4), borderRadius: s(2), backgroundColor: '#ddd' },
@@ -685,7 +747,11 @@ const modal = StyleSheet.create({
   },
   kavWrap: {
     justifyContent: 'flex-end',
-    position: 'absolute', bottom: 0, left: 0, right: 0,
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    // flex: 1,  // ← add this
   },
 });
 
