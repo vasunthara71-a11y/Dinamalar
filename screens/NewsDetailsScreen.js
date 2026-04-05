@@ -41,6 +41,7 @@ import SpecialToday from '../components/SpecialToday';
 import Shorts from '../components/Shorts';
 import MoreNews from '../components/MoreNews';
 import AlsoSeeThis from '../components/AlsoSeeThis';
+import YoutubePlayer from '../components/YoutubePlayer';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 
@@ -79,6 +80,8 @@ const sanitizeHtml = (html) => {
     .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
     .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
     .replace(/<!--[\s\S]*?-->/g, '')
+    // ← REMOVE these lines that were stripping iframes/videos:
+    // DON'T strip iframe or video tags anymore
     .trim();
 };
 
@@ -546,7 +549,7 @@ function GoogleFollowBanner({ data }) {
     const text = encodeURIComponent(shareTitle);
     const encodedUrl = encodeURIComponent(url);
 
-    
+
 
     const links = {
       facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`,
@@ -638,6 +641,77 @@ const swipeHintSt = StyleSheet.create({
 // ══════════════════════════════════════════════════════════════════════════════
 // MAIN SCREEN
 // ══════════════════════════════════════════════════════════════════════════════
+
+function IframeRenderer({ tnode }) {
+  const src = tnode?.attributes?.src || '';
+  const [tapped, setTapped] = React.useState(false);
+
+  if (!src) return null;
+
+  const ytMatch = src.match(/(?:embed\/|v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+  const ytId = ytMatch ? ytMatch[1] : null;
+  const thumb = ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : '';
+
+  const embedSrc = ytId
+    ? `https://www.youtube-nocookie.com/embed/${ytId}?playsinline=1&rel=0&controls=1&modestbranding=1&autoplay=1` 
+    : src;
+
+  return (
+    <View style={{
+      width: '100%',
+      height: ms(210),
+      marginVertical: vs(8),
+      backgroundColor: '#000',
+      overflow: 'hidden',
+    }}>
+      {!tapped && (
+        <TouchableOpacity
+          style={{ width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center' }}
+          onPress={() => setTapped(true)}
+          activeOpacity={0.9}
+        >
+          {thumb ? (
+            <Image
+              source={{ uri: thumb }}
+              style={{ position: 'absolute', width: '100%', height: '100%' }}
+              resizeMode="cover"
+            />
+          ) : (
+            <View style={{ position: 'absolute', width: '100%', height: '100%', backgroundColor: '#1a1a2e' }} />
+          )}
+          <View style={{ position: 'absolute', width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.2)' }} />
+          <View style={{
+            width: s(64),
+            height: s(64),
+            borderRadius: s(32),
+            backgroundColor: '#096dd2',
+            justifyContent: 'center',
+            alignItems: 'center',
+            paddingLeft: s(4),
+          }}>
+            <Ionicons name="play" size={s(28)} color="#fff" />
+          </View>
+        </TouchableOpacity>
+      )}
+
+      {tapped && (
+        <WebView
+          source={{ uri: embedSrc }}
+          style={{ flex: 1 }}
+          javaScriptEnabled
+          domStorageEnabled
+          allowsInlineMediaPlayback
+          mediaPlaybackRequiresUserAction={false}
+          allowsFullscreenVideo
+          mixedContentMode="always"
+          originWhitelist={['*']}
+          scrollEnabled={false}
+        />
+      )}
+    </View>
+  );
+}
+
 export default function NewsDetailsScreen() {
   const navigation = useNavigation();
   const route = useRoute();
@@ -646,6 +720,8 @@ export default function NewsDetailsScreen() {
   const {
     newsId,
     newsItem,
+    slug,
+    videopath,
     newsList = [],
     disableComments = false,
     nriDetailLink,
@@ -708,17 +784,17 @@ export default function NewsDetailsScreen() {
     const targetNews = direction === 'next' ? nextNews : prevNews;
     if (!targetNews?.newsid) {
       // Smooth bounce back animation when no next/prev
-      Animated.spring(translateX, { 
-        toValue: direction === 'next' ? -60 : 60, 
-        useNativeDriver: true, 
-        tension: 120, 
+      Animated.spring(translateX, {
+        toValue: direction === 'next' ? -60 : 60,
+        useNativeDriver: true,
+        tension: 120,
         friction: 10,
         overshootClamping: false
       }).start(() => {
-        Animated.spring(translateX, { 
-          toValue: 0, 
-          useNativeDriver: true, 
-          tension: 180, 
+        Animated.spring(translateX, {
+          toValue: 0,
+          useNativeDriver: true,
+          tension: 180,
           friction: 14,
           overshootClamping: true
         }).start();
@@ -727,16 +803,16 @@ export default function NewsDetailsScreen() {
     }
     isAnimating.current = true;
     const exitTo = direction === 'next' ? -SCREEN_W : SCREEN_W;
-    
+
     // Ultra-smooth slide out animation with custom easing
-    Animated.timing(translateX, { 
-      toValue: exitTo, 
-      duration: 300, 
+    Animated.timing(translateX, {
+      toValue: exitTo,
+      duration: 300,
       useNativeDriver: true,
       easing: (t) => {
         // Custom easing function for smooth acceleration/deceleration
-        return t < 0.5 
-          ? 2 * t * t 
+        return t < 0.5
+          ? 2 * t * t
           : 1 - Math.pow(-2 * t + 2, 2) / 2;
       }
     }).start(() => {
@@ -761,8 +837,8 @@ export default function NewsDetailsScreen() {
         if (isH) { isHorizontalDrag.current = true; setScrollLocked(true); }
         return isH;
       },
-      onPanResponderGrant: () => { 
-        isHorizontalDrag.current = false; 
+      onPanResponderGrant: () => {
+        isHorizontalDrag.current = false;
       },
       onPanResponderMove: (_, g) => {
         if (!isHorizontalDrag.current) return;
@@ -776,18 +852,18 @@ export default function NewsDetailsScreen() {
         isHorizontalDrag.current = false;
         setHintDir(null);
         if (isAnimating.current) return;
-        
+
         const swipedLeft = g.dx < -SWIPE_THRESHOLD || g.vx < -SWIPE_VELOCITY;
         const swipedRight = g.dx > SWIPE_THRESHOLD || g.vx > SWIPE_VELOCITY;
-        
+
         if (swipedLeft) navigateToNews('next');
         else if (swipedRight) navigateToNews('prev');
         else {
           // Smooth return animation with better spring physics
-          Animated.spring(translateX, { 
-            toValue: 0, 
-            useNativeDriver: true, 
-            tension: 160, 
+          Animated.spring(translateX, {
+            toValue: 0,
+            useNativeDriver: true,
+            tension: 160,
             friction: 12,
             overshootClamping: true,
             restDisplacementThreshold: 0.1
@@ -836,7 +912,7 @@ export default function NewsDetailsScreen() {
         setShortsData([]);
         return;
       }
-      
+
       console.log('Fetching shorts data for news ID:', id);
       const res = await mainApi.get(`/recentreels?newsid=${id}`);
       if (res.data && res.data.newlist && res.data.newlist.data && Array.isArray(res.data.newlist.data)) {
@@ -860,7 +936,7 @@ export default function NewsDetailsScreen() {
 
     // Check if this is flash news - if so, don't fetch API, just show the flash news data
     const isFlashNews = newsItem && (
-      newsItem.clr === 'flashnews_Y' || 
+      newsItem.clr === 'flashnews_Y' ||
       (newsItem.target === '' && newsItem.link && newsItem.link.includes('latestmain')) ||
       (newsItem.link && newsItem.link.includes('latestmain'))
     );
@@ -877,11 +953,11 @@ export default function NewsDetailsScreen() {
     }
 
     if (!id) {
-      if (newsItem) { 
+      if (newsItem) {
         console.log('🔍 No ID found, using newsItem as detail');
-        setDetail(newsItem); 
-        setLoading(false); 
-        return; 
+        setDetail(newsItem);
+        setLoading(false);
+        return;
       }
       console.log('🔍 No news ID or newsItem available');
       setError('செய்தி ID கிடைக்கவில்லை');
@@ -913,23 +989,23 @@ export default function NewsDetailsScreen() {
           // ✅ Regular news — use standard endpoint
           console.log('🔍 Regular fetch using detaildata endpoint for ID:', id);
           const detailUrl = `/detaildata?newsid=${id}`;
-          
+
           res = await Promise.race([
             mainApi.get(detailUrl),
             timeoutPromise
           ]);
-          
+
           console.log('🔍 API Response status:', res.status);
         }
       } catch (error) {
         console.log('🔍 Main endpoint failed, error:', error.message);
-        
+
         // If main endpoint fails, try NRI-specific endpoint as fallback
         // Detect language from the newsItem or use default
-        const isEnglishMode = isNriEnglish || newsItem?.com_cat === 'en' || 
-                             newsItem?.newsenglishtitle === 'nri' ||
-                             newsItem?.slug?.includes('world-news-nri-en');
-        
+        const isEnglishMode = isNriEnglish || newsItem?.com_cat === 'en' ||
+          newsItem?.newsenglishtitle === 'nri' ||
+          newsItem?.slug?.includes('world-news-nri-en');
+
         const lang = isEnglishMode ? 'en' : 'ta';
         console.log('🔍 Trying NRI endpoint for ID:', id, 'language:', lang);
         res = await Promise.race([
@@ -978,7 +1054,7 @@ export default function NewsDetailsScreen() {
         }
       } else {
         console.log('🔍 No article found in API response, checking if we can use newsItem');
-        
+
         // Check if newsItem has enough content to display
         if (newsItem && (newsItem.content || newsItem.description || newsItem.newsdescription)) {
           console.log('🔍 Using newsItem as fallback with content');
@@ -1034,7 +1110,7 @@ export default function NewsDetailsScreen() {
   };
 
   useEffect(() => { fetchDetail(); }, [fetchDetail]);
-  
+
   // Combined effect to reduce re-renders when detail changes
   useEffect(() => {
     if (detail) {
@@ -1062,422 +1138,500 @@ export default function NewsDetailsScreen() {
   const d = detail || {};
   const ni = newsItem || {};
 
-const title = d.newstitle || ni.newstitle || ni.title || '';
-const image = d.largeimages || d.images || ni.largeimages || ni.images || '';
-const catKey = d.maincat || ni.maincat || '';
-const ago = d.ago || ni.ago || '';
-const date = d.standarddate || ni.standarddate || '';
+  const title = d.newstitle || ni.newstitle || ni.title || '';
+  const image = d.largeimages || d.images || ni.largeimages || ni.images || '';
+  const catKey = d.maincat || ni.maincat || '';
+  const ago = d.ago || ni.ago || '';
+  const date = d.standarddate || ni.standarddate || '';
 
-// Enhanced content extraction for different data structures
-const content = d.newsdescription || 
-                d.content || 
-                d.description || 
-                d.body || 
-                d.text || 
-                d.full_content ||
-                d.news_content ||
-                ni.content || 
-                ni.description || 
-                ni.body || 
-                ni.text ||
-                ni.newsdescription ||
-                '';
+  // Enhanced content extraction for different data structures
+  const content = d.newsdescription ||
+    d.content ||
+    d.description ||
+    d.body ||
+    d.text ||
+    d.full_content ||
+    d.news_content ||
+    ni.content ||
+    ni.description ||
+    ni.body ||
+    ni.text ||
+    ni.newsdescription ||
+    '';
 
-const videoPath = d.path || ni.path || '';
-const AddedDate = d.adddate;
-const UpdateDate = d.updateddate;
+  // Extract video URL from content if present
+  const extractVideoFromContent = (content) => {
+    if (!content) return '';
 
-const isVideo = catKey === 'video' || videoPath?.includes('youtube');
-const isPodcast = catKey === 'podcast' || d.audio === '1' || d.audio === 1;
-const Author = d.authorname;
+    // Handle escaped URLs in JSON - unescape them first
+    const unescapedContent = content
+      .replace(/\\\//g, '/') // Fix escaped forward slashes
+      .replace(/\\n/g, '')  // Remove escaped newlines
+      .replace(/\\r/g, '')  // Remove escaped carriage returns
+      .replace(/\\"/g, '"'); // Fix escaped quotes
 
-const comments = commentTotal > 0
-  ? commentTotal
-  : parseInt(d.newscomment || d.nmcomment || ni.newscomment || ni.nmcomment || 0, 10) || 0;
+    // Extract video URL from <video> tags
+    const videoMatch = unescapedContent.match(/<video>(.*?)<\/video>/i);
+    if (videoMatch && videoMatch[1]) {
+      return videoMatch[1].trim();
+    }
 
-const tags = Array.isArray(d.tags) ? d.tags : [];
-const ytId = getYouTubeId(videoPath);
-const ytThumb = ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : '';
-const currentNewsId = newsId || newsItem?.id || newsItem?.newsid;
-const podcastAudioUrl = videoPath || d.audiofile || d.audiourl || null;
-const articlePageUrl = getShareUrl();
+    // Extract vidgyor URLs
+    const vidgyorMatch = unescapedContent.match(/https:\/\/static\.vidgyor\.com\/[^\s<]+/i);
+    if (vidgyorMatch) {
+      return vidgyorMatch[0];
+    }
 
-// Extract shorts link from API response
-const shortsLink = d.shortslink || d.reelslink || null;
+    // Extract YouTube URLs
+    const youtubeMatch = unescapedContent.match(/https:\/\/www\.youtube\.com\/[^\s<]+/i);
+    if (youtubeMatch) {
+      return youtubeMatch[0];
+    }
 
-const BASE_FONT = sf(13);
-const tagsStyles = React.useMemo(() => buildTagsStyles(BASE_FONT, COLORS.text), [BASE_FONT]);
-const baseStyle = React.useMemo(() => buildBaseStyle(BASE_FONT, COLORS.text), [BASE_FONT]);
-const safeContent = sanitizeHtml(content);
+    return '';
+  };
 
-// Extract morenews data (moved outside return to fix scope)
-// morenewslink is at root level of API response, not in detail object
+  // Convert YouTube embed URL to watch URL for proper opening
+  const getWatchUrl = (path) => {
+    if (!path) return '';
 
-// Debug logging
-// console.log('NewsDetailsScreen - morenewsLink (state):', morenewsLink);
-// console.log('NewsDetailsScreen - morenews data available:', !!morenewsLink);
-// console.log('NewsDetailsScreen - detail state:', !!detail);
-// console.log('NewsDetailsScreen - detail object keys:', detail ? Object.keys(detail) : 'no detail');
+    // Extract YouTube ID from various URL formats
+    const match = path.match(/(?:embed\/|v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+    if (match && match[1]) {
+      return `https://www.youtube.com/watch?v=${match[1]}`;
+    }
 
-// Extract "இதையும் பாருங்க" item from descriptions
-const alsoSeeThisItem = detail?.descriptions?.find(item => 
-  item.title === 'இதையும் பாருங்க' || 
-  item.title === 'இதையும் படிங்க'
-);
+    return path;
+  };
 
-// console.log('NewsDetailsScreen - alsoSeeThisItem found:', !!alsoSeeThisItem);
+  const videoPath = videopath
+    || d.video_path   // ← ADD THIS (matches API field name)
+    || ni.video_path  // ← ADD THIS
+    || d.path
+    || ni.path
+    || d.video_url
+    || d.videourl
+    || ni.video_url
+    || ni.videourl
+    || extractVideoFromContent(content)
+    || '';
+  const AddedDate = d.adddate;
+  const UpdateDate = d.updateddate;
 
-return (
-  <View style={styles.container}>
+  const isVideo = catKey === 'video' || videoPath?.includes('youtube') ||
+    d.video === 1 || d.video === '1' || d.video === true ||
+    (typeof d.video === 'string' && d.video.length > 1 && d.video !== '0') ||
+    d.videotitle || d.video_url || d.videourl || d.isvideo === 1 ||
+    !!d.video_path || // ← ADD THIS
+    ni.video === 1 || ni.video === '1' || ni.video === true ||
+    (typeof ni.video === 'string' && ni.video.length > 1 && ni.video !== '0') ||
+    ni.videotitle || ni.video_url || ni.videourl || ni.isvideo === 1 ||
+    !!ni.video_path || // ← ADD THIS
+    (content && content.includes('<video>')) || // Check for video tags in content
+    (content && content.includes('vidgyor.com')) || // Check for vidgyor videos
+    (content && content.includes('youtube.com')); // Check for youtube URLs in content
+  const isPodcast = catKey === 'podcast' || d.audio === '1' || d.audio === 1;
+  const Author = d.authorname;
 
-    <UniversalHeaderComponent
-      statusBarStyle="dark-content"
-      statusBarBackgroundColor={COLORS.white}
-      onMenuPress={handleMenuPress}
-      onNotification={goToNotifs}
-      notifCount={0}
-      isDrawerVisible={isDrawerVisible}
-      setIsDrawerVisible={setIsDrawerVisible}
-      navigation={navigation}
-      isLocationDrawerVisible={isLocationDrawerVisible}
-      setIsLocationDrawerVisible={setIsLocationDrawerVisible}
-      onSelectDistrict={handleSelectDistrict}
-      selectedDistrict={selectedDistrict}
-    >
-      <AppHeaderComponent
-        onSearch={goToSearch}
-        onMenu={() => setIsDrawerVisible(true)}
-        onLocation={() => setIsLocationDrawerVisible(true)}
-        selectedDistrict="உள்ளூர்"
-      />
-    </UniversalHeaderComponent>
+  const comments = commentTotal > 0
+    ? commentTotal
+    : parseInt(d.newscomment || d.nmcomment || ni.newscomment || ni.nmcomment || 0, 10) || 0;
 
-    <View style={styles.panLayer} {...panResponder.panHandlers}>
-      <Animated.View style={[styles.animLayer, { transform: [{ translateX }] }]}>
+  const tags = Array.isArray(d.tags) ? d.tags : [];
+  const ytId = getYouTubeId(videoPath);
+  const ytThumb = ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : '';
+  console.log('Video Debug - videoPath:', videoPath, 'ytId:', ytId, 'ytThumb:', ytThumb, 'isVideo:', isVideo);
+  const currentNewsId = newsId || newsItem?.id || newsItem?.newsid;
+  const podcastAudioUrl = videoPath || d.audiofile || d.audiourl || null;
+  const articlePageUrl = getShareUrl();
 
-        {hintDir === 'left' && <SwipeHint direction="left" />}
-        {hintDir === 'right' && <SwipeHint direction="right" />}
+  // Extract shorts link from API response
+  const shortsLink = d.shortslink || d.reelslink || null;
 
-        {hasNext && (
-          <TouchableOpacity style={styles.edgeBtnRight} onPress={() => navigateToNews('next')} activeOpacity={0.7}>
-            <Ionicons name="chevron-forward" size={s(30)} color={COLORS.white} />
-          </TouchableOpacity>
-        )}
+  const BASE_FONT = sf(13);
+  const tagsStyles = React.useMemo(() => buildTagsStyles(BASE_FONT, COLORS.text), [BASE_FONT]);
+  const baseStyle = React.useMemo(() => buildBaseStyle(BASE_FONT, COLORS.text), [BASE_FONT]);
+  const safeContent = sanitizeHtml(content);
+  const hasIframeInContent = content?.includes('<iframe') || content?.includes('iframe');
+ 
+  // Extract morenews data (moved outside return to fix scope)
+  // morenewslink is at root level of API response, not in detail object
 
-        {hasPrev && (
-          <TouchableOpacity style={styles.edgeBtnLeft} onPress={() => navigateToNews('prev')} activeOpacity={0.7}>
-            <Ionicons name="chevron-back" size={s(30)} color={COLORS.white} />
-          </TouchableOpacity>
-        )}
+  // Debug logging
+  // console.log('NewsDetailsScreen - morenewsLink (state):', morenewsLink);
+  // console.log('NewsDetailsScreen - morenews data available:', !!morenewsLink);
+  // console.log('NewsDetailsScreen - detail state:', !!detail);
+  // console.log('NewsDetailsScreen - detail object keys:', detail ? Object.keys(detail) : 'no detail');
 
-        {loading && (
-          <ScrollView scrollEnabled={!scrollLocked} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-            <ContentLoader />
-          </ScrollView>
-        )}
+  // Extract "இதையும் பாருங்க" item from descriptions
+  const alsoSeeThisItem = detail?.descriptions?.find(item =>
+    item.title === 'இதையும் பாருங்க' ||
+    item.title === 'இதையும் படிங்க'
+  );
 
-        {!loading && !!error && (
-          <View style={styles.errorWrap}>
-            <Ionicons name="alert-circle-outline" size={s(52)} color="#f44336" />
-            <Text style={styles.errorTxt}>{error}</Text>
-            <TouchableOpacity style={styles.retryBtn} onPress={fetchDetail}>
-              <Text style={styles.retryBtnTxt}>மீண்டும் முயற்சி</Text>
+  // console.log('NewsDetailsScreen - alsoSeeThisItem found:', !!alsoSeeThisItem);
+
+  return (
+    <View style={styles.container}>
+
+      <UniversalHeaderComponent
+        statusBarStyle="dark-content"
+        statusBarBackgroundColor={COLORS.white}
+        onMenuPress={handleMenuPress}
+        onNotification={goToNotifs}
+        notifCount={0}
+        isDrawerVisible={isDrawerVisible}
+        setIsDrawerVisible={setIsDrawerVisible}
+        navigation={navigation}
+        isLocationDrawerVisible={isLocationDrawerVisible}
+        setIsLocationDrawerVisible={setIsLocationDrawerVisible}
+        onSelectDistrict={handleSelectDistrict}
+        selectedDistrict={selectedDistrict}
+      >
+        <AppHeaderComponent
+          onSearch={goToSearch}
+          onMenu={() => setIsDrawerVisible(true)}
+          onLocation={() => setIsLocationDrawerVisible(true)}
+          selectedDistrict="உள்ளூர்"
+        />
+      </UniversalHeaderComponent>
+
+      <View style={styles.panLayer} {...panResponder.panHandlers}>
+        <Animated.View style={[styles.animLayer, { transform: [{ translateX }] }]}>
+
+          {hintDir === 'left' && <SwipeHint direction="left" />}
+          {hintDir === 'right' && <SwipeHint direction="right" />}
+
+          {hasNext && (
+            <TouchableOpacity style={styles.edgeBtnRight} onPress={() => navigateToNews('next')} activeOpacity={0.7}>
+              <Ionicons name="chevron-forward" size={s(30)} color={COLORS.white} />
             </TouchableOpacity>
-          </View>
-        )}
+          )}
 
-        {!loading && !error && (
-          <ScrollView
-            ref={scrollRef}
-            scrollEnabled={!scrollLocked}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.scrollContent}
-            scrollEventThrottle={16}
-            onScroll={handleScroll}
-          >
-            {/* Title */}
-            <Text style={[styles.title, { fontSize: sf(17), lineHeight: sf(24) }]}>
-              {title}
-            </Text>
+          {hasPrev && (
+            <TouchableOpacity style={styles.edgeBtnLeft} onPress={() => navigateToNews('prev')} activeOpacity={0.7}>
+              <Ionicons name="chevron-back" size={s(30)} color={COLORS.white} />
+            </TouchableOpacity>
+          )}
 
-            {/* Meta row */}
-            <View style={styles.metaRow}>
+          {loading && (
+            <ScrollView scrollEnabled={!scrollLocked} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+              <ContentLoader />
+            </ScrollView>
+          )}
 
-              {/* Only show author container if authorId exists and is not 0 */}
-              {authorId && authorId !== 0 && (
-                <TouchableOpacity onPress={handleAuthorPress} style={{ flexDirection: "row", alignItems: "center", gap: ms(5) }}>
-                  <Editor size={s(20)} color={PALETTE.grey500} />
-                  <Text style={styles.authorText}>{Author}</Text>
-                </TouchableOpacity>
-              )}
-              <View style={{ flex: 1 }} />
+          {!loading && !!error && (
+            <View style={styles.errorWrap}>
+              <Ionicons name="alert-circle-outline" size={s(52)} color="#f44336" />
+              <Text style={styles.errorTxt}>{error}</Text>
+              <TouchableOpacity style={styles.retryBtn} onPress={fetchDetail}>
+                <Text style={styles.retryBtnTxt}>மீண்டும் முயற்சி</Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
-              {!disableComments && (
-                <TouchableOpacity style={styles.iconAction} onPress={() => setCommentsVisible(true)}>
-                  <Comment size={s(15)} color={PALETTE.grey600} style={{ marginRight: 2 }} />
-                  {comments > 0 && (
-                    <Text style={[styles.iconBadge, { fontSize: sf(10) }]}>{comments}</Text>
+          {!loading && !error && (
+            <ScrollView
+              ref={scrollRef}
+              scrollEnabled={!scrollLocked}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.scrollContent}
+              scrollEventThrottle={16}
+              onScroll={handleScroll}
+            >
+              {/* Title */}
+              <Text style={[styles.title, { fontSize: sf(17), lineHeight: sf(24) }]}>
+                {title}
+              </Text>
+
+              {/* Meta row */}
+              <View style={styles.metaRow}>
+
+                {/* Only show author container if authorId exists and is not 0 */}
+                {authorId && authorId !== 0 && (
+                  <TouchableOpacity onPress={handleAuthorPress} style={{ flexDirection: "row", alignItems: "center", gap: ms(5) }}>
+                    <Editor size={s(20)} color={PALETTE.grey500} />
+                    <Text style={styles.authorText}>{Author}</Text>
+                  </TouchableOpacity>
+                )}
+                <View style={{ flex: 1 }} />
+
+                {!disableComments && (
+                  <TouchableOpacity style={styles.iconAction} onPress={() => setCommentsVisible(true)}>
+                    <Comment size={s(15)} color={PALETTE.grey600} style={{ marginRight: 2 }} />
+                    {comments > 0 && (
+                      <Text style={[styles.iconBadge, { fontSize: sf(10) }]}>{comments}</Text>
+                    )}
+                  </TouchableOpacity>
+                )}
+                <TouchableOpacity style={styles.iconAction} onPress={handleBookmarkToggle}>
+                  {bookmarked ? (
+                    <BookmarkSaved
+                      size={s(20)}
+                      color={COLORS.primary}
+                    />
+                  ) : (
+                    <Bookmark
+                      size={s(20)}
+                      color={PALETTE.grey600}
+                    />
                   )}
                 </TouchableOpacity>
-              )}
-              <TouchableOpacity style={styles.iconAction} onPress={handleBookmarkToggle}>
-                {bookmarked ? (
-                  <BookmarkSaved
-                    size={s(20)}
-                    color={COLORS.primary}
-                  />
-                ) : (
-                  <Bookmark
-                    size={s(20)}
-                    color={PALETTE.grey600}
-                  />
-                )}
-              </TouchableOpacity>
-            </View>
-
-            <View style={{ paddingHorizontal: ms(12) }}>
-              <Text style={[styles.authorText, { fontSize: ms(13) }]}>{AddedDate}</Text>
-              <Text style={[styles.authorText, { fontSize: ms(13) }]}>{UpdateDate}</Text>
-            </View>
-            <View style={styles.rowDivider} />
-
-            <GoogleFollowBanner
-              data={googleFollowData}
-              shareUrl={getShareUrl()}
-              shareTitle={title}
-            />
-
-            {/* Hero image */}
-            {!!image && !isVideo && !isPodcast && (
-              <View style={styles.heroWrap}>
-                <Image source={{ uri: image }} style={styles.heroImage} resizeMode="cover" />
-                {!!d.imagecaption && <Text style={[styles.caption, { fontSize: sf(12) }]}>{d.imagecaption}</Text>}
               </View>
-            )}
 
-            {/* YouTube */}
-            {isVideo && (
-              <TouchableOpacity style={styles.videoWrap} onPress={() => videoPath && Linking.openURL(videoPath)}>
-                {!!ytThumb ? (
-                  <>
-                    <Image source={{ uri: ytThumb }} style={styles.ytThumb} resizeMode="cover" />
-                    <View style={styles.ytPlayOverlay}>
-                      <Ionicons name="play-circle" size={s(56)} color="#fff" />
-                    </View>
-                  </>
-                ) : (
-                  <>
-                    <Ionicons name="play-circle" size={s(56)} color="#fff" />
-                    <Text style={styles.videoTxt}>வீடியோ பார்க்க தட்டவும்</Text>
-                  </>
-                )}
-              </TouchableOpacity>
-            )}
-
-            {/* Podcast */}
-            {(podcastAudioUrl && isPodcast) && (
-              <AudioPlayerCard
-                audioUrl={podcastAudioUrl}
-                data={{
-                  spotify: d.spotifylink || d.spotify || null,
-                  alexa: d.alexalink || d.amazon || null,
-                }}
-              />
-            )}
-
-            {/* HTML body */}
-            {!loading && !error && (
-              <>
-                {!!safeContent ? (
-                  <Animated.View
-                    style={[styles.contentSection, { opacity: pulseAnim }]}
-                    onLayout={(e) => { const w = e.nativeEvent.layout.width; if (w > 0) setContentWidth(w); }}
-                  >
-                    <RenderHtml
-                      contentWidth={contentWidth}
-                      source={{ html: safeContent }}
-                      baseStyle={baseStyle}
-                      tagsStyles={tagsStyles}
-                      ignoredDomTags={['script', 'style', 'meta', 'head', 'html', 'body', 'subtitle']}
-                      enableExperimentalMarginCollapsing
-                      systemFonts={SYSTEM_FONTS}
-                      renderersProps={{
-                        a: { onPress: (_e, href) => { if (href) Linking.openURL(href); } },
-                        img: { enableExperimentalPercentWidth: true },
-                      }}
-                    />
-                  </Animated.View>
-                ) : (
-                  <View style={[styles.contentSection, { padding: s(20), alignItems: 'center' }]}>
-                    <Text style={{ fontSize: sf(14), color: COLORS.text, textAlign: 'center' }}>
-                      செய்தி உள்ளடக்கம் கிடைக்கவில்லை
-                    </Text>
-                    <Text style={{ fontSize: sf(12), color: COLORS.grey600, textAlign: 'center', marginTop: vs(10) }}>
-                      செய்தி விவரங்கள் ஏற்றப்படுகிறது...
-                    </Text>
-                  </View>
-                )}
-              </>
-            )}
-
-            {/* Share and top elements - only show after data loads */}
-            {!loading && !error && detail && (
-              <>
-                <ShareInfo
-                  url="https://www.dinamalar.com/news/123"
-                  title="தமிழக செய்தி..."
-                />
-              </>
-            )}
-
-             {/* Also See This */}
-            {alsoSeeThisItem && (
               <View style={{ paddingHorizontal: ms(12) }}>
-              <AlsoSeeThis 
-                item={alsoSeeThisItem}
-                onPress={(item) => {
-                  console.log('AlsoSeeThis item pressed:', item);
-                  
-                  // Try different possible ID fields for navigation
-                  const newsId = item.newsid || item.id || item.news_id || item.articleid;
-                  
-                  if (newsId) {
-                    console.log('Navigating to NewsDetailsScreen with newsId:', newsId);
-                    navigation.navigate('NewsDetailsScreen', { 
-                      newsId: newsId,
-                      newsItem: item // Pass the full item as newsItem for better context
-                    });
-                  } else {
-                    console.log('No valid news ID found in item:', item);
-                    // If no ID found, try to navigate using link if available
-                    if (item.link || item.url) {
-                      console.log('Opening external link:', item.link || item.url);
-                      Linking.openURL(item.link || item.url);
-                    } else {
-                      console.log('No navigation method available for this item');
-                    }
-                  }
-                }}
-              />
+                <Text style={[styles.authorText, { fontSize: ms(13) }]}>{AddedDate}</Text>
+                <Text style={[styles.authorText, { fontSize: ms(13) }]}>{UpdateDate}</Text>
               </View>
-            )}
-            <IPaperSubscription />
-            <FeedbackCard newsId={currentNewsId} />
-            <MetaTags mdescription={mdescription} />
-            <DinamalarChannelSubscription />
-            <TrendingTags trendingData={trendingData} />
-            <SpecialToday specialData={specialData} />
-            
-            {/* Shorts */}
-            <Shorts shortsData={shortsData} onShortPress={(short) => {
-              const url = short.link || short.url || (short.slug ? `https://www.dinamalar.com${short.slug}` : null);
-              if (url) {
-                Linking.openURL(url);
-              }
-            }} />
+              <View style={styles.rowDivider} />
 
-           
-
-            {/* Extract morenews data (moved after detail is set) */}
- 
-           
-
-            <MoreNews morenewsLink={morenewsLink} />
-
-            {/* ── Taboola Mid-article ─────────────────────────────────────
-                After body content. Uses mdinamalarcom / loader.js.
-                mode + container + placement from data.taboola_ads.mobile.midarticle */}
-            {taboolaAds?.midarticle && (
-              <TaboolaWidget
-                pageUrl={articlePageUrl}
-                mode={taboolaAds.midarticle.mode}
-                container={taboolaAds.midarticle.container}
-                placement={taboolaAds.midarticle.placement}
+              <GoogleFollowBanner
+                data={googleFollowData}
+                shareUrl={getShareUrl()}
+                shareTitle={title}
               />
-            )}
 
-            {/* Related news */}
-            {relatedNewsData.length > 0 && (
-              <View style={styles.relatedSection}>
-                <View style={styles.relatedHeader}>
-                  <Text style={[styles.relatedSectionTitle, { fontSize: sf(14) }]}>
-                    தொடர்புடையவை
-                  </Text>
-                  <View style={styles.relatedHeaderLine} />
-                </View>
+              {/* Hero image */}
+             {/* Hero image - hide for video articles that have iframe in content */}
+{!!image && !hasIframeInContent && (
+  <View style={styles.heroWrap}>
+    <Image
+      source={{ uri: image }}
+      style={styles.heroImage}
+      resizeMode="cover"
+    />
+    {!!d.imagecaption && <Text style={[styles.caption, { fontSize: sf(12) }]}>{d.imagecaption}</Text>}
+  </View>
+)}
 
-                {relatedNewsData.map((rel, i) => {
-                  const relId = rel.id || rel.newsid;
-                  const relImage = rel.images || rel.largeimages || rel.image ||
-                    'https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_default.jpg?im=Resize,width=400';
-                  const relTitle = rel.newstitle || rel.title || '';
-                  const relDate = rel.standarddate || rel.ago || '';
-                  const relCommentCount = parseInt(rel.nmcomment || rel.newscomment || rel.commentcount || 0, 10) || 0;
+              {/* Podcast */}
+              {(podcastAudioUrl && isPodcast) && (
+                <AudioPlayerCard
+                  audioUrl={podcastAudioUrl}
+                  data={{
+                    spotify: d.spotifylink || d.spotify || null,
+                    alexa: d.alexalink || d.amazon || null,
+                  }}
+                />
+              )}
 
-                  return (
-                    <View key={`related-${i}-${relId || i}`} style={styles.relatedNewsCardWrap}>
-                      <TouchableOpacity
-                        onPress={() => navigation.push('NewsDetailsScreen', { newsId: relId, newsItem: rel, newsList })}
-                        activeOpacity={0.88}
-                      >
-                        <View style={styles.relatedNewsImageWrap}>
-                          <Image source={{ uri: relImage }} style={styles.relatedNewsImage} resizeMode="contain" />
-                        </View>
-                        <View style={styles.relatedNewsContent}>
-                          {!!relTitle && (
-                            <Text style={[NewsCard.title, { fontSize: sf(12), lineHeight: sf(20) }]} numberOfLines={3}>
-                              {relTitle}
-                            </Text>
-                          )}
-                          <View style={styles.relatedNewsMetaRow}>
-                            <Text style={[NewsCard.timeText, { fontSize: sf(10) }]}>{relDate}</Text>
-                            {relCommentCount > 0 && (
-                              <View style={styles.relatedNewsCommentRow}>
-                                <Comment size={s(14)} color="#637381" style={{ marginRight: 2 }} />
-                                <Text style={[styles.relatedNewsCommentText, { fontSize: sf(12) }]}> {relCommentCount}</Text>
-                              </View>
-                            )}
-                          </View>
-                        </View>
-                      </TouchableOpacity>
-                      <View style={styles.relatedNewsDivider} />
-                    </View>
-                  );
-                })}
-              </View>
-            )}
-
-            {/* Tags */}
-            {tags.length > 0 && (
-              <View style={styles.tagsSection}>
-                <Text style={[styles.tagsSectionTitle, { fontSize: sf(14) }]}>Tags</Text>
-                <View style={styles.tagsWrap}>
-                  {tags.map((tag, i) => (
-                    <View key={`tag-${i}`} style={styles.tagChip}>
-                      <Text style={[styles.tagTxt, { fontSize: sf(12) }]}>
-                        #{typeof tag === 'string' ? tag : tag?.title || tag?.name || ''}
+              {/* HTML body */}
+              {!loading && !error && (
+                <>
+                  {!!safeContent ? (
+                    <Animated.View
+                      style={[styles.contentSection, { opacity: pulseAnim }]}
+                      onLayout={(e) => { const w = e.nativeEvent.layout.width; if (w > 0) setContentWidth(w); }}
+                    >
+                      <RenderHtml
+                        contentWidth={contentWidth}
+                        source={{ html: safeContent }}
+                        baseStyle={baseStyle}
+                        tagsStyles={tagsStyles}
+                        // ← REMOVE 'iframe' and 'video' from ignoredDomTags
+                        ignoredDomTags={['script', 'style', 'meta', 'head', 'html', 'body', 'subtitle', 'video']}
+                        enableExperimentalMarginCollapsing
+                        systemFonts={SYSTEM_FONTS}
+                        renderersProps={{
+                          a: { onPress: (_e, href) => { if (href) Linking.openURL(href); } },
+                          img: { enableExperimentalPercentWidth: true },
+                        }}
+                        // ← ADD custom renderers
+                       renderers={{
+  iframe: ({ tnode }) => <IframeRenderer tnode={tnode} />,
+}}
+                      />
+                    </Animated.View>
+                  ) : (
+                    <View style={[styles.contentSection, { padding: s(20), alignItems: 'center' }]}>
+                      <Text style={{ fontSize: sf(14), color: COLORS.text, textAlign: 'center' }}>
+                        செய்தி உள்ளடக்கம் கிடைக்கவில்லை
+                      </Text>
+                      <Text style={{ fontSize: sf(12), color: COLORS.grey600, textAlign: 'center', marginTop: vs(10) }}>
+                        செய்தி விவரங்கள் ஏற்றப்படுகிறது...
                       </Text>
                     </View>
-                  ))}
-                </View>
-              </View>
-            )}
+                  )}
+                </>
+              )}
 
-            {/* ── Taboola Below-article ───────────────────────────────────
+              {/* Only show standalone YoutubePlayer if content doesn't have embedded iframe */}
+              {(() => {
+                const showPlayer = isVideo && videoPath && !safeContent.includes('<iframe');
+                console.log('YoutubePlayer condition check:', {
+                  isVideo,
+                  videoPath: !!videoPath,
+                  hasIframe: safeContent.includes('<iframe'),
+                  showPlayer,
+                  contentLength: safeContent.length
+                });
+                return showPlayer;
+              })() && (
+                  <YoutubePlayer
+                    videoPath={videoPath}
+                    ytId={ytId}
+                    ytThumb={ytThumb || image}
+                  />
+                )}
+
+              {/* Share and top elements - only show after data loads */}
+              {!loading && !error && detail && (
+                <>
+                  <ShareInfo
+                    url="https://www.dinamalar.com/news/123"
+                    title="தமிழக செய்தி..."
+                  />
+                </>
+              )}
+
+              {/* Also See This */}
+              {alsoSeeThisItem && (
+                <View style={{ paddingHorizontal: ms(12) }}>
+                  <AlsoSeeThis
+                    item={alsoSeeThisItem}
+                    onPress={(item) => {
+                      console.log('AlsoSeeThis item pressed:', item);
+
+                      // Try different possible ID fields for navigation
+                      const newsId = item.newsid || item.id || item.news_id || item.articleid;
+
+                      if (newsId) {
+                        console.log('Navigating to NewsDetailsScreen with newsId:', newsId);
+                        navigation.navigate('NewsDetailsScreen', {
+                          newsId: newsId,
+                          newsItem: item // Pass the full item as newsItem for better context
+                        });
+                      } else {
+                        console.log('No valid news ID found in item:', item);
+                        // If no ID found, try to navigate using link if available
+                        if (item.link || item.url) {
+                          console.log('Opening external link:', item.link || item.url);
+                          Linking.openURL(item.link || item.url);
+                        } else {
+                          console.log('No navigation method available for this item');
+                        }
+                      }
+                    }}
+                  />
+                </View>
+              )}
+              <IPaperSubscription />
+              <FeedbackCard newsId={currentNewsId} />
+              <MetaTags mdescription={mdescription} />
+              <DinamalarChannelSubscription />
+              <TrendingTags trendingData={trendingData} />
+              <SpecialToday specialData={specialData} />
+
+              {/* Shorts */}
+              <Shorts shortsData={shortsData} onShortPress={(short) => {
+                const url = short.link || short.url || (short.slug ? `https://www.dinamalar.com${short.slug}` : null);
+                if (url) {
+                  Linking.openURL(url);
+                }
+              }} />
+
+
+
+              {/* Extract morenews data (moved after detail is set) */}
+
+
+
+              <MoreNews morenewsLink={morenewsLink} />
+
+              {/* ── Taboola Mid-article ─────────────────────────────────────
+                After body content. Uses mdinamalarcom / loader.js.
+                mode + container + placement from data.taboola_ads.mobile.midarticle */}
+              {taboolaAds?.midarticle && (
+                <TaboolaWidget
+                  pageUrl={articlePageUrl}
+                  mode={taboolaAds.midarticle.mode}
+                  container={taboolaAds.midarticle.container}
+                  placement={taboolaAds.midarticle.placement}
+                />
+              )}
+
+              {/* Related news */}
+              {relatedNewsData.length > 0 && (
+                <View style={styles.relatedSection}>
+                  <View style={styles.relatedHeader}>
+                    <Text style={[styles.relatedSectionTitle, { fontSize: sf(14) }]}>
+                      தொடர்புடையவை
+                    </Text>
+                    <View style={styles.relatedHeaderLine} />
+                  </View>
+
+                  {relatedNewsData.map((rel, i) => {
+                    const relId = rel.id || rel.newsid;
+                    const relImage = rel.images || rel.largeimages || rel.image ||
+                      'https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_default.jpg?im=Resize,width=400';
+                    const relTitle = rel.newstitle || rel.title || '';
+                    const relDate = rel.standarddate || rel.ago || '';
+                    const relCommentCount = parseInt(rel.nmcomment || rel.newscomment || rel.commentcount || 0, 10) || 0;
+
+                    return (
+                      <View key={`related-${i}-${relId || i}`} style={styles.relatedNewsCardWrap}>
+                        <TouchableOpacity
+                          onPress={() => navigation.push('NewsDetailsScreen', { newsId: relId, newsItem: rel, newsList })}
+                          activeOpacity={0.88}
+                        >
+                          <View style={styles.relatedNewsImageWrap}>
+                            <Image source={{ uri: relImage }} style={styles.relatedNewsImage} resizeMode="contain" />
+                          </View>
+                          <View style={styles.relatedNewsContent}>
+                            {!!relTitle && (
+                              <Text style={[NewsCard.title, { fontSize: sf(12), lineHeight: sf(20) }]} numberOfLines={3}>
+                                {relTitle}
+                              </Text>
+                            )}
+                            <View style={styles.relatedNewsMetaRow}>
+                              <Text style={[NewsCard.timeText, { fontSize: sf(10) }]}>{relDate}</Text>
+                              {relCommentCount > 0 && (
+                                <View style={styles.relatedNewsCommentRow}>
+                                  <Comment size={s(14)} color="#637381" style={{ marginRight: 2 }} />
+                                  <Text style={[styles.relatedNewsCommentText, { fontSize: sf(12) }]}> {relCommentCount}</Text>
+                                </View>
+                              )}
+                            </View>
+                          </View>
+                        </TouchableOpacity>
+                        <View style={styles.relatedNewsDivider} />
+                      </View>
+                    );
+                  })}
+                </View>
+              )}
+
+              {/* Tags */}
+              {tags.length > 0 && (
+                <View style={styles.tagsSection}>
+                  <Text style={[styles.tagsSectionTitle, { fontSize: sf(14) }]}>Tags</Text>
+                  <View style={styles.tagsWrap}>
+                    {tags.map((tag, i) => (
+                      <View key={`tag-${i}`} style={styles.tagChip}>
+                        <Text style={[styles.tagTxt, { fontSize: sf(12) }]}>
+                          #{typeof tag === 'string' ? tag : tag?.title || tag?.name || ''}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              )}
+
+              {/* ── Taboola Below-article ───────────────────────────────────
                 After related news + tags. Uses mdinamalarcom / loader.js.
                 mode + container + placement from data.taboola_ads.mobile.belowarticle */}
-            {taboolaAds?.belowarticle && (
-              <TaboolaWidget
-                pageUrl={articlePageUrl}
-                mode={taboolaAds.belowarticle.mode}
-                container={taboolaAds.belowarticle.container}
-                placement={taboolaAds.belowarticle.placement}
-              />
-            )}
+              {taboolaAds?.belowarticle && (
+                <TaboolaWidget
+                  pageUrl={articlePageUrl}
+                  mode={taboolaAds.belowarticle.mode}
+                  container={taboolaAds.belowarticle.container}
+                  placement={taboolaAds.belowarticle.placement}
+                />
+              )}
 
-            <View style={{ height: vs(40) }} />
-          </ScrollView>
-        )}
+              <View style={{ height: vs(40) }} />
+            </ScrollView>
+          )}
 
           {/* Scroll to top button */}
           {showScrollTop && (
@@ -1509,7 +1663,7 @@ return (
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.white, paddingTop: Platform.OS === 'android' ? vs(30) : 20 },
+  container: { flex: 1, paddingTop: Platform.OS === 'android' ? vs(30) : 20 },
   panLayer: { flex: 1, overflow: 'hidden' },
   animLayer: { flex: 1 },
   edgeBtnLeft: {
@@ -1587,11 +1741,22 @@ const styles = StyleSheet.create({
     backgroundColor: '#EBEBEB',   // matches screenshot thin gray line
     marginHorizontal: ms(10),
   },
-  heroImage: { width: '100%', height: ms(250), backgroundColor: '#f0f0f0' },
+  heroImage: { width: '100%', height: ms(250), backgroundColor: COLORS.white, },
   caption: { color: PALETTE.grey600, fontStyle: 'italic', marginTop: vs(4), textAlign: 'center' },
   videoWrap: { marginHorizontal: s(16), height: ms(200), backgroundColor: '#1a1a2e', borderRadius: s(10), justifyContent: 'center', alignItems: 'center', marginBottom: vs(12), overflow: 'hidden' },
   ytThumb: { position: 'absolute', width: '100%', height: '100%' },
   ytPlayOverlay: { position: 'absolute', justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.35)', width: '100%', height: '100%' },
+  ytPlayBtn: {
+    width: s(60),
+    height: s(60),
+    borderRadius: s(30),
+    backgroundColor: 'rgba(255,0,0,0.85)',  // YouTube red
+    justifyContent: 'center',
+    alignItems: 'center',
+    // Offset play icon visually to center it
+    paddingLeft: s(4),
+  },
+  videoPlaceholder: { justifyContent: 'center', alignItems: 'center' },
   videoTxt: { color: '#fff', fontWeight: '600', marginTop: vs(8) },
   podcastSection: { marginBottom: vs(4) },
   podcastCard: { flexDirection: 'row', alignItems: 'center', gap: s(12), marginHorizontal: s(16), marginBottom: vs(12), backgroundColor: '#faf0ff', borderRadius: s(12), padding: s(12), borderWidth: 1, borderColor: '#9c27b025' },
@@ -1639,8 +1804,9 @@ const styles = StyleSheet.create({
   relatedSection: { marginBottom: vs(10) },
   relatedHeader: { paddingHorizontal: s(12), marginBottom: vs(12) },
   relatedSectionTitle: {
- fontFamily: FONTS.muktaMalar.bold,
-    color: PALETTE.grey800,     },
+    fontFamily: FONTS.muktaMalar.bold,
+    color: PALETTE.grey800,
+  },
   relatedHeaderLine: { height: vs(2.5), width: s(60), backgroundColor: COLORS.primary },
   relatedNewsCardWrap: { backgroundColor: COLORS.white },
   relatedNewsImageWrap: { paddingHorizontal: s(12), paddingTop: vs(8) },

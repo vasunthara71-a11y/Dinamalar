@@ -314,7 +314,8 @@ const styles = StyleSheet.create({
   collapsedTab: {
     position: 'absolute',
     right: s(0),
-    top: SCREEN_HEIGHT * 0.42,   // ← replaces '42%'
+    top: '40%',
+    marginTop: vs(-60),   // Center vertically by moving up half the container height
     backgroundColor: 'rgba(99, 115, 131, 0.95)',
     borderTopLeftRadius: s(10),
     borderBottomLeftRadius: s(10),
@@ -344,7 +345,8 @@ const styles = StyleSheet.create({
   miniPlayerContainer: {
     position: 'absolute',
     right: s(0),
-    top: SCREEN_HEIGHT * 0.42,   // ← replaces '42%'
+    top: '60%',
+    marginTop: vs(-80),   // Center vertically by moving up half the container height
     backgroundColor: 'rgba(99, 115, 131, 0.95)',
     borderTopLeftRadius: s(10),
     borderBottomLeftRadius: s(10),

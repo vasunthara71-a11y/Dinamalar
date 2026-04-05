@@ -300,10 +300,20 @@ export const NewsCard = {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  divider: {
-    height: 1,
-    backgroundColor: PALETTE.grey200,
-    marginHorizontal: s(12),
+  videoPlayOverlay: {
+    position: 'absolute',
+    bottom: s(5),
+    left: s(5),
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  videoPlayButton: {
+    width: s(30),
+    height: s(30),
+    borderRadius: s(15),
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: "#096DD2"
   },
   sectionTitleContainer: {
     backgroundColor: PALETTE.primary,

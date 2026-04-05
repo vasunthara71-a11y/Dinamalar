@@ -884,6 +884,8 @@ function NewsCard({ item, onPress, isSocialMedia = false, isPremium = false, hid
     '';
   const hasAudio = item.audio === 1 || item.audio === '1' || item.audio === true ||
     (typeof item.audio === 'string' && item.audio.length > 1 && item.audio !== '0');
+  
+  const hasVideo = item.video && item.video !== '0' || item.ytid || item.yt_id || item.videoid;
 
   // Handle category press - navigate to appropriate screen with specific tab
   const handleCategoryPress = () => {
@@ -1336,6 +1338,26 @@ function NewsCard({ item, onPress, isSocialMedia = false, isPremium = false, hid
               }
               resizeMode={isCartoon ? "contain" : isSocialMedia ? "contain" : isIPaper ? "contain" : "contain"}
             />
+
+            {/* Play Button Overlay */}
+            {hasVideo && (
+              <View style={{
+                position: 'absolute',
+                bottom: s(8),
+                left: s(8),
+                width: s(36),
+                height: s(36),
+                borderRadius: s(18),
+                backgroundColor: 'rgba(9, 109, 210, 0.85)',
+                justifyContent: 'center',
+                alignItems: 'center',
+                paddingLeft: s(2),
+                borderWidth: 1.5,
+                borderColor: 'rgba(255,255,255,0.6)',
+              }}>
+                <Ionicons name="play" size={s(16)} color="#fff" />
+              </View>
+            )}
 
             {/* Premium Tag */}
             {isPremium && (
@@ -5168,15 +5190,7 @@ export default function HomeScreen() {
                                                             console.log('🏛️ KOVILGAL SECTION HEADER CLICKED - Opening temple website in browser');
                                                             const link = 'https://temple.dinamalar.com';
                                                             Linking.openURL(link).catch(() => console.log('Failed to open temple website link'));
-                                                          } : section.title && (section.title?.includes('எடிட்டர் லைக்ஸ்') || section.title?.includes('editor') || section.title?.includes('Editor')) ?
-                                                            () => {
-                                                              console.log('📰 SPECIAL SECTION HEADER CLICKED - Navigating to CommonSectionScreen with special data');
-                                                              navigation?.navigate('CommonSectionScreen', {
-                                                                screenTitle: 'ஸ்பெஷல்',
-                                                                apiEndpoint: 'https://api-st-cdn.dinamalar.com/specialmain',
-                                                                initialTabId: '1611'
-                                                              });
-                                                            } : section.title?.includes('கார்ட்ஸ்') || section.title?.includes('cards') ||
+                                                          } : section.title?.includes('கார்ட்ஸ்') || section.title?.includes('cards') ||
                                                               section.title?.includes('கார்ட்ஸ்') || section.title?.includes('card') ?
                                                               () => {
                                                                 console.log('📰 CARDS/SOCIAL MEDIA SECTION HEADER CLICKED - Navigating to CommonSectionScreen with cards');
