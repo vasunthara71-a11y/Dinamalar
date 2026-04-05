@@ -509,11 +509,64 @@ const fetchVideos = useCallback(async ({ cat = '', date = '', district = '', dis
 
   try {
     if (cat === 'shorts') {
-      const response = await CDNApi.get(API_ENDPOINTS.SHORTS);
-      const raw = Array.isArray(response.data) ? response.data : [];
-      setAllVideos(raw);
-      setHasMore(false);
-      // set categories/filters from first load cache
+      const response = await CDNApi.get(API_ENDPOINTS.SHORTS + (page > 1 ? `?page=${page}` : ''));
+      const data = response.data;
+      console.log('[shorts] API response:', data);
+      console.log('[shorts] requested page:', page, 'append:', append);
+      
+      // The shorts API returns news articles, not videos
+      // We need to process them differently
+      let raw = [];
+      let pagination = {};
+      
+      if (data?.newlist?.data) {
+        raw = data.newlist.data;
+        pagination = data.newlist.pagination || {};
+      } else if (Array.isArray(data)) {
+        raw = data;
+      }
+      
+      console.log('[shorts] total items:', raw.length);
+      console.log('[shorts] pagination:', pagination);
+      
+      // Convert news items to video-like format for display
+      const processedItems = raw.map(item => ({
+        ...item,
+        videoid: item.newsid || item.id,
+        title: item.newstitle || item.title,
+        image: item.images || item.image,
+        video: item.video || 0,
+        type: 'reels', // Mark as shorts for display
+        duration: null,
+        created_at: item.newsdate,
+        slug: item.slug || item.short_slug
+      }));
+      
+      if (append) {
+        setAllVideos(prev => {
+          const existingIds = new Set(prev.map(v => v.videoid).filter(Boolean));
+          return [...prev, ...processedItems.filter(v => !v.videoid || !existingIds.has(v.videoid))];
+        });
+      } else {
+        setAllVideos(processedItems);
+      }
+      
+      // Update pagination state
+      const apiCurrentPage = pagination.current_page ?? page;
+      const apiLastPage = pagination.last_page ?? 1;
+      const newHasMore = apiCurrentPage < apiLastPage;
+      
+      console.log('[shorts] pagination update:', { 
+        currentPage: apiCurrentPage, 
+        lastPage: apiLastPage, 
+        hasMore: newHasMore 
+      });
+      
+      setCurrentPage(apiCurrentPage);
+      setLastPage(apiLastPage);
+      setHasMore(newHasMore);
+      
+      // Set categories/filters from first load cache
       return;
     }
 
@@ -1026,14 +1079,14 @@ const ListHeader = () => {
       fetchVideos({ cat: updated.category, date: updated.date, district: '' });
     }});
   }
-  if (filters.category) {
-    const label = categories.find(c => String(c.value) === filters.category)?.title || filters.category;
-    activePills.push({ key: 'category', label, onRemove: () => {
-      const updated = { ...filters, category: '' };
-      setFilters(updated);
-      fetchVideos({ cat: '', date: updated.date, district: updated.district });
-    }});
-  }
+if (filters.category && filters.category !== 'shorts') {
+  const label = categories.find(c => String(c.value) === filters.category)?.title || filters.category;
+  activePills.push({ key: 'category', label, onRemove: () => {
+    const updated = { ...filters, category: '' };
+    setFilters(updated);
+    fetchVideos({ cat: '', date: updated.date, district: updated.district });
+  }});
+}
 
   return (
     <View>
@@ -1117,7 +1170,7 @@ const ListHeader = () => {
 const handleLoadMore = () => {
   // Check if there are more pages available before loading
   if (loadingMore || loading || !hasMore) return;
-  if (filters.category === 'shorts') { setHasMore(false); return; }
+  
   fetchVideos({
     cat: filters.category,
     date: filters.date,
@@ -1169,6 +1222,7 @@ return (
         onMenuPress={handleMenuPress}
         onNotification={handleNotification}
         notifCount={3}
+        navigation={navigation}
       />
 
       <AppHeaderComponent
