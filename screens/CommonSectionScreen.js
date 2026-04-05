@@ -1747,7 +1747,7 @@ export default function CommonSectionScreen() {
 
   const [isDrawerVisible, setIsDrawerVisible] = useState(false);
   const [isLocationDrawerVisible, setIsLocationDrawerVisible] = useState(false);
-  const [selectedDistrict, setSelectedDistrict] = useState('');
+  const [selectedDistrict, setSelectedDistrict] = useState('உள்ளூர்');
 
   const flatListRef = useRef(null);
   const rasiScrollViewRef = useRef(null);

@@ -11,6 +11,7 @@ import {
   ScrollView,
   Platform,
   Modal,
+  PanResponder,        // ← NEW: for swipe gesture detection
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
@@ -23,7 +24,7 @@ import AppHeaderComponent from '../components/AppHeaderComponent';
 import NewsCard from '../components/NewsCard';
 import CustomCalendarModal from '../components/Customcalendarmodal';
 import { TaboolaAdSection } from '../components/TaboolaComponent';
-  
+
 // ─── Skeleton Card ────────────────────────────────────────────────────
 function SkeletonCard() {
   return (
@@ -81,7 +82,7 @@ const dg = StyleSheet.create({
 function EmptyState({ sf }) {
   return (
     <View style={em.wrap}>
-      <Image 
+      <Image
         source={{ uri: 'https://stat.dinamalar.com/new/2025/images/dinamalar-pavala-vizha-logo-day.png' }}
         style={em.placeholderImage}
         resizeMode="contain"
@@ -103,7 +104,7 @@ const em = StyleSheet.create({
 // ─── Extract available dates from news data ─────────────────────────────────────
 function extractAvailableDates(items) {
   const dateSet = new Set();
-  
+
   items.forEach(item => {
     // Use 'ago' field (DD-Mon-YYYY) or 'date' field (DD-MM-YYYY) — avoid Tamil standarddate
     const rawDate = item.ago || item.date || '';
@@ -113,16 +114,16 @@ function extractAvailableDates(items) {
     // "09-Oct-2025" format
     if (rawDate.match(/^\d{2}-[A-Za-z]{3}-\d{4}/)) {
       const ENG = {
-        Jan:'01',Feb:'02',Mar:'03',Apr:'04',May:'05',Jun:'06',
-        Jul:'07',Aug:'08',Sep:'09',Oct:'10',Nov:'11',Dec:'12',
+        Jan: '01', Feb: '02', Mar: '03', Apr: '04', May: '05', Jun: '06',
+        Jul: '07', Aug: '08', Sep: '09', Oct: '10', Nov: '11', Dec: '12',
       };
       const [d, m, y] = rawDate.split('-');
-      isoDate = `${y}-${ENG[m] || '01'}-${d.padStart(2,'0')}`;
+      isoDate = `${y}-${ENG[m] || '01'}-${d.padStart(2, '0')}`;
     }
     // "09-10-2025" format (DD-MM-YYYY)
     else if (rawDate.match(/^\d{2}-\d{2}-\d{4}/)) {
       const [d, m, y] = rawDate.split('-');
-      isoDate = `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
+      isoDate = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
     }
     // "2025-10-09" already ISO
     else if (rawDate.match(/^\d{4}-\d{2}-\d{2}/)) {
@@ -134,7 +135,7 @@ function extractAvailableDates(items) {
 
   const sortedDates = Array.from(dateSet).sort((a, b) => new Date(b) - new Date(a));
   const firstDate = sortedDates.length > 0 ? [sortedDates[0]] : [];
-  
+
   console.log('[PugarPetti] All available dates:', sortedDates);
   console.log('[PugarPetti] First clickable date only:', firstDate);
   return firstDate; // Return only the first/latest date
@@ -144,18 +145,21 @@ function extractAvailableDates(items) {
 function groupByDate(items) {
   const flat = [];
   let currentDate = null;
+  let isFirstDate = true; // Track if this is the first (latest) date
 
   items.forEach(item => {
-    const rawDate = item.standarddate || item.date || item.time_date || '';
+    const rawDate = item.ago || item.date || item.time_date || '';
     // Normalize date to a comparable key
     const dateKey = rawDate.split(' ')[0] || rawDate; // Take just the date part
 
     if (dateKey && dateKey !== currentDate) {
       currentDate = dateKey;
-      flat.push({ type: 'dateHeader', date: rawDate, dateKey });
+      flat.push({ type: 'dateHeader', date: rawDate, dateKey, isClickable: isFirstDate });
+      isFirstDate = false; // Only the first date is clickable
     }
     flat.push({ type: 'item', item });
   });
+
   return flat;
 }
 
@@ -199,21 +203,21 @@ function Pagination({ links, onPress, loading }) {
 
   return (
     <View style={pg.container}>
-      <ScrollView 
-        horizontal 
+      <ScrollView
+        horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={pg.scrollContent}
       >
         {links.map((link, index) => {
           if (!link.label) return null;
-          
+
           const isActive = link.active;
           const isDisabled = !link.url;
           const isNavigation = link.label.includes('pagination');
-          
+
           // Skip navigation buttons for now, show only page numbers
           if (isNavigation) return null;
-          
+
           return (
             <TouchableOpacity
               key={`page-${index}`}
@@ -300,14 +304,15 @@ export default function PugarPettiScreen() {
   const [subTabs, setSubTabs] = useState([]);
   const [activeDistrictId, setActiveDistrictId] = useState(initialDistrictId || null);
   const [news, setNews] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [initLoading, setInitLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [showScrollTop, setShowScrollTop] = useState(false);
   const [page, setPage] = useState(1);
   const [lastPage, setLastPage] = useState(1);
   const [loadingMore, setLoadingMore] = useState(false);
   const [isDrawerVisible, setIsDrawerVisible] = useState(false);
   const [isLocationDrawerVisible, setIsLocationDrawerVisible] = useState(false);
-  const [selectedDistrict, setSelectedDistrict] = useState('');
+  const [selectedDistrict, setSelectedDistrict] = useState('உள்ளூர்');
 
   // ── Date Picker State ──
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -324,14 +329,29 @@ export default function PugarPettiScreen() {
 
   // ── Refs ──
   const listRef = useRef(null);
-  const tabScrollRef = useRef(null);
-  const tabLayoutsRef = useRef({});
+  const tabScrollRef = useRef(null);   // ref for horizontal tab ScrollView
+  const tabLayoutsRef = useRef({});   // stores {[tabKey]: {x, width}} after layout
+
+  // ── Refs to keep latest values accessible inside PanResponder ────────────
+  const subTabsRef = useRef([]);
   const activeDistrictIdRef = useRef(activeDistrictId);
 
   // Keep refs in sync with state
   useEffect(() => {
     activeDistrictIdRef.current = activeDistrictId;
   }, [activeDistrictId]);
+  useEffect(() => {
+    subTabsRef.current = subTabs;
+  }, [subTabs]);
+
+  const handleScroll = useCallback((e) => {
+    const offsetY = e.nativeEvent.contentOffset.y;
+    setShowScrollTop(offsetY > 300);
+  }, []);
+
+  const scrollToTop = useCallback(() => {
+    listRef.current?.scrollToOffset({ offset: 0, animated: true });
+  }, []);
 
   // ── Fetch subcategory tabs first, then news ─────────────────────────────────────────
   const fetchSubTabs = useCallback(async () => {
@@ -353,7 +373,7 @@ export default function PugarPettiScreen() {
         const items = d?.districtlisting?.data || [];
         const lp = d?.districtlisting?.last_page || 1;
         const links = d?.districtlisting?.links || [];
-        
+
         setLastPage(lp);
         setPage(1);
         setNews(items);
@@ -362,7 +382,7 @@ export default function PugarPettiScreen() {
     } catch (e) {
       console.error('[PugarPetti] fetchSubTabs error:', e?.message);
     } finally {
-      setLoading(false);
+      setInitLoading(false);
     }
   }, [initialDistrictId]);
 
@@ -382,12 +402,12 @@ export default function PugarPettiScreen() {
       const items = d?.districtlisting?.data || [];
       const lp = d?.districtlisting?.last_page || 1;
       const links = d?.districtlisting?.links || [];
-      
+
       setLastPage(lp);
       setPage(pg);
       setNews(prev => append ? [...prev, ...items] : items);
       setPaginationLinks(links);
-      
+
       // Set Taboola ads from API response
       if (d?.taboola_ads?.mobile) {
         setTaboolaAds(d.taboola_ads.mobile);
@@ -395,7 +415,7 @@ export default function PugarPettiScreen() {
     } catch (e) {
       console.error('[PugarPetti] error:', e?.message);
     } finally {
-      setLoading(false);
+      setInitLoading(false);
       setLoadingMore(false);
       setRefreshing(false);
     }
@@ -404,7 +424,7 @@ export default function PugarPettiScreen() {
   // ── On focus - load subtabs first, then news ──────────────────────────────────
   useFocusEffect(
     useCallback(() => {
-      setLoading(true);
+      setInitLoading(true);
       setNews([]);
       setPage(1);
       setLastPage(1);
@@ -423,11 +443,70 @@ export default function PugarPettiScreen() {
     });
   }, [activeDistrictId]);
 
+  // ── Swipe to next / previous tab ─────────────────────────────────────────
+  //
+  //  Swipe LEFT  → go to NEXT tab  
+  //  Swipe RIGHT → go to PREV tab
+  //
+  //  Thresholds:
+  //    dx >  50 px  AND velocity > 0.3  → right-swipe  (go prev)
+  //    dx < -50 px  AND velocity > 0.3  → left-swipe   (go next)
+  //
+  const SWIPE_THRESHOLD = 50;   // minimum horizontal distance (px)
+  const SWIPE_VELOCITY = 0.3;  // minimum velocity
+
+  const panResponder = useRef(
+    PanResponder.create({
+      // Only claim the gesture when horizontal movement clearly dominates
+      onMoveShouldSetPanResponder: (_, gs) => {
+        return (
+          Math.abs(gs.dx) > Math.abs(gs.dy) &&   // horizontal dominates
+          Math.abs(gs.dx) > 10                     // at least 10 px moved
+        );
+      },
+      onPanResponderRelease: (_, gs) => {
+        const tabs = subTabsRef.current;
+        const curId = activeDistrictIdRef.current;
+        if (!tabs.length) return;
+
+        const curIndex = tabs.findIndex(t => String(t.id) === String(curId));
+        if (curIndex === -1) return;
+
+        const isRightSwipe = gs.dx > SWIPE_THRESHOLD && Math.abs(gs.vx) > SWIPE_VELOCITY;
+        const isLeftSwipe = gs.dx < -SWIPE_THRESHOLD && Math.abs(gs.vx) > SWIPE_VELOCITY;
+
+        if (isRightSwipe && curIndex > 0) {
+          // Go to previous tab
+          const prevTab = tabs[curIndex - 1];
+          setActiveDistrictId(prevTab.id);
+          setInitLoading(true);
+          setNews([]);
+          setDateSpecificNews([]);
+          setPage(1);
+          setLastPage(1);
+          listRef.current?.scrollToOffset({ offset: 0, animated: false });
+          fetchNews(prevTab.id, 1, false);
+        } else if (isLeftSwipe && curIndex < tabs.length - 1) {
+          // Go to next tab
+          const nextTab = tabs[curIndex + 1];
+          setActiveDistrictId(nextTab.id);
+          setInitLoading(true);
+          setNews([]);
+          setDateSpecificNews([]);
+          setPage(1);
+          setLastPage(1);
+          listRef.current?.scrollToOffset({ offset: 0, animated: false });
+          fetchNews(nextTab.id, 1, false);
+        }
+      },
+    })
+  ).current;
+
   const handleTabPress = (tab) => {
     const newId = tab.id || null;
     if (newId === activeDistrictId) return;
     setActiveDistrictId(newId);
-    setLoading(true);
+    setInitLoading(true);
     setNews([]);
     setDateSpecificNews([]); // Clear date-specific news when switching tabs
     setPage(1);
@@ -495,56 +574,56 @@ export default function PugarPettiScreen() {
     }
   };
 
-const fetchNewsForDate = async (date) => {
-  try {
-    setLoadingDateNews(true);
-    
-    // ← Use REF not state — state is stale inside async callbacks
-    const districtId = activeDistrictIdRef.current || initialDistrictId || 315;
-    
-    // Format date as DD-Mon-YYYY (e.g., "09-Oct-2025") - matches API's searchdate format
-    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    const d = date.getDate().toString().padStart(2, '0');
-    const m = months[date.getMonth()];
-    const y = date.getFullYear();
-    const formattedDate = `${d}-${m}-${y}`;
-    
-    console.log('[PugarPetti] fetching date news:', formattedDate, 'districtId:', districtId);
-    
-    if (!districtId) {
-      console.error('[PugarPetti] No district ID available');
+  const fetchNewsForDate = async (date) => {
+    try {
+      setLoadingDateNews(true);
+
+      // ← Use REF not state — state is stale inside async callbacks
+      const districtId = activeDistrictIdRef.current || initialDistrictId || 315;
+
+      // Format date as DD-Mon-YYYY (e.g., "09-Oct-2025") - matches API's searchdate format
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const d = date.getDate().toString().padStart(2, '0');
+      const m = months[date.getMonth()];
+      const y = date.getFullYear();
+      const formattedDate = `${d}-${m}-${y}`;
+
+      console.log('[PugarPetti] fetching date news:', formattedDate, 'districtId:', districtId);
+
+      if (!districtId) {
+        console.error('[PugarPetti] No district ID available');
+        setDateSpecificNews([]);
+        return;
+      }
+
+      const response = await CDNApi.get(
+        `/pugarpetti?cat=${districtId}&searchdate=${formattedDate}`
+      );
+      const newsData = response?.data?.districtlisting?.data || [];
+      const links = response?.data?.districtlisting?.links || [];
+      console.log('[PugarPetti] Total news count from API:', newsData.length);
+
+      // Filter news to ensure only the selected date is shown
+      const filteredNews = newsData.filter(item => {
+        const itemDate = item.ago || item.date || '';
+        console.log('[PugarPetti] Filtering item:', itemDate, 'target:', formattedDate, 'match:', itemDate === formattedDate);
+        return itemDate === formattedDate;
+      });
+
+      console.log('[PugarPetti] Filtered news count:', filteredNews.length);
+
+      // Show filtered news in main view below active tab
+      setNews(filteredNews);
+      setPaginationLinks(links);
+      setDateSpecificNews(filteredNews); // Keep for reference
+    } catch (error) {
+      console.error('Error fetching news for date:', error?.response?.status, error?.message);
       setDateSpecificNews([]);
-      return;
+      setNews([]);
+    } finally {
+      setLoadingDateNews(false);
     }
-    
-    const response = await CDNApi.get(
-      `/pugarpetti?cat=${districtId}&searchdate=${formattedDate}`
-    );
-    const newsData = response?.data?.districtlisting?.data || [];
-    const links = response?.data?.districtlisting?.links || [];
-    console.log('[PugarPetti] Total news count from API:', newsData.length);
-    
-    // Filter news to ensure only the selected date is shown
-    const filteredNews = newsData.filter(item => {
-      const itemDate = item.ago || item.date || '';
-      console.log('[PugarPetti] Filtering item:', itemDate, 'target:', formattedDate, 'match:', itemDate === formattedDate);
-      return itemDate === formattedDate;
-    });
-    
-    console.log('[PugarPetti] Filtered news count:', filteredNews.length);
-    
-    // Show filtered news in main view below active tab
-    setNews(filteredNews);
-    setPaginationLinks(links);
-    setDateSpecificNews(filteredNews); // Keep for reference
-  } catch (error) {
-    console.error('Error fetching news for date:', error?.response?.status, error?.message);
-    setDateSpecificNews([]);
-    setNews([]);
-  } finally {
-    setLoadingDateNews(false);
-  }
-};
+  };
 
   const closeDateModal = () => {
     setShowDateModal(false);
@@ -554,20 +633,20 @@ const fetchNewsForDate = async (date) => {
   // ── Pagination Handler ──
   const handlePaginationPress = async (link) => {
     if (!link.url) return;
-    
+
     try {
-      setLoading(true);
-      
+      setInitLoading(true);
+
       // Extract page number from URL
       const urlParams = new URLSearchParams(link.url.split('?')[1]);
       const pageNum = parseInt(urlParams.get('page')) || 1;
-      
+
       if (showDateModal) {
         // For date modal, fetch date-specific news for the page
         const response = await CDNApi.get(link.url);
         const newsData = response?.data?.districtlisting?.data || [];
         const links = response?.data?.districtlisting?.links || [];
-        
+
         setDateSpecificNews(newsData);
         setPaginationLinks(links);
       } else {
@@ -577,13 +656,13 @@ const fetchNewsForDate = async (date) => {
     } catch (error) {
       console.error('Pagination error:', error);
     } finally {
-      setLoading(false);
+      setInitLoading(false);
     }
   };
 
   // ── Build flat list data (group by date) ────────────────────────────────────
   // If we have filtered date-specific news, show it directly without date grouping
-  const flatData = dateSpecificNews.length > 0 
+  const flatData = dateSpecificNews.length > 0
     ? dateSpecificNews.map((item, index) => ({ type: 'item', item, index }))
     : groupByDate(news);
 
@@ -606,18 +685,30 @@ const fetchNewsForDate = async (date) => {
   // ── Render Item for FlatList ──
   const renderItem = ({ item }) => {
     if (item.type === 'dateHeader') {
-      return (
-        <TouchableOpacity 
-          style={styles.dateHeaderWrap}
-          onPress={() => handleDateHeaderPress(item.date)}
-          activeOpacity={0.7}
-        >
-          <View style={styles.dateHeaderInner}>
-            <Ionicons name="calendar-outline" size={s(15)} color="#555" style={styles.dateHeaderIcon} />
-            <Text style={styles.dateHeaderText}>{(item.date)}</Text>
+      if (item.isClickable) {
+        return (
+          <TouchableOpacity
+            style={styles.dateHeaderWrap}
+            onPress={() => handleDateHeaderPress(item.date)}
+            activeOpacity={0.7}
+          >
+            <View style={styles.dateHeaderInner}>
+              <Ionicons name="calendar-outline" size={s(15)} color="#555" style={styles.dateHeaderIcon} />
+              <Text style={styles.dateHeaderText}>{(item.date)}</Text>
+            </View>
+          </TouchableOpacity>
+        );
+      } else {
+        // Non-clickable date header - left aligned without TouchableOpacity
+        return (
+          <View style={styles.dateHeaderWrapLeft}>
+            <View style={[styles.dateHeaderInner, { borderRadius: s(8) }]}>
+              <Ionicons name="calendar-outline" size={s(15)} color="#555" style={styles.dateHeaderIcon} />
+              <Text style={styles.dateHeaderText}>{(item.date)}</Text>
+            </View>
           </View>
-        </TouchableOpacity>
-      );
+        );
+      }
     }
 
     if (item.type === 'item') {
@@ -645,16 +736,16 @@ const fetchNewsForDate = async (date) => {
         setIsDrawerVisible={setIsDrawerVisible}
         isLocationDrawerVisible={isLocationDrawerVisible}
         setIsLocationDrawerVisible={setIsLocationDrawerVisible}
-       onSelectDistrict={(district) => {
-  setSelectedDistrict(district.title);
-  setIsLocationDrawerVisible(false);
-  // Navigate to DistrictNewsScreen so it can match by title
-  navigation.navigate('DistrictNewsScreen', {
-    districtTitle: district.title,
-    fromPugarPetti: false,
-    showAllTab: false,
-  });
-}}
+        onSelectDistrict={(district) => {
+          setSelectedDistrict(district.title);
+          setIsLocationDrawerVisible(false);
+          // Navigate to DistrictNewsScreen so it can match by title
+          navigation.navigate('DistrictNewsScreen', {
+            districtTitle: district.title,
+            fromPugarPetti: false,
+            showAllTab: false,
+          });
+        }}
       >
         <AppHeaderComponent
           onSearch={() => navigation.navigate('SearchScreen')}
@@ -667,21 +758,21 @@ const fetchNewsForDate = async (date) => {
       {/* ── Page Title ── */}
       <View style={styles.titleWrap}>
         <Text style={[styles.pageTitle, { fontSize: sf(16) }]}>{pageTitle}</Text>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.englishVersionBox}
           onPress={() => {
-  const currentDistrict = subTabs.find(tab => String(tab.id) === String(activeDistrictId));
-  const isAllTab = activeDistrictId == null || !currentDistrict;
+            const currentDistrict = subTabs.find(tab => String(tab.id) === String(activeDistrictId));
+            const isAllTab = activeDistrictId == null || !currentDistrict;
 
-  navigation.navigate('DistrictNewsScreen', {
-    fromPugarPetti: true,
-    showAllTab: isAllTab,
-    // When All tab: pass null so DistrictNews defaults to Chennai
-    // When specific tab: pass that district's id/title
-    districtId: isAllTab ? null : currentDistrict?.id,
-    districtTitle: isAllTab ? null : currentDistrict?.title,
-  });
-}}
+            navigation.navigate('DistrictNewsScreen', {
+              fromPugarPetti: true,
+              showAllTab: isAllTab,
+              // When All tab: pass null so DistrictNews defaults to Chennai
+              // When specific tab: pass that district's id/title
+              districtId: isAllTab ? null : currentDistrict?.id,
+              districtTitle: isAllTab ? null : currentDistrict?.title,
+            });
+          }}
           activeOpacity={0.8}
         >
           <Text style={styles.englishVersionText}>செய்திகள்</Text>
@@ -726,82 +817,93 @@ const fetchNewsForDate = async (date) => {
         </View>
       )}
 
-      {/* ── Content ── */}
-      {loading ? (
-        <FlatList
-          data={[1, 2, 3, 4, 5, 6]}
-          keyExtractor={i => `sk-${i}`}
-          renderItem={() => <SkeletonCard />}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
+      {/* ── Content — wrapped with panResponder for swipe detection ── */}
+      <View style={styles.swipeArea} {...panResponder.panHandlers}>
+        {initLoading ? (
+          <FlatList
+            data={[1, 2, 3, 4, 5, 6]}
+            keyExtractor={i => `sk-${i}`}
+            renderItem={() => <SkeletonCard />}
+            contentContainerStyle={styles.listContent}
+            showsVerticalScrollIndicator={false}
+          />
+        ) : (
+          <FlatList
+            ref={listRef}
+            data={flatData}
+            keyExtractor={(row, i) =>
+              row.type === 'dateHeader'
+                ? `date-${row.date}-${i}`
+                : `item-${row.item?.newsid || row.item?.id || i}`
+            }
+            renderItem={renderItem}
+            contentContainerStyle={styles.listContent}
+            showsVerticalScrollIndicator={false}
+            onScroll={handleScroll}
+            scrollEventThrottle={16}
+            onEndReached={handleLoadMore}
+            onEndReachedThreshold={0.4}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={handleRefresh}
+                colors={[COLORS.primary]}
+                tintColor={COLORS.primary}
+              />
+            }
+            ListEmptyComponent={<EmptyState sf={sf} />}
+            ListFooterComponent={
+              loadingMore
+                ? <ActivityIndicator size="small" color={COLORS.primary} style={{ margin: vs(16) }} />
+                : <View style={{ height: vs(30) }} />
+            }
+          />
+        )}
+
+        {/* ── Custom Calendar ── */}
+        <CustomCalendarModal
+          visible={showCustomCalendar}
+          onClose={() => setShowCustomCalendar(false)}
+          availableDates={availableDates}
+          selectedDate={selectedDate || new Date()}
+          onDateSelect={(date) => {
+            setSelectedDate(date);
+            setShowCustomCalendar(false);
+            fetchNewsForDate(date);
+          }}
         />
-      ) : (
-        <FlatList
-          ref={listRef}
-          data={flatData}
-          keyExtractor={(row, i) =>
-            row.type === 'dateHeader'
-              ? `date-${row.date}-${i}`
-              : `item-${row.item?.newsid || row.item?.id || i}`
-          }
-          renderItem={renderItem}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-          onEndReached={handleLoadMore}
-          onEndReachedThreshold={0.4}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={handleRefresh}
-              colors={[COLORS.primary]}
-              tintColor={COLORS.primary}
-            />
-          }
-          ListEmptyComponent={<EmptyState sf={sf} />}
-          ListFooterComponent={
-            loadingMore
-              ? <ActivityIndicator size="small" color={COLORS.primary} style={{ margin: vs(16) }} />
-              : <View style={{ height: vs(30) }} />
-          }
-        />
-      )}
-      
-      {/* ── Custom Calendar ── */}
-      <CustomCalendarModal
-        visible={showCustomCalendar}
-        onClose={() => setShowCustomCalendar(false)}
-        availableDates={availableDates}
-        selectedDate={selectedDate || new Date()}
-        onDateSelect={(date) => {
-          setSelectedDate(date);
-          setShowCustomCalendar(false);
-          fetchNewsForDate(date);
-        }}
-      />
-      
-      {/* ── Taboola Ads ── */}
-      {activeDistrictId && taboolaAds && (
-        <>
-          {/* Mid-content Taboola ad */}
-          {taboolaAds.midmain && (
-            <TaboolaAdSection
-              taboolaAds={taboolaAds}
-              position="midmain"
-              pageUrl="https://www.dinamalar.com/pugarpetti"
-              pageType="article"
-            />
-          )}
-          
-          {/* Bottom Taboola ad */}
-          {taboolaAds.bottom && (
-            <TaboolaAdSection
-              taboolaAds={taboolaAds}
-              position="bottom"
-              pageUrl="https://www.dinamalar.com/pugarpetti"
-              pageType="article"
-            />
-          )}
-        </>
+
+        {/* ── Taboola Ads ── */}
+        {activeDistrictId && taboolaAds && (
+          <>
+            {/* Mid-content Taboola ad */}
+            {taboolaAds.midmain && (
+              <TaboolaAdSection
+                taboolaAds={taboolaAds}
+                position="midmain"
+                pageUrl="https://www.dinamalar.com/pugarpetti"
+                pageType="article"
+              />
+            )}
+
+            {/* Bottom Taboola ad */}
+            {taboolaAds.bottom && (
+              <TaboolaAdSection
+                taboolaAds={taboolaAds}
+                position="bottom"
+                pageUrl="https://www.dinamalar.com/pugarpetti"
+                pageType="article"
+              />
+            )}
+          </>
+        )}
+      </View>
+
+      {/* ── Scroll To Top ── */}
+      {showScrollTop && (
+        <TouchableOpacity style={styles.scrollTopBtn} onPress={scrollToTop} activeOpacity={0.8}>
+          <Ionicons name="arrow-up" size={s(20)} color="#fff" />
+        </TouchableOpacity>
       )}
     </View>
   );
@@ -813,10 +915,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#f2f2f2',
     paddingTop: Platform.OS === 'android' ? 0 : vs(20),
   },
-  titleWrap: { 
-    paddingTop: vs(14), 
-    paddingBottom: vs(6), 
-    backgroundColor: '#fff', 
+  titleWrap: {
+    paddingTop: vs(14),
+    paddingBottom: vs(6),
+    backgroundColor: '#fff',
     paddingHorizontal: ms(14),
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -841,14 +943,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: ms(12),
     justifyContent: "flex-end"
   },
+  dateHeaderWrapLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: vs(2),
+    gap: s(6),
+    paddingHorizontal: ms(12),
+    justifyContent: "flex-start"
+  },
   dateHeaderInner: {
     borderWidth: 1,
     flexDirection: "row",
-    // borderRadius: s(10),
     paddingVertical: ms(3),
     paddingHorizontal: ms(8),
     alignItems: "center",
     borderColor: '#6c757d',
+    // borderRadius: s(8),
   },
   dateHeaderIcon: {
     marginRight: s(3),
@@ -884,6 +994,21 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
   },
   tabsBottomLine: { height: StyleSheet.hairlineWidth, backgroundColor: '#e0e0e0' },
+  swipeArea: { flex: 1 },
+  list: { flex: 1 },
+  scrollTopBtn: {
+    position: 'absolute',
+    bottom: vs(20),
+    right: s(16),
+    backgroundColor: COLORS.primary,
+    padding: s(10),
+    borderRadius: s(30),
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: vs(2) },
+    shadowOpacity: 0.2,
+    shadowRadius: s(4),
+  },
   englishVersionBox: {
     borderWidth: 1,
     borderColor: COLORS.primary,

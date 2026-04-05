@@ -319,7 +319,8 @@ export default function DistrictNewsScreen() {
   const { sf } = useFontSize();
 
   const handleScroll = useCallback((e) => {
-    setShowScrollTop(e.nativeEvent.contentOffset.y > 300);
+    const offsetY = e.nativeEvent.contentOffset.y;
+    setShowScrollTop(offsetY > 300);
   }, []);
 
   const scrollToTop = useCallback(() => {
