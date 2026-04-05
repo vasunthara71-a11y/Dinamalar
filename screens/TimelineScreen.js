@@ -959,7 +959,22 @@ export default function TimelineScreen() {
 
       // mainData.detail — the news items are in the detail array
       const mainData = results[0].status === 'fulfilled' ? results[0].value.data : null;
-      const mainItems = (mainData?.detail || []).filter(item => item != null);
+      let mainItems = [];
+      
+      // Handle different possible response structures
+      if (mainData?.detail && Array.isArray(mainData.detail)) {
+        mainItems = mainData.detail.filter(item => item != null);
+      } else if (mainData?.data && Array.isArray(mainData.data)) {
+        mainItems = mainData.data.filter(item => item != null);
+      } else if (Array.isArray(mainData)) {
+        mainItems = mainData.filter(item => item != null);
+      } else if (mainData && typeof mainData === 'object') {
+        // If it's an object but no detail/data array, try to find array values
+        const arrayValues = Object.values(mainData).filter(val => Array.isArray(val));
+        if (arrayValues.length > 0) {
+          mainItems = arrayValues[0].filter(item => item != null);
+        }
+      }
 
       console.log('=== Timeline Data Flow Debug ===');
       console.log('API Result Status:', results[0].status);

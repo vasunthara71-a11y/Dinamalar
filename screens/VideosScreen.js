@@ -23,7 +23,7 @@ import TopMenuStrip from '../components/TopMenuStrip';
 import DrawerMenu from '../components/DrawerMenu';
 import LocationDrawer from '../components/LocationDrawer';
 import { ms, s, vs } from '../utils/scaling';
-import { CDNApi, API_ENDPOINTS } from '../config/api';
+import { CDNApi, mainApi, API_ENDPOINTS } from '../config/api';
 import { FONTS, NewsCard } from '../utils/constants';
 import { useFontSize } from '../context/FontSizeContext';
 import WebView from 'react-native-webview';
@@ -495,6 +495,48 @@ const VideosScreen = ({ navigation, route }) => {
   const flatListRef = useRef(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
 const [filters, setFilters] = useState({ category: '', date: '', district: '', districtSlug: '' });
+  const [flashNewsCount, setFlashNewsCount] = useState(0);
+
+  // ── Fetch Flash News Count ──────────────────────────────────────────────────────
+  const fetchFlashNewsCount = useCallback(async () => {
+    try {
+      const response = await mainApi.get('/flash');
+      console.log('Flash News API Response for count:', response.data);
+      
+      let newsData = [];
+      
+      // The API returns data in response.data.detail array
+      if (response.data?.detail && Array.isArray(response.data.detail)) {
+        // Filter only flash news items (maincat: "flash")
+        newsData = response.data.detail.filter(item => item.maincat === 'flash');
+        console.log('Filtered flash news items:', newsData.length);
+      }
+      // Fallback to other possible structures
+      else if (response.data?.flash?.Yflash && Array.isArray(response.data.flash.Yflash)) {
+        newsData = response.data.flash.Yflash;
+      } else if (response.data?.flash?.Yflash) {
+        newsData = response.data.flash.Yflash;
+      } else if (Array.isArray(response.data?.flash)) {
+        newsData = response.data.flash;
+      } else if (Array.isArray(response.data)) {
+        newsData = response.data;
+      } else if (response.data?.flash?.data) {
+        newsData = response.data.flash.data;
+      }
+      
+      const count = Math.min(newsData.length, 3); // Show max 3 notifications
+      console.log('Flash news count (capped at 3):', count);
+      setFlashNewsCount(count);
+    } catch (error) {
+      console.error('Error fetching flash news count:', error);
+      setFlashNewsCount(0);
+    }
+  }, []);
+
+  // Fetch flash news count on component mount
+  useEffect(() => {
+    fetchFlashNewsCount();
+  }, [fetchFlashNewsCount]);
   // ── Fetch: CDNApi + API_ENDPOINTS.VIDEO_MAIN (/videomain) ────────────────────
 // In fetchVideos, replace the entire params building logic with this simpler version:
 const fetchVideos = useCallback(async ({ cat = '', date = '', district = '', districtSlug = '', page = 1, append = false } = {}) => {
@@ -1221,7 +1263,7 @@ return (
       <TopMenuStrip
         onMenuPress={handleMenuPress}
         onNotification={handleNotification}
-        notifCount={3}
+        notifCount={flashNewsCount}
         navigation={navigation}
       />
 
