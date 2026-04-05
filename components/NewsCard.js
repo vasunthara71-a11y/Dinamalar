@@ -3,6 +3,8 @@ import React from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
 import { SpeakerIcon } from '../assets/svg/Icons';
 import { Comment } from '../assets/svg/Icons';
+import { VideoPlayButton } from '../assets/svg/Icons';
+import { LatestVideoIcon } from '../assets/svg/Icons';
 import { s, vs, ms } from '../utils/scaling';
 import { FONTS } from '../utils/constants';
 import useAppStyles from '../hooks/useAppStyles';
@@ -22,7 +24,21 @@ const decodeHtml = (html) => {
     .replace(/&nbsp;/g, ' ');
 };
 
-const NewsCard = ({ item, onPress, onCommentPress, isSocialMedia = false, isPremium = false, hideCategory = false, isCartoon = false, sectionTitle = '', is360Degree = false, hideImage = false, hideDescription = false, isIPaper = false }) => {
+const NewsCard = ({ 
+  item, 
+  onPress, 
+  onCommentPress, 
+  isSocialMedia = false, 
+  isPremium = false, 
+  hideCategory = false, 
+  isCartoon = false, 
+  sectionTitle = '', 
+  is360Degree = false, 
+  hideImage = false, 
+  hideDescription = false, 
+  isIPaper = false,
+  onCategoryPress // Add new prop for category press
+}) => {
   const { styles: appSt } = useAppStyles(); // ← font styles, always fresh
   const { sf } = useFontSize(); // ← scaling function
   const [imageError, setImageError] = React.useState(false);
@@ -76,6 +92,17 @@ const NewsCard = ({ item, onPress, onCommentPress, isSocialMedia = false, isPrem
   const hasAudio = item.audio === 1 || item.audio === '1' || item.audio === true ||
     (typeof item.audio === 'string' && item.audio.length > 1 && item.audio !== '0');
 
+  const hasVideo = item.video === 1 || item.video === '1' || item.video === true ||
+    (typeof item.video === 'string' && item.video.length > 1 && item.video !== '0') ||
+    item.videotitle || item.video_url || item.videourl || item.isvideo === 1 ||
+    // Check for video URLs in content/description
+    (item.newsdescription && item.newsdescription.includes('<video>')) ||
+    (item.newsdescription && item.newsdescription.includes('vidgyor.com')) ||
+    (item.newsdescription && item.newsdescription.includes('youtube.com')) ||
+    (item.description && item.description.includes('<video>')) ||
+    (item.description && item.description.includes('vidgyor.com')) ||
+    (item.description && item.description.includes('youtube.com'));
+
   return (
     <View style={NewsCardStyles.wrap}>
       
@@ -99,6 +126,19 @@ const NewsCard = ({ item, onPress, onCommentPress, isSocialMedia = false, isPrem
                 resizeMode="contain"
                 onError={handleImageError}
               />
+            )}
+
+            {/* Video Play Icon Overlay */}
+            {hasVideo && !hideImage && (
+              <View style={NewsCardStyles.videoPlayOverlay}>
+                <TouchableOpacity 
+                  style={NewsCardStyles.videoPlayButton}
+                  onPress={onPress}
+                  activeOpacity={0.8}
+                >
+                  <VideoPlayButton size={s(24)} color="#FFFFFF" />
+                </TouchableOpacity>
+              </View>
             )}
 
             {/* Premium Tag */}
@@ -170,13 +210,18 @@ const NewsCard = ({ item, onPress, onCommentPress, isSocialMedia = false, isPrem
                 {newsdescription}
               </Text>
             </View>
-          )} */}
+          )}
 
-          {/* {!!category && !isSocialMedia && !hideCategory && !isPremium && (
-            <View style={NewsCardStyles.catPill}>
+          {/* Show category pills for EditorChoice screen */}
+          {!!category && !isSocialMedia && !hideCategory && !isPremium && (
+            <TouchableOpacity 
+              style={NewsCardStyles.catPill} 
+              onPress={() => onCategoryPress && onCategoryPress(category, item)}
+              activeOpacity={0.7}
+            >
               <Text style={[NewsCardStyles.catText, appSt.cardCategory]}>{category}</Text>
-            </View>
-          )} */}
+            </TouchableOpacity>
+          )}
 
           <View style={NewsCardStyles.metaRow}>
             <Text style={appSt.cardTime}>{ago}</Text>
