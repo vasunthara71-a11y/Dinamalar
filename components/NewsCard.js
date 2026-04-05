@@ -8,6 +8,7 @@ import { FONTS } from '../utils/constants';
 import useAppStyles from '../hooks/useAppStyles';
 import { useFontSize } from '../context/FontSizeContext';
 import {NewsCard as NewsCardStyles} from '../utils/constants';
+import { Ionicons } from '@expo/vector-icons';
  
 // HTML decode function
 const decodeHtml = (html) => {
@@ -85,9 +86,12 @@ const NewsCard = ({ item, onPress, onCommentPress, isSocialMedia = false, isPrem
           <View style={NewsCardStyles.imageWrap}>
             {imageError ? (
               <View style={[NewsCardStyles.image, NewsCardStyles.imageErrorContainer]}>
-                <Ionicons name="image-outline" size={ms(40)} color="#9CA3AF" />
-                <Text style={[NewsCardStyles.imageErrorText, appSt.cardCategory]}>Image Not Available</Text>
-              </View>
+                <Image 
+                  source={{ uri: 'https://stat.dinamalar.com/new/2025/images/dinamalar-pavala-vizha-logo-day.png' }}
+                  style={[NewsCardStyles.placeholderImage]}
+                  resizeMode="contain"
+                />
+               </View>
             ) : (
               <Image
                 source={{ uri: imageUri }}
@@ -168,11 +172,11 @@ const NewsCard = ({ item, onPress, onCommentPress, isSocialMedia = false, isPrem
             </View>
           )} */}
 
-          {!!category && !isSocialMedia && !hideCategory && !isPremium && (
+          {/* {!!category && !isSocialMedia && !hideCategory && !isPremium && (
             <View style={NewsCardStyles.catPill}>
               <Text style={[NewsCardStyles.catText, appSt.cardCategory]}>{category}</Text>
             </View>
-          )}
+          )} */}
 
           <View style={NewsCardStyles.metaRow}>
             <Text style={appSt.cardTime}>{ago}</Text>

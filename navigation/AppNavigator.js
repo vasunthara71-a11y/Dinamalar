@@ -36,6 +36,7 @@ import linking from './linking';
 import FeedbackForm from '../screens/FeedbackForm';
 import LoginScreen from '../screens/Auth/LoginScreen';
 import ForgotPasswordScreen from '../screens/Auth/ForgotPasswordScreen';
+import PugarPettiScreen from '../screens/PugarPettiScreen';
 // import SignupScreen from '../screens/Auth/SignUpScreen';
    
 const Stack = createNativeStackNavigator();
@@ -97,6 +98,7 @@ const AppNavigator = () => {
 
         <Stack.Screen name='LoginScreen' component={LoginScreen}/>
         <Stack.Screen name='ForgotPasswordScreen' component={ForgotPasswordScreen}/>
+        <Stack.Screen name='PugarPettiScreen' component={PugarPettiScreen}/>
         {/* <Stack.Screen name='SignupScreen' component={SignupScreen}/> */}
 
         

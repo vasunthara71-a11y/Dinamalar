@@ -350,6 +350,8 @@ const DrawerMenu = ({ isVisible, onClose, onMenuPress, navigation }) => {
 
   const [activeSubKey, setActiveSubKey] = useState(null);
 
+  const [hoveredMenuItem, setHoveredMenuItem] = useState(null);
+
   // format: "parentKey__subLink"
 
 
@@ -379,6 +381,7 @@ const DrawerMenu = ({ isVisible, onClose, onMenuPress, navigation }) => {
       // Clear selected sub-items when drawer closes
 
       setSelectedSubItems(new Set());
+      setHoveredMenuItem(null);
 
     }
 
@@ -629,8 +632,28 @@ const DrawerMenu = ({ isVisible, onClose, onMenuPress, navigation }) => {
 
     const isDinamDinamSub = parentTitle === 'தினம் தினம்' && (reacturl.startsWith('/dinamdinam/') || reacturl === '/pugarpetti' || link === '/pugarpetti');
 
-    if (isDinamDinamSub) { navigation?.navigate('CommonSectionScreen', { screenTitle: 'தினம் தினம்', apiEndpoint: '/dinamdinam', allTabLink: '/dinamdinam', initialTabId: item.id != null ? item.id : null, initialTabLink: link || '', initialTabTitle: title || '' }); onClose(); return; }
-
+    if (isDinamDinamSub) { 
+      // Check if this is the PugarPetti item - navigate to PugarPettiScreen directly
+      if (title === 'புகார் பெட்டி' || link === '/pugarpetti') {
+        navigation?.navigate('PugarPettiScreen', {
+          screenTitle: 'புகார் பெட்டி',
+          initialDistrictId: null,
+        });
+        onClose();
+        return;
+      }
+      navigation?.navigate('CommonSectionScreen', { 
+        screenTitle: 'தினம் தினம்', 
+        apiEndpoint: '/dinamdinam', 
+        allTabLink: '/dinamdinam', 
+        initialTabId: item.id != null ? item.id : null, 
+        initialTabLink: link || '', 
+        initialTabTitle: title || '' 
+      }); 
+      onClose(); 
+      return;
+    }
+  
     if (title === 'விளையாட்டு' || link.includes('sports')) { navigation?.navigate('SportsScreen'); onClose(); return; }
 
     if (dinamDinamSubcats && dinamDinamSubcats.length > 0) {
@@ -742,20 +765,15 @@ const DrawerMenu = ({ isVisible, onClose, onMenuPress, navigation }) => {
 
     const resolved = resolveScreenFromLink(link);
 
-    // if (resolved) {
+    if (resolved) {
+      if (resolved.screen === '__external__') Linking.openURL(link);
+      else navigation?.navigate(resolved.screen, { catName: title, ...(resolved.params || {}) });
+      onClose(); return;
+    }
 
-    //   if (resolved.screen === '__external__') Linking.openURL(link);
-
-    //   else navigation?.navigate(resolved.screen, { catName: title, ...(resolved.params || {}) });
-
-    //   onClose(); return;
-
-    // }
-
-    // if (link && link.startsWith('/') && title) { navigation?.navigate('CommonSectionScreen', { screenTitle: title, apiEndpoint: link, allTabLink: link }); onClose(); return; }
+    if (link && link.startsWith('/') && title) { navigation?.navigate('CommonSectionScreen', { screenTitle: title, apiEndpoint: link, allTabLink: link }); onClose(); return; }
 
     onClose();
-
   };
 
 
@@ -828,7 +846,7 @@ const DrawerMenu = ({ isVisible, onClose, onMenuPress, navigation }) => {
           </View>
 
           {/* ── Sign Up ────────────────────────────────────────────────── */}
-          <View style={ds.signUpWrap}>
+          {/* <View style={ds.signUpWrap}>
             <TouchableOpacity 
               style={ds.signUpBtn} 
               activeOpacity={0.8}
@@ -839,7 +857,7 @@ const DrawerMenu = ({ isVisible, onClose, onMenuPress, navigation }) => {
               </Text>
               {isLoggedIn ? <Logout color={P.grey700} size={16} /> : <Login color={P.grey700} size={16} />}
             </TouchableOpacity>
-          </View>
+          </View> */}
 
 
 
@@ -872,17 +890,19 @@ const DrawerMenu = ({ isVisible, onClose, onMenuPress, navigation }) => {
 
                 <TouchableOpacity
 
-                  style={ds.homeRow}
+                  style={[ds.homeRow, hoveredMenuItem === 'home' && ds.homeRowHover]}
 
                   onPress={() => { navigation?.navigate('MainTabs', { screen: 'Home' }); onClose(); }}
 
                   activeOpacity={0.7}
+                  onPressIn={() => setHoveredMenuItem('home')}
+                  onPressOut={() => setHoveredMenuItem(null)}
 
                 >
 
-                  <Home color={P.grey800} size={20} style={{ marginRight: s(12) }} />
+                  <Home color={hoveredMenuItem === 'home' ? P.primary : P.grey800} size={20} style={{ marginRight: s(12) }} />
 
-                  <Text style={{ fontFamily: FONTS.muktaMalar.semibold, fontSize: ms(17), color: P.grey700 }}>
+                  <Text style={{ fontFamily: FONTS.muktaMalar.semibold, fontSize: ms(17), color: hoveredMenuItem === 'home' ? P.primary : P.grey700 }}>
 
                     முகப்பு
 
@@ -899,7 +919,6 @@ const DrawerMenu = ({ isVisible, onClose, onMenuPress, navigation }) => {
                 <View style={ds.topDivider} />
 
 
-
                 {/* menu1 rows */}
 
                 {validMenu1.map((item, index) => (
@@ -908,54 +927,43 @@ const DrawerMenu = ({ isVisible, onClose, onMenuPress, navigation }) => {
 
                     key={`m1-${index}`}
 
-                    style={ds.menuRow}
+                    style={[ds.menuRow, hoveredMenuItem === `m1-${index}` && ds.menuRowHover]}
 
                     onPress={() => handleMenuItemPress(item)}
 
                     activeOpacity={0.7}
+                    onPressIn={() => setHoveredMenuItem(`m1-${index}`)}
+                    onPressOut={() => setHoveredMenuItem(null)}
 
                   >
 
-                    <RightArrow color={P.primary} size={16} style={{ marginRight: s(8) }} />
+                  <RightArrow color={hoveredMenuItem === `m1-${index}` ? P.primary : P.primary} size={16} style={{ marginRight: s(8) }} />
 
-                    <Text style={{ fontFamily: FONTS.muktaMalar.semibold, fontSize: ms(17), color: "#454F5B", flex: 1 }} numberOfLines={1}>
+                  <Text style={{ fontFamily: FONTS.muktaMalar.semibold, fontSize: ms(17), color: hoveredMenuItem === `m1-${index}` ? P.primary : "#454F5B", flex: 1 }} numberOfLines={1}>
 
-                      {item.Title || item.title || item.name || ''}
+                    {item.Title || item.title || item.name || ''}
 
-                    </Text>
+                  </Text>
 
-                  </TouchableOpacity>
+                </TouchableOpacity>
 
                 ))}
 
-
-
                 {/* menuIndex1 rows — same style as menu1 */}
-
                 {validMenuIndex1.map((item, index) => (
-
                   <TouchableOpacity
-
                     key={`mi1-${index}`}
-
-                    style={ds.menuRow}
-
+                    style={[ds.menuRow, hoveredMenuItem === `mi1-${index}` && ds.menuRowHover]}
                     onPress={() => handleMenuItemPress(item)}
-
                     activeOpacity={0.7}
-
+                    onPressIn={() => setHoveredMenuItem(`mi1-${index}`)}
+                    onPressOut={() => setHoveredMenuItem(null)}
                   >
-
-                    <RightArrow color={P.primary} size={25} style={{ marginRight: s(8) }} />
-
-                    <Text style={{ fontFamily: FONTS.muktaMalar.semibold, fontSize: ms(25), color: P.grey800, flex: 1 }} numberOfLines={1}>
-
+                    <RightArrow color={hoveredMenuItem === `mi1-${index}` ? P.primary : P.primary} size={25} style={{ marginRight: s(8) }} />
+                    <Text style={{ fontFamily: FONTS.muktaMalar.semibold, fontSize: ms(25), color: hoveredMenuItem === `mi1-${index}` ? P.primary : P.grey800, flex: 1 }} numberOfLines={1}>
                       {item.Title || item.title || item.name || ''}
-
                     </Text>
-
                   </TouchableOpacity>
-
                 ))}
 
               </View>
@@ -1106,11 +1114,13 @@ const DrawerMenu = ({ isVisible, onClose, onMenuPress, navigation }) => {
 
                         <TouchableOpacity
 
-                          style={ds.menu2Row}
+                          style={[ds.menu2Row, hoveredMenuItem === `m2-${index}` && ds.menu2RowHover]}
 
                           onPress={() => hasSub ? toggleExpandedItem(key) : handleMenuItemPress(item)}
 
                           activeOpacity={0.7}
+                          onPressIn={() => setHoveredMenuItem(`m2-${index}`)}
+                          onPressOut={() => setHoveredMenuItem(null)}
 
                         >
 
@@ -1119,60 +1129,43 @@ const DrawerMenu = ({ isVisible, onClose, onMenuPress, navigation }) => {
                           <View style={ds.menu2IconBox}>
 
                             {isDinamDinam ? (
-
-                              <DinamDinam color={P.grey800} size={s(20)} />
+                              <DinamDinam color={hoveredMenuItem === `m2-${index}` ? P.primary : P.grey800} size={s(20)} />
 
                             ) : isJoshiyam ? (
-
-                              <Joshiyam color={P.grey800} size={s(20)} />
+                              <Joshiyam color={hoveredMenuItem === `m2-${index}` ? P.primary : P.grey800} size={s(20)} />
 
                             ) : isweekly ? (
-
-                              <Varavaram color={P.grey800} size={s(20)} />
+                              <Varavaram color={hoveredMenuItem === `m2-${index}` ? P.primary : P.grey800} size={s(20)} />
 
                             ) : isNri ? (
-
-                              <UlagaTamilar color={P.grey800} size={s(20)} />
+                              <UlagaTamilar color={hoveredMenuItem === `m2-${index}` ? P.primary : P.grey800} size={s(20)} />
 
                             ) : isSpecial ? (
-
-                              <Special color={P.grey800} size={s(20)} />
+                              <Special color={hoveredMenuItem === `m2-${index}` ? P.primary : P.grey800} size={s(20)} />
 
                             ) : isKovil ? (
-
-                              <Kovil color={P.grey800} size={s(20)} />
+                              <Kovil color={hoveredMenuItem === `m2-${index}` ? P.primary : P.grey800} size={s(20)} />
 
                             ) : isCalendar ? (
-
-                              <Calendar color={P.grey800} size={s(20)} />
+                              <Calendar color={hoveredMenuItem === `m2-${index}` ? P.primary : P.grey800} size={s(20)} />
 
                             ) : isSpritual ? (
-
-                              <Aanmigam color={P.grey800} size={s(20)} />
+                              <Aanmigam color={hoveredMenuItem === `m2-${index}` ? P.primary : P.grey800} size={s(20)} />
 
                             ) : isMalargal ? (
-
-                              <Malargal color={P.grey800} size={s(20)} />
+                              <Malargal color={hoveredMenuItem === `m2-${index}` ? P.primary : P.grey800} size={s(20)} />
 
                             ) : isPhoto ? (
-
-                              <Photo color={P.grey800} size={s(20)} />
+                              <Photo color={hoveredMenuItem === `m2-${index}` ? P.primary : P.grey800} size={s(20)} />
 
                             ) : isDistrict ? (
-
-                              <District color={P.grey800} size={s(20)} />
+                              <District color={hoveredMenuItem === `m2-${index}` ? P.primary : P.grey800} size={s(20)} />
 
                             ) : isCinema ? (
-
-                              <Cinema color={P.grey800} size={s(20)} />
-
-                            ) : isKovil ? (
-
-                              <Kovil color={P.grey800} size={s(20)} />
+                              <Cinema color={hoveredMenuItem === `m2-${index}` ? P.primary : P.grey800} size={s(20)} />
 
                             ) : isLight ? (
-
-                              <Light color={P.grey800} size={s(20)} />
+                              <Light color={hoveredMenuItem === `m2-${index}` ? P.primary : P.grey800} size={s(20)} />
 
                             ) : null}
 
@@ -1183,21 +1176,13 @@ const DrawerMenu = ({ isVisible, onClose, onMenuPress, navigation }) => {
                           {/* Title — flex:1 pushes chevron to right edge */}
 
                           <Text
-
                             style={{
-
                               fontFamily: FONTS.muktaMalar.semibold,
-
                               fontSize: ms(16),
-
-                              color: P.grey800,
-
+                              color: hoveredMenuItem === `m2-${index}` ? P.primary : P.grey800,
                               flex: 1,
-
                             }}
-
                             numberOfLines={2}
-
                           >
 
                             {itemTitle}
@@ -1256,7 +1241,7 @@ const DrawerMenu = ({ isVisible, onClose, onMenuPress, navigation }) => {
 
                                   key={`sub-${index}-${si}`}
 
-                                  style={[ds.subRow, isActive && ds.subRowAll]}
+                                  style={[ds.subRow, isActive && ds.subRowAll, hoveredMenuItem === `sub-${index}-${si}` && !isActive && ds.subRowHover]}
 
                                   onPress={() => subTitle === 'All'
 
@@ -1267,23 +1252,19 @@ const DrawerMenu = ({ isVisible, onClose, onMenuPress, navigation }) => {
                                   }
 
                                   activeOpacity={0.7}
+                                  onPressIn={() => setHoveredMenuItem(`sub-${index}-${si}`)}
+                                  onPressOut={() => setHoveredMenuItem(null)}
 
                                 >
 
                                   <Text
 
                                     style={{
-
                                       flex: 1,
-
                                       fontFamily: isActive ? FONTS.muktaMalar.semibold : FONTS.muktaMalar.regular,
-
                                       fontSize: ms(16),
-
-                                      color: isActive ? P.primary : P.grey800,
-
+                                      color: isActive ? P.primary : (hoveredMenuItem === `sub-${index}-${si}` ? P.primary : P.grey800),
                                       marginLeft: ms(10),
-
                                     }}
                                     numberOfLines={1}
 
@@ -1345,11 +1326,13 @@ const DrawerMenu = ({ isVisible, onClose, onMenuPress, navigation }) => {
 
                         key={`follow-${i}`}
 
-                        style={ds.followItem}
+                        style={[ds.followItem, hoveredMenuItem === `follow-${i}` && ds.followItemHover]}
 
                         onPress={() => item.Link && Linking.openURL(item.Link)}
 
                         activeOpacity={0.7}
+                        onPressIn={() => setHoveredMenuItem(`follow-${i}`)}
+                        onPressOut={() => setHoveredMenuItem(null)}
 
                       >
 
@@ -1669,28 +1652,60 @@ const ds = StyleSheet.create({
 
     justifyContent: 'center',
 
-    gap: s(8),
+},
 
-  },
+followItem: {
 
-  followItem: {
+width: s(32), height: s(32),
 
-    width: s(32), height: s(32),
+borderRadius: s(16),
 
-    borderRadius: s(16),
+backgroundColor: P.grey100,
 
-    backgroundColor: P.grey100,
+borderWidth: 1,
 
-    borderWidth: 1,
+borderColor: P.grey300,
 
-    borderColor: P.grey300,
+alignItems: 'center',
 
-    alignItems: 'center',
+justifyContent: 'center',
 
-    justifyContent: 'center',
+overflow: 'hidden',
 
-    overflow: 'hidden',
+},
 
-  },
+// ── Hover styles ─────────────────────────────────────────────────────
+
+homeRowHover: {
+
+backgroundColor: P.primary + '10',
+
+},
+
+menuRowHover: {
+
+backgroundColor: P.primary + '10',
+
+},
+
+menu2RowHover: {
+
+backgroundColor: P.primary + '10',
+
+},
+
+subRowHover: {
+
+backgroundColor: P.primary + '08',
+
+},
+
+followItemHover: {
+
+backgroundColor: P.primary + '15',
+
+borderColor: P.primary,
+
+},
 
 });

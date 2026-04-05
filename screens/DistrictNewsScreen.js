@@ -24,6 +24,8 @@ import { useFontSize } from '../context/FontSizeContext';
 import { mvs } from 'react-native-size-matters';
 import TEXT_STYLES from '../utils/textStyles';
 import { Ionicons } from '@expo/vector-icons';
+import CustomCalendarModal from '../components/Customcalendarmodal';
+import { TaboolaAdSection } from '../components/TaboolaComponent';
 
 const PALETTE = {
   primary: '#096dd2',
@@ -47,6 +49,28 @@ const stripHtml = (html) => {
 // ─── Helper: is this the "All" tab? ──────────────────────────────────────────
 // The All tab has no `id` field and link === '/district'
 const isAllDistrict = (d) => !d || !d.id || d.title === 'All';
+
+// ─── Group news by date ───────────────────────────────────────────────────────
+function groupByDate(items) {
+  const flat = [];
+  let currentDate = null;
+  let isFirstDate = true; // Track if this is the first (latest) date
+
+  items.forEach(item => {
+    const rawDate = item.ago || item.date || item.time_date || '';
+    // Normalize date to a comparable key
+    const dateKey = rawDate.split(' ')[0] || rawDate; // Take just the date part
+
+    if (dateKey && dateKey !== currentDate) {
+      currentDate = dateKey;
+      flat.push({ type: 'dateHeader', date: rawDate, dateKey, isClickable: isFirstDate });
+      isFirstDate = false; // Only the first date is clickable
+    }
+    flat.push({ type: 'item', item });
+  });
+
+  return flat;
+}
 
 // ─── Skeleton ─────────────────────────────────────────────────────────────────
 function SkeletonCard() {
@@ -90,7 +114,7 @@ const st = StyleSheet.create({
 function NewsCard({ item, onPress }) {
   const { sf } = useFontSize();
   const [imageError, setImageError] = useState(false);
-  
+
   const imageUri =
     item.largeimages || item.images || item.image || item.thumbnail || item.thumb ||
     'https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_default.jpg?im=Resize,width=400';
@@ -109,13 +133,17 @@ function NewsCard({ item, onPress }) {
         {/* Image with horizontal padding */}
         <View style={NewsCardStyles.imageWrap}>
           {imageError ? (
-            <View style={NewsCardStyles.imageErrorContainer}>
-              <Ionicons name="image-outline" size={s(40)} color="#ccc" />
+            <View style={[NewsCardStyles.image, NewsCardStyles.imageErrorContainer]}>
+              <Image
+                source={{ uri: 'https://stat.dinamalar.com/new/2025/images/dinamalar-pavala-vizha-logo-day.png' }}
+                style={[NewsCardStyles.placeholderImage]}
+                resizeMode="contain"
+              />
             </View>
           ) : (
-            <Image 
-              source={{ uri: imageUri }} 
-              style={NewsCardStyles.image} 
+            <Image
+              source={{ uri: imageUri }}
+              style={NewsCardStyles.image}
               resizeMode="contain"
               onError={() => setImageError(true)}
             />
@@ -129,11 +157,11 @@ function NewsCard({ item, onPress }) {
           )}
 
           {/* Category pill — gray, matches screenshot */}
-          {!!category && (
+          {/* {!!category && (
             <View style={NewsCardStyles.catPill}>
               <Text style={[NewsCardStyles.catText, { fontSize: sf(12) }]}>{category}</Text>
             </View>
-          )}
+          )} */}
 
           {/* Meta row */}
           <View style={NewsCardStyles.metaRow}>
@@ -191,7 +219,7 @@ function DistrictPicker({ visible, districts, selectedId, onSelect, onClose }) {
                   onPress={() => onSelect(d)}
                   activeOpacity={0.7}
                 >
-                  <Text style={[dp.rowText, isSelected && dp.rowTextActive,{fontSize: sf(14)}]}>
+                  <Text style={[dp.rowText, isSelected && dp.rowTextActive, { fontSize: sf(14) }]}>
                     {d.title}
                   </Text>
                   {isSelected && (
@@ -255,6 +283,15 @@ export default function DistrictNewsScreen() {
 
   const initialDistrictId = route?.params?.districtId || null;
   const initialDistrictTitle = route?.params?.districtTitle || null;
+  const fromPugarPetti = route?.params?.fromPugarPetti || false;
+  const showAllTab = route?.params?.showAllTab || false;
+
+  console.log('[DistrictNews] Route params debug:', {
+    initialDistrictId,
+    initialDistrictTitle,
+    fromPugarPetti,
+    showAllTab
+  });
 
   const [districts, setDistricts] = useState([]);
   const [activeDistrict, setActiveDistrict] = useState(null);
@@ -273,12 +310,17 @@ export default function DistrictNewsScreen() {
 
   const [isDrawerVisible, setIsDrawerVisible] = useState(false);
   const [isLocationDrawerVisible, setIsLocationDrawerVisible] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [showCalendar, setShowCalendar] = useState(false);
+  const [allDistrictNews, setAllDistrictNews] = useState([]); // keep original unfiltered
+  const [taboolaAds, setTaboolaAds] = useState(null); // Taboola ads state
 
   const flatListRef = useRef(null);
   const { sf } = useFontSize();
 
   const handleScroll = useCallback((e) => {
-    setShowScrollTop(e.nativeEvent.contentOffset.y > 300);
+    const offsetY = e.nativeEvent.contentOffset.y;
+    setShowScrollTop(offsetY > 300);
   }, []);
 
   const scrollToTop = useCallback(() => {
@@ -293,33 +335,47 @@ export default function DistrictNewsScreen() {
       const tabs = d?.subcatlist || [];
       setDistricts(tabs);
 
-      // Always store All sections regardless of which district is active
       const sections = (d?.newlist || []).filter(
         sec => Array.isArray(sec?.data) && sec.data.length > 0
       );
       setAllSections(sections);
 
+      // 1. Try match by numeric ID first
       if (initialDistrictId) {
-        // Pre-select district passed via navigation params (e.g. from DistrictDrawer)
         const found = tabs.find(t => String(t.id) === String(initialDistrictId));
         if (found) {
           setActiveDistrict(found);
-          // fetchDistrictNews will be triggered by the useEffect below
-          // initLoading will be cleared after district news loads
           return;
         }
       }
 
-      // Default to Chennai district instead of All tab
-      const chennaiDistrict = tabs.find(t => t.title && (t.title.includes('சென்னை') || t.title.toLowerCase().includes('chennai')));
+      // 2. Try match by title (from LocationDrawer which gives string IDs)
+      if (initialDistrictTitle) {
+        const found = tabs.find(t => t.title === initialDistrictTitle);
+        if (found) {
+          setActiveDistrict(found);
+          return;
+        }
+      }
+
+      // 3. Default to Chennai
+      const chennaiDistrict = tabs.find(
+        t => t.title && (t.title.includes('சென்னை') || t.title.toLowerCase().includes('chennai'))
+      );
       setActiveDistrict(chennaiDistrict || tabs[0] || null);
+
+      // Set Taboola ads from API response
+      if (d?.taboola_ads?.mobile) {
+        setTaboolaAds(d.taboola_ads.mobile);
+      }
+
     } catch (e) {
       console.error('DistrictNewsScreen fetchAll error:', e?.message);
     } finally {
       setInitLoading(false);
       setRefreshing(false);
     }
-  }, [initialDistrictId]);
+  }, [initialDistrictId, initialDistrictTitle]); // ← add initialDistrictTitle to deps
 
   useEffect(() => { fetchAll(); }, []);
 
@@ -351,25 +407,22 @@ export default function DistrictNewsScreen() {
 
   // ── Fetch specific district news ──────────────────────────────────────────
   const fetchDistrictNews = useCallback(async (district, pg, append = false) => {
-    // Skip if no district or it's the All tab (no id)
     if (isAllDistrict(district)) return;
-
     try {
-      // district.link is like "/districtdata?cat=267" — always has a ?
       const sep = district.link.includes('?') ? '&' : '?';
       const url = `${district.link}${sep}page=${pg}`;
-      console.log('DistrictNews fetch:', url);
-
       const res = await CDNApi.get(url);
       const d = res?.data;
       const list = extractList(d);
       const lp = extractLastPage(d);
 
-      console.log(`District ${district.title}: found ${list.length} items`);
-
       setLastPage(lp);
-      setDistrictNews(prev => append ? [...prev, ...list] : list);
       setPage(pg);
+      // ✅ Store original unfiltered list
+      setAllDistrictNews(prev => append ? [...prev, ...list] : list);
+      setDistrictNews(prev => append ? [...prev, ...list] : list);
+      // ✅ Clear date filter when new district loads
+      setSelectedDate(null);
     } catch (e) {
       console.error('DistrictNews fetch error:', e?.message);
     } finally {
@@ -378,6 +431,88 @@ export default function DistrictNewsScreen() {
       setRefreshing(false);
     }
   }, []);
+
+
+  const handleDateSelect = (date) => {
+    setSelectedDate(date);
+    setShowCalendar(false);
+
+    if (!date) {
+      // Clear filter — restore full list
+      setDistrictNews(allDistrictNews);
+      return;
+    }
+
+    // Format selected date to match item.ago format: "05-Apr-2026"
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const d = date.getDate().toString().padStart(2, '0');
+    const m = months[date.getMonth()];
+    const y = date.getFullYear();
+    const formattedDate = `${d}-${m}-${y}`;
+
+    console.log('[DistrictNews] Filtering by date:', formattedDate);
+
+    const filtered = allDistrictNews.filter(item => {
+      const itemDate = item.ago || item.date || '';
+      return itemDate === formattedDate;
+    });
+
+    console.log('[DistrictNews] Filtered count:', filtered.length);
+    setDistrictNews(filtered);
+  };
+
+  const handleDateHeaderPress = (dateStr) => {
+    // Parse the date string to set initial date for picker
+    let parsedDate = new Date();
+    if (dateStr) {
+      // Handle formats: "2025-08-06", "06-Aug-2025", "06/08/2025"
+      if (dateStr.match(/^\d{4}-\d{2}-\d{2}/)) {
+        const [year, month, day] = dateStr.split('T')[0].split('-');
+        parsedDate = new Date(year, month - 1, day);
+      } else if (dateStr.match(/^\d{2}-[A-Za-z]{3}-\d{4}/)) {
+        const parts = dateStr.split('-');
+        const day = parts[0];
+        const engMonths = {
+          Jan: '01', Feb: '02', Mar: '03', Apr: '04', May: '05', Jun: '06',
+          Jul: '07', Aug: '08', Sep: '09', Oct: '10', Nov: '11', Dec: '12',
+        };
+        const month = engMonths[parts[1]] || '01';
+        const year = parts[2];
+        parsedDate = new Date(year, month - 1, day);
+      } else if (dateStr.match(/^\d{2}\/\d{2}\/\d{4}/)) {
+        const [day, month, year] = dateStr.split('/');
+        parsedDate = new Date(year, month - 1, day);
+      }
+    }
+    setSelectedDate(parsedDate);
+    setShowCalendar(true);
+  };
+
+  // Extract available dates from current news list
+  const availableDates = React.useMemo(() => {
+    const dateSet = new Set();
+    allDistrictNews.forEach(item => {
+      const rawDate = item.ago || item.date || '';
+      if (!rawDate) return;
+      let isoDate = null;
+      if (rawDate.match(/^\d{2}-[A-Za-z]{3}-\d{4}/)) {
+        const ENG = {
+          Jan: '01', Feb: '02', Mar: '03', Apr: '04', May: '05', Jun: '06',
+          Jul: '07', Aug: '08', Sep: '09', Oct: '10', Nov: '11', Dec: '12',
+        };
+        const [d, m, y] = rawDate.split('-');
+        isoDate = `${y}-${ENG[m] || '01'}-${d.padStart(2, '0')}`;
+      } else if (rawDate.match(/^\d{2}-\d{2}-\d{4}/)) {
+        const [d, m, y] = rawDate.split('-');
+        isoDate = `${y}-${m}-${d}`;
+      } else if (rawDate.match(/^\d{4}-\d{2}-\d{2}/)) {
+        isoDate = rawDate.substring(0, 10);
+      }
+      if (isoDate) dateSet.add(isoDate);
+    });
+    return Array.from(dateSet).sort((a, b) => new Date(b) - new Date(a));
+  }, [allDistrictNews]);
+
 
   // ── Re-fetch when district changes ───────────────────────────────────────
   useEffect(() => {
@@ -492,21 +627,25 @@ export default function DistrictNewsScreen() {
   const goToSearch = () => navigation.navigate('SearchScreen');
 
   const handleSelectDistrict = (district) => {
-    console.log('DistrictNews district selected from location drawer:', district);
-    if (district?.title) {
-      // If the same district is selected, just close drawer
-      if (district.title === headerTitle) {
-        setIsLocationDrawerVisible(false);
-        return;
-      }
+    setIsLocationDrawerVisible(false);
 
-      // Navigate to DistrictNewsScreen with the selected district
-      // This will work whether we're on DistrictNewsScreen or another screen
-      navigation.navigate('DistrictNewsScreen', {
-        districtId: district.id,
-        districtTitle: district.title
-      });
+    // Match by title against the districts array loaded from /district API
+    // (which has proper numeric id + link fields needed for fetching)
+    const matched = districts.find(
+      d => d.title === district.title ||
+        (district.id && String(d.id) === String(district.id))
+    );
+
+    if (!matched) {
+      console.warn('[DistrictNews] No match found for:', district.title);
+      return;
     }
+
+    // Skip if same district already active
+    if (String(matched.id) === String(activeDistrict?.id)) return;
+
+    flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
+    setActiveDistrict(matched);
   };
 
   const isAllTab = isAllDistrict(activeDistrict);
@@ -521,14 +660,13 @@ export default function DistrictNewsScreen() {
       });
       return flat;
     }
-    return districtNews.map((item) => ({ type: 'news', item }));
+    // Group district news by date for clickable date filtering
+    return groupByDate(districtNews);
   };
 
   const flatData = buildFlatData();
   const isLoading = initLoading || tabLoading;
-  const headerTitle = (!isAllTab && activeDistrict?.title)
-    ? activeDistrict.title
-    : 'உள்ளூர்';
+  const headerTitle = (!isAllTab && activeDistrict?.title) ? activeDistrict.title : 'உள்ளூர்';
 
   const renderItem = ({ item: row }) => {
     if (row.type === 'section') {
@@ -537,6 +675,35 @@ export default function DistrictNewsScreen() {
           <SectionTitle title={row.title} />
         </View>
       );
+    }
+    if (row.type === 'dateHeader') {
+      if (row.isClickable) {
+        return (
+          <TouchableOpacity 
+            style={styles.dateHeaderWrap}
+            onPress={() => handleDateHeaderPress(row.date)}
+            activeOpacity={0.7}
+          >
+            <View style={styles.dateHeaderInner}>
+              <Ionicons name="calendar-outline" size={s(15)} color="#555" style={styles.dateHeaderIcon} />
+              <Text style={styles.dateHeaderText}>{row.date}</Text>
+            </View>
+          </TouchableOpacity>
+        );
+      } else {
+        // Non-clickable date header - left aligned without TouchableOpacity
+        return (
+          <View style={styles.dateHeaderWrapLeft}>
+            <View style={[styles.dateHeaderInner,{borderTopRightRadius: s(8), borderBottomRightRadius: s(8)}]}>
+              <Ionicons name="calendar-outline" size={s(15)} color="#555" style={styles.dateHeaderIcon} />
+              <Text style={styles.dateHeaderText}>{row.date}</Text>
+            </View>
+          </View>
+        );
+      }
+    }
+    if (row.type === 'item') {
+      return <NewsCard item={row.item} onPress={() => goToArticle(row.item)} />;
     }
     return <NewsCard item={row.item} onPress={() => goToArticle(row.item)} />;
   };
@@ -560,31 +727,77 @@ export default function DistrictNewsScreen() {
           onSearch={goToSearch}
           onMenu={() => setIsDrawerVisible(true)}
           onLocation={() => setIsLocationDrawerVisible(true)}
-          selectedDistrict={headerTitle}
+          selectedDistrict={"உள்ளூர்"}
         />
       </UniversalHeaderComponent>
 
       <View style={styles.pageTitleRow}>
         <View style={styles.pageTitleLeft}>
-          <Text style={[styles.pageTitle, { fontSize: sf(18) }]}>{headerTitle}</Text>
+          <Text style={[styles.pageTitle, { fontSize: sf(16) }]}>{headerTitle}</Text>
           <View style={styles.pageTitleUnderline} />
         </View>
 
-        <TouchableOpacity
-          style={styles.pickerBtn}
-          onPress={() => setPickerVisible(true)}
-          activeOpacity={0.8}
-        >
-          <Text style={[styles.pickerBtnText, { fontSize: sf(10) }]}>உள்ளூர் செய்திகள்</Text>
-          <Ionicons name="chevron-down" size={s(14)} color={COLORS.text} />
-        </TouchableOpacity>
+        {/* All tab flow: show district picker */}
+        {showAllTab && (
+          <TouchableOpacity
+            style={styles.pickerBtn}
+            onPress={() => setPickerVisible(true)}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.pickerBtnText, { fontSize: sf(10) }]}>உள்ளூர் செய்திகள்</Text>
+            <Ionicons name="chevron-down" size={s(14)} color={COLORS.text} />
+          </TouchableOpacity>
+        )}
+
+        {/* Specific district flow: show புகார் பெட்டி back button */}
+        {fromPugarPetti && !showAllTab && (
+          <TouchableOpacity
+            style={styles.seithigalBox}
+            onPress={() => navigation.navigate('PugarPettiScreen', {
+              initialDistrictId: activeDistrict?.id,
+            })}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.seithigalText}>புகார் பெட்டி</Text>
+          </TouchableOpacity>
+        )}
       </View>
+
+      {/* ── District Tabs (horizontal view like PugarPetti) - only show when from PugarPetti and not All tab ── */}
+      {fromPugarPetti && !showAllTab && districts.length > 0 && (
+        <View style={styles.tabsWrap}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.tabsContent}
+          >
+            {districts.map((district, index) => {
+              const isActive = activeDistrict?.id
+                ? String(district.id) === String(activeDistrict.id)
+                : activeDistrict === null && index === 0;
+              const tabKey = String(district.id || index);
+              return (
+                <TouchableOpacity
+                  key={`tab-${tabKey}-${index}`}
+                  style={[styles.tab, isActive && styles.tabActive]}
+                  onPress={() => handleDistrictSelect(district)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[styles.tabText, isActive && styles.tabTextActive, { fontSize: ms(15) }]}>
+                    {district.title}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+          <View style={styles.tabsBottomLine} />
+        </View>
+      )}
 
       {isLoading ? (
         <FlatList
           data={[1, 2, 3, 4]}
           keyExtractor={i => `sk-${i}`}
-          renderItem={() => <SkeletonCard />}
           contentContainerStyle={styles.listContent}
           style={styles.list}
         />
@@ -613,20 +826,32 @@ export default function DistrictNewsScreen() {
               tintColor={COLORS.primary}
             />
           }
-          ListEmptyComponent={
-            <View style={styles.emptyWrap}>
-              <Ionicons name="location-outline" size={s(48)} color="#ccc" />
-              <Text style={[styles.emptyText, { fontSize: sf(15) }]}>செய்திகள் இல்லை</Text>
-            </View>
-          }
-          ListFooterComponent={
-            loadMore ? (
-              <View style={styles.footerLoader}>
-                <ActivityIndicator size="small" color={COLORS.primary} />
-              </View>
-            ) : <View style={{ height: vs(40) }} />
-          }
         />
+      )}
+
+      {/* ── Taboola Ads ── */}
+      {!isAllTab && taboolaAds && (
+        <>
+          {/* Mid-content Taboola ad */}
+          {taboolaAds.midmain && (
+            <TaboolaAdSection
+              taboolaAds={taboolaAds}
+              position="midmain"
+              pageUrl="https://www.dinamalar.com/district"
+              pageType="article"
+            />
+          )}
+          
+          {/* Bottom Taboola ad */}
+          {taboolaAds.bottom && (
+            <TaboolaAdSection
+              taboolaAds={taboolaAds}
+              position="bottom"
+              pageUrl="https://www.dinamalar.com/district"
+              pageType="article"
+            />
+          )}
+        </>
       )}
 
       {/* ── Scroll To Top ── */}
@@ -643,6 +868,15 @@ export default function DistrictNewsScreen() {
         selectedId={activeDistrict?.id}
         onSelect={handleDistrictSelect}
         onClose={() => setPickerVisible(false)}
+      />
+
+      {/* ── Calendar Modal ── */}
+      <CustomCalendarModal
+        visible={showCalendar}
+        selectedDate={selectedDate}
+        availableDates={availableDates}
+        onDateSelect={handleDateSelect}
+        onClose={() => setShowCalendar(false)}
       />
 
     </View>
@@ -671,7 +905,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   pageTitle: {
-    fontSize: sf(18),
+    fontSize: sf(16),
     fontFamily: FONTS.muktaMalar.bold,
     color: '#1a1a1a',
     // marginBottom: vs(3),
@@ -696,7 +930,7 @@ const styles = StyleSheet.create({
     fontSize: ms(12),
     fontFamily: FONTS.muktaMalar.regular,
     color: COLORS.text,
-    fontWeight:'700'
+    fontWeight: '700'
   },
   list: { flex: 1 },
   listContent: { paddingTop: vs(6), paddingBottom: vs(30) },
@@ -711,6 +945,11 @@ const styles = StyleSheet.create({
     paddingVertical: vs(80), gap: vs(12),
   },
   emptyText: { fontSize: ms(15), fontFamily: FONTS.muktaMalar.semibold, color: '#aaa' },
+  placeholderImage: {
+    width: s(120),
+    height: s(120),
+    opacity: 0.3,
+  },
   footerLoader: { paddingVertical: vs(20), alignItems: 'center' },
   scrollTopBtn: {
     position: 'absolute',
@@ -723,5 +962,83 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: vs(2) },
     shadowOpacity: 0.2,
     shadowRadius: s(4),
+  },
+  seithigalContainer: {
+    backgroundColor: '#fff',
+    paddingHorizontal: s(12),
+    paddingVertical: vs(8),
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  seithigalBox: {
+    borderWidth: 1,
+    borderColor: COLORS.primary,
+    borderRadius: s(4),
+    paddingHorizontal: s(10),
+    paddingVertical: vs(4),
+    alignSelf: 'flex-start',
+  },
+  seithigalText: {
+    fontSize: ms(13),
+    fontFamily: FONTS.muktaMalar.medium,
+    color: COLORS.primary,
+    fontWeight: '600',
+  },
+  tabsWrap: {
+    backgroundColor: COLORS.white,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: vs(1) },
+    shadowOpacity: 0.08,
+    shadowRadius: s(2),
+  },
+  tabsContent: { paddingHorizontal: s(14), alignItems: 'center' },
+  tab: { paddingHorizontal: s(12), paddingVertical: vs(12), marginHorizontal: s(2), borderBottomWidth: vs(3), borderBottomColor: 'transparent' },
+  tabActive: { borderBottomColor: COLORS.primary },
+  tabText: {
+    fontSize: ms(16),
+    fontFamily: FONTS.muktaMalar.medium,
+    color: COLORS.black,
+  },
+  tabTextActive: {
+    fontSize: ms(13),
+    fontFamily: FONTS.muktaMalar.bold,
+    color: COLORS.primary,
+  },
+  tabsBottomLine: { height: StyleSheet.hairlineWidth, backgroundColor: '#e0e0e0' },
+  dateHeaderWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: vs(2),
+    gap: s(6),
+    paddingHorizontal: ms(12),
+    justifyContent: "flex-end"
+  },
+  dateHeaderWrapLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: vs(2),
+    gap: s(6),
+    paddingHorizontal: ms(12),
+    justifyContent: "flex-start"
+  },
+  dateHeaderInner: {
+    borderWidth: 1,
+    flexDirection: "row",
+    paddingVertical: ms(3),
+    paddingHorizontal: ms(8),
+    alignItems: "center",
+    borderColor: '#6c757d',
+    // borderRadius: s(8),
+  },
+  dateHeaderIcon: {
+    marginRight: s(3),
+    color: '#6c757d',
+  },
+  dateHeaderText: {
+    fontSize: ms(14),
+    fontFamily: FONTS.muktaMalar.medium,
+    color: '#6c757d',
+    fontWeight: '600',
   },
 });
