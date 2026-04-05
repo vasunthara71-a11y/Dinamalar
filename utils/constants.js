@@ -73,7 +73,7 @@ export const COLORS = {
 
   text: palette.light.text.primary,
   subtext: palette.light.grey[600],
-  
+
   primary: '#096dd2',
   grey100: '#F9FAFB',
   grey200: '#F4F6F8',
@@ -196,8 +196,13 @@ export const NewsCard = {
     justifyContent: 'center',
     alignItems: 'center',
   },
+  placeholderImage: {
+    width: s(200),
+    height: s(80),
+    opacity: 0.3,
+  },
   premiumTag: {
-     position: 'absolute',
+    position: 'absolute',
     top: 20,
     right: -30,
     transform: [{ rotate: '45deg' }],

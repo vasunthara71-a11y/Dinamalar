@@ -950,13 +950,18 @@ const sk = StyleSheet.create({
 // -----------------------------------------------------------------------------
 // Section Title
 // -----------------------------------------------------------------------------
-function SectionTitle({ title }) {
+function SectionTitle({ title, showArrow = false }) {
   const { sf } = useFontSize();
   return (
     <View style={st.sectionHeader}>
-      <View style={st.titleContainer}>
-        <Text style={[st.sectionTitle, { fontSize: sf(16) }]}>{title || ''}</Text>
-        <View style={st.sectionUnderline} />
+      <View style={[st.titleContainer, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}>
+        <View>
+          <Text style={[st.sectionTitle, { fontSize: sf(16) }]}>{title || ''}</Text>
+          <View style={st.sectionUnderline} />
+        </View>
+        {showArrow && (
+          <Ionicons name="chevron-forward" size={s(18)} color={PALETTE.primary} />
+        )}
       </View>
     </View>
   );
@@ -3193,6 +3198,16 @@ export default function CommonSectionScreen() {
       return;
     }
 
+    // -- PugarPetti tab from dinamdinam ? navigate to PugarPettiScreen --
+    if (apiEndpoint?.includes('dinamdinam') && tab.link === '/pugarpetti') {
+      console.log('?? PugarPetti tab pressed - navigating to PugarPettiScreen');
+      navigation.navigate('PugarPettiScreen', {
+        screenTitle: 'புகார் பெட்டி',
+        initialDistrictId: null,
+      });
+      return;
+    }
+
     if (alreadyActive) return;
 
     const nextTab = { ...tab, _isAllTab: pressedIsAll };
@@ -3606,6 +3621,24 @@ export default function CommonSectionScreen() {
       }
     }
 
+    // -- PugarPetti (DinamDinam) Navigation ------------------------------------
+    if (apiEndpoint?.includes('dinamdinam') || apiEndpoint === '/dinamdinam') {
+      // Check if this item belongs to pugarpetti section by maincatid or category
+      const pugarpettiCatIds = ['1724', 1724]; // pugarpetti category id from API
+      if (
+        pugarpettiCatIds.includes(item.category) ||
+        pugarpettiCatIds.includes(String(item.category)) ||
+        item.catengtitle === 'Pugar petti' ||
+        item.categrorytitle === 'புகார் பெட்டி'
+      ) {
+        navigation.navigate('PugarPettiScreen', {
+          screenTitle: 'புகார் பெட்டி',
+          initialDistrictId: item.maincatid || null,
+        });
+        return;
+      }
+    }
+
     // -- 5. Default -------------------------------------------------------------
     // Check if item is a video and navigate to NewsDetailsScreen
     if (hasVideo) {
@@ -3928,10 +3961,25 @@ export default function CommonSectionScreen() {
       return <DateHeader date={row.date} />;
     }
 
-    if (row.type === 'section')
-      return <View style={styles.sectionWrap}>
-        <SectionTitle title={row.title} />
-      </View>;
+    if (row.type === 'section') {
+      const isPugar = row.title === 'புகார் பெட்டி';
+      return (
+        <TouchableOpacity
+          style={styles.sectionWrap}
+          activeOpacity={isPugar ? 0.7 : 1}
+          onPress={() => {
+            if (isPugar) {
+              navigation.navigate('PugarPettiScreen', {
+                screenTitle: 'புகார் பெட்டி',
+                initialDistrictId: null,
+              });
+            }
+          }}
+        >
+          <SectionTitle title={row.title} showArrow={isPugar} />
+        </TouchableOpacity>
+      );
+    }
 
     if (row.type === 'news' && row.item?._isCategoryCard)
       return (
@@ -4578,7 +4626,7 @@ if (row.type === 'rasi' || row.type === 'individualRasi')
 // Styles
 // -----------------------------------------------------------------------------
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f2f2f2', paddingTop: Platform.OS === 'android' ? vs(20) : 20 },
+  container: { flex: 1, backgroundColor: '#f2f2f2', paddingTop: Platform.OS === 'android' ? vs(0) : 20 },
   pageTitleWrap: { paddingTop: vs(14), paddingBottom: vs(6), backgroundColor: '#fff' },
   pageTitle: { fontSize: 18, fontFamily: FONTS.anek.bold, color: '#111', paddingHorizontal: s(12), marginBottom: vs(4) },
 
