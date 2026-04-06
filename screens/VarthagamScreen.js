@@ -324,7 +324,7 @@ function MoreLink({ label, onPress }) {
 function NewsCard({ item, onPress }) {
   const { sf } = useFontSize();
   const [imageError, setImageError] = useState(false);
-  
+
   const imageUri =
     item.images || item.largeimages || item.image || item.thumbnail ||
     'https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_default.jpg?im=Resize,width=400';
@@ -344,10 +344,10 @@ function NewsCard({ item, onPress }) {
             />
           </View>
         ) : (
-          <Image 
-            source={{ uri: imageUri }} 
-            style={nc.image} 
-            resizeMode="cover" 
+          <Image
+            source={{ uri: imageUri }}
+            style={nc.image}
+            resizeMode="cover"
             onError={() => setImageError(true)}
           />
         )}
@@ -361,11 +361,11 @@ function NewsCard({ item, onPress }) {
       </View>
       <View style={nc.content}>
         <Text style={[nc.title, { fontSize: sf(14), lineHeight: sf(22) }]} numberOfLines={3}>{title}</Text>
-        {!!category && (
+        {/* {!!category && (
           <View style={nc.catPill}>
             <Text style={[nc.catText, { fontSize: sf(12) }]}>{category}</Text>
           </View>
-        )}
+        )} */}
         <View style={nc.meta}>
           {/* <Ionicons
             name="time-outline"
@@ -514,7 +514,7 @@ export default function VarthagamScreen() {
     const key = activeTab.title === 'All' ? 'All' : String(activeTab.id);
     const layout = tabLayoutsRef.current[key];
     if (!layout) return;
-    
+
     // Use requestAnimationFrame to prevent conflicts
     requestAnimationFrame(() => {
       if (tabScrollRef.current) {
@@ -533,47 +533,47 @@ export default function VarthagamScreen() {
   }, []);
 
   // ── Fetch /varthagam ──────────────────────────────────────────────────────
-const fetchAll = useCallback(async () => {
-  try {
-    const res = await CDNApi.get('/varthagam');
-    const d = res?.data;
-    const tabs = (d?.subcatlist || []).filter(t => t.id !== 'commodity');
-    setSubTabs(tabs);
+  const fetchAll = useCallback(async () => {
+    try {
+      const res = await CDNApi.get('/varthagam');
+      const d = res?.data;
+      const tabs = (d?.subcatlist || []).filter(t => t.id !== 'commodity');
+      setSubTabs(tabs);
 
-    // ── Pick initial tab based on initialTabId param ──
-    if (initialTabId) {
-      const matchedTab = tabs.find(t =>
-        String(t.id) === String(initialTabId)
-      );
-      if (matchedTab) {
-        setActiveTab(matchedTab);
-        // Fetch that tab's news immediately
-        setTabLoading(true);
-        fetchTabNews(matchedTab, 1, false);
+      // ── Pick initial tab based on initialTabId param ──
+      if (initialTabId) {
+        const matchedTab = tabs.find(t =>
+          String(t.id) === String(initialTabId)
+        );
+        if (matchedTab) {
+          setActiveTab(matchedTab);
+          // Fetch that tab's news immediately
+          setTabLoading(true);
+          fetchTabNews(matchedTab, 1, false);
+        } else {
+          setActiveTab(tabs[0]);
+        }
       } else {
-        setActiveTab(tabs[0]);
+        if (tabs.length > 0) setActiveTab(tabs[0]);
       }
-    } else {
-      if (tabs.length > 0) setActiveTab(tabs[0]);
-    }
 
-    setCommodity(d?.commodity || null);
+      setCommodity(d?.commodity || null);
 
-    const newlist = d?.newlist;
-    if (Array.isArray(newlist)) {
-      setAllSections(newlist);
-    } else if (newlist?.data) {
-      setAllSections([{ title: '', data: newlist.data }]);
-    } else {
-      setAllSections([]);
+      const newlist = d?.newlist;
+      if (Array.isArray(newlist)) {
+        setAllSections(newlist);
+      } else if (newlist?.data) {
+        setAllSections([{ title: '', data: newlist.data }]);
+      } else {
+        setAllSections([]);
+      }
+    } catch (e) {
+      console.error('VarthagamScreen fetchAll error:', e?.message);
+    } finally {
+      setInitLoading(false);
+      setRefreshing(false);
     }
-  } catch (e) {
-    console.error('VarthagamScreen fetchAll error:', e?.message);
-  } finally {
-    setInitLoading(false);
-    setRefreshing(false);
-  }
-}, [initialTabId, fetchTabNews]);                             // ← ADD DEPS
+  }, [initialTabId, fetchTabNews]);                             // ← ADD DEPS
 
   useEffect(() => { fetchAll(); }, []);
 
@@ -635,7 +635,7 @@ const fetchAll = useCallback(async () => {
   //    dx < -50 px  AND velocity > 0.3  → left-swipe   (go next)
   //
   const SWIPE_THRESHOLD = 50;   // minimum horizontal distance (px)
-  const SWIPE_VELOCITY  = 0.3;  // minimum velocity
+  const SWIPE_VELOCITY = 0.3;  // minimum velocity
 
   const panResponder = useRef(
     PanResponder.create({
@@ -647,21 +647,21 @@ const fetchAll = useCallback(async () => {
         );
       },
       onPanResponderRelease: (_, gs) => {
-        const tabs     = subTabsRef.current;
-        const curTab   = activeTabRef.current;
+        const tabs = subTabsRef.current;
+        const curTab = activeTabRef.current;
         if (!tabs.length) return;
 
         // Find the index of the current tab
         const curIndex = curTab
           ? tabs.findIndex(t =>
-              curTab.title === 'All'
-                ? t.title === 'All'
-                : String(t.id) === String(curTab.id)
-            )
+            curTab.title === 'All'
+              ? t.title === 'All'
+              : String(t.id) === String(curTab.id)
+          )
           : 0;
 
         const isRightSwipe = gs.dx > SWIPE_THRESHOLD && Math.abs(gs.vx) > SWIPE_VELOCITY;
-        const isLeftSwipe  = gs.dx < -SWIPE_THRESHOLD && Math.abs(gs.vx) > SWIPE_VELOCITY;
+        const isLeftSwipe = gs.dx < -SWIPE_THRESHOLD && Math.abs(gs.vx) > SWIPE_VELOCITY;
 
         if (isRightSwipe && curIndex > 0) {
           // Go to previous tab

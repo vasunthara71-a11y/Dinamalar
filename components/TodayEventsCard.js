@@ -78,31 +78,32 @@ export default function TodayEventsCard({ section, navigation }) {
   }, []);
 
   // ── Fetch events when district changes ────────────────────────────────────
-  const fetchDistrictEvents = async (district) => {
-    try {
-      const res = await CDNApi.get(`/todayevent?district=${district.id}`);
-      const d = res?.data;
+const fetchDistrictEvents = async (district) => {
+  try {
+    console.log('CLICKED DISTRICT:', district.id);
 
-      const raw =
-        d?.data?.[0]?.newsdescription ||
-        d?.newsdescription ||
-        d?.data?.[0]?.description ||
-        d?.description || '';
+    const res = await CDNApi.get(`/todayevent?id=${district.id}`);
 
-      if (raw) {
-        setAllLines(toLines(cleanHtml(raw)));
-        const title = d?.data?.[0]?.newstitle || d?.newstitle || '';
-        if (title) setEventTitle(cleanHtml(title).trim());
-        const s2 = d?.data?.[0]?.slug || d?.slug || '';
-        if (s2) setSlug(s2);
-        const id = d?.data?.[0]?.newsid || d?.newsid || null;
-        if (id) setNewsId(id);
-        setNewsItem(d?.data?.[0] || null);
-      }
-    } catch (e) {
-      console.error('[TodayEvents] fetch error:', e?.message);
+    console.log('FULL RESPONSE:', res.data);
+
+    const newsItem = res?.data?.[0]; // ✅ FIX HERE
+
+    if (newsItem) {
+      const raw = newsItem.newsdescription || '';
+
+      setAllLines(toLines(cleanHtml(raw)));
+      setEventTitle(cleanHtml(newsItem.newstitle || '').trim());
+      setSlug(newsItem.slug || '');
+      setNewsId(newsItem.newsid || null);
+      setNewsItem(newsItem);
+    } else {
+      setAllLines(['இந்த மாவட்டத்தில் இன்று நிகழ்ச்சிகள் இல்லை']);
     }
-  };
+
+  } catch (e) {
+    console.error('ERROR:', e);
+  }
+};
 
   if (!item) return null;
 

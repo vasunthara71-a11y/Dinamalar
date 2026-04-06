@@ -345,8 +345,8 @@ const styles = StyleSheet.create({
   miniPlayerContainer: {
     position: 'absolute',
     right: s(0),
-    top: '60%',
-    marginTop: vs(-80),   // Center vertically by moving up half the container height
+    top: '50%',
+    // marginTop: vs(-80),   // Center vertically by moving up half the container height
     backgroundColor: 'rgba(99, 115, 131, 0.95)',
     borderTopLeftRadius: s(10),
     borderBottomLeftRadius: s(10),

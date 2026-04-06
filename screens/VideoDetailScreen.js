@@ -579,13 +579,13 @@ const VideoDetailScreen = ({ navigation, route }) => {
   // ── Loading / Error ───────────────────────────────────────────────────────
   if (loading && !video) return (
     <SafeAreaView style={S.safe} edges={['top', 'bottom']}>
-      <StatusBar barStyle="dark-content" backgroundColor={PALETTE.white} />
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
       <View style={S.center}><ActivityIndicator size="large" color={PALETTE.primary} /><Text style={{ color: PALETTE.grey600, marginTop: vs(8), fontSize: sf(14) }}>ஏற்றுகிறது...</Text></View>
     </SafeAreaView>
   );
   if (error && !video) return (
     <SafeAreaView style={S.safe} edges={['top', 'bottom']}>
-      <StatusBar barStyle="dark-content" backgroundColor={PALETTE.white} />
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
       <View style={S.center}>
         <Text style={{ fontSize: ms(40), marginBottom: vs(12) }}>😕</Text>
         <Text style={{ color: PALETTE.grey800, fontSize: sf(15) }}>வீடியோ ஏற்ற முடியவில்லை</Text>
@@ -596,7 +596,7 @@ const VideoDetailScreen = ({ navigation, route }) => {
 
   return (
     <SafeAreaView style={S.safe} edges={['top', 'bottom']}>
-      <StatusBar barStyle="dark-content" backgroundColor={PALETTE.white} />
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
 
       <View onLayout={e => { headerH.current = e.nativeEvent.layout.y + e.nativeEvent.layout.height; }}>
         <AppHeaderComponent

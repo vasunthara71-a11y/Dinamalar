@@ -322,7 +322,7 @@ export default function CommodityScreen() {
 
   return (
     <SafeAreaView style={cSt.container} edges={['top', 'left', 'right']}>
-      <StatusBar barStyle="dark-content" backgroundColor={PAL.white} />
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
 
       {/* Header */}
       <View style={cSt.header}>

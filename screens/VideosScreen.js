@@ -24,7 +24,7 @@ import DrawerMenu from '../components/DrawerMenu';
 import LocationDrawer from '../components/LocationDrawer';
 import { ms, s, vs } from '../utils/scaling';
 import { CDNApi, API_ENDPOINTS } from '../config/api';
-import { FONTS, NewsCard } from '../utils/constants';
+import { COLORS, FONTS, NewsCard } from '../utils/constants';
 import { useFontSize } from '../context/FontSizeContext';
 import WebView from 'react-native-webview';
 import { Ionicons } from '@expo/vector-icons';
@@ -1215,9 +1215,8 @@ const ListEmpty = () => {
 // ─────────────────────────────────────────────────────────────────────────────
 return (
   <SafeAreaView style={styles.safe}>
-    <StatusBar barStyle="dark-content" backgroundColor={PALETTE.white} />
-      <StatusBar barStyle="dark-content" backgroundColor={PALETTE.white} />
-
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
+ 
       <TopMenuStrip
         onMenuPress={handleMenuPress}
         onNotification={handleNotification}

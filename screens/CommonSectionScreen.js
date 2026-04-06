@@ -2250,7 +2250,8 @@ export default function CommonSectionScreen() {
           return;
         }
 
-      } else if (isPhotoSubTab) {
+      } else if (isPhotoSubTab || tab._isPhotoTab) {
+        console.log('📸 Fetching photo sub-tab data for:', tab.title, tab.id);
         list =
           (Array.isArray(d?.newlist?.data) && d.newlist.data.length > 0
             ? d.newlist.data.filter(i => !i.type)
@@ -2262,7 +2263,13 @@ export default function CommonSectionScreen() {
           d?.pogaimadam?.data ||
           d?.cartoons?.data ||
           d?.nri?.data ||
+          // Handle new photo API structure
+          (d?.photo?.data && Array.isArray(d.photo.data) 
+            ? d.photo.data.find(section => String(section.maincatid || section.id) === String(tab.id))?.data
+            : null) ||
           extractList(d);
+        
+        console.log('📸 Photo data found:', list?.length || 0, 'items');
       } else {
         list = extractList(d).filter(Boolean);
       }
@@ -2488,7 +2495,7 @@ export default function CommonSectionScreen() {
           photoSections.push({ title: 'பொகை மடம் புகைப்படம்', id: '5001', data: d.pogaimadam.data });
 
         if (d?.cartoons?.data?.length > 0)
-          photoSections.push({ title: 'கார்ட்டூன்ஸ்', id: '5002', data: d.cartoons.data });
+          photoSections.push({ title: 'கார்டூன்ஸ்', id: '5002', data: d.cartoons.data });
 
         if (d?.nri?.data?.length > 0)
           photoSections.push({ title: 'NRI புகைப்படம்', id: '5003', data: d.nri.data });
@@ -2499,18 +2506,64 @@ export default function CommonSectionScreen() {
         if (d?.mostcommented?.data?.length > 0)
           photoSections.push({ title: 'அதிகம் கருத்துரைக்கப்பட்டவை', id: 'mostcommented', data: d.mostcommented.data });
 
-        const tabs = d?.subcatlisting || [];
+        // Handle new photo API structure where data is nested under photo.data
+        if (d?.photo?.data && Array.isArray(d.photo.data)) {
+          d.photo.data.forEach(section => {
+            if (section.data && Array.isArray(section.data) && section.data.length > 0) {
+              // Extract ID from multiple possible sources
+              const sectionId = section.maincatid || 
+                               section.id || 
+                               section.maincatid?.toString() || 
+                               section.id?.toString() ||
+                               section.slug?.split('/').pop() || 
+                               'unknown';
+              photoSections.push({
+                title: section.title || section.etitle || 'புகைப்படம்',
+                id: String(sectionId),
+                data: section.data
+              });
+              console.log(`📸 Created photo section: ${section.title} with ID: ${sectionId}`);
+            }
+          });
+        }
+
+        let tabs = d?.subcatlisting || [];
+        
+        // If no tabs from subcatlisting, create them from photoSections
+        if (tabs.length === 0 && photoSections.length > 0) {
+          tabs = photoSections.map(section => ({
+            id: section.id,
+            title: section.title,
+            link: `/photodetails?cat=${section.id}`,
+            _isPhotoTab: true
+          }));
+        }
+        
+        console.log('📸 Photo sections:', photoSections);
+        console.log('📸 Tabs:', tabs);
+        console.log('📸 Initial tab ID:', initialTabId);
+        
         setSubTabs(tabs);
         setAllSections(photoSections);
         setTaboolaAds(d?.taboola_ads?.mobile || null);
 
         // Handle initial tab selection for photodata
         if (initialTabId && initialTabId !== 'all') {
+          // First look in tabs (subcatlisting)
           const preselected = tabs.find(t => String(t.id) === String(initialTabId));
           if (preselected) {
             setActiveTab({ ...preselected, _isAllTab: false });
             setTabLoading(true);
             fetchTabNews(preselected, 1, false);
+            return;
+          }
+          
+          // If not found in tabs, look in photoSections
+          const photoSection = photoSections.find(s => String(s.id) === String(initialTabId));
+          if (photoSection) {
+            setActiveTab({ ...photoSection, _isAllTab: false });
+            setTabLoading(true);
+            fetchTabNews(photoSection, 1, false);
             return;
           }
         }

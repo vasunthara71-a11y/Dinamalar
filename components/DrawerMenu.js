@@ -660,7 +660,14 @@ const DrawerMenu = ({ isVisible, onClose, onMenuPress, navigation }) => {
 
       const matchedSubcat = dinamDinamSubcats.find(sc => sc.link === link || (sc.id && item.id && String(sc.id) === String(item.id)));
 
-      if (matchedSubcat) { navigation?.navigate('CommonSectionScreen', { screenTitle: 'தினம் தினம்', apiEndpoint: '/dinamdinam', allTabLink: '/dinamdinam', initialTabId: matchedSubcat.id || null, initialTabLink: matchedSubcat.link || '', initialTabTitle: matchedSubcat.title || title }); onClose(); return; }
+      if (matchedSubcat) { 
+      // Handle dinam-dinam subcategories in WebView
+      navigation?.navigate('TempleWebViewScreen', {
+        url: `https://www.dinamalar.com${matchedSubcat.link || link}`
+      });
+      onClose(); 
+      return; 
+    }
 
     }
 
@@ -668,13 +675,44 @@ const DrawerMenu = ({ isVisible, onClose, onMenuPress, navigation }) => {
 
     const isVaravaramParent = parentTitle === 'வாராவாரம்' || parentId === 'varavaram' || parentLink === '/varavaram';
 
-    if (isVaravaramParent) { navigation?.navigate('CommonSectionScreen', { screenTitle: 'வராவாரம்', apiEndpoint: 'https://api-st-cdn.dinamalar.com/varavaram', allTabLink: 'https://api-st-cdn.dinamalar.com/varavaram', initialTabId: id || 'all', initialTabLink: link || '', initialTabTitle: title || '' }); onClose(); return; }
+    if (isVaravaramParent) { 
+      navigation?.navigate('TempleWebViewScreen', {
+        url: 'https://www.dinamalar.com/varavaram'
+      });
+      onClose(); 
+      return; 
+    }
 
-    if (title === 'ஜோசியம்' || id === 'astrology' || link === '/joshiyam' || link.includes('joshiyam')) { navigation?.navigate('CommonSectionScreen', { screenTitle: 'ஜோசியம்', apiEndpoint: '/joshiyam', allTabLink: '/joshiyam', initialTabId: 'all', initialTabLink: '/joshiyam', initialTabTitle: 'அனைத்தும்' }); onClose(); return; }
+    if (title === 'ஜோசியம்' || id === 'astrology' || link === '/joshiyam' || link === 'joshiyam') { 
+      navigation?.navigate('TempleWebViewScreen', {
+        url: 'https://or-staging-kalvimalar.dinamalar.com/astrology'
+      });
+      onClose(); 
+      return;
+    }
 
     const isJoshiyamParent = isJoshiyamItem(parentTitle, parentLink, parentId);
 
-    if (isJoshiyamParent || isJoshiyamItem('', link, id)) { navigation?.navigate('CommonSectionScreen', { screenTitle: 'ஜோசியம்', apiEndpoint: '/joshiyam', allTabLink: '/joshiyam', initialTabId: id || item.etitle || 'all', initialTabLink: link || '', initialTabTitle: title || '' }); onClose(); return; }
+    if (isJoshiyamParent || isJoshiyamItem('', link, id)) { 
+      // Navigate to specific joshiyam link instead of always going to main page
+      let joshiyamUrl;
+      
+      // Use reacturl if available, otherwise fall back to link
+      const targetUrl = item.reacturl || item.slug || link;
+      
+      if (targetUrl.startsWith('/astrology/')) {
+        joshiyamUrl = `https://or-staging-kalvimalar.dinamalar.com${targetUrl}`;
+      } else if (targetUrl.startsWith('/')) {
+        joshiyamUrl = `https://or-staging-kalvimalar.dinamalar.com${targetUrl}`;
+      } else {
+        joshiyamUrl = `https://or-staging-kalvimalar.dinamalar.com/${targetUrl}`;
+      }
+      navigation?.navigate('TempleWebViewScreen', {
+        url: joshiyamUrl
+      });
+      onClose(); 
+      return; 
+    }
 
     if (title === 'உலக தமிழர்' || id === 'nrimain' || link === '/nrimain' || link.includes('nrimain')) { navigation?.navigate('CommonSectionScreen', { screenTitle: 'உலக தமிழர்', apiEndpoint: '/nrimain', allTabLink: '/nrimain' }); onClose(); return; }
 
@@ -728,22 +766,22 @@ const DrawerMenu = ({ isVisible, onClose, onMenuPress, navigation }) => {
     }
 
     if (title === 'கோவில்கள்' || title === 'கோவில்' || id === 'temple' || link === '/temple' || link.includes('temple') || link.includes('kovil') || title.includes('கோவில்')) {
-      Linking.openURL('https://temple.dinamalar.com/').catch(() => 
-        console.log('Failed to open temple website')
-      );
+      navigation?.navigate('TempleWebViewScreen', {
+        url: 'https://temple.dinamalar.com/'
+      });
       onClose(); 
       return; 
     }
 
     if (title === 'சினிமா' || id === 'cinema' || link === '/cinema' || link.includes('cinema')) {
-      Linking.openURL('https://cinema.dinamalar.com/').catch(() => 
-        console.log('Failed to open cinema website')
-      );
+      navigation?.navigate('TempleWebViewScreen', {
+        url: 'https://cinema.dinamalar.com/'
+      });
       onClose(); 
       return; 
     }
 
-    if (title === 'மலர்கள்' || id === 'malargal' || link === '/malargal' || link.includes('malargal')) { navigation?.navigate('CommonSectionScreen', { screenTitle: 'மலர்கள்', apiEndpoint: '/malargal', allTabLink: '/malaragal' }); onClose(); return; }
+    if (title === 'மலர்கள்' || id === 'malargal' || link === '/malargal' || link.includes('malargal')) { navigation?.navigate('CommonSectionScreen', { screenTitle: 'மலர்கள்', apiEndpoint: '/malargal', allTabLink: '/malargal' }); onClose(); return; }
 
     const isMalargalParent = parentTitle === 'மலர்கள்' || parentId === 'malargal' || parentLink === '/malargal';
 
@@ -767,16 +805,39 @@ const DrawerMenu = ({ isVisible, onClose, onMenuPress, navigation }) => {
 
     if (resolved) {
       if (resolved.screen === '__external__') Linking.openURL(link);
-      else navigation?.navigate(resolved.screen, { catName: title, ...(resolved.params || {}) });
+      else navigation?.navigate(resolved.screen, { catName: title, ...(resolved.params || {})});
       onClose(); return;
     }
 
-    if (link && link.startsWith('/') && title) { navigation?.navigate('CommonSectionScreen', { screenTitle: title, apiEndpoint: link, allTabLink: link }); onClose(); return; }
+    // Handle rasi categories - open in WebView
+    if (link.includes('todayrasidata') || link.includes('weeklyrasiupdate') || link.includes('monthlyrasi') || 
+        link.includes('gurupeyerchi') || link.includes('sanipeyerchi') || 
+        link.includes('rahukethupeyarchi') || link.includes('tamilnewyear') || 
+        link.includes('englishnewyear') || link.includes('/subam') || 
+        link.includes('graha-oorai') || link.includes('gowri-panjangam') || 
+        link.includes('importantviratham')) {
+      navigation?.navigate('TempleWebViewScreen', {
+        url: `https://or-staging-kalvimalar.dinamalar.com${link.startsWith('/') ? link : `/${link}`}`
+      });
+      onClose(); 
+      return; 
+    }
+
+    // Only use CommonSectionScreen for other categories that don't need WebView
+    if (link && link.startsWith('/') && title && 
+        !link.includes('todayrasidata') && !link.includes('weeklyrasiupdate') && 
+        !link.includes('monthlyrasi') && !link.includes('gurupeyerchi') && 
+        !link.includes('sanipeyerchi') && !link.includes('rahukethupeyarchi') && 
+        !link.includes('tamilnewyear') && !link.includes('englishnewyear') && 
+        !link.includes('/subam') && !link.includes('graha-oorai') && 
+        !link.includes('gowri-panjangam') && !link.includes('importantviratham')) {
+      navigation?.navigate('CommonSectionScreen', { screenTitle: title, apiEndpoint: link, allTabLink: link }); onClose(); return; 
+    }
 
     onClose();
   };
 
-
+// ...
 
   // ─── Filtered data ────────────────────────────────────────────────────────
 

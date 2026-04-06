@@ -9,6 +9,7 @@ import {
   ScrollView,
   Linking,
   Platform,
+  StatusBar,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { s, vs } from '../utils/scaling';
@@ -673,6 +674,7 @@ const SpecialTodayScreen = () => {
 
   return (
     <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
 
       <UniversalHeaderComponent
         statusBarStyle="dark-content"
@@ -743,11 +745,11 @@ const styles = StyleSheet.create({
  container: {
     flex: 1,
     backgroundColor: COLORS.background || '#f2f2f2',
-    paddingTop: Platform.OS === 'android' ? vs(28) : 0,
+    paddingTop: Platform.OS === 'android' ? vs(0) : 20,
   },  centered:   { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#ffffff' },
 
   tabsWrapper:   { flexGrow: 0, borderBottomWidth: 1, borderBottomColor: '#e9ecef' },
-  tabsContent:   { paddingHorizontal: s(12), paddingVertical: vs(11), gap: s(8), alignItems: 'center' },
+  tabsContent:   { paddingHorizontal: s(10),gap: s(8),  alignItems: 'center' },
   tabBtn:        { paddingHorizontal: s(18), paddingVertical: vs(7), borderRadius: s(25), borderWidth: 1.5, borderColor: COLORS.primary, backgroundColor: '#ffffff' },
   tabBtnActive:  { backgroundColor: COLORS.primary },
   tabText:       { fontSize: ms(14), color: COLORS.primary,  fontFamily: FONTS.muktaMalar.semibold },

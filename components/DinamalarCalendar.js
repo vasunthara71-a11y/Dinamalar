@@ -264,7 +264,7 @@ const st = StyleSheet.create({
 
   // Page title
   pageTitleRow:   { marginBottom: 10 },
-  pageTitle:      { fontSize: 20, fontWeight: '700', color: TEXT1, fontFamily: FONTS.muktaMalar.bold },
+  pageTitle:      { fontSize: 20, fontWeight: '700', color: TEXT1, fontFamily: FONTS.anek.bold },
   titleUnderline: { height: 3, width: 52, backgroundColor: COLORS.primary, },
 
   // Date card

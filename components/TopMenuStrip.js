@@ -81,7 +81,7 @@ function MenuIcon({ uri }) {
 }
 
 // ─── Top Menu Strip ───────────────────────────────────────────────────────────
-export default function TopMenuStrip({ onMenuPress, onNotification, notifCount = 0, navigation }) {
+export default function TopMenuStrip({ onMenuPress, onNotification, notifCount = 0, navigation, hideNotification = false }) {
   const { sf } = useFontSize();
 
   console.log('🔔 TopMenuStrip notifCount prop:', notifCount);
@@ -130,7 +130,7 @@ export default function TopMenuStrip({ onMenuPress, onNotification, notifCount =
       return;
     }
 
-    // ── Everything else → open in device browser (Chrome on Android) ──────
+    // ── Everything else → open in WebView ─────────────────────────────────────
     let url = link;
 
     // Relative path → prepend base domain
@@ -138,7 +138,10 @@ export default function TopMenuStrip({ onMenuPress, onNotification, notifCount =
       url = `https://www.dinamalar.com${url.startsWith('/') ? '' : '/'}${url}`;
     }
 
-    if (url) {
+    if (url && navigation) {
+      navigation.navigate('CommodityWebViewScreen', { url });
+    } else if (url) {
+      // Fallback to external browser if navigation is not available
       Linking.openURL(url).catch(err =>
         console.warn('TopMenuStrip: Could not open URL:', url, err)
       );
@@ -197,15 +200,17 @@ export default function TopMenuStrip({ onMenuPress, onNotification, notifCount =
         })}
       </ScrollView>
 
-      <TouchableOpacity style={styles.notifButton} onPress={() => navigation.navigate('TimelineScreen')} activeOpacity={0.7}>
-        <Ionicons name="notifications" size={s(24)} color={COLORS.primary} />
-        {console.log('🔔 Badge condition check:', notifCount, notifCount > 0)}
-        {notifCount > 0 && (
-          <View style={styles.notifBadge}>
-            <Text style={styles.notifBadgeText}>{notifCount > 99 ? '99+' : notifCount}</Text>
-          </View>
-        )}
-      </TouchableOpacity>
+      {!hideNotification && (
+        <TouchableOpacity style={styles.notifButton} onPress={() => navigation.navigate('TimelineScreen')} activeOpacity={0.7}>
+          <Ionicons name="notifications" size={s(18)} color={COLORS.primary} style={{right:ms(3)}} />
+          {console.log('🔔 Badge condition check:', notifCount, notifCount > 0)}
+          {notifCount > 0 && (
+            <View style={styles.notifBadge}>
+              <Text style={styles.notifBadgeText}>{notifCount > 99 ? '99+' : notifCount}</Text>
+            </View>
+          )}
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
@@ -216,7 +221,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#fff',
     paddingHorizontal: s(0),
-    // paddingVertical: vs(8),
+    paddingVertical: vs(5),
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
@@ -259,7 +264,7 @@ const styles = StyleSheet.create({
   notifBadge: {
     position: 'absolute',
     top: s(4),
-    right: s(4),
+    left:14,
     backgroundColor: '#e53935',
     borderRadius: s(7.5),
     minWidth: s(15),

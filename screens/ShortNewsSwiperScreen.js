@@ -313,7 +313,7 @@ export default function ShortNewsSwiperScreen() {
     if (loading) {
         return (
             <View style={screenSt.container}>
-                <StatusBar barStyle="dark-content" backgroundColor={PALETTE.white} />
+                <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
                 {Header}
                 <SkeletonPage />
             </View>
@@ -324,7 +324,7 @@ export default function ShortNewsSwiperScreen() {
     if (error && data.length === 0) {
         return (
             <View style={screenSt.container}>
-                <StatusBar barStyle="dark-content" backgroundColor={PALETTE.white} />
+                <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
                 {Header}
                 <View style={screenSt.centered}>
                     <Ionicons name="cloud-offline-outline" size={s(48)} color={PALETTE.grey400} />
@@ -344,7 +344,7 @@ export default function ShortNewsSwiperScreen() {
     // ── Main ──────────────────────────────────────────────────────────────────────
     return (
         <View style={screenSt.container}>
-            <StatusBar barStyle="dark-content" backgroundColor={PALETTE.white} translucent={false} />
+            <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} translucent={false} />
 
             {Header}
 

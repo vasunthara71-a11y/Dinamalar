@@ -27,6 +27,9 @@ import ShortNewsSwiperScreen from '../screens/ShortNewsSwiperScreen';
 import VideoDetailScreen from '../screens/VideoDetailScreen';
 import PodcastPlayer from '../screens/PodcastPlayer';
 import CommodityScreen from '../screens/CommodityScreen';
+import CommodityWebViewScreen from '../screens/CommodityWebViewScreen';
+import TempleWebViewScreen from '../screens/TempleWebViewScreen';
+import JoshiyamWebViewScreen from '../screens/JoshiyamWebViewScreen';
 import BookmarkListScreen from '../screens/BookmarkListScreen';
 import AuthorScreen from '../screens/AuthorScreen';
 import TagsScreen from '../screens/TagsScreen';
@@ -88,6 +91,9 @@ const AppNavigator = () => {
         <Stack.Screen name='VideoDetailScreen' component={VideoDetailScreen}/>
         <Stack.Screen name='PodcastPlayer' component={PodcastPlayer}/>
         <Stack.Screen name='CommodityScreen' component={CommodityScreen}/>
+        <Stack.Screen name='CommodityWebViewScreen' component={CommodityWebViewScreen}/>
+        <Stack.Screen name='TempleWebViewScreen' component={TempleWebViewScreen}/>
+        <Stack.Screen name='JoshiyamWebViewScreen' component={JoshiyamWebViewScreen}/>
         <Stack.Screen name='BookmarkListScreen' component={BookmarkListScreen}/>
         <Stack.Screen name='AuthorScreen' component={AuthorScreen}/>
         <Stack.Screen name='TagsScreen' component={TagsScreen}/>
