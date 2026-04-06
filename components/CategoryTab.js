@@ -49,8 +49,13 @@ const CategoryTab = ({
       const specialData = data?.specialtoday?.data || [];
       setSpecialTodayData(specialData.slice(0, 8));
     } catch (error) {
-      console.error('Error fetching Special Today data:', error);
-      setSpecialTodayData([]);
+      if (error.response && error.response.status === 404) {
+        console.error('API endpoint not found:', error);
+        setSpecialTodayData([]);
+      } else {
+        console.error('Error fetching Special Today data:', error);
+        setSpecialTodayData([]);
+      }
     } finally {
       setLoadingSpecial(false);
     }
@@ -66,7 +71,7 @@ const CategoryTab = ({
   const handleRow1Press = (tag) => {
     setRow1Active(row1Active === tag.id ? null : tag.id);
     if (tag.url) {
-      // Use same navigation logic as SpecialToday
+      // Use navigation logic like trending categories
       if (tag.url.includes('anmegam-spirituality') || tag.url.includes('hindu-kathikal')) {
         navigation.navigate('CommonSectionScreen', {
           screenTitle: 'ஆன்மீகம்',
@@ -102,32 +107,10 @@ const CategoryTab = ({
     setRow2Active(row2Active === id ? null : id);
     const url = item.url || item.link || item.Url;
     if (url) {
-      // Use same navigation logic as SpecialToday
-      if (url.includes('anmegam-spirituality') || url.includes('hindu-kathikal')) {
-        navigation.navigate('CommonSectionScreen', {
-          screenTitle: 'ஆன்மீகம்',
-          apiEndpoint: 'https://api-st-cdn.dinamalar.com/anmeegam',
-          allTabLink: 'https://www.dinamalar.com/anmegam-spirituality'
-        });
-      } else if (url.includes('malarkal/ariviyal-malar')) {
-        navigation.navigate('CommonSectionScreen', {
-          screenTitle: 'அறிவியல் மலர்',
-          apiEndpoint: 'https://api-st-cdn.dinamalar.com/ariviyal',
-          allTabLink: 'https://www.dinamalar.com/malarkal/ariviyal-malar-science-articles'
-        });
-      } else {
-        // Extract news ID from URL and navigate to NewsDetailsScreen
-        const urlMatch = url.match(/\/(\d+)(?:\/|$)/);
-        if (urlMatch) {
-          const newsId = urlMatch[1];
-          navigation.navigate('NewsDetailsScreen', { 
-            newsId: newsId,
-            newsItem: { id: newsId, newsid: newsId }
-          });
-        } else {
-          Linking.openURL(url);
-        }
-      }
+      // Open all special today categories in browser
+      Linking.openURL(url).catch(() => {
+        console.log('Failed to open special today URL:', url);
+      });
     } else {
       onCategoryPress?.(id);
     }

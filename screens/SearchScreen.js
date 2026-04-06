@@ -58,8 +58,8 @@ function NewsCard({ item, onPress, sectionTitle = '' }) {
 
   return (
     <View style={[NewsCardStyles.wrap,]}>
-      <TouchableOpacity onPress={onPress} activeOpacity={0.88}>
-        <View style={[NewsCardStyles.imageWrap,{marginHorizontal:ms(0)}]}>
+<TouchableOpacity onPress={() => onPress?.(item)} activeOpacity={0.88}>   
+       <View style={[NewsCardStyles.imageWrap,{marginHorizontal:ms(0)}]}>
           <Image
             source={{ uri: imageUri }}
             style={NewsCardStyles.image}
@@ -243,7 +243,7 @@ var SearchResultItem = function (props) {
     >
       {/* Full width image */}
       {imageUrl ? (
-        <View style={styles.resultImageWrap}>
+        <View style={[styles.resultImageWrap, isPhoto && styles.resultImageWrapPhoto]}>
           <Image source={{ uri: imageUrl }} style={styles.resultImage} resizeMode="cover" />
           {(isVideo || isReels) && (
             <View style={styles.playOverlay}>
@@ -269,18 +269,18 @@ var SearchResultItem = function (props) {
 
       {/* Text content */}
       <View style={styles.resultBody}>
-        <Text style={styles.resultTitle}  >{title}</Text>
+        <Text style={NewsCardStyles.title}  >{title}</Text>
 
         {catLabel ? (
-          <View style={styles.catPill}>
-            <Text style={styles.catPillText}>{catLabel}</Text>
+          <View style={NewsCardStyles.catPill}>
+            <Text style={NewsCardStyles.catPillText}>{catLabel}</Text>
           </View>
         ) : null}
 
         {/* Meta row: date + audio + comments */}
-        <View style={styles.metaRow}>
-          <Text style={styles.metaDate}>{pubDate}</Text>
-          <View style={styles.metaIcons}>
+        <View style={NewsCardStyles.metaRow}>
+          <Text style={NewsCardStyles.metaDate}>{pubDate}</Text>
+          <View style={NewsCardStyles.metaIcons}>
             {hasAudio ? (
               <SpeakerIcon
                 size={ms(16)}
@@ -587,11 +587,11 @@ var SearchScreen = function () {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
 
       <UniversalHeaderComponent
-        statusBarStyle="dark-content"
-        statusBarBackgroundColor="#fff"
+        statusBarStyle="light-content"
+        statusBarBackgroundColor={COLORS.primary}
         onMenuPress={handleMenuPress}
         onNotification={goToNotifs}
         notifCount={0}
@@ -656,14 +656,14 @@ var SearchScreen = function () {
       {!hasSearched ? (
         <ScrollView style={styles.preSearchWrap} showsVerticalScrollIndicator={false}>
           {/* English hint */}
-          <View style={styles.englishHint}>
+          {/* <View style={styles.englishHint}>
             <Text style={styles.englishHintText}>
               To <Text style={styles.boldText}>type / voice search</Text> in English{' '}
             </Text>
             <TouchableOpacity style={styles.clickHereBtn} activeOpacity={0.8}>
               <Text style={styles.clickHereText}>Click Here</Text>
             </TouchableOpacity>
-          </View>
+          </View> */}
 
           {/* Trending topics */}
           {trendingTopics.length > 0 && (
@@ -809,7 +809,7 @@ var styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
-    paddingTop: Platform.OS === 'android' ? vs(30) : 0,
+    paddingTop: Platform.OS === 'android' ? vs(0) :20,
   },
 
   // ── Search bar ──────────────────────────────────────────────────────────────
@@ -918,13 +918,13 @@ var styles = StyleSheet.create({
     borderColor: '#bbb',
     borderRadius: ms(20),
     paddingHorizontal: s(14),
-    paddingVertical: vs(6),
+    paddingVertical: vs(5),
     backgroundColor: '#fff',
   },
   trendingChipText: {
     fontSize: ms(13),
     color: '#333',
-    fontFamily: 'MuktaMalar',
+    fontFamily:FONTS.muktaMalar.regular
   },
 
   // ── Section Title (same as CommonSectionScreen) ───────────────────────────────
@@ -1005,6 +1005,9 @@ var styles = StyleSheet.create({
     position: 'relative',
     overflow: 'hidden',
   },
+  resultImageWrapPhoto: {
+    aspectRatio: 4 / 3, // Larger aspect ratio for photos
+  },
   resultImage: {
     width: '100%',
     height: '100%',
@@ -1017,8 +1020,8 @@ var styles = StyleSheet.create({
     left: s(8),
   },
   playCircle: {
-    width: s(36),
-    height: s(36),
+    width: s(34),
+    height: s(34),
     borderRadius: s(18),
     backgroundColor: '#096dd2',
     justifyContent: 'center',

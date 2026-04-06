@@ -12,6 +12,7 @@ import {
   ScrollView,
   Modal,
   Platform,
+  StatusBar,
 } from 'react-native';
 import { SpeakerIcon } from '../assets/svg/Icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -710,6 +711,7 @@ export default function DistrictNewsScreen() {
 
   return (
     <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
 
       <UniversalHeaderComponent
         showMenu showSearch showNotifications showLocation
@@ -888,7 +890,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f2f2f2',
-    paddingTop: Platform.OS === 'android' ? vs(28) : 0,
+    paddingTop: Platform.OS === 'android' ? vs(0) : 20,
   },
   pageTitleRow: {
     flexDirection: 'row',

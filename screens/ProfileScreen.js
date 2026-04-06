@@ -6,6 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
   Switch,
+  StatusBar,
 } from 'react-native';
 import Slider from '@react-native-community/slider';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -358,14 +359,15 @@ const ProfileScreen = () => {
   const { sf } = useFontSize();
 
   // Load user email from AsyncStorage on component mount and when screen comes into focus
-  useFocusEffect(() => {
+useFocusEffect(
+  React.useCallback(() => {
     const loadUserEmail = async () => {
       try {
         const email = await AsyncStorage.getItem('userEmail');
         console.log('ProfileScreen: Loaded email from AsyncStorage:', email);
+
         if (email) {
           setUserEmail(email);
-          console.log('ProfileScreen: Set userEmail state to:', email);
         } else {
           console.log('ProfileScreen: No email found in AsyncStorage');
         }
@@ -373,8 +375,10 @@ const ProfileScreen = () => {
         console.log('Error loading user email:', error);
       }
     };
+
     loadUserEmail();
-  }, []);
+  }, [])
+);
 
   const goToBookmarks = () => {
     navigation.navigate('BookmarkListScreen');
@@ -382,6 +386,8 @@ const ProfileScreen = () => {
 
   return (
     <ScrollView style={styles.container}>
+            <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
+
 
       {/* ── Header ── */}
       <View style={styles.header}>

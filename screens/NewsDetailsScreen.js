@@ -14,6 +14,7 @@ import {
   View, Text, ScrollView, Image, TouchableOpacity,
   StyleSheet, Platform, Share, Linking, Dimensions,
   Animated, PanResponder,
+  StatusBar,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { FacebookIcon, TwitterIcon, WhatsAppIcon, TelegramIcon, ShareIcon } from '../assets/svg/Icons';
@@ -934,6 +935,17 @@ export default function NewsDetailsScreen() {
 
     console.log('🔍 NewsDetailsScreen fetchDetail called for ID:', id);
 
+    // Check if this is from most commented API - if so, use newsItem directly
+    const isFromMostCommented = route.params?.isFromMostCommented;
+    console.log('🔍 Is from most commented:', isFromMostCommented);
+
+    if (isFromMostCommented && newsItem) {
+      console.log('🔍 Using most commented item directly, skipping API call');
+      setDetail(newsItem);
+      setLoading(false);
+      return;
+    }
+
     // Check if this is flash news - if so, don't fetch API, just show the flash news data
     const isFlashNews = newsItem && (
       newsItem.clr === 'flashnews_Y' ||
@@ -1273,10 +1285,11 @@ export default function NewsDetailsScreen() {
 
   return (
     <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
 
       <UniversalHeaderComponent
-        statusBarStyle="dark-content"
-        statusBarBackgroundColor={COLORS.white}
+        // statusBarStyle="dark-content"
+        // statusBarBackgroundColor={COLORS.white}
         onMenuPress={handleMenuPress}
         onNotification={goToNotifs}
         notifCount={0}
@@ -1536,7 +1549,7 @@ export default function NewsDetailsScreen() {
 
 
 
-              <MoreNews morenewsLink={morenewsLink} />
+              {/* <MoreNews morenewsLink={morenewsLink} /> */}
 
               {/* ── Taboola Mid-article ─────────────────────────────────────
                 After body content. Uses mdinamalarcom / loader.js.
@@ -1663,7 +1676,7 @@ export default function NewsDetailsScreen() {
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  container: { flex: 1, paddingTop: Platform.OS === 'android' ? vs(30) : 20 },
+  container: { flex: 1, paddingTop: Platform.OS === 'android' ? vs(0) : 20 },
   panLayer: { flex: 1, overflow: 'hidden' },
   animLayer: { flex: 1 },
   edgeBtnLeft: {

@@ -96,7 +96,7 @@ const styles = StyleSheet.create({
 
   // Section Header
   sectionHeader: {
-    //  paddingHorizontal: s(12),
+     paddingHorizontal: s(12),
     paddingTop: vs(14),
     paddingBottom: vs(15),
   },
@@ -123,6 +123,7 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     alignItems: 'center',
     gap: s(8),
+    paddingVertical:ms(5)
   },
 
   tagButton: {

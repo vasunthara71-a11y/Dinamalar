@@ -72,23 +72,31 @@ const JOSHI_MENU = [
     {
         title: 'வார ராசிபலன்',
         img: 'https://images.dinamalar.com/2024/weekly-rasi.jpg',
-        screen: 'CommonSectionScreen',
+        // screen: 'CommonSectionScreen',
+        // params: { 
+        //     screenTitle: 'ஜோசியம்',
+        //     apiEndpoint: '/joshiyam',
+        //     allTabLink: '/joshiyam',
+        //     initialTabId: 'weeklyrasi' 
+        // },
+        screen: 'JoshiyamWebViewScreen',
         params: { 
-            screenTitle: 'ஜோசியம்',
-            apiEndpoint: '/joshiyam',
-            allTabLink: '/joshiyam',
-            initialTabId: 'weeklyrasi' 
+            url: 'https://or-staging-kalvimalar.dinamalar.com/astrology/weeklyrasi'
         },
     },
     {
         title: 'மாத ராசி பலன்',
         img: 'https://images.dinamalar.com/2024/monthly-rasi.jpg',
-        screen: 'CommonSectionScreen',
+        // screen: 'CommonSectionScreen',
+        // params: { 
+        //     screenTitle: 'ஜோசியம்',
+        //     apiEndpoint: '/joshiyam',
+        //     allTabLink: '/joshiyam',
+        //     initialTabId: 'monthlyrasipplan' 
+        // },
+        screen: 'JoshiyamWebViewScreen',
         params: { 
-            screenTitle: 'ஜோசியம்',
-            apiEndpoint: '/joshiyam',
-            allTabLink: '/joshiyam',
-            initialTabId: 'monthlyrasipplan' 
+            url: 'https://or-staging-kalvimalar.dinamalar.com/astrology/monthlyrasi'
         },
     },
 ];
@@ -97,12 +105,16 @@ const JOSHI_MENU = [
 const BULLET_ITEMS = [
     { 
         title: 'குருபெயர்ச்சி பலன்கள்', 
-        screen: 'CommonSectionScreen', 
+        // screen: 'CommonSectionScreen', 
+        // params: { 
+        //     screenTitle: 'ஜோசியம்',
+        //     apiEndpoint: '/joshiyam',
+        //     allTabLink: '/joshiyam',
+        //     initialTabId: 'guru_pairchi_palangal' 
+        // },
+        screen: 'JoshiyamWebViewScreen', 
         params: { 
-            screenTitle: 'ஜோசியம்',
-            apiEndpoint: '/joshiyam',
-            allTabLink: '/joshiyam',
-            initialTabId: 'guru_pairchi_palangal' 
+            url: 'https://or-staging-kalvimalar.dinamalar.com/astrology/guru_pairchi_palangal'
         } 
     },
     
@@ -285,12 +297,15 @@ const ago = selectedRasiItem?.standarddate || selectedRasiItem?.ago || '';
             <TouchableOpacity
                 style={jSt.videoCard}
                 onPress={() =>
-                    navigation?.navigate('CommonSectionScreen', {
-                        screenTitle: 'ஜோசியம்',
-                        apiEndpoint: '/joshiyam',
-                        allTabLink: '/joshiyam',
-                        initialTabId: selectedRasi.id,
-                        initialTabLink: selectedRasi.id,
+                    // navigation?.navigate('CommonSectionScreen', {
+                    //     screenTitle: 'ஜோசியம்',
+                    //     apiEndpoint: '/joshiyam',
+                    //     allTabLink: '/joshiyam',
+                    //     initialTabId: selectedRasi.id,
+                    //     initialTabLink: selectedRasi.id,
+                    // })
+                     navigation?.navigate('JoshiyamWebViewScreen', {
+                        url: 'https://or-staging-kalvimalar.dinamalar.com/astrology/todayrasi'
                     })
                 }
                 activeOpacity={0.9}
@@ -468,12 +483,12 @@ const jSt = StyleSheet.create({
     },
     playOverlay: {
         position: 'absolute',
-        bottom: s(10),
-        left: s(10),
+        bottom: s(5),
+        left: s(15),
     },
     playCircle: {
-        width: s(44),
-        height: s(44),
+        width: s(30),
+        height: s(30),
         borderRadius: s(22),
         backgroundColor: 'rgba(9,109,210,0.88)',
         justifyContent: 'center',
@@ -489,10 +504,10 @@ const jSt = StyleSheet.create({
         borderTopColor: 'transparent',
         borderBottomColor: 'transparent',
         borderLeftColor: '#fff',
-        borderTopWidth: s(9),
-        borderBottomWidth: s(9),
-        borderLeftWidth: s(15),
-        marginLeft: s(2),
+        borderTopWidth: s(8),
+        borderBottomWidth: s(7),
+        borderLeftWidth: s(10),
+        marginLeft: s(0),
     },
 
     menuGrid: {

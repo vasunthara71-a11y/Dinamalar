@@ -222,10 +222,10 @@ export default function AuthorScreen() {
   if (loading && authorNews.length === 0) {
     return (
       <SafeAreaView style={styles.container}>
-        <StatusBar barStyle="dark-content" backgroundColor={COLORS.white} />
+        <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
         <UniversalHeaderComponent
-        statusBarStyle="dark-content"
-        statusBarBackgroundColor={COLORS.white}
+        statusBarStyle="light-content"
+        statusBarBackgroundColor={COLORS.primary}
         onMenuPress={handleMenuPress}
         onNotification={goToNotifs}
         notifCount={0}
@@ -254,11 +254,11 @@ export default function AuthorScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-      <StatusBar barStyle="dark-content" backgroundColor={COLORS.white} />
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
 
       <UniversalHeaderComponent
-        statusBarStyle="dark-content"
-        statusBarBackgroundColor={COLORS.white}
+        statusBarStyle="light-content"
+        statusBarBackgroundColor={COLORS.primary}
         onMenuPress={handleMenuPress}
         onNotification={goToNotifs}
         notifCount={0}

@@ -129,7 +129,7 @@ export default function TimelineDetailsScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+        <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
         <ActivityIndicator size="large" color={COLORS.primary} />
         <Text style={styles.loadingText}>ஏற்றுகிறது...</Text>
       </View>
@@ -139,7 +139,7 @@ export default function TimelineDetailsScreen() {
   if (!article && !newsItem) {
     return (
       <View style={styles.errorContainer}>
-        <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+        <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
         <Ionicons name="alert-circle" size={60} color={COLORS.primary} />
         <Text style={styles.errorText}>செய்தி கிடைக்கவில்லை</Text>
         <TouchableOpacity 

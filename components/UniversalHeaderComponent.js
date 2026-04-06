@@ -14,6 +14,7 @@ export default function UniversalHeaderComponent({
   onMenuPress,
   onNotification,
   notifCount = 0,
+  hideNotification = false,
   
   // AppHeader props (you'll need to pass the actual AppHeader component as children)
   children,
@@ -41,6 +42,8 @@ export default function UniversalHeaderComponent({
           onMenuPress={onMenuPress}
           onNotification={onNotification}
           notifCount={notifCount}
+          hideNotification={hideNotification}
+          navigation={navigation}
         />
         
         {children}

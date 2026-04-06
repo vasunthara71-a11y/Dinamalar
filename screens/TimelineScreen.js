@@ -1139,12 +1139,15 @@ export default function TimelineScreen() {
 
   return (
     <View style={styles.container}>
+            <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
+      
        <UniversalHeaderComponent
         statusBarStyle="dark-content"
         statusBarBackgroundColor={COLORS.white}
         onMenuPress={handleMenuPress}
         onNotification={goToNotifs}
         notifCount={0}
+        hideNotification={true}
         isDrawerVisible={isDrawerVisible}
         setIsDrawerVisible={setIsDrawerVisible}
         navigation={navigation}

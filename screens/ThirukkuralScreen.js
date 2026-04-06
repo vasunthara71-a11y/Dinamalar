@@ -524,7 +524,7 @@ export default function ThirukkuralScreen() {
 
   return (
     <View style={styles.root}>
-      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+        <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
 
       <View style={styles.navBar}>
         <TouchableOpacity

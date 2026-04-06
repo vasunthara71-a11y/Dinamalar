@@ -198,7 +198,8 @@ const TagsScreen = () => {
 
   return (
     <View style={styles.container}>
-      
+            <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
+
       <UniversalHeaderComponent
         showMenu showSearch showNotifications showLocation
         onSearch={goToSearch}
@@ -269,7 +270,7 @@ const TagsScreen = () => {
 };
 
 const styles = StyleSheet.create({
-   container: { flex: 1, backgroundColor: '#f2f2f2', paddingTop: Platform.OS === 'android' ? vs(28) : 0 },
+   container: { flex: 1, backgroundColor: '#f2f2f2', paddingTop: Platform.OS === 'android' ? vs(0) : 20 },
 
 
   // Header
@@ -309,7 +310,7 @@ const styles = StyleSheet.create({
   tabsContainer: {
     borderBottomWidth: 1,
     borderBottomColor: COLORS.grey200,
-    maxHeight: vs(50),
+    maxHeight: vs(70),
   },
   tabsContent: {
     paddingHorizontal: s(4),
@@ -379,7 +380,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: vs(8),
     paddingHorizontal: s(8),
-    backgroundColor: COLORS.grey500,
+    // backgroundColor: COLORS.grey500,
     // borderRadius: s(8),
     // borderWidth: 1,
     borderColor: COLORS.grey200,
