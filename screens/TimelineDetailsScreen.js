@@ -104,7 +104,7 @@ export default function TimelineDetailsScreen() {
 
   const handleShare = async () => {
     try {
-      const url = article?.shareurl || `https://www.dinamalar.com/news/${newsItem.id || newsItem.newsid}`;
+      const url = article?.shareurl || `dinamalar://news/${newsItem.id || newsItem.newsid}`;
       const title = article?.newstitle || newsItem.newstitle || 'தினமலர் செய்தி';
       
       await Share.share({
@@ -118,7 +118,7 @@ export default function TimelineDetailsScreen() {
   };
 
   const openInBrowser = () => {
-    const url = article?.shareurl || `https://www.dinamalar.com/news/${newsItem.id || newsItem.newsid}`;
+    const url = article?.shareurl || `dinamalar://news/${newsItem.id || newsItem.newsid}`;
     Linking.openURL(url);
   };
 
