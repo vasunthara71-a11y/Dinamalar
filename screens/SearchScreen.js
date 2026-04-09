@@ -25,7 +25,11 @@ import AppHeaderComponent from '../components/AppHeaderComponent';
 import axios from 'axios';
 import { Ionicons } from '@expo/vector-icons';
 
-const SEARCH_API_BASE = 'https://api-st-cdn.dinamalar.com/searchfilter?search=';
+const SEARCH_API_BASE = 'https://api-st.dinamalar.com/searchfilter?search=';
+
+// Cache for search results to avoid repeated API calls
+const searchCache = new Map();
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache
 
 
 const PALETTE = {
@@ -58,16 +62,16 @@ function NewsCard({ item, onPress, sectionTitle = '' }) {
 
   return (
     <View style={[NewsCardStyles.wrap,]}>
-<TouchableOpacity onPress={() => onPress?.(item)} activeOpacity={0.88}>   
-       <View style={[NewsCardStyles.imageWrap,{marginHorizontal:ms(0)}]}>
+      <TouchableOpacity onPress={() => onPress?.(item)} activeOpacity={0.88}>
+        <View style={[NewsCardStyles.imageWrap, { marginHorizontal: ms(0), height: (item.type === 'video' || item.video === '1' || item.video === 1) ? vs(120) : vs(140) }]}>
           <Image
             source={{ uri: imageUri }}
-            style={NewsCardStyles.image}
+            style={[NewsCardStyles.image, { height: (item.type === 'video' || item.video === '1' || item.video === 1) ? vs(120) : vs(140) }]}
             resizeMode="contain"
           />
         </View>
 
-        <View style={[NewsCardStyles.contentContainer,{paddingHorizontal:ms(0)}]}>
+        <View style={[NewsCardStyles.contentContainer, { paddingHorizontal: ms(0) }]}>
           {!!title && (
             <Text style={[NewsCardStyles.title, { fontSize: sf(13), lineHeight: sf(22) }]} numberOfLines={3}>{title}</Text>
           )}
@@ -216,7 +220,10 @@ var SearchResultItem = function (props) {
   var onPress = props.onPress;
 
   var isReels = item.type === 'reels';
-  var isVideo = item.type === 'video' || item.video === '1' || item.video === 1;
+  var isVideo = item.type === 'video' ||
+    item.type === 'reels' ||
+    item.video === '1' ||
+    item.video === 1;
   var isPhoto = item.type === 'photo';
   var hasAudio = item.audio === '1' || item.audio === 1;
 
@@ -235,6 +242,9 @@ var SearchResultItem = function (props) {
   var catLabel = item.maincat || item.CatName || item.catname || '';
   var commentsCount = parseInt(item.newscomment || item.CommentCount || 0);
 
+  // Use placeholder if no image URL
+  var imageSource = imageUrl ? { uri: imageUrl } : require('../assets/images/videoPlaceHolder.png');
+
   return (
     <TouchableOpacity
       style={styles.resultCard}
@@ -242,30 +252,28 @@ var SearchResultItem = function (props) {
       activeOpacity={0.88}
     >
       {/* Full width image */}
-      {imageUrl ? (
-        <View style={[styles.resultImageWrap, isPhoto && styles.resultImageWrapPhoto]}>
-          <Image source={{ uri: imageUrl }} style={styles.resultImage} resizeMode="cover" />
-          {(isVideo || isReels) && (
-            <View style={styles.playOverlay}>
-              <View style={styles.playCircle}>
-                <Ionicons name="play" size={ms(18)} color="#fff" />
-              </View>
+      <View style={[styles.resultImageWrap, isPhoto && styles.resultImageWrapPhoto]}>
+        <Image source={imageSource} style={styles.resultImage} resizeMode="contain" />
+        {(isVideo || isReels) && (
+          <View style={styles.playOverlay}>
+            <View style={styles.playCircle}>
+              <Ionicons name="play" size={ms(18)} color="#fff" />
             </View>
-          )}
-          {isPhoto && (
-            <View style={styles.imageOverlay}>
-              <View style={styles.imageCircle}>
-                <Ionicons name="image" size={ms(18)} color="#fff" />
-              </View>
+          </View>
+        )}
+        {isPhoto && (
+          <View style={styles.imageOverlay}>
+            <View style={styles.imageCircle}>
+              <Ionicons name="image" size={ms(18)} color="#fff" />
             </View>
-          )}
-          {isReels && (
-            <View style={styles.reelsBadge}>
-              <Text style={styles.reelsBadgeText}>ஷார்ட்ஸ்</Text>
-            </View>
-          )}
-        </View>
-      ) : null}
+          </View>
+        )}
+        {isReels && (
+          <View style={styles.reelsBadge}>
+            <Text style={styles.reelsBadgeText}>ஷார்ட்ஸ்</Text>
+          </View>
+        )}
+      </View>
 
       {/* Text content */}
       <View style={styles.resultBody}>
@@ -308,7 +316,7 @@ var SearchResultItem = function (props) {
 var SearchScreen = function () {
   var navigation = useNavigation();
   var route = useRoute();
-  
+
   var sq = useState(''); var searchQuery = sq[0]; var setSearchQuery = sq[1];
   var sr = useState([]); var searchResults = sr[0]; var setSearchResults = sr[1];
   var il = useState(false); var isLoading = il[0]; var setIsLoading = il[1];
@@ -356,7 +364,7 @@ var SearchScreen = function () {
 
     // Fetch most commented data
     setMostCommentedLoading(true);
-    axios.get('https://api-st-cdn.dinamalar.com/photodata')
+    axios.get('https://api-st.dinamalar.com/photodata')
       .then(function (response) {
         var data = response && response.data;
         console.log('[SearchScreen] Most commented API response:', data);
@@ -390,16 +398,42 @@ var SearchScreen = function () {
 
   // ─── Search ────────────────────────────────────────────────────────────────
   var performSearch = useCallback(function (query) {
-    if (!query || !query.trim()) return;
-    Keyboard.dismiss();
+    if (!query || query.trim().length === 0) return;
+
+    var trimmedQuery = query.trim();
+
+    // Check cache first
+    var cacheKey = trimmedQuery + '_page1';
+    var cached = searchCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+      console.log('🚀 Using cached search results for:', trimmedQuery);
+      setSearchResults(cached.results);
+      setCurrentPage(cached.currentPage || 1);
+      setLastPage(cached.lastPage || 1);
+      setCategoryFilter(cached.categoryFilter || []);
+      setTrendingTopics(cached.trendingTopics || []);
+      setIsLoading(false);
+      setHasSearched(true);
+      setActiveCategory('all');
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
     setHasSearched(true);
     setActiveCategory('all');
     setCurrentPage(1);
-    cq.current = query.trim();
+    cq.current = trimmedQuery;
 
-    axios.get(SEARCH_API_BASE + encodeURIComponent(query.trim()) + '&page=1')
+    var searchPromise = axios.get(SEARCH_API_BASE + encodeURIComponent(trimmedQuery) + '&page=1', {
+      timeout: 10000, // 10 second timeout for faster failure
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      }
+    });
+
+    searchPromise
       .then(function (response) {
         var data = response && response.data;
         var results = [];
@@ -411,6 +445,16 @@ var SearchScreen = function () {
         }
 
         setSearchResults(results);
+
+        // Cache the results
+        searchCache.set(cacheKey, {
+          results: results,
+          currentPage: data?.pagination?.current_page || 1,
+          lastPage: data?.pagination?.last_page || 1,
+          categoryFilter: data?.categoryfilter || [],
+          trendingTopics: data?.trendingkeywords?.[0]?.data || [],
+          timestamp: Date.now()
+        });
 
         // Save pagination info
         if (data && data.pagination) {
@@ -430,7 +474,7 @@ var SearchScreen = function () {
       })
       .catch(function (err) {
         console.error('Search error:', err);
-        setError('தேடல் தோல்வியடைந்தது. மீண்டும் முயற்சிக்கவும்.');
+        setError('தேடல் தோல்வியடைந்தது. மீண்டும் முயற்சிக்கவும.');
         setSearchResults([]);
       })
       .finally(function () { setIsLoading(false); });
@@ -444,7 +488,28 @@ var SearchScreen = function () {
     setIsLoadingMore(true);
 
     var typeParam = activeCategory !== 'all' ? '&type=' + activeCategory : '';
-    axios.get(SEARCH_API_BASE + encodeURIComponent(cq.current) + '&page=' + nextPage + typeParam)
+    var cacheKey = cq.current + '_page' + nextPage + (typeParam || '_all');
+
+    // Check cache first for pagination
+    var cached = searchCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+      console.log('🚀 Using cached load more results for page:', nextPage);
+      setSearchResults(function (prev) { return prev.concat(cached.results); });
+      setCurrentPage(cached.currentPage || nextPage);
+      setLastPage(cached.lastPage || 1);
+      setIsLoadingMore(false);
+      return;
+    }
+
+    var loadMorePromise = axios.get(SEARCH_API_BASE + encodeURIComponent(cq.current) + '&page=' + nextPage + typeParam, {
+      timeout: 8000, // 8 second timeout for pagination
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      }
+    });
+
+    loadMorePromise
       .then(function (response) {
         var data = response && response.data;
         var results = [];
@@ -454,6 +519,14 @@ var SearchScreen = function () {
         } else if (Array.isArray(data)) {
           results = data;
         }
+
+        // Cache the pagination results
+        searchCache.set(cacheKey, {
+          results: results,
+          currentPage: data?.pagination?.current_page || nextPage,
+          lastPage: data?.pagination?.last_page || 1,
+          timestamp: Date.now()
+        });
 
         // Append to existing results
         setSearchResults(function (prev) { return prev.concat(results); });
@@ -492,12 +565,58 @@ var SearchScreen = function () {
           itemMaincat.includes('புகைப்படம்');
       }
       if (activeCategory === 'kalvimalar') {
-        return itemMaincat.includes('கல்வி') || itemCatId.includes('kalvi') ||
-          itemMaincat.includes('kalvi');
+        // Debug: log the maincat values to see what we're working with
+        console.log('🔍 Kalvimalar Filter - itemMaincat:', itemMaincat, 'itemType:', itemType);
+
+        // Check for education-related content using multiple indicators
+        var isEducationContent =
+          itemMaincat.includes('கல்வி') ||
+          itemCatId.includes('kalvi') ||
+          itemMaincat.includes('kalvi') ||
+          itemMaincat.includes('கல்விமலர்') ||
+          itemMaincat.includes('கல்வித்') ||
+          itemMaincat.includes('பள்ளி') ||
+          itemMaincat.includes('கல்லூரி') ||
+          itemMaincat.includes('பல்கலைக்கழகம்') ||
+          itemMaincat.includes('தேர்வு') ||
+          itemMaincat.includes('படிப்பியல்') ||
+          // Check title/content for education indicators
+          (item.newstitle && (
+            item.newstitle.toLowerCase().includes('education') ||
+            item.newstitle.toLowerCase().includes('school') ||
+            item.newstitle.toLowerCase().includes('college') ||
+            item.newstitle.toLowerCase().includes('exam') ||
+            item.newstitle.toLowerCase().includes('student') ||
+            item.newstitle.toLowerCase().includes('university')
+          )) ||
+          (item.newsdescription && (
+            item.newsdescription.toLowerCase().includes('education') ||
+            item.newsdescription.toLowerCase().includes('school') ||
+            item.newsdescription.toLowerCase().includes('college') ||
+            item.newsdescription.toLowerCase().includes('exam') ||
+            item.newsdescription.toLowerCase().includes('student') ||
+            item.newsdescription.toLowerCase().includes('university')
+          ));
+
+        return isEducationContent;
       }
       if (activeCategory === 'nri') {
-        return itemMaincat.includes('உலக') || itemCatId.includes('nri') ||
-          itemMaincat.includes('nri');
+        // Debug: log the maincat values to see what we're working with
+        console.log('🔍 NRI Filter - itemMaincat:', itemMaincat, 'itemType:', itemType);
+
+        // Check for NRI-related content using multiple indicators
+        var isNRIContent =
+          itemMaincat.includes('உலக') ||
+          itemCatId.includes('nri') ||
+          itemMaincat.includes('nri') ||
+          itemMaincat.includes('உலகத்தமிலார்') ||
+          itemMaincat.includes('உலகத்') ||
+          itemMaincat.includes('தமிழர்') ||
+          // Check title/content for NRI indicators
+          (item.newstitle && item.newstitle.toLowerCase().includes('india')) ||
+          (item.newsdescription && item.newsdescription.toLowerCase().includes('india'));
+
+        return isNRIContent;
       }
       return itemType.indexOf(activeCategory) !== -1 ||
         itemMaincat.indexOf(activeCategory) !== -1 ||
@@ -508,10 +627,20 @@ var SearchScreen = function () {
   var handleItemPress = function (item) {
     var newsId = item.id || item.Id || item.NewsId || item.newsid;
     var itemType = (item.type || '').toLowerCase();
-    if (itemType === 'reels' || itemType === 'video') {
-      // Map search result fields to VideoDetailScreen expected fields based on actual API structure
+    
+    // Check if this is from the video category tab and should go to VideoDetailScreen
+    if (activeCategory === 'video' && (itemType === 'video' || item.video === '1' || item.video === 1)) {
+      console.log('VIDEO CATEGORY ITEM CLICKED - Navigating to VideoDetailScreen');
+      console.log('Clicking video item data:', { 
+        newsId: newsId, 
+        title: item.newstitle || item.title,
+        type: itemType,
+        path: item.path
+      });
+      
+      // Map to video format for VideoDetailScreen
       var mappedVideo = {
-        videoid: item.id || item.Id || item.NewsId || item.newsid,
+        videoid: newsId,
         videotitle: item.newstitle || item.Title || item.title || '',
         images: item.images || item.ImageUrl || item.imageurl || '',
         videodescription: item.newsdescription || item.description || item.content || '',
@@ -523,13 +652,32 @@ var SearchScreen = function () {
         nmcomment: item.newscomment || item.CommentCount || 0,
         type: item.type || 'video',
         slug: item.slug || '',
-        videopath: item.path || item.videopath || item.y_path || item.vidg_path || ''
+        videopath: item.path || item.videopath || item.y_path || item.vidg_path || '',
+        video: item.video || item.path || item.videopath || '',
+        videourl: item.path || item.videopath || item.y_path || item.vidg_path || '',
+        y_path: item.path || item.videopath || item.y_path || item.vidg_path || '',
+        vidg_path: item.path || item.videopath || item.y_path || item.vidg_path || ''
       };
       navigation && navigation.navigate('VideoDetailScreen', { video: mappedVideo });
+    } else if (newsId) {
+      // Handle all other items (including news videos) to go to NewsDetailsScreen like HomeScreen
+      console.log('SEARCH RESULT ITEM CLICKED - Navigating to NewsDetailsScreen like HomeScreen');
+      console.log('Clicking item data:', { 
+        newsId: newsId, 
+        title: item.newstitle || item.title,
+        type: itemType,
+        isVideo: item.video === '1' || item.video === 1,
+        category: activeCategory
+      });
+      
+      // Navigate to NewsDetailsScreen with original item like HomeScreen goToArticle function
+      navigation && navigation.navigate('NewsDetailsScreen', {
+        newsId: item.id || item.newsid,
+        newsItem: item,
+        slug: item.slug || '',
+      });
     } else {
-      if (newsId) {
-        navigation && navigation.navigate('NewsDetailsScreen', { newsId: newsId, newsItem: item });
-      }
+      console.log('NO NEWSID FOUND - Cannot navigate');
     }
   };
 
@@ -544,7 +692,13 @@ var SearchScreen = function () {
     setCurrentPage(1);
 
     var url = SEARCH_API_BASE + encodeURIComponent(cq.current) + '&page=1&type=' + ename;
-    axios.get(url)
+    axios.get(url, {
+      timeout: 6000, // 8 second timeout for category filtering
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      }
+    })
       .then(function (response) {
         var data = response && response.data;
         var results = [];
@@ -568,9 +722,14 @@ var SearchScreen = function () {
   // Build category tabs from API categoryfilter
   var categoryTabs = React.useMemo(function () {
     if (categoryFilter.length === 0) return [];
-    return categoryFilter.map(function (cf) {
-      return { id: cf.ename, label: cf.name, count: cf.count };
-    });
+    return categoryFilter
+      .filter(function (cf) {
+        // Remove 'all' tab from results
+        return cf.ename && cf.ename !== 'all';
+      })
+      .map(function (cf) {
+        return { id: cf.ename, label: cf.name, count: cf.count };
+      });
   }, [categoryFilter]);
 
   // ─── Scroll to top handler ─────────────────────────────────────────────────────
@@ -809,7 +968,7 @@ var styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
-    paddingTop: Platform.OS === 'android' ? vs(0) :20,
+    paddingTop: Platform.OS === 'android' ? vs(0) : 20,
   },
 
   // ── Search bar ──────────────────────────────────────────────────────────────
@@ -924,7 +1083,7 @@ var styles = StyleSheet.create({
   trendingChipText: {
     fontSize: ms(13),
     color: '#333',
-    fontFamily:FONTS.muktaMalar.regular
+    fontFamily: FONTS.muktaMalar.regular
   },
 
   // ── Section Title (same as CommonSectionScreen) ───────────────────────────────
@@ -992,21 +1151,23 @@ var styles = StyleSheet.create({
     paddingTop: vs(8),
   },
   resultCard: {
-    backgroundColor: '#fff',
+    // backgroundColor: '#fff',
     marginHorizontal: s(12),
     marginBottom: vs(10),
+    // justifyContent: "center",
+    // alignItems: "center"
   },
 
   // ── FIX: use aspectRatio instead of fixed height so image never gets cut ──
   resultImageWrap: {
     width: '100%',
-    aspectRatio: 16 / 9,
-    backgroundColor: '#e8e8e8',
+    aspectRatio: 13 / 9,
+    // backgroundColor: '#e8e8e8',
     position: 'relative',
     overflow: 'hidden',
   },
   resultImageWrapPhoto: {
-    aspectRatio: 4 / 3, // Larger aspect ratio for photos
+    aspectRatio: 3 / 3, // Larger aspect ratio for photos
   },
   resultImage: {
     width: '100%',
@@ -1023,23 +1184,16 @@ var styles = StyleSheet.create({
     width: s(34),
     height: s(34),
     borderRadius: s(18),
-    backgroundColor: '#096dd2',
+    backgroundColor: 'rgba(9, 109, 210, 0.7)', // Semi-transparent blue
     justifyContent: 'center',
     alignItems: 'center',
     paddingLeft: s(2),
+
   },
   imageOverlay: {
     position: 'absolute',
     bottom: vs(5),
     left: s(5),
-  },
-  imageCircle: {
-    width: s(30),
-    height: s(30),
-    borderRadius: s(15),
-    backgroundColor: '#096dd2',
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   reelsBadge: {
     position: 'absolute',
@@ -1057,7 +1211,7 @@ var styles = StyleSheet.create({
     fontFamily: getFontFamily(700),
   },
   resultBody: {
-    paddingHorizontal: s(14),
+    paddingHorizontal: s(0),
     paddingTop: vs(10),
     paddingBottom: vs(12),
   },

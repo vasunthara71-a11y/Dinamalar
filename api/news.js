@@ -9,7 +9,7 @@ const api = axios.create({
 
 export const fetchHomeData = async () => {
   try {
-    const response = await axios.get('https://api-st-cdn.dinamalar.com/home');
+    const response = await axios.get('https://api-st.dinamalar.com/home');
     return response;
   } catch (error) {
     console.error('Error fetching home data:', error);

@@ -56,6 +56,60 @@ function TaboolaWidget({ pageUrl, mode, container, placement, pageType = 'video'
   );
 }
 
+function ReadMoreContent({ html, contentWidth, sf }) {
+  const [expanded, setExpanded] = useState(false);
+  const truncated = html.length > 400 ? html.slice(0, 400) : html;
+  const lineHeight = Math.round(sf(16) * 1.6);
+const maxHeight = lineHeight * 3;
+
+return (
+  <View style={{ marginVertical: vs(4) }}>
+    
+    <View style={{ height: expanded ? undefined : maxHeight, overflow: 'hidden' }}>
+      <RenderHtml
+        contentWidth={contentWidth}
+        source={{ html }}
+        baseStyle={{
+          fontSize: sf(13),
+          lineHeight: lineHeight,
+          color: PALETTE.grey800,
+          fontFamily: FONTS?.muktaMalar?.regular || undefined
+        }}
+        tagsStyles={{
+          p: {
+            margin: 0,
+            marginBottom: vs(12),
+            fontSize: sf(13),
+            color: PALETTE.grey800,
+            lineHeight: lineHeight,
+            fontFamily: FONTS?.muktaMalar?.medium || undefined
+          },
+          strong: { fontWeight: '700', color: PALETTE.grey800 },
+          b: { fontWeight: '700', color: PALETTE.grey800 },
+          a: {
+            color: PALETTE.primary,
+            textDecorationLine: 'underline',
+            fontWeight: '600'
+          },
+        }}
+      />
+    </View>
+
+    <TouchableOpacity onPress={() => setExpanded(!expanded)} activeOpacity={0.7}>
+      <Text style={{
+        color: PALETTE.primary,
+        fontWeight: '700',
+        fontSize: sf(13),
+        marginTop: vs(4)
+      }}>
+        {expanded ? '<< Read Less' : 'Read More >>'}
+      </Text>
+    </TouchableOpacity>
+
+  </View>
+);
+}
+
 // ─── Google Ad Banner ─────────────────────────────────────────────────────────
 function GoogleAdBanner({ slotId, adUnit, adSize, adSize1 }) {
   if (!slotId || !adUnit) return null;
@@ -152,11 +206,11 @@ const VideoListCard = ({ video, onPress, sf }) => {
         {img
           ? <Image source={{ uri: img }} style={S.vidThumnail} resizeMode="cover" />
           : <View style={[S.vidThumnail, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#f5f5f5' }]}>
-              <Image
-                source={{ uri: 'https://stat.dinamalar.com/new/2025/images/dinamalar-pavala-vizha-logo-day.png' }}
-                style={{ width: s(60), height: s(30), resizeMode: 'contain' }}
-              />
-            </View>}
+            <Image
+              source={{ uri: 'https://stat.dinamalar.com/new/2025/images/dinamalar-pavala-vizha-logo-day.png' }}
+              style={{ width: s(60), height: s(30), resizeMode: 'contain' }}
+            />
+          </View>}
         {/* <View style={S.vidListOverlay} /> */}
         <View style={S.vidListPlayWrap}><PlayIcon size={s(30)} /></View>
         {!!duration && (
@@ -311,6 +365,16 @@ const NewsCard = ({ item, onPress, sf }) => {
 const VideoDetailScreen = ({ navigation, route }) => {
   const { sf } = useFontSize();
   const passedVideo = route?.params?.video ?? null;
+  
+  // Debug: Log what video data we received
+  console.log('VideoDetailScreen - Received video data:', {
+    passedVideo: passedVideo,
+    videoId: passedVideo?.videoid || passedVideo?.videoId || passedVideo?.video_id || route?.params?.videoId,
+    title: passedVideo?.videotitle || passedVideo?.newstitle || passedVideo?.title,
+    path: passedVideo?.videopath || passedVideo?.path || passedVideo?.y_path,
+    allFields: Object.keys(passedVideo || {})
+  });
+  
   const videoId =
     passedVideo?.videoid ??
     passedVideo?.videoId ??
@@ -353,6 +417,8 @@ const VideoDetailScreen = ({ navigation, route }) => {
   const [activeYtId, setActiveYtId] = useState(null);
   const [activeRawUrl, setActiveRawUrl] = useState(null);
   const [pip, setPip] = useState(false);
+  const [embedFailed, setEmbedFailed] = useState(false);
+  const [playing, setPlaying] = useState(true);
 
   const pipRef = useRef(false);
   const scrollRef = useRef(null);
@@ -439,57 +505,59 @@ const VideoDetailScreen = ({ navigation, route }) => {
         );
       }
 
-      // Execute all requests in parallel
-      const results = await Promise.allSettled(parallelRequests);
+      Promise.allSettled(parallelRequests).then(results => {
+        // Process related content
+        const relatedResult = results[0];
+        if (relatedResult.status === 'fulfilled') {
+          const relatedApiData = relatedResult.value.data;
 
-      // Process related content
-      const relatedResult = results[0];
-      if (relatedResult.status === 'fulfilled') {
-        const relatedApiData = relatedResult.value.data;
+          // data.videos.data → தொடர்புடையவை section
+          const videosData = relatedApiData?.videos?.data ?? [];
+          setRelatedVideos(videosData.filter(v => v && v.videoid));
 
-        // data.videos.data → தொடர்புடையவை section
-        const videosData = relatedApiData?.videos?.data ?? [];
-        setRelatedVideos(videosData.filter(v => v && v.videoid));
+          // data.reels.data → ஷார்ட்ஸ் section
+          const reelsData = relatedApiData?.reels?.data ?? [];
+          setRelatedReels(reelsData.filter(r => r && r.id));
 
-        // data.reels.data → ஷார்ட்ஸ் section
-        const reelsData = relatedApiData?.reels?.data ?? [];
-        setRelatedReels(reelsData.filter(r => r && r.id));
+          // data.newlist.data → செய்திகள் section
+          const newsListData = relatedApiData?.newlist?.data ?? [];
+          setNewsList(newsListData.filter(n => n && (n.newsid || n.id)));
+        }
 
-        // data.newlist.data → செய்திகள் section
-        const newsListData = relatedApiData?.newlist?.data ?? [];
-        setNewsList(newsListData.filter(n => n && (n.newsid || n.id)));
-      }
+        // Process morerelated if exists
+        if (data?.morerelated && results[1]?.status === 'fulfilled') {
+          const moreData = results[1].value.data?.data ?? results[1].value.data ?? [];
+          setVideoReelNews(Array.isArray(moreData) ? moreData.filter(v => v && v.videoid) : []);
+          setMoreRelated(data.morerelated);
+        }
 
-      // Process morerelated if exists
-      if (data?.morerelated && results[1]?.status === 'fulfilled') {
-        const moreData = results[1].value.data?.data ?? results[1].value.data ?? [];
-        setVideoReelNews(Array.isArray(moreData) ? moreData.filter(v => v && v.videoid) : []);
-        setMoreRelated(data.morerelated);
-      }
+        // Process other data (non-blocking)
+        const vrData = data?.videoreels?.data ?? [];
+        const relatedReelIds = new Set((data?.relatedreels ?? []).map(r => String(r.id || '')));
+        setVideoReelReels(vrData.filter(v => v && v.type === 'reels' && !relatedReelIds.has(String(v.id || ''))));
 
-      // ── Process other data (non-blocking) ───────────────────────────────
-      const vrData = data?.videoreels?.data ?? [];
-      const relatedReelIds = new Set((data?.relatedreels ?? []).map(r => String(r.id || '')));
-      setVideoReelReels(vrData.filter(v => v && v.type === 'reels' && !relatedReelIds.has(String(v.id || ''))));
+        // Use morerelated or fallback to videoreels type=news
+        if (!data?.morerelated) {
+          setVideoReelNews(vrData.filter(v => v && (v.type === 'news' || (v.videoid && !v.type))));
+        }
 
-      // Use morerelated or fallback to videoreels type=news
-      if (!data?.morerelated) {
-        setVideoReelNews(vrData.filter(v => v && (v.type === 'news' || (v.videoid && !v.type))));
-      }
-
-      setVideomixData((data?.videomix?.data ?? []).filter(v => v && v.type !== 'googlead' && v.type !== 'reels'));
-      setVideoDistrict(Array.isArray(data?.videodistrict) ? data.videodistrict : []);
+        setVideomixData((data?.videomix?.data ?? []).filter(v => v && v.type !== 'googlead' && v.type !== 'reels'));
+        setVideoDistrict(Array.isArray(data?.videodistrict) ? data.videodistrict : []);
+      }).catch(err => {
+        console.warn('Error loading related content:', err);
+      });
 
     } catch (err) {
+      console.error('Error fetching video details:', err);
       setError(err?.message || 'பிழை ஏற்பட்டது');
-    }
-    finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    setLatestvideo(null); setRelatedVideos([]); setRelatedReels([]);
+    setLatestvideo(null);
+    setEmbedFailed(false);
+    setRelatedVideos([]); setRelatedReels([]);
     setVideoReelNews([]); setVideoReelReels([]); setVideomixData([]);
     setVideoDistrict([]); setMobileAds(null); setTaboolaAds(null);
     setMoreRelated(null); setMoreRelatedData([]); setVideoComments([]);
@@ -498,13 +566,23 @@ const VideoDetailScreen = ({ navigation, route }) => {
     fetchDetail(videoId);
   }, [videoId]);
 
+  useEffect(() => {
+    if (ytId) {
+      setPlaying(true);
+    }
+  }, [ytId]);
+
   const video = latestvideo ?? passedVideo;
+  // Enhanced URL detection to handle both mapped and raw video data
   const rawUrl =
     video?.videopath ??
     video?.y_path ??
     video?.vidg_path ??
-    video?.video ??        // ✅ Add this — HomeScreen items use 'video' field
-    video?.videourl ??     // ✅ fallback
+    video?.video ??        // HomeScreen/SearchScreen mapped field
+    video?.videourl ??     // fallback mapped field
+    video?.path ??         // Raw VideosScreen field
+    video?.videopath ??    // Raw VideosScreen field
+    video?.videourl ??     // Raw VideosScreen field
     null;
   const ytId = getYouTubeId(rawUrl);
   const bodyText = video?.videodescription ?? '';
@@ -611,26 +689,83 @@ const VideoDetailScreen = ({ navigation, route }) => {
         contentContainerStyle={{ paddingBottom: vs(80), paddingHorizontal: ms(12), paddingTop: ms(20) }}
         onScroll={onScroll} scrollEventThrottle={100}>
 
-        {/* ── Video slot ─────────────────────────────────────────────────── */}
+        {/* ── Video slot ─────────────────────────────────────────── */}
+        {/* ── Video slot — autoplay, no manual button ── */}
         <View style={S.slot} onLayout={e => { slotY.current = e.nativeEvent.layout.y; }}>
-          {video?.images
-            ? <Image source={{ uri: video.images }} style={S.image} resizeMode="contain" />
-            : <View style={[StyleSheet.absoluteFill, S.thumbPh]} />}
-          <View style={S.grad} />
-          {!isPlayerActive && (
-            <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={0.92} onPress={handlePlayVideo}>
-              <View style={S.centerPlay}><PlayIcon size={s(62)} /></View>
-              {!!video?.duration && <View style={S.durBadge}><Text style={{ color: '#fff', fontWeight: '700', fontSize: sf(12) }}>{video.duration}</Text></View>}
-              {loading && <View style={S.loadBadge}><ActivityIndicator size="small" color="#fff" /></View>}
+          {ytId && !embedFailed ? (
+            <YoutubePlayer
+              height={VH}
+              width={SW}
+              videoId={ytId}
+              play={true}
+              forceAndroidAutoplay={true}
+              allowWebViewZoom={false}
+              allowFullscreen={false}
+              onReady={() => {
+                console.log('YT ready, playing:', ytId);
+                // Force play again after ready
+                setTimeout(() => {
+                  console.log('Force playing after timeout');
+                }, 500);
+              }}
+              onError={(e) => {
+                console.log('YT error:', e);
+                setEmbedFailed(true);
+              }}
+              webViewStyle={{ backgroundColor: '#000', opacity: 0.99 }}
+              webViewProps={{ 
+                androidLayerType: 'hardware',
+                allowsInlineMediaPlayback: true,
+                mediaPlaybackRequiresUserAction: false
+              }}
+              initialPlayerParams={{
+                autoplay: 1,
+                controls: 1,
+                modestbranding: 1,
+                rel: 0,
+                mute: 0,
+                showinfo: 0,
+                iv_load_policy: 3,
+                start: 0
+              }}
+            />
+          ) : embedFailed ? (
+            <TouchableOpacity
+              style={[StyleSheet.absoluteFill, S.thumbPh, { justifyContent: 'center', alignItems: 'center', gap: vs(8) }]}
+              onPress={() => Linking.openURL(`https://www.youtube.com/watch?v=${ytId}`)}
+              activeOpacity={0.85}
+            >
+              <Ionicons name="logo-youtube" size={s(48)} color="#FF0000" />
+              <Text style={{ color: '#fff', fontSize: sf(13), fontWeight: '700' }}>YouTube-ல் பார்க்க</Text>
             </TouchableOpacity>
-          )}
-          {pip && (
-            <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={0.9} onPress={expandPip}>
-              <View style={S.pipHint}>
-                <Ionicons name="play-circle" size={ms(13)} color="#fff" />
-                <Text style={{ color: '#fff', fontWeight: '600', fontSize: sf(11) }}>  Playing in mini — tap to expand</Text>
-              </View>
-            </TouchableOpacity>
+          ) : rawUrl ? (
+            <WebView
+              source={{ html: buildIframeHtml(rawUrl) }}
+              style={{ flex: 1 }}
+              javaScriptEnabled
+              domStorageEnabled
+              allowsInlineMediaPlayback
+              mediaPlaybackRequiresUserAction={false}
+              allowsFullscreenVideo
+              mixedContentMode="always"
+              originWhitelist={['*']}
+              scrollEnabled={false}
+            />
+          ) : (
+            // Show loading indicator while video data is loading
+            <View style={[StyleSheet.absoluteFill, S.thumbPh]}>
+              {loading || (!video && !latestvideo) ? (
+                <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#000' }}>
+                  <ActivityIndicator size="large" color={PALETTE.primary} />
+                  <Text style={{ color: '#fff', marginTop: vs(12), fontSize: sf(14) }}>Loading video...</Text>
+                </View>
+              ) : !rawUrl ? (
+                <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#000' }}>
+                  <Ionicons name="play-circle" size={s(60)} color="#666" />
+                  <Text style={{ color: '#666', marginTop: vs(8), fontSize: sf(14) }}>No video available</Text>
+                </View>
+              ) : null}
+            </View>
           )}
         </View>
 
@@ -644,15 +779,8 @@ const VideoDetailScreen = ({ navigation, route }) => {
               {[1, .9, .75].map((w, i) => <View key={i} style={[S.skelLine, { width: `${w * 100}%` }]} />)}
             </View>
           ) : !!bodyText ? (
-            <View style={{ marginVertical: vs(4) }}>
-              <RenderHtml contentWidth={SW - s(28)} source={{ html: bodyText }}
-                baseStyle={{ fontSize: sf(12), lineHeight: Math.round(sf(12) * 1.6), color: PALETTE.grey800, fontFamily: FONTS?.muktaMalar?.regular || undefined }}
-                tagsStyles={{
-                  p: { margin: 0, marginBottom: vs(12), fontSize: sf(12), color: PALETTE.grey800, lineHeight: Math.round(sf(12) * 1.6), textAlign: 'left', fontFamily: FONTS?.muktaMalar?.medium || undefined },
-                  strong: { fontWeight: '700', color: PALETTE.grey800 },
-                  b: { fontWeight: '700', color: PALETTE.grey800 },
-                  a: { color: PALETTE.primary, textDecorationLine: 'underline', fontWeight: '600' }
-                }} />
+            <View>
+              <ReadMoreContent html={bodyText} contentWidth={SW - s(28)} sf={sf} />
               <Text style={[S.metaDate, { fontSize: sf(14), marginTop: vs(6) }]}>{video?.standarddate || timeAgo || ''}</Text>
             </View>
           ) : null}
@@ -811,7 +939,7 @@ const VideoDetailScreen = ({ navigation, route }) => {
           style={[S.floatFull, pip ? S.floatPip : null, { left: aLeft, top: aTop, transform: [{ translateX: aDX }, { translateY: aDY }] }]}
           {...(pip ? pan.panHandlers : {})}>
           {activeYtId ? (
-            <YoutubePlayer height={VH} width={SW} videoId={activeYtId} play={true}
+            <YoutubePlayer height={VH} width={SW} videoId={activeYtId} play={true}forceAndroidAutoplay={true}
               onReady={() => { }} onChangeState={() => { }}
               webViewStyle={{ backgroundColor: '#000', opacity: 0.99 }}
               webViewProps={{ androidLayerType: 'hardware' }}
@@ -850,7 +978,7 @@ const S = StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: vs(12) },
   retryBtn: { marginTop: vs(16), backgroundColor: PALETTE.primary, borderRadius: s(8), paddingHorizontal: s(20), paddingVertical: vs(10) },
 
-  slot: { width: '100%', height: VH, backgroundColor: '#000', overflow: 'hidden' },
+  slot: { width: '100%', height: VH, backgroundColor: '#000', overflow: 'hidden',justifyContent:"center",alignItems:"center",},
   grad: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,.28)' },
   thumbPh: { flex: 1, backgroundColor: '#2A2A2A', justifyContent: 'center', alignItems: 'center' },
   centerPlay: { position: 'absolute', top: '50%', left: '50%', transform: [{ translateX: -s(31) }, { translateY: -s(31) }] },
@@ -867,7 +995,7 @@ const S = StyleSheet.create({
   pipBar: { position: 'absolute', bottom: 0, left: 0, right: 0, height: s(16), justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,.3)' },
   pipBarLine: { width: s(28), height: s(3), borderRadius: s(2), backgroundColor: 'rgba(255,255,255,.55)' },
 
-  articleBody: { backgroundColor: PALETTE.white, paddingTop: vs(12), paddingBottom: vs(4) },
+  articleBody: {  paddingTop: vs(12), paddingBottom: vs(4) },
   articleTitle: { fontFamily: FONTS.muktaMalar.semibold, color: COLORS.text, marginBottom: vs(8) },
   metaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: vs(4) },
   metaLeft: { flexDirection: 'row', alignItems: 'center', gap: s(8), flex: 1 },

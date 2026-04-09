@@ -44,7 +44,7 @@ const CategoryTab = ({
   const fetchSpecialTodayData = async () => {
     try {
       setLoadingSpecial(true);
-      const response = await axios.get('https://api-st-cdn.dinamalar.com/home');
+      const response = await axios.get('https://api-st.dinamalar.com/home');
       const data     = response.data;
       const specialData = data?.specialtoday?.data || [];
       setSpecialTodayData(specialData.slice(0, 8));
@@ -68,48 +68,59 @@ const CategoryTab = ({
     url:  tag.url || null,
   }));
 
-  const handleRow1Press = (tag) => {
-    setRow1Active(row1Active === tag.id ? null : tag.id);
-    if (tag.url) {
-      // Use navigation logic like trending categories
-      if (tag.url.includes('anmegam-spirituality') || tag.url.includes('hindu-kathikal')) {
-        navigation.navigate('CommonSectionScreen', {
-          screenTitle: 'ஆன்மீகம்',
-          apiEndpoint: 'https://api-st-cdn.dinamalar.com/anmeegam',
-          allTabLink: 'https://www.dinamalar.com/anmegam-spirituality'
-        });
-      } else if (tag.url.includes('malarkal/ariviyal-malar')) {
-        navigation.navigate('CommonSectionScreen', {
-          screenTitle: 'அறிவியல் மலர்',
-          apiEndpoint: 'https://api-st-cdn.dinamalar.com/ariviyal',
-          allTabLink: 'https://www.dinamalar.com/malarkal/ariviyal-malar-science-articles'
-        });
-      } else {
-        // Extract news ID from URL and navigate to NewsDetailsScreen
-        const urlMatch = tag.url.match(/\/(\d+)(?:\/|$)/);
-        if (urlMatch) {
-          const newsId = urlMatch[1];
-          navigation.navigate('NewsDetailsScreen', { 
-            newsId: newsId,
-            newsItem: { id: newsId, newsid: newsId }
-          });
-        } else {
-          Linking.openURL(tag.url);
-        }
-      }
-    } else {
-      onCategoryPress?.(tag.id);
-    }
-  };
+ const handleRow1Press = (tag) => {
+  setRow1Active(row1Active === tag.id ? null : tag.id);
+  if (tag.url) {
+    if (tag.url.includes('anmegam-spirituality') || tag.url.includes('hindu-kathikal')) {
+      navigation.navigate('CommonSectionScreen', {
+        screenTitle: 'ஆன்மீகம்',
+        apiEndpoint: 'https://api-st.dinamalar.com/anmeegam',
+        allTabLink: 'https://www.dinamalar.com/anmegam-spirituality'
+      });
+    } else if (tag.url.includes('malarkal/ariviyal-malar')) {
+      navigation.navigate('CommonSectionScreen', {
+        screenTitle: 'அறிவியல் மலர்',
+        apiEndpoint: 'https://api-st.dinamalar.com/ariviyal',
+        allTabLink: 'https://www.dinamalar.com/malarkal/ariviyal-malar-science-articles'
+      });
+ } else {
+  const tagName = (tag.name || '').toLowerCase();
+  const tagUrl  = (tag.url  || '').toLowerCase();
+
+  const isGoldRateTag =
+    tagName.includes('gold') ||
+    tagName.includes('thangam') ||
+    tagName.includes('தங்கம்') ||     // Tamil: gold
+    tagName.includes('தங்க விலை') ||  // Tamil: gold rate
+    tagUrl.includes('gold') ||
+    tagUrl.includes('thangam') ||
+    tagUrl.includes('commodity');
+
+  if (isGoldRateTag) {
+    navigation.navigate('GenericWebViewScreen', {
+      url: 'https://www.dinamalar.com/news/business-commodity',
+      title: tag.name || 'Gold Rate',
+    });
+  } else {
+    navigation.navigate('SearchScreen', {
+      searchTerm: tag.name || '',
+    });
+  }
+}
+  } else {
+    onCategoryPress?.(tag.id);
+  }
+};
 
   const handleRow2Press = (item, index) => {
     const id = item.key || `special-${index}`;
     setRow2Active(row2Active === id ? null : id);
     const url = item.url || item.link || item.Url;
     if (url) {
-      // Open all special today categories in browser
-      Linking.openURL(url).catch(() => {
-        console.log('Failed to open special today URL:', url);
+      // Navigate to GenericWebViewScreen instead of opening in browser
+      navigation.navigate('GenericWebViewScreen', {
+        url: url,
+        title: item.key || 'Web View'
       });
     } else {
       onCategoryPress?.(id);
@@ -174,7 +185,7 @@ const CategoryTab = ({
             style={st.iconBox}
             onPress={() => navigation.navigate('SpecialTodayScreen', {
               screenTitle: 'சிறப்பு இன்று',
-              apiEndpoint: 'https://api-st-cdn.dinamalar.com/specialtoday',
+              apiEndpoint: 'https://api-st.dinamalar.com/specialtoday',
               allTabLink: 'https://www.dinamalar.com/specialtoday'
             })}
             activeOpacity={0.8}

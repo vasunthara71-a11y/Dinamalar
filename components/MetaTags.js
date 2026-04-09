@@ -1,10 +1,13 @@
 import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { s, vs } from '../utils/scaling';
 import { COLORS, FONTS } from '../utils/constants';
 import { ms } from 'react-native-size-matters';
 
 const MetaTags = ({ mdescription }) => {
+  const navigation = useNavigation();
+
   // Parse the comma-separated mdescription string into individual tags
   const parseTags = (mdescription) => {
     if (!mdescription || typeof mdescription !== 'string') return [];
@@ -23,8 +26,11 @@ const MetaTags = ({ mdescription }) => {
   }
 
   const handleTagPress = (tag) => {
-    // You can implement navigation to search or category screen here
-    console.log('Tag pressed:', tag);
+    console.log('🏷️ MetaTag pressed:', tag);
+    // Navigate to SearchScreen with the tag as search term
+    navigation.navigate('SearchScreen', {
+      searchTerm: tag,
+    });
   };
 
   return (

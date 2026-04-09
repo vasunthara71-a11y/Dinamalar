@@ -22,8 +22,8 @@ import { ms } from 'react-native-size-matters';
 import { StatusBar } from 'expo-status-bar';
 import { COLORS } from '../utils/constants';
 
-const API_FILTER  = 'https://api-st-cdn.dinamalar.com/filter';
-const API_listing = 'https://api-st-cdn.dinamalar.com/kurallisting';
+const API_FILTER  = 'https://api-st.dinamalar.com/filter';
+const API_listing = 'https://api-st.dinamalar.com/kurallisting';
 
 const C = {
   bg: '#ffffff',

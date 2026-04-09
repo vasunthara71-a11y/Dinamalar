@@ -3,7 +3,6 @@ import { View, TouchableOpacity, Share, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../utils/constants';
 import { s } from '../utils/scaling';
-
 const ShareComponent = ({ 
   shareUrl, 
   shareTitle, 

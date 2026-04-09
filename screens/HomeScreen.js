@@ -3098,7 +3098,7 @@ export default function HomeScreen() {
         fetchShortNews(),
         CDNApi.get(API_ENDPOINTS.SHORTS),
         CDNApi.get(API_ENDPOINTS.VARthagam),
-        axios.get('https://api-st-cdn.dinamalar.com/varavaram'),
+        axios.get('https://api-st.dinamalar.com/varavaram'),
         CDNApi.get(API_ENDPOINTS.JOSHIYAM),
         CDNApi.get(API_ENDPOINTS.DISTRICT),
         api.getPremium(),
@@ -4232,8 +4232,8 @@ export default function HomeScreen() {
       categoryLower.includes('ஆன்மிகம்')) {
       navigation?.navigate('KovilgalScreen', {
         screenTitle: 'கோயில்கள்',
-        apiEndpoint: 'https://api-st-cdn.dinamalar.com/kovilgal',
-        allTabLink: 'https://api-st-cdn.dinamalar.com/kovilgal'
+        apiEndpoint: 'https://api-st.dinamalar.com/kovilgal',
+        allTabLink: 'https://api-st.dinamalar.com/kovilgal'
       });
       return;
     }
@@ -4266,8 +4266,8 @@ export default function HomeScreen() {
       categoryLower.includes('கார்டுகள்') || categoryLower.includes('cards')) {
       navigation?.navigate('CommonSectionScreen', {
         screenTitle: 'கார்டுகள்',
-        apiEndpoint: 'https://api-st-cdn.dinamalar.com/cards',
-        allTabLink: 'https://api-st-cdn.dinamalar.com/cards'
+        apiEndpoint: 'https://api-st.dinamalar.com/cards',
+        allTabLink: 'https://api-st.dinamalar.com/cards'
       });
       return;
     }
@@ -5338,15 +5338,15 @@ export default function HomeScreen() {
                                                   console.log('📰 VARAVARAM SECTION HEADER CLICKED - Navigating to CommonSectionScreen with varavaram data');
                                                   navigation?.navigate('CommonSectionScreen', {
                                                     screenTitle: 'வாராவாரம்',
-                                                    apiEndpoint: 'https://api-st-cdn.dinamalar.com/varavaram',
-                                                    allTabLink: 'https://api-st-cdn.dinamalar.com/varavaram'
+                                                    apiEndpoint: 'https://api-st.dinamalar.com/varavaram',
+                                                    allTabLink: 'https://api-st.dinamalar.com/varavaram'
                                                   });
                                                 } : section.title && (section.title?.includes('வாரமலர்') || section.title?.includes('varamalar')) ?
                                                   () => {
                                                     console.log('📰 VARAMALAR SECTION HEADER CLICKED - Navigating to CommonSectionScreen with varamalar tab');
                                                     navigation?.navigate('CommonSectionScreen', {
                                                       screenTitle: 'வாரமலர்',
-                                                      apiEndpoint: 'https://api-st-cdn.dinamalar.com/malargal',
+                                                      apiEndpoint: 'https://api-st.dinamalar.com/malargal',
                                                       initialTabId: '6035'
                                                     });
                                                   } : section.title && (section.title?.includes('இணைப்பு மலர்') || section.title?.includes('inaippu')) ?
@@ -5354,7 +5354,7 @@ export default function HomeScreen() {
                                                       console.log('📰 INAIPPU MALAR SECTION HEADER CLICKED - Navigating to CommonSectionScreen with inaippu tab');
                                                       navigation?.navigate('CommonSectionScreen', {
                                                         screenTitle: 'இணைப்பு மலர்',
-                                                        apiEndpoint: 'https://api-st-cdn.dinamalar.com/malargal',
+                                                        apiEndpoint: 'https://api-st.dinamalar.com/malargal',
                                                         initialTabId: '3'
                                                       });
                                                     } : section.title && (section.title?.includes('ஸ்பெஷல்') || section.title?.includes('special')) ?
@@ -5380,8 +5380,8 @@ export default function HomeScreen() {
                                                           console.log('📰 CARDS/SOCIAL MEDIA SECTION HEADER CLICKED - Navigating to CommonSectionScreen with cards');
                                                           navigation?.navigate('CommonSectionScreen', {
                                                             screenTitle: 'கார்ட்ஸ்',
-                                                            apiEndpoint: 'https://api-st-cdn.dinamalar.com/cards',
-                                                            allTabLink: 'https://api-st-cdn.dinamalar.com/cards'
+                                                            apiEndpoint: 'https://api-st.dinamalar.com/cards',
+                                                            allTabLink: 'https://api-st.dinamalar.com/cards'
                                                           });
                                                         } : section.title && (section.title?.includes('கோயில்கள்') || section.title?.includes('kovilgal')) ?
                                                           () => {
@@ -5395,8 +5395,8 @@ export default function HomeScreen() {
                                                               console.log('📰 CARDS/SOCIAL MEDIA SECTION HEADER CLICKED - Navigating to CommonSectionScreen with cards');
                                                               navigation?.navigate('CommonSectionScreen', {
                                                                 screenTitle: 'கார்ட்ஸ்',
-                                                                apiEndpoint: 'https://api-st-cdn.dinamalar.com/cards',
-                                                                allTabLink: 'https://api-st-cdn.dinamalar.com/cards'
+                                                                apiEndpoint: 'https://api-st.dinamalar.com/cards',
+                                                                allTabLink: 'https://api-st.dinamalar.com/cards'
                                                               });
                                                             } : section.title?.includes('கோயில்கள்') || section.title?.includes('kovilgal') ?
                                                               () => {
@@ -5692,8 +5692,8 @@ export default function HomeScreen() {
                             sectionTitle.includes('கார்டு') || sectionTitle.includes('card')) {
                             navigation?.navigate('CommonSectionScreen', {
                               screenTitle: 'கார்டுகள்',
-                              apiEndpoint: 'https://api-st-cdn.dinamalar.com/cards',
-                              allTabLink: 'https://api-st-cdn.dinamalar.com/cards'
+                              apiEndpoint: 'https://api-st.dinamalar.com/cards',
+                              allTabLink: 'https://api-st.dinamalar.com/cards'
                             });
                             return;
                           }
@@ -5712,8 +5712,8 @@ export default function HomeScreen() {
                           // if (sectionTitle.includes('பிரத்யேகச் செய்திகள்') || sectionTitle.includes('premium')) {
                           //   navigation?.navigate('CommonSectionScreen', {
                           //     screenTitle: 'பிரத்யேகச் செய்திகள்',
-                          //     apiEndpoint: 'https://api-st-cdn.dinamalar.com/newsdata?cat=651',
-                          //     allTabLink: 'https://api-st-cdn.dinamalar.com/newsdata?cat=651',
+                          //     apiEndpoint: 'https://api-st.dinamalar.com/newsdata?cat=651',
+                          //     allTabLink: 'https://api-st.dinamalar.com/newsdata?cat=651',
                           //   });
                           //   return;
                           // }

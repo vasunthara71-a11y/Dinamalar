@@ -5,29 +5,20 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="7dff0835-ba21-4555-8c27-70a8bbe09433" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/caches/deviceStreaming.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/caches/deviceStreaming.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/AlsoSeeThis.js" beforeDir="false" afterPath="$PROJECT_DIR$/components/AlsoSeeThis.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/components/CategoryTab.js" beforeDir="false" afterPath="$PROJECT_DIR$/components/CategoryTab.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/components/DinamalarCalendar.js" beforeDir="false" afterPath="$PROJECT_DIR$/components/DinamalarCalendar.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/components/DrawerMenu.js" beforeDir="false" afterPath="$PROJECT_DIR$/components/DrawerMenu.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/components/FloatingPodcast.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/components/JoshiyamSection.js" beforeDir="false" afterPath="$PROJECT_DIR$/components/JoshiyamSection.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/components/SimplePodcastPlayer.js" beforeDir="false" afterPath="$PROJECT_DIR$/components/SimplePodcastPlayer.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/MetaTags.js" beforeDir="false" afterPath="$PROJECT_DIR$/components/MetaTags.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/ShareComponent.js" beforeDir="false" afterPath="$PROJECT_DIR$/components/ShareComponent.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/Shorts.js" beforeDir="false" afterPath="$PROJECT_DIR$/components/Shorts.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/components/SpecialToday.js" beforeDir="false" afterPath="$PROJECT_DIR$/components/SpecialToday.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/components/TodayEventsCard.js" beforeDir="false" afterPath="$PROJECT_DIR$/components/TodayEventsCard.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/navigation/AppNavigator.js" beforeDir="false" afterPath="$PROJECT_DIR$/navigation/AppNavigator.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/screens/AuthorScreen.js" beforeDir="false" afterPath="$PROJECT_DIR$/screens/AuthorScreen.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/screens/CommodityScreen.js" beforeDir="false" afterPath="$PROJECT_DIR$/screens/CommodityScreen.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/screens/CommonSectionScreen.js" beforeDir="false" afterPath="$PROJECT_DIR$/screens/CommonSectionScreen.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/screens/DinamalarTVScreen.js" beforeDir="false" afterPath="$PROJECT_DIR$/screens/DinamalarTVScreen.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/screens/HomeScreen.js" beforeDir="false" afterPath="$PROJECT_DIR$/screens/HomeScreen.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/screens/NewsDetailsScreen.js" beforeDir="false" afterPath="$PROJECT_DIR$/screens/NewsDetailsScreen.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/screens/SearchScreen.js" beforeDir="false" afterPath="$PROJECT_DIR$/screens/SearchScreen.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/screens/ShortNewsSwiperScreen.js" beforeDir="false" afterPath="$PROJECT_DIR$/screens/ShortNewsSwiperScreen.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/screens/SpecialTodayScreen.js" beforeDir="false" afterPath="$PROJECT_DIR$/screens/SpecialTodayScreen.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/screens/ThirukkuralScreen.js" beforeDir="false" afterPath="$PROJECT_DIR$/screens/ThirukkuralScreen.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/screens/TimelineDetailsScreen.js" beforeDir="false" afterPath="$PROJECT_DIR$/screens/TimelineDetailsScreen.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/screens/VarthagamScreen.js" beforeDir="false" afterPath="$PROJECT_DIR$/screens/VarthagamScreen.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/screens/VideoDetailScreen.js" beforeDir="false" afterPath="$PROJECT_DIR$/screens/VideoDetailScreen.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/screens/VideosScreen.js" beforeDir="false" afterPath="$PROJECT_DIR$/screens/VideosScreen.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/utils/constants.js" beforeDir="false" afterPath="$PROJECT_DIR$/utils/constants.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

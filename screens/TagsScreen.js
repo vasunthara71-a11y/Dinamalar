@@ -22,7 +22,7 @@ import AppHeaderComponent from '../components/AppHeaderComponent';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 
-const TAGS_API_BASE = 'https://api-st-cdn.dinamalar.com/taglist';
+const TAGS_API_BASE = 'https://api-st.dinamalar.com/taglist';
 
 const TagsScreen = () => {
   const navigation = useNavigation();

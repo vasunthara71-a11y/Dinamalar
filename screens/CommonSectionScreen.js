@@ -2315,10 +2315,10 @@ export default function CommonSectionScreen() {
 
       // Handle special case for cartoons - redirect to photodata API
       let actualEndpoint = apiEndpoint;
-      if (apiEndpoint === '/cartoons' || apiEndpoint === 'https://api-st-cdn.dinamalar.com/cartoons') {
-        actualEndpoint = 'https://api-st-cdn.dinamalar.com/photodata';
-      } else if (apiEndpoint === '/cards' || apiEndpoint === 'https://api-st-cdn.dinamalar.com/cards') {
-        actualEndpoint = 'https://api-st-cdn.dinamalar.com/photodata';
+      if (apiEndpoint === '/cartoons' || apiEndpoint === 'https://api-st.dinamalar.com/cartoons') {
+        actualEndpoint = 'https://api-st.dinamalar.com/photodata';
+      } else if (apiEndpoint === '/cards' || apiEndpoint === 'https://api-st.dinamalar.com/cards') {
+        actualEndpoint = 'https://api-st.dinamalar.com/photodata';
       }
 
       const res = await api.get(actualEndpoint);
@@ -2569,7 +2569,7 @@ export default function CommonSectionScreen() {
         }
 
         // Special case: if original endpoint was /cartoons, select cartoons tab
-        if (apiEndpoint === '/cartoons' || apiEndpoint === 'https://api-st-cdn.dinamalar.com/cartoons') {
+        if (apiEndpoint === '/cartoons' || apiEndpoint === 'https://api-st.dinamalar.com/cartoons') {
           const cartoonsTab = tabs.find(t => String(t.id) === '5002');
           if (cartoonsTab) {
             setActiveTab({ ...cartoonsTab, _isAllTab: false });
@@ -2580,7 +2580,7 @@ export default function CommonSectionScreen() {
         }
 
         // Special case: if original endpoint was /cards, select cards tab
-        if (apiEndpoint === '/cards' || apiEndpoint === 'https://api-st-cdn.dinamalar.com/cards') {
+        if (apiEndpoint === '/cards' || apiEndpoint === 'https://api-st.dinamalar.com/cards') {
           const cardsTab = tabs.find(t => String(t.id) === 'socialcards');
           if (cardsTab) {
             setActiveTab({ ...cardsTab, _isAllTab: false });
@@ -2778,7 +2778,7 @@ export default function CommonSectionScreen() {
 }
 
       // -- Handle varavaram data - limit each category to 3 items -----------------
-      if (apiEndpoint?.includes('varavaram') || apiEndpoint?.includes('api-st-cdn.dinamalar.com/varavaram')) {
+      if (apiEndpoint?.includes('varavaram') || apiEndpoint?.includes('api-st.dinamalar.com/varavaram')) {
         // console.log('[Varavaram] API Endpoint:', apiEndpoint);
         // console.log('[Varavaram] Raw data structure:', Object.keys(d || {}));
         // console.log('[Varavaram] Raw sections:', rawSections.length);
@@ -2812,7 +2812,7 @@ export default function CommonSectionScreen() {
       }
 
       // -- Handle varamalar data - limit each category to 3 items -----------------
-      if (apiEndpoint?.includes('varamalar') || apiEndpoint?.includes('varavaram') || apiEndpoint?.includes('api-st-cdn.dinamalar.com/varamalar')) {
+      if (apiEndpoint?.includes('varamalar') || apiEndpoint?.includes('varavaram') || apiEndpoint?.includes('api-st.dinamalar.com/varamalar')) {
         // console.log('[Varamalar] API Endpoint:', apiEndpoint);
         // console.log('[Varamalar] Raw data structure:', Object.keys(d || {}));
         // console.log('[Varamalar] Raw sections:', rawSections.length);
@@ -2886,7 +2886,7 @@ export default function CommonSectionScreen() {
       }
 
       // -- Handle special data - limit each category to 3 items -----------------
-      if (apiEndpoint?.includes('special') || apiEndpoint?.includes('api-st-cdn.dinamalar.com/special')) {
+      if (apiEndpoint?.includes('special') || apiEndpoint?.includes('api-st.dinamalar.com/special')) {
         // console.log('[Special] API Endpoint:', apiEndpoint);
         // console.log('[Special] Raw data structure:', Object.keys(d || {}));
         // console.log('[Special] Raw sections:', rawSections.length);
@@ -3544,9 +3544,9 @@ export default function CommonSectionScreen() {
             console.log('?? Nijakkathi item clicked - opening in CommonSectionScreen with nijakkathi tab');
             navigation.push('CommonSectionScreen', {
               screenTitle: 'நிஜக்கதி',
-              apiEndpoint: 'https://api-st-cdn.dinamalar.com/varavaram',
+              apiEndpoint: 'https://api-st.dinamalar.com/varavaram',
               initialTabId: '644',
-              allTabLink: 'https://api-st-cdn.dinamalar.com/varavaram'
+              allTabLink: 'https://api-st.dinamalar.com/varavaram'
             });
             return;
           }
