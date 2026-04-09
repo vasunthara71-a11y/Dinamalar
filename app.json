@@ -9,7 +9,7 @@
     "userInterfaceStyle": "light",
 
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -53,9 +53,11 @@
           "action": "VIEW",
           "autoVerify": true,
           "data": [
-            { "scheme": "https", "host": "www.dinamalar.com" },
-            { "scheme": "https", "host": "dinamalar.com" },
-            { "scheme": "dinamalar" }
+            { "scheme": "https", "host": "www.dinamalar.com", "path": "/video/*" },
+            { "scheme": "https", "host": "www.dinamalar.com", "path": "/videos/*" },
+            { "scheme": "https", "host": "dinamalar.com", "path": "/video/*" },
+            { "scheme": "https", "host": "dinamalar.com", "path": "/videos/*" },
+            { "scheme": "dinamalar", "path": "/*" }
           ],
           "category": ["BROWSABLE", "DEFAULT"]
         }
@@ -63,9 +65,9 @@
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
+        "foregroundImage": "./assets/icon.png",
+        "backgroundImage": "./assets/icon.png",
+        "monochromeImage": "./assets/icon.png"
       },
 
       "permissions": [
@@ -74,7 +76,7 @@
     },
 
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/icon.png"
     },
 
     "extra": {
