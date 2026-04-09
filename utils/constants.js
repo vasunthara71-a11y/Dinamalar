@@ -16,7 +16,7 @@ const PALETTE = {
 import palette from "../theme/palette";
 import { s, vs, ms } from './scaling';
 
-export const API_BASE_URL = 'https://api-st-cdn.dinamalar.com';
+export const API_BASE_URL = 'https://api-st.dinamalar.com';
 
 // ─── Font Configuration ───────────────────────────────────────────────────────────────
 // export const FONTS = {
@@ -264,7 +264,7 @@ export const NewsCard = {
     borderWidth: 1,
     borderColor: PALETTE.grey300,
     paddingHorizontal: s(8),
-    // paddingVertical: s(3),
+    paddingVertical: s(5),
     marginBottom: vs(10),
   },
   catText: {

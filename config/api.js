@@ -21,11 +21,11 @@ const setCachedData = (key, data) => {
 
 // ─── API Base URLs ────────────────────────────────────────────────────────
 export const API_BASE_URLS = {
-  MAIN: 'https://api-st-cdn.dinamalar.com',
+  MAIN: 'https://api-st.dinamalar.com',
   DMR_API: 'https://dmrapi.dinamalar.com',
   U38: 'https://u38.dinamalar.com',
-  OPEN_API: 'https://openapi-st-cdn.dinamalar.com',
-  CDN: 'https://api-st-cdn.dinamalar.com',
+  OPEN_API: 'https://openapi-st.dinamalar.com',
+  CDN: 'https://api-st.dinamalar.com',
   CHUNK_BUCKET: 'https://d4zhduaroqbqc.cloudfront.net',
   WEBSITE: 'https://www.dinamalar.com',
   PROD_MAIN: 'https://www.dinamalar.com',

@@ -16,7 +16,7 @@ import {
   Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Shorts } from '../assets/svg/Icons';
+import { Shorts, FacebookIcon, TwitterIcon, WhatsAppIcon, TelegramIcon } from '../assets/svg/Icons';
 import RenderHtml from 'react-native-render-html';
 import AppHeaderComponent from '../components/AppHeaderComponent';
 import TopMenuStrip from '../components/TopMenuStrip';
@@ -28,7 +28,7 @@ import { COLORS, FONTS, NewsCard } from '../utils/constants';
 import { useFontSize } from '../context/FontSizeContext';
 import WebView from 'react-native-webview';
 import { Ionicons } from '@expo/vector-icons';
-
+ 
 // ─── Palette ────────────────────────────────────────────────────────────────────
 const PALETTE = {
   grey100: '#F9FAFB',
@@ -190,23 +190,74 @@ function ImageWithFallback({ source, style, resizeMode = 'cover', iconSize = 40 
 }
 
 // ─── Video Card ─────────────────────────────────────────────────────────────────
-const VideoCard = ({ video, onPress, districtLabel }) => {
+const VideoCard = ({ video, onPress, districtLabel, index }) => {
   const { sf } = useFontSize();
 
-  // Skip reels — they render in the shorts strip
   if (video.type === 'reels') return null;
-
-  // Skip ads mixed into videomix.data
   if (video.type === 'googlead') return null;
 
   const timeAgo = getTimeAgo(video.videodate);
-
-  // If a district is selected, show the district name as the pill label
-  // Otherwise show the video's own category title
   const pillLabel = districtLabel || video.ctitle || video.maincat || '';
+  const shareUrl = encodeURIComponent(video.link || video.url || '');
 
   return (
     <View style={NewsCard.wrap}>
+      {index === 0 && (
+        <View style={shareStyles.shareRow}>
+          <TouchableOpacity
+            style={shareStyles.shareBtn}
+            onPress={() => Linking.openURL(`https://www.facebook.com/sharer/sharer.php?u=${shareUrl}`)}
+            activeOpacity={0.7}
+          >
+            <FacebookIcon size={ms(25)} color="#1877F2" />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={shareStyles.shareBtn}
+            onPress={() => Linking.openURL(`https://twitter.com/intent/tweet?url=${shareUrl}`)}
+            activeOpacity={0.7}
+          >
+            <TwitterIcon size={ms(25)} color="#000000" />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={shareStyles.shareBtn}
+            onPress={() => {
+            // console.log('WhatsApp share URL:', shareUrl); // Debug log
+            // console.log('Share URL type:', typeof shareUrl); // Debug URL type
+            // console.log('Share URL length:', shareUrl?.length); // Debug URL length
+            
+            // Handle different URL types
+            let urlToShare = shareUrl;
+            if (typeof shareUrl !== 'string') {
+              urlToShare = String(shareUrl);
+            }
+            
+            const encodedUrl = encodeURIComponent(urlToShare);
+            const whatsappUrl = `https://wa.me/?text=${encodedUrl}`;
+            // console.log('Opening WhatsApp URL:', whatsappUrl); // Debug log
+            
+            // Linking.openURL(whatsappUrl).catch(err => {
+            //   console.log('WhatsApp error:', err);
+            //   console.log('Original URL:', shareUrl);
+            //   console.log('Encoded URL:', encodedUrl);
+            // });
+          }}
+            activeOpacity={0.7}
+          >
+            <WhatsAppIcon size={ms(25)} color="#25D366" />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={shareStyles.shareBtn}
+            onPress={() => Linking.openURL(`https://t.me/share/url?url=${shareUrl}`)}
+            activeOpacity={0.7}
+          >
+            <TelegramIcon size={ms(25)} color="#229ED9" />
+          </TouchableOpacity>
+        </View>
+      )}
+
       <TouchableOpacity activeOpacity={0.88} onPress={() => onPress?.(video)}>
         <View style={NewsCard.imageWrap}>
           <ImageWithFallback
@@ -215,11 +266,9 @@ const VideoCard = ({ video, onPress, districtLabel }) => {
             resizeMode="cover"
             iconSize={40}
           />
-          {/* Video play button overlay */}
           <View style={styles.playButtonOverlay}>
             <PlayIcon size={36} />
           </View>
-          {/* Duration badge */}
           {!!video.duration && (
             <View style={styles.durationBadge}>
               <Text style={[styles.durationText, { fontSize: ms(14) }]}>{video.duration}</Text>
@@ -234,12 +283,7 @@ const VideoCard = ({ video, onPress, districtLabel }) => {
             {video.videotitle}
           </Text>
 
-          {/* Category pill and ago text in same row */}
-          <View style={[NewsCard.metaRow, {
-            // marginBottom: vs(8),
-            marginTop: vs(8)
-          }]}>
-            {/* Category pill on left */}
+          <View style={[NewsCard.metaRow, { marginTop: vs(8) }]}>
             {!!pillLabel && (
               <View style={NewsCard.catPill}>
                 <Text style={[NewsCard.catText, { fontSize: sf(12) }]}>
@@ -247,8 +291,6 @@ const VideoCard = ({ video, onPress, districtLabel }) => {
                 </Text>
               </View>
             )}
-            
-            {/* Ago text on right */}
             <Text style={[NewsCard.timeText, { fontSize: sf(12), marginLeft: 'auto' }]}>
               {timeAgo || video.standarddate}
             </Text>
@@ -494,7 +536,9 @@ const VideosScreen = ({ navigation, route }) => {
   // const [selectedVideo, setSelectedVideo] = useState(null);
   const flatListRef = useRef(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
-const [filters, setFilters] = useState({ category: '', date: '', district: '', districtSlug: '' });
+  const [webViewVisible, setWebViewVisible] = useState(false);
+  const [webViewUrl, setWebViewUrl] = useState('');
+  const [filters, setFilters] = useState({ category: '', date: '', district: '', districtSlug: '' });
   // ── Fetch: CDNApi + API_ENDPOINTS.VIDEO_MAIN (/videomain) ────────────────────
 // In fetchVideos, replace the entire params building logic with this simpler version:
 const fetchVideos = useCallback(async ({ cat = '', date = '', district = '', districtSlug = '', page = 1, append = false } = {}) => {
@@ -511,8 +555,8 @@ const fetchVideos = useCallback(async ({ cat = '', date = '', district = '', dis
     if (cat === 'shorts') {
       const response = await CDNApi.get(API_ENDPOINTS.SHORTS + (page > 1 ? `?page=${page}` : ''));
       const data = response.data;
-      console.log('[shorts] API response:', data);
-      console.log('[shorts] requested page:', page, 'append:', append);
+      // console.log('[shorts] API response:', data);
+      // console.log('[shorts] requested page:', page, 'append:', append);
       
       // The shorts API returns news articles, not videos
       // We need to process them differently
@@ -526,8 +570,8 @@ const fetchVideos = useCallback(async ({ cat = '', date = '', district = '', dis
         raw = data;
       }
       
-      console.log('[shorts] total items:', raw.length);
-      console.log('[shorts] pagination:', pagination);
+      // console.log('[shorts] total items:', raw.length);
+      // console.log('[shorts] pagination:', pagination);
       
       // Convert news items to video-like format for display
       const processedItems = raw.map(item => ({
@@ -754,9 +798,9 @@ const fetchVideos = useCallback(async ({ cat = '', date = '', district = '', dis
     }
 
     // Log full news card results
-    console.log('[fetch] ===== FULL VIDEO RESULTS =====');
-    console.log('[fetch] total videos found:', raw.length);
-    console.log('[fetch] first 5 video cards with full details:');
+    // console.log('[fetch] ===== FULL VIDEO RESULTS =====');
+    // console.log('[fetch] total videos found:', raw.length);
+    // console.log('[fetch] first 5 video cards with full details:');
     raw.slice(0, 5).forEach((video, index) => {
       console.log(`[fetch] Video ${index + 1}:`, {
         videoid: video.videoid,
@@ -773,7 +817,7 @@ const fetchVideos = useCallback(async ({ cat = '', date = '', district = '', dis
         published_at: video.published_at
       });
     });
-    console.log('[fetch] ===== END VIDEO RESULTS =====');
+    // console.log('[fetch] ===== END VIDEO RESULTS =====');
 
     if (append) {
       setAllVideos(prev => {
@@ -787,18 +831,18 @@ const fetchVideos = useCallback(async ({ cat = '', date = '', district = '', dis
     if (safeData?.taboola_ads?.mobile) setTaboolaAds(prev => prev ?? safeData.taboola_ads.mobile);
     
     // Debug pagination data
-    console.log('[fetch] pagination data:', {
-      currentPage: pagination.current_page,
-      lastPage: pagination.last_page,
-      requestedPage: page,
-      hasMoreBefore: hasMore
-    });
+    // console.log('[fetch] pagination data:', {
+    //   currentPage: pagination.current_page,
+    //   lastPage: pagination.last_page,
+    //   requestedPage: page,
+    //   hasMoreBefore: hasMore
+    // });
     
     setCurrentPage(pagination.current_page || page);
     setLastPage(pagination.last_page || 1);
     setHasMore((pagination.current_page || page) < (pagination.last_page || 1));
     
-    console.log('[fetch] hasMore set to:', (pagination.current_page || page) < (pagination.last_page || 1));
+    // console.log('[fetch] hasMore set to:', (pagination.current_page || page) < (pagination.last_page || 1));
 
     if (safeData?.category?.length) {
       setCategories(prev => {
@@ -814,10 +858,10 @@ const fetchVideos = useCallback(async ({ cat = '', date = '', district = '', dis
     }
     if (safeData?.filter?.length) setFilterOptions(prev => prev.length > 0 ? prev : safeData.filter);
     if (safeData?.districtlist?.data?.length) {
-      console.log('[fetch] sample district obj:', JSON.stringify(safeData.districtlist.data[0]));
-      console.log('[fetch] all district options:', 
-        JSON.stringify(safeData.districtlist.data.map(d => ({ id: d.id, title: d.title })))
-      );
+      // console.log('[fetch] sample district obj:', JSON.stringify(safeData.districtlist.data[0]));
+      // console.log('[fetch] all district options:', 
+      //   JSON.stringify(safeData.districtlist.data.map(d => ({ id: d.id, title: d.title })))
+      // );
       setDistrictOptions(prev => prev.length > 0 ? prev : safeData.districtlist.data);
     }
 
@@ -907,7 +951,7 @@ const handleSelectFilter = (ename) => {
 
 const handleSelectDistrict = (id) => {
   const districtObj = districtOptions.find(d => String(d.id) === id);
-  console.log('[district] selected obj:', JSON.stringify(districtObj));
+  // console.log('[district] selected obj:', JSON.stringify(districtObj));
   
   const updated = {
     ...filters,
@@ -941,20 +985,20 @@ const handleLocationSelectDistrict = (district) => {
 // ── Nav ───────────────────────────────────────────────────────────────────────
 const handleMenuPress = (menuItem) => {
   // Debug: Log the menu item structure
-  console.log('TopMenuStrip menu item clicked:', menuItem);
-    console.log('TopMenuStrip menu item clicked:', menuItem);
+  // console.log('TopMenuStrip menu item clicked:', menuItem);
+    // console.log('TopMenuStrip menu item clicked:', menuItem);
 
     // Handle menu item navigation based on menu item properties
     if (menuItem?.screen_name) {
-      console.log('Navigating to screen:', menuItem.screen_name);
+      // console.log('Navigating to screen:', menuItem.screen_name);
       navigation?.navigate?.(menuItem.screen_name);
     } else if (menuItem?.url) {
       // Handle URL navigation if needed
-      console.log('Navigate to URL:', menuItem.url);
+      // console.log('Navigate to URL:', menuItem.url);
     } else if (menuItem?.Title || menuItem?.title) {
       // Try to navigate based on title
       const title = menuItem.Title || menuItem.title;
-      console.log('Menu title:', title);
+      // console.log('Menu title:', title);
 
       // Map common titles to screen names
       const screenMapping = {
@@ -975,15 +1019,15 @@ const handleMenuPress = (menuItem) => {
 
       const targetScreen = screenMapping[title];
       if (targetScreen) {
-        console.log('Mapped title to screen:', targetScreen);
+        // console.log('Mapped title to screen:', targetScreen);
         navigation?.navigate?.(targetScreen);
       } else {
-        console.log('No screen mapping found for title:', title);
+        // console.log('No screen mapping found for title:', title);
         // Fallback to opening drawer
         navigation?.openDrawer?.();
       }
     } else {
-      console.log('No navigation info found, opening drawer');
+      // console.log('No navigation info found, opening drawer');
       // Fallback to opening drawer if no specific navigation is defined
       navigation?.openDrawer?.();
     }
@@ -1019,7 +1063,7 @@ const handleMenuPress = (menuItem) => {
     const regularVideos = allVideos.filter(video => video.type !== 'reels' && video.type !== 'googlead');
     const shortsVideos = allVideos.filter(video => video.type === 'reels');
 
-    console.log('[listData] regular videos:', regularVideos.length, 'shorts:', shortsVideos.length);
+    // console.log('[listData] regular videos:', regularVideos.length, 'shorts:', shortsVideos.length);
 
     // Check if any filters are active (district, date, category)
     const hasActiveFilters = !!filters.district || !!filters.date || !!filters.category;
@@ -1027,7 +1071,7 @@ const handleMenuPress = (menuItem) => {
     // Show shorts only when no filters are active OR when shorts category is explicitly selected
     const shouldShowShorts = !hasActiveFilters || filters.category === 'shorts';
 
-    console.log('[listData] hasActiveFilters:', hasActiveFilters, 'shouldShowShorts:', shouldShowShorts);
+    // console.log('[listData] hasActiveFilters:', hasActiveFilters, 'shouldShowShorts:', shouldShowShorts);
 
     // Process regular videos first
     regularVideos.forEach((video) => {
@@ -1079,14 +1123,14 @@ const ListHeader = () => {
       fetchVideos({ cat: updated.category, date: updated.date, district: '' });
     }});
   }
-if (filters.category && filters.category !== 'shorts') {
-  const label = categories.find(c => String(c.value) === filters.category)?.title || filters.category;
-  activePills.push({ key: 'category', label, onRemove: () => {
-    const updated = { ...filters, category: '' };
-    setFilters(updated);
-    fetchVideos({ cat: '', date: updated.date, district: updated.district });
-  }});
-}
+// if (filters.category && filters.category !== 'shorts') {
+//   const label = categories.find(c => String(c.value) === filters.category)?.title || filters.category;
+//   activePills.push({ key: 'category', label, onRemove: () => {
+//     const updated = { ...filters, category: '' };
+//     setFilters(updated);
+//     fetchVideos({ cat: '', date: updated.date, district: updated.district });
+//   }});
+// }
 
   return (
     <View>
@@ -1143,7 +1187,7 @@ if (filters.category && filters.category !== 'shorts') {
                 hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
                 activeOpacity={0.7}
               >
-                <Ionicons name="close-circle" size={s(16)} color={PALETTE.primary} />
+                <Ionicons name="close" size={s(16)} color={PALETTE.grey500} />
               </TouchableOpacity>
             </View>
           ))}
@@ -1162,6 +1206,8 @@ if (filters.category && filters.category !== 'shorts') {
           )}
         </View>
       )}
+
+ 
     </View>
   );
 };
@@ -1248,10 +1294,11 @@ return (
               <ShortsSectionGrid
                 items={item.items}
                 onPress={(v) => {
-                  // Open shorts link in Chrome instead of VideoDetailScreen
+                  // Open shorts in WebView instead of browser
                   const shortsLink = v.link || v.slug || `https://www.dinamalar.com/shorts/${v.id || v.videoid}`;
-                  console.log('Opening shorts in Chrome:', shortsLink);
-                  Linking.openURL(shortsLink).catch(err => console.error('Failed to open URL:', err));
+                  // console.log('Opening shorts in WebView:', shortsLink);
+                  setWebViewUrl(shortsLink);
+                  setWebViewVisible(true);
                 }}
               />
             );
@@ -1274,13 +1321,14 @@ return (
           // ── Regular video card ───────────────────────────────────────────
           return (
          <VideoCard
-  video={item}
-  onPress={(v) => navigation?.navigate?.('VideoDetailScreen', { video: v })}
-  districtLabel={filters.district
-    ? districtOptions.find(d => String(d.id) === filters.district)?.title || ''
-    : ''
-  }
-/>
+    video={item}
+    index={index}
+    onPress={(v) => navigation?.navigate?.('VideoDetailScreen', { video: v })}
+    districtLabel={filters.district
+      ? districtOptions.find(d => String(d.id) === filters.district)?.title || ''
+      : ''
+    }
+  />
           );
         }}
         ListHeaderComponent={ListHeader}
@@ -1312,7 +1360,7 @@ return (
         isVisible={isDrawerVisible}
         onClose={() => setIsDrawerVisible(false)}
         onMenuPress={(menuItem) => {
-          console.log('Drawer menu item clicked:', menuItem);
+          // console.log('Drawer menu item clicked:', menuItem);
           // Handle drawer menu navigation
           if (menuItem?.screen_name) {
             navigation?.navigate?.(menuItem.screen_name);
@@ -1360,9 +1408,77 @@ return (
           <Ionicons name="arrow-up" size={s(20)} color={PALETTE.white} />
         </TouchableOpacity>
       )}
+      
+      {/* WebView Modal for Shorts */}
+      <Modal
+        visible={webViewVisible}
+        animationType="slide"
+        presentationStyle="fullScreen"
+        onRequestClose={() => {
+          setWebViewVisible(false);
+          setWebViewUrl('');
+        }}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          {/* <View style={{ flex: 1, flexDirection: 'row', justifyContent: 'flex-end' }}>
+            <TouchableOpacity
+              style={{ 
+                backgroundColor: PALETTE.primary, 
+                padding: s(10), 
+                borderRadius: s(20),
+                margin: s(10),
+                // marginTop: Platform.OS === 'ios' ? 40 : 20
+              }}
+              onPress={() => {
+                setWebViewVisible(false);
+                setWebViewUrl('');
+              }}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="close" size={s(24)} color="#fff" />
+            </TouchableOpacity>
+          </View> */}
+          
+          <WebView
+            source={{ uri: webViewUrl }}
+            style={{ flex: 1 }}
+            javaScriptEnabled={true}
+            domStorageEnabled={true}
+            startInLoadingState={true}
+            onLoadStart={() => console.log('WebView load start')}
+            onLoadEnd={() => console.log('WebView load end')}
+          />
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
+const shareStyles = StyleSheet.create({
+  shareRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: s(12),
+    paddingVertical: vs(8),
+    // borderBottomWidth: 1,
+    borderBottomColor: PALETTE.grey300,
+    backgroundColor: PALETTE.white,
+  },
+  shareBtn: {
+    width: s(38),
+    height: s(38),
+    // borderRadius: s(19),
+    borderWidth: 1.5,
+    borderColor: PALETTE.grey300,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: PALETTE.white,
+  },
+  shareBtnText: {
+    fontSize: ms(16),
+    fontWeight: '700',
+  },
+});
 
 // ─── Styles ─────────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
@@ -1460,8 +1576,8 @@ activePillsRow: {
   gap: s(8),
   paddingHorizontal: s(12),
   paddingVertical: vs(8),
-  backgroundColor: '#EBF5FF',
-  borderBottomWidth: 1,
+  // backgroundColor: '#EBF5FF',
+  // borderBottomWidth: 1,
   borderBottomColor: PALETTE.primary + '25',
   alignItems: 'center',
 },
@@ -1471,14 +1587,14 @@ activePill: {
   gap: s(4),
   backgroundColor: PALETTE.white,
   borderWidth: 1,
-  borderColor: PALETTE.primary,
+  borderColor: PALETTE.grey500,
   borderRadius: s(16),
   paddingHorizontal: s(10),
   paddingVertical: vs(4),
 },
 activePillText: {
-  fontSize: ms(12),
-  color: PALETTE.primary,
+  fontSize: ms(13),
+  color: PALETTE.grey600,
   fontFamily: FONTS.muktaMalar.semibold,
   fontWeight: '600',
 },
@@ -1753,7 +1869,7 @@ clearAllText: {
   },
   shortCardImageContainer: {
     width: '100%',
-    height: vs(250),
+    height: vs(270),
     borderRadius: s(8),
     overflow: 'hidden',
     backgroundColor: PALETTE.grey200,

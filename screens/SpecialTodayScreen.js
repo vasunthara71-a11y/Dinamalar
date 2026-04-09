@@ -19,7 +19,7 @@ import { COLORS, FONTS } from '../utils/constants';
 import UniversalHeaderComponent from '../components/UniversalHeaderComponent';
 import AppHeaderComponent from '../components/AppHeaderComponent';
 
-const API_URL = 'https://api-st-cdn.dinamalar.com/todayspecial';
+const API_URL = 'https://api-st.dinamalar.com/todayspecial';
 
 const CATEGORIES = [
   { label: 'All',          key: 'all',          match: null },

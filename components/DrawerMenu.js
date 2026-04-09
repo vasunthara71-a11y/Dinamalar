@@ -671,7 +671,7 @@ const DrawerMenu = ({ isVisible, onClose, onMenuPress, navigation }) => {
 
     }
 
-    if (title === 'வாராவாரம்' || id === 'varavaram' || link === '/varavaram' || link.includes('varavaram')) { navigation?.navigate('CommonSectionScreen', { screenTitle: 'வாராவாரம்', apiEndpoint: 'https://api-st-cdn.dinamalar.com/varavaram', allTabLink: 'https://api-st-cdn.dinamalar.com/varavaram', initialTabId: 'all' }); onClose(); return; }
+    if (title === 'வாராவாரம்' || id === 'varavaram' || link === '/varavaram' || link.includes('varavaram')) { navigation?.navigate('CommonSectionScreen', { screenTitle: 'வாராவாரம்', apiEndpoint: 'https://api-st.dinamalar.com/varavaram', allTabLink: 'https://api-st.dinamalar.com/varavaram', initialTabId: 'all' }); onClose(); return; }
 
     const isVaravaramParent = parentTitle === 'வாராவாரம்' || parentId === 'varavaram' || parentLink === '/varavaram';
 
@@ -787,11 +787,11 @@ const DrawerMenu = ({ isVisible, onClose, onMenuPress, navigation }) => {
 
     if (isMalargalParent) { navigation?.navigate('CommonSectionScreen', { screenTitle: 'மலர்கள்', apiEndpoint: '/malargal', allTabLink: '/malaragal', initialTabId: id || '', initialTabLink: link || '', initialTabTitle: title || '' }); onClose(); return; }
 
-    if (title === 'போட்டோ' || id === 'photo' || link === '/photo' || link.includes('photo')) { navigation?.navigate('CommonSectionScreen', { screenTitle: 'போட்டோ', apiEndpoint: 'https://api-st-cdn.dinamalar.com/photodata', allTabLink: 'https://api-st-cdn.dinamalar.com/photodata', useFullUrl: true }); onClose(); return; }
+    if (title === 'போட்டோ' || id === 'photo' || link === '/photo' || link.includes('photo')) { navigation?.navigate('CommonSectionScreen', { screenTitle: 'போட்டோ', apiEndpoint: 'https://api-st.dinamalar.com/photodata', allTabLink: 'https://api-st.dinamalar.com/photodata', useFullUrl: true }); onClose(); return; }
 
     const isPhotoParent = parentTitle === 'போட்டோ' || parentId === 'photo' || parentLink === '/photo';
 
-    if (isPhotoParent) { navigation?.navigate('CommonSectionScreen', { screenTitle: 'போட்டோ', apiEndpoint: 'https://api-st-cdn.dinamalar.com/photodata', allTabLink: 'https://api-st-cdn.dinamalar.com/photodata', useFullUrl: true, initialTabId: id || '', initialTabLink: link || '', initialTabTitle: title || '' }); onClose(); return; }
+    if (isPhotoParent) { navigation?.navigate('CommonSectionScreen', { screenTitle: 'போட்டோ', apiEndpoint: 'https://api-st.dinamalar.com/photodata', allTabLink: 'https://api-st.dinamalar.com/photodata', useFullUrl: true, initialTabId: id || '', initialTabLink: link || '', initialTabTitle: title || '' }); onClose(); return; }
 
     if (title === 'மாவட்டங்கள்' || id === 'district' || link === '/district' || link.includes('district')) { navigation?.navigate('CommonSectionScreen', { screenTitle: 'மாவட்டங்கள்', apiEndpoint: '/district', allTabLink: '/district' }); onClose(); return; }
 
@@ -1143,9 +1143,9 @@ const DrawerMenu = ({ isVisible, onClose, onMenuPress, navigation }) => {
 
                     } else if (isPhoto && rawSub.length > 0) {
 
-                      subItems = !rawSub.find(s => s.link === 'https://api-st-cdn.dinamalar.com/photodata' || s.title === 'All')
+                      subItems = !rawSub.find(s => s.link === 'https://api-st.dinamalar.com/photodata' || s.title === 'All')
 
-                        ? [{ title: 'All', link: 'https://api-st-cdn.dinamalar.com/photodata', id: 'all', etitle: 'all' }, ...rawSub] : rawSub;
+                        ? [{ title: 'All', link: 'https://api-st.dinamalar.com/photodata', id: 'all', etitle: 'all' }, ...rawSub] : rawSub;
 
                     } else if (isDistrict && rawSub.length > 0) {
 

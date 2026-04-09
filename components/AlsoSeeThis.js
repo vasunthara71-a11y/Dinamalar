@@ -11,7 +11,7 @@ import { COLORS, FONTS } from '../utils/constants';
 import { useFontSize } from '../context/FontSizeContext';
 
 const { width: SW, height: SH } = Dimensions.get('window');
-const VH = (SW * 9) / 16;   // full player height
+const VH = (SW * 10) / 16;   // full player height
 const PW = SW * 0.58;        // PIP width
 const PH = (PW * 9) / 16;   // PIP height
 const PM = s(12);            // PIP margin
@@ -52,24 +52,25 @@ function SectionHeader({ title }) {
 // ─── AlsoSeeThis with PIP ─────────────────────────────────────────────────────
 const AlsoSeeThis = ({ item, onPress, scrollY = 0, playerPageY = 0 }) => {
   const { sf } = useFontSize();
-  const [playing, setPlaying]   = useState(false);
-  const [pip, setPip]           = useState(false);
+  const [playing, setPlaying] = useState(false);
+  const [pip, setPip] = useState(false);
+  const [playerReady, setPlayerReady] = useState(false);
 
   // ── PIP animation refs (same as VideoDetailScreen) ───────────────────────
-  const pipRef   = useRef(false);
-  const aLeft    = useRef(new Animated.Value(0)).current;
-  const aTop     = useRef(new Animated.Value(0)).current;
-  const aDX      = useRef(new Animated.Value(0)).current;
-  const aDY      = useRef(new Animated.Value(0)).current;
-  const restPos  = useRef({ x: PIP_X, y: PIP_Y });
-  const slotY    = useRef(0); // Y position of player slot on screen
+  const pipRef = useRef(false);
+  const aLeft = useRef(new Animated.Value(0)).current;
+  const aTop = useRef(new Animated.Value(0)).current;
+  const aDX = useRef(new Animated.Value(0)).current;
+  const aDY = useRef(new Animated.Value(0)).current;
+  const restPos = useRef({ x: PIP_X, y: PIP_Y });
+  const slotY = useRef(0); // Y position of player slot on screen
 
   useEffect(() => { pipRef.current = pip; }, [pip]);
 
   // ── PanResponder (same as VideoDetailScreen) ─────────────────────────────
   const pan = useRef(PanResponder.create({
     onStartShouldSetPanResponder: () => pipRef.current,
-    onMoveShouldSetPanResponder:  () => pipRef.current,
+    onMoveShouldSetPanResponder: () => pipRef.current,
     onPanResponderGrant: () => { aDX.setValue(0); aDY.setValue(0); },
     onPanResponderMove: Animated.event(
       [null, { dx: aDX, dy: aDY }],
@@ -87,7 +88,7 @@ const AlsoSeeThis = ({ item, onPress, scrollY = 0, playerPageY = 0 }) => {
       aDX.setValue(0); aDY.setValue(0);
       Animated.parallel([
         Animated.spring(aLeft, { toValue: sx, useNativeDriver: false, friction: 6, tension: 50 }),
-        Animated.spring(aTop,  { toValue: ny, useNativeDriver: false, friction: 6, tension: 50 }),
+        Animated.spring(aTop, { toValue: ny, useNativeDriver: false, friction: 6, tension: 50 }),
       ]).start();
     },
   })).current;
@@ -98,7 +99,7 @@ const AlsoSeeThis = ({ item, onPress, scrollY = 0, playerPageY = 0 }) => {
     aDX.setValue(0); aDY.setValue(0);
     Animated.parallel([
       Animated.spring(aLeft, { toValue: PIP_X, useNativeDriver: false, friction: 8, tension: 70 }),
-      Animated.spring(aTop,  { toValue: PIP_Y, useNativeDriver: false, friction: 8, tension: 70 }),
+      Animated.spring(aTop, { toValue: PIP_Y, useNativeDriver: false, friction: 8, tension: 70 }),
     ]).start();
   }, []);
 
@@ -106,8 +107,8 @@ const AlsoSeeThis = ({ item, onPress, scrollY = 0, playerPageY = 0 }) => {
   const goFull = useCallback(() => {
     aDX.setValue(0); aDY.setValue(0);
     Animated.parallel([
-      Animated.spring(aLeft, { toValue: 0,           useNativeDriver: false, friction: 8, tension: 70 }),
-      Animated.spring(aTop,  { toValue: slotY.current, useNativeDriver: false, friction: 8, tension: 70 }),
+      Animated.spring(aLeft, { toValue: 0, useNativeDriver: false, friction: 8, tension: 70 }),
+      Animated.spring(aTop, { toValue: slotY.current, useNativeDriver: false, friction: 8, tension: 70 }),
     ]).start();
   }, []);
 
@@ -142,15 +143,15 @@ const AlsoSeeThis = ({ item, onPress, scrollY = 0, playerPageY = 0 }) => {
 
   if (!item) return null;
 
-  const sectionTitle = item.title    || 'இதையும் பாருங்க';
-  const newsTitle    = item.videotitle || item.newstitle || '';
-  const category     = item.maincat  || item.ctitle || '';
-  const image        = item.images   || item.largeimages ||
+  const sectionTitle = item.title || 'இதையும் பாருங்க';
+  const newsTitle = item.videotitle || item.newstitle || '';
+  const category = item.maincat || item.ctitle || '';
+  const image = item.images || item.largeimages ||
     'https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_default.jpg?im=Resize,width=400';
-  const ago          = item.ago      || item.standarddate || '';
-  const duration     = item.duration || '';
-  const videoPath    = item.videopath || '';
-  const ytId         = getYouTubeId(videoPath);
+  const ago = item.ago || item.standarddate || '';
+  const duration = item.duration || '';
+  const videoPath = item.videopath || '';
+  const ytId = getYouTubeId(videoPath);
 
   // Check if this is a video section ("இதையும் பாருங்க") and has video content
   const isVideoSection = sectionTitle === 'இதையும் பாருங்க';
@@ -175,79 +176,54 @@ const AlsoSeeThis = ({ item, onPress, scrollY = 0, playerPageY = 0 }) => {
             <View
               style={[styles.playerContainer, { height: VH }]}
               onLayout={(e) => {
-                // ✅ Record absolute Y of player slot for PIP trigger
                 e.target.measure((x, y, w, h, px, py) => {
                   slotY.current = py;
                 });
               }}
             >
-              {playing ? (
-                pip ? (
-                  // ✅ When PIP active — show placeholder in slot
-                  <View style={[StyleSheet.absoluteFill, { backgroundColor: '#000', justifyContent: 'center', alignItems: 'center' }]}>
-                    <Ionicons name="play-circle-outline" size={s(40)} color="rgba(255,255,255,0.3)" />
-                    <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: sf(12), marginTop: vs(6) }}>
-                      Mini player இயங்குகிறது
-                    </Text>
-                  </View>
-                ) : (
-                  // ✅ Full player
-                  ytId ? (
-                    <YoutubePlayer
-                      height={VH}
-                      width={SW}
-                      videoId={ytId}
-                      play={true}
-                      webViewStyle={{ backgroundColor: '#000', opacity: 0.99 }}
-                      webViewProps={{ androidLayerType: 'hardware' }}
-                      initialPlayerParams={{
-                        rel: false,
-                        modestbranding: true,
-                        controls: true,
-                        autoplay: 1,
-                      }}
-                    />
-                  ) : (
-                    <WebView
-                      source={{ html: buildIframeHtml(videoPath) }}
-                      style={{ flex: 1, backgroundColor: '#000' }}
-                      allowsFullscreenVideo
-                      javaScriptEnabled
-                      domStorageEnabled
-                      mediaPlaybackRequiresUserAction={false}
-                      allowsInlineMediaPlayback
-                      scrollEnabled={false}
-                      originWhitelist={['*']}
-                      mixedContentMode="always"
-                    />
-                  )
-                )
+              {pip ? (
+                // Placeholder when PIP is active
+                <View style={[StyleSheet.absoluteFill, { backgroundColor: '#000', justifyContent: 'center', alignItems: 'center' }]}>
+                  <Ionicons name="play-circle-outline" size={s(40)} color="rgba(255,255,255,0.3)" />
+                  <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: sf(12), marginTop: vs(6) }}>
+                    Mini player இயங்குகிறது
+                  </Text>
+                </View>
+              ) : ytId ? (
+                // ← Always render YouTube iframe, play={false} shows YouTube's own thumbnail
+                <YoutubePlayer
+                  height={VH - s(50)} // extra space to prevent cropping
+                  width={SW - s(44)}
+                  videoId={ytId}
+                  play={playing}
+                  webViewStyle={{ backgroundColor: '#000', opacity: 0.99 }}
+                  webViewProps={{ androidLayerType: 'hardware' }}
+                  initialPlayerParams={{
+                    rel: false,
+                    modestbranding: true,
+                    controls: true,
+                    autoplay: 0,
+                    showinfo: 0,
+                  }}
+                  onChangeState={(state) => {
+                    if (state === 'playing') setPlaying(true);
+                    if (state === 'paused' || state === 'ended') setPlaying(false);
+                  }}
+                />
               ) : (
-                // ✅ Thumbnail — tap to play
-                <TouchableOpacity
-                  style={StyleSheet.absoluteFill}
-                  onPress={() => setPlaying(true)}
-                  activeOpacity={0.9}
-                >
-                  <Image
-                    source={{ uri: image }}
-                    style={StyleSheet.absoluteFill}
-                    resizeMode="contain"
-                  />
-                  <View style={styles.overlay} />
-                  <View style={styles.playCenter}>
-                    <View style={styles.playBtn}>
-                      <Ionicons name="play" size={s(26)} color="#fff" />
-                    </View>
-                  </View>
-                  {!!duration && (
-                    <View style={styles.durationBadge}>
-                      <Text style={[styles.durationText, { fontSize: sf(11) }]}>
-                        {duration}
-                      </Text>
-                    </View>
-                  )}
-                </TouchableOpacity>
+                // WebView fallback for non-YouTube
+                <WebView
+                  source={{ html: buildIframeHtml(videoPath) }}
+                  style={{ flex: 1, backgroundColor: '#000' }}
+                  allowsFullscreenVideo
+                  javaScriptEnabled
+                  domStorageEnabled
+                  mediaPlaybackRequiresUserAction={false}
+                  allowsInlineMediaPlayback
+                  scrollEnabled={false}
+                  originWhitelist={['*']}
+                  mixedContentMode="always"
+                />
               )}
             </View>
           ) : (
@@ -297,7 +273,7 @@ const AlsoSeeThis = ({ item, onPress, scrollY = 0, playerPageY = 0 }) => {
             styles.floatPip,
             {
               left: Animated.add(aLeft, aDX),
-              top:  Animated.add(aTop,  aDY),
+              top: Animated.add(aTop, aDY),
             },
           ]}
           {...pan.panHandlers}
@@ -305,13 +281,21 @@ const AlsoSeeThis = ({ item, onPress, scrollY = 0, playerPageY = 0 }) => {
           {/* Player inside PIP */}
           {ytId ? (
             <YoutubePlayer
-              height={PH}
-              width={PW}
+              height={VH}
+              width={SW}
               videoId={ytId}
-              play={true}
+              play={playing}   // ← false initially, true on tap
               webViewStyle={{ backgroundColor: '#000', opacity: 0.99 }}
               webViewProps={{ androidLayerType: 'hardware' }}
-              initialPlayerParams={{ rel: false, controls: true, autoplay: 1 }}
+              initialPlayerParams={{
+                rel: false,
+                modestbranding: true,
+                controls: true,
+                autoplay: 0,   // ← 0 so YouTube shows its own thumbnail
+              }}
+              onChangeState={(state) => {
+                if (state === 'playing') setPlaying(true);
+              }}
             />
           ) : (
             <WebView
@@ -352,13 +336,13 @@ const AlsoSeeThis = ({ item, onPress, scrollY = 0, playerPageY = 0 }) => {
 const styles = StyleSheet.create({
   container: {
     marginVertical: vs(10),
-    paddingHorizontal:s(12),
-    borderWidth:s(1),
-    borderColor:COLORS.grey300
+    paddingHorizontal: s(12),
+    borderWidth: s(1),
+    borderColor: COLORS.grey300
   },
 
   sectionHeader: {
-    backgroundColor: COLORS.white,
+    // backgroundColor: COLORS.white,
     // paddingHorizontal: s(12),
     paddingTop: vs(14),
     paddingBottom: vs(10),
@@ -374,13 +358,15 @@ const styles = StyleSheet.create({
     marginTop: vs(2),
   },
   card: {
-    backgroundColor: COLORS.white,
+    // backgroundColor: COLORS.white,
     overflow: 'hidden',
   },
   playerContainer: {
     width: '100%',
     backgroundColor: '#000',
     overflow: 'hidden',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
@@ -416,7 +402,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   textContent: {
-    paddingHorizontal: s(12),
+    // paddingHorizontal: s(12),
     paddingTop: vs(10),
     paddingBottom: vs(14),
   },
@@ -430,6 +416,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: s(8),
+    paddingHorizontal: s(12),
+
+
   },
   catPill: {
     borderWidth: 1,

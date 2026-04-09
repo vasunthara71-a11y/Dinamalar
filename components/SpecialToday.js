@@ -17,34 +17,11 @@ const SpecialToday = ({ specialData }) => {
 
   const handleTagPress = (item) => {
     if (item.url) {
-      // Check if URL contains spirituality-related paths and navigate to CommonSectionScreen
-      if (item.url.includes('anmegam-spirituality') || item.url.includes('hindu-kathikal')) {
-        navigation.navigate('CommonSectionScreen', {
-          screenTitle: 'ஆன்மீகம்',
-          apiEndpoint: 'https://api-st-cdn.dinamalar.com/anmeegam',
-          allTabLink: 'https://www.dinamalar.com/anmegam-spirituality'
-        });
-      } else if (item.url.includes('malarkal/ariviyal-malar')) {
-        // Handle science articles section
-        navigation.navigate('CommonSectionScreen', {
-          screenTitle: 'அறிவியல் மலர்',
-          apiEndpoint: 'https://api-st-cdn.dinamalar.com/ariviyal',
-          allTabLink: 'https://www.dinamalar.com/malarkal/ariviyal-malar-science-articles'
-        });
-      } else {
-        // Extract news ID from URL and navigate to NewsDetailsScreen within the app
-        const urlMatch = item.url.match(/\/(\d+)(?:\/|$)/);
-        if (urlMatch) {
-          const newsId = urlMatch[1];
-          navigation.navigate('NewsDetailsScreen', { 
-            newsId: newsId,
-            newsItem: { id: newsId, newsid: newsId }
-          });
-        } else {
-          // If no news ID found, open in browser as fallback
-          Linking.openURL(item.url);
-        }
-      }
+      // For ALL special today tabs, open in WebView
+      navigation.navigate('GenericWebViewScreen', {
+        url: item.url,
+        title: item.key || 'சிறப்பு இன்று'
+      });
     }
   };
 
@@ -55,7 +32,7 @@ const SpecialToday = ({ specialData }) => {
         style={styles.sectionHeader}
         onPress={() => navigation.navigate('SpecialTodayScreen', {
           screenTitle: specialData.title || 'சிறப்பு இன்று',
-          apiEndpoint: 'https://api-st-cdn.dinamalar.com/specialtoday',
+          apiEndpoint: 'https://api-st.dinamalar.com/specialtoday',
           allTabLink: 'https://www.dinamalar.com/specialtoday'
         })}
       >

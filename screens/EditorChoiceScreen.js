@@ -138,7 +138,7 @@ export default function EditorChoiceScreen({ navigation }) {
         setLoadingMore(true);
       }
 
-      const response = await axios.get(`https://api-st-cdn.dinamalar.com/editorchoice?page=${page}`);
+      const response = await axios.get(`https://api-st.dinamalar.com/editorchoice?page=${page}`);
       
       console.log('📄 EditorChoice API Response:', response.data);
       console.log('📄 Response status:', response.data?.status);

@@ -16,7 +16,7 @@ import { useFontSize } from '../context/FontSizeContext';
 import axios from 'axios';
 import { LinearGradient } from 'expo-linear-gradient';
 
-const MENU_API_URL = 'https://api-st-cdn.dinamalar.com/menuindex1';
+const MENU_API_URL = 'https://api-st.dinamalar.com/menuindex1';
 
 // ─── Module-level cache — persists across screen mounts/remounts ──────────────
 let _cachedMenuItems = null;

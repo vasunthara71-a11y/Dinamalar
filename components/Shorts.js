@@ -87,10 +87,11 @@ const styles = StyleSheet.create({
   container: {
     marginVertical: vs(12),
     paddingHorizontal: s(16),
+        backgroundColor: '#ffffff',
+
   },
   // Section Header styles (matching HomeScreen)
   sectionHeader: {
-    backgroundColor: '#ffffff',
     // paddingHorizontal: s(12),
     // paddingTop: vs(14),
     paddingVertical:ms(10)
