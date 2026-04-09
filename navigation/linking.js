@@ -27,14 +27,6 @@ const linking = {
           videoId: (videoId) => String(videoId),
         },
       },
-
-      // Handle root paths and catch-all
-      Home: {
-        path: '',
-        parse: {
-          // Handle empty path
-        },
-      },
     },
   },
 };

@@ -57,7 +57,8 @@
             { "scheme": "https", "host": "www.dinamalar.com", "path": "/videos/*" },
             { "scheme": "https", "host": "dinamalar.com", "path": "/video/*" },
             { "scheme": "https", "host": "dinamalar.com", "path": "/videos/*" },
-            { "scheme": "dinamalar", "path": "/*" }
+            { "scheme": "dinamalar", "path": "/video/*" },
+            { "scheme": "dinamalar", "path": "/videos/*" }
           ],
           "category": ["BROWSABLE", "DEFAULT"]
         }
