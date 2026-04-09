@@ -2,8 +2,9 @@ import * as Linking from 'expo-linking';
 
 const linking = {
   prefixes: [
-    'dinamalar://',
     'https://www.dinamalar.com',
+    'https://dinamalar.com',
+    'dinamalar://',
     Linking.createURL('/'),  // for Expo Go testing
   ],
   config: {
@@ -11,19 +12,19 @@ const linking = {
     screens: {
       Home: '',
 
-      // ✅ More specific route MUST come before the general one
-      PhotoDetails: {
-        path: 'photo/:catid/:eventid',
+      // Videos Screen Deep Link (for video list)
+      VideosScreen: {
+        path: 'videos/:id',
         parse: {
-          catid: (catid) => String(catid),
-          eventid: (eventid) => Number(eventid),
+          id: (id) => String(id),
         },
       },
 
-      PhotoAlbum: {
-        path: 'photo/:catid',
+      // VideoDetailScreen Deep Link (Universal Links)
+      VideoDetailScreen: {
+        path: 'video/:videoId',
         parse: {
-          catid: (catid) => String(catid),
+          videoId: (videoId) => String(videoId),
         },
       },
     },
