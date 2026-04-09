@@ -55,10 +55,16 @@
           "data": [
             { "scheme": "https", "host": "www.dinamalar.com", "path": "/video/*" },
             { "scheme": "https", "host": "www.dinamalar.com", "path": "/videos/*" },
+            { "scheme": "https", "host": "www.dinamalar.com", "path": "/news/*" },
+            { "scheme": "https", "host": "www.dinamalar.com", "path": "/author/*" },
             { "scheme": "https", "host": "dinamalar.com", "path": "/video/*" },
             { "scheme": "https", "host": "dinamalar.com", "path": "/videos/*" },
+            { "scheme": "https", "host": "dinamalar.com", "path": "/news/*" },
+            { "scheme": "https", "host": "dinamalar.com", "path": "/author/*" },
             { "scheme": "dinamalar", "path": "/video/*" },
-            { "scheme": "dinamalar", "path": "/videos/*" }
+            { "scheme": "dinamalar", "path": "/videos/*" },
+            { "scheme": "dinamalar", "path": "/news/*" },
+            { "scheme": "dinamalar", "path": "/author/*" }
           ],
           "category": ["BROWSABLE", "DEFAULT"]
         }

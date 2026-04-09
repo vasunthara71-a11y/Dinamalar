@@ -27,6 +27,22 @@ const linking = {
           videoId: (videoId) => String(videoId),
         },
       },
+
+      // News Details Screen Deep Link
+      NewsDetailsScreen: {
+        path: 'news/:newsId',
+        parse: {
+          newsId: (newsId) => String(newsId),
+        },
+      },
+
+      // Author Screen Deep Link
+      AuthorScreen: {
+        path: 'author/:authorId',
+        parse: {
+          authorId: (authorId) => String(authorId),
+        },
+      },
     },
   },
 };

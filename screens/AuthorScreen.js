@@ -308,7 +308,7 @@ export default function AuthorScreen() {
 
             {/* Share Container */}
             <ShareComponent
-              shareUrl={`https://www.dinamalar.com/author/${authorId}`}
+              shareUrl={`dinamalar://author/${authorId}`}
               shareTitle={authorName}
               shareText={`${authorName} - தினமலர்`}
               containerStyle={styles.shareRow}

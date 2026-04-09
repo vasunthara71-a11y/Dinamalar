@@ -588,7 +588,7 @@ const VideoDetailScreen = ({ navigation, route }) => {
   const bodyText = video?.videodescription ?? '';
   const timeAgo = getTimeAgo(video?.videodate);
   const commentCount = parseInt(video?.nmcomment || 0);
-  const shareUrl = video?.slug ? `https://www.dinamalar.com${video.slug}` : `https://www.dinamalar.com/video/${videoId}`;
+  const shareUrl = video?.slug ? `https://www.dinamalar.com${video.slug}` : `dinamalar://video/${videoId}`;
   const isPlayerActive = !!(activeYtId || activeRawUrl);
 
   const startVideo = useCallback((yId, rUrl) => {
@@ -646,6 +646,23 @@ const VideoDetailScreen = ({ navigation, route }) => {
   const handleShare = async () => {
     try { await Share.share({ message: `${video?.videotitle ?? 'Dinamalar Video'}\n${shareUrl}` }); } catch { }
   };
+
+  // Test deep links in Expo Go
+  const testDeepLinks = async () => {
+    try {
+      console.log('Testing deep links in Expo Go...');
+      // Test with Expo Go URL scheme
+      const expoUrl = `exp://192.168.1.100:8081/--/video/336048`; // Replace with your IP
+      await Linking.openURL(expoUrl);
+      
+      setTimeout(async () => {
+        await Linking.openURL('dinamalar://video/336048');
+      }, 2000);
+    } catch (error) {
+      console.error('Deep link test failed:', error);
+    }
+  };
+
   const handleSelectDistrict = (d) => {
     setDistrict(d.title); setIsLocDrawerOpen(false);
     if (d.id) navigation?.navigate('DistrictNewsScreen', { districtId: d.id, districtTitle: d.title });
@@ -805,6 +822,23 @@ const VideoDetailScreen = ({ navigation, route }) => {
           </View>
           <View style={S.divider} />
         </View>
+
+        {/* Deep Link Test Button (Expo Go) */}
+        <TouchableOpacity 
+          style={{
+            backgroundColor: PALETTE.primary,
+            padding: s(12),
+            borderRadius: s(8),
+            marginVertical: vs(10),
+            alignItems: 'center'
+          }}
+          onPress={testDeepLinks}
+          activeOpacity={0.8}
+        >
+          <Text style={{ color: '#fff', fontSize: sf(14), fontWeight: '700' }}>
+            Test Deep Links (Expo Go)
+          </Text>
+        </TouchableOpacity>
 
         {/* ── Taboola mid ───────────────────────────────────────────────── */}
         {taboolaAds?.midmain && (

@@ -1028,6 +1028,11 @@ export default function NewsDetailsScreen() {
   const getShareUrl = () => {
     const slug = detail?.slug || currentNewsItem?.slug || '';
     const shareUrl = detail?.shareurl || currentNewsItem?.shareurl || '';
+    // For deep linking, use custom scheme if we have a news ID
+    const newsId = detail?.newsid || currentNewsItem?.newsid || currentNewsItem?.id;
+    if (newsId) {
+      return shareUrl || `dinamalar://news/${newsId}`;
+    }
     return shareUrl || (slug ? `https://www.dinamalar.com${slug}` : 'https://www.dinamalar.com');
   };
 
