@@ -270,12 +270,45 @@ const ReelCard = ({ item, onPress, sf }) => {
           <Ionicons name="play" size={s(12)} color="#fff" />
         </View>
       </View> */}
-      {/* )} */}
     </TouchableOpacity>
   );
 };
 
-// ─── District Tag Pill ────────────────────────────────────────────────────────
+// Shorts Grid Card (for grid layout) 
+const ShortsGridCard = ({ item, onPress, sf }) => {
+  const img = item.images || '';
+  const title = item.title || item.videotitle || '';
+  
+  return (
+    <TouchableOpacity
+      style={S.shortsGridCard}
+      onPress={() => onPress?.(item)}
+      activeOpacity={0.85}
+    >
+      <View style={S.shortsGridThumb}>
+        {img ? (
+          <Image source={{ uri: img }} style={S.shortsGridImage} resizeMode="cover" />
+        ) : (
+          <View style={[S.shortsGridThumb, S.shortsGridPlaceholder]}>
+            <Image
+              source={{ uri: 'https://stat.dinamalar.com/new/2025/images/dinamalar-pavala-vizha-logo-day.png' }}
+              style={{ width: s(40), height: s(20), resizeMode: 'contain' }}
+            />
+          </View>
+        )}
+        {!!title && (
+          <View style={S.titleOverlay}>
+            <Text style={[S.bottomTitle, { fontSize: sf(10) }]} >
+              {title}
+            </Text>
+          </View>
+        )}
+      </View>
+    </TouchableOpacity>
+  );
+};
+
+// District Tag Pill
 const DistrictTagList = ({ districts, onPress, sf }) => {
   if (!districts?.length) return null;
   return (
@@ -627,7 +660,13 @@ const VideoDetailScreen = ({ navigation, route }) => {
 
   const handleReelPress = (item) => {
     const link = item.link || item.url || '';
-    if (link) Linking.openURL(link).catch(() => { });
+    const title = item.title || item.videotitle || 'Shorts';
+    if (link) {
+      navigation?.navigate('GenericWebViewScreen', {
+        url: link,
+        title: title
+      });
+    }
   };
 
   const handleNewsPress = (item) => {
@@ -934,20 +973,17 @@ const handleCatPillPress = useCallback((catTitle) => {
             adSize={mobileAds.mid_300x250.ad_size} adSize1={mobileAds.mid_300x250.ad_size1} />
         )} */}
 
-        {/* ── ரீல்ஸ் — data.relatedreels ONLY (separate, horizontal) ─────── */}
+        {/* ── ரீல்ஸ் — data.relatedreels ONLY (separate, grid) ──────── */}
         {relatedReels.length > 0 && (
           <View style={S.section}>
             <SectionHeader title="ஷார்ட்ஸ்" sf={sf} />
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ paddingHorizontal: s(12), paddingVertical: vs(10), gap: s(10) }}>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-around',  paddingVertical: vs(12), marginBottom: vs(20) }}>
               {relatedReels.map((item, i) => (
-                <ReelCard key={`rr-${i}-${item?.id || ''}`} item={item} sf={sf} onPress={handleReelPress} />
+                <ShortsGridCard key={`rr-${i}-${item?.id || ''}`} item={item} sf={sf} onPress={handleReelPress} />
               ))}
-            </ScrollView>
+            </View>
           </View>
         )}
-
-        {/* ── தொடர்புடையவை — data.relatedvideos (Screenshot 1 style) ─────── */}
         {relatedVideos.length > 0 && (
           <View style={S.section}>
             <SectionHeader title="தொடர்புடையவை" sf={sf} />
@@ -956,8 +992,6 @@ const handleCatPillPress = useCallback((catTitle) => {
             ))}
           </View>
         )}
-
-        {/* ── செய்திகள் — data.newlist from relatedmost ─────────────────── */}
         {newsList.length > 0 && (
           <View style={S.section}>
             <SectionHeader title="செய்திகள்" sf={sf} />
@@ -976,29 +1010,6 @@ const handleCatPillPress = useCallback((catTitle) => {
           <View style={S.section}>
             <SectionHeader title="மேலும் வீடியோக்கள்" sf={sf} />
             {videoReelNews.map((v, i) => (
-              <VideoListCard key={`vrn-${i}-${v?.videoid || ''}`} video={v} onPress={handleVideoPress} sf={sf} />
-            ))}
-          </View>
-        )} */}
-
-        {/* ── ஷார்ட்ஸ் — data.videoreels type=reels (separate, horizontal) ─ */}
-        {/* {videoReelReels.length > 0 && (
-          <View style={S.section}>
-            <SectionHeader title="ஷார்ட்ஸ்" sf={sf} />
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ paddingHorizontal: s(12), paddingVertical: vs(10), gap: s(10) }}>
-              {videoReelReels.map((item, i) => (
-                <ReelCard key={`vrs-${i}-${item?.id || ''}`} item={item} sf={sf} onPress={handleReelPress} />
-              ))}
-            </ScrollView>
-          </View>
-        )} */}
-
-
-
-        {/* ── மாவட்டங்கள் tag row — data.videodistrict ─────────────────── */}
-        {/* <DistrictTagList districts={videoDistrict} onPress={handleDistrictTagPress} sf={sf} /> */}
-
         {/* ── Google Ad BTF ─────────────────────────────────────────────── */}
         {/* {mobileAds?.bottom_300x250 && (
           <GoogleAdBanner slotId={mobileAds.bottom_300x250.slotId} adUnit={mobileAds.bottom_300x250.ad_unit}
@@ -1183,6 +1194,32 @@ const S = StyleSheet.create({
   },
   reelPlayWrap: { position: 'absolute', top: '50%', left: '50%', transform: [{ translateX: -s(14) }, { translateY: -s(14) }] },
   reelTitle: { color: PALETTE.grey800, marginTop: vs(4), paddingHorizontal: s(2) },
+
+  // ShortsGridCard (for grid layout)
+  shortsGridCard: {
+    width: '48%',
+    marginHorizontal: '1%',
+    marginBottom: s(8),
+    backgroundColor: PALETTE.white,
+    borderRadius: s(8),
+    overflow: 'hidden'
+  },
+  shortsGridThumb: {
+    width: '100%',
+    aspectRatio: 9/16,
+    backgroundColor: PALETTE.grey200,
+    borderRadius: s(8),
+    overflow: 'hidden'
+  },
+  shortsGridImage: {
+    width: '100%',
+    height: '100%'
+  },
+  shortsGridPlaceholder: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5'
+  },
 
   // District tags
   distTagSec: { backgroundColor: PALETTE.white, marginTop: vs(6) },
