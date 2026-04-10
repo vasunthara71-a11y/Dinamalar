@@ -1,19 +1,17 @@
 {
   "expo": {
     "name": "Dinamalar",
-    "slug": "dinamalarmobileapplication",
+    "slug": "Dinamalar",
     "scheme": "dinamalar",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-
     "splash": {
       "image": "./assets/icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-
     "plugins": [
       [
         "expo-font",
@@ -46,7 +44,6 @@
       "expo-sharing",
       "expo-video"
     ],
-
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.dinamalarMobileApp",
@@ -54,7 +51,6 @@
         "applinks:www.dinamalar.com"
       ]
     },
-
     "android": {
       "package": "com.dinamalarMobileApp",
       "softwareKeyboardLayoutMode": "resize",
@@ -63,20 +59,67 @@
           "action": "VIEW",
           "autoVerify": true,
           "data": [
-            { "scheme": "https", "host": "www.dinamalar.com", "path": "/video/*" },
-            { "scheme": "https", "host": "www.dinamalar.com", "path": "/videos/*" },
-            { "scheme": "https", "host": "www.dinamalar.com", "path": "/news/*" },
-            { "scheme": "https", "host": "www.dinamalar.com", "path": "/author/*" },
-            { "scheme": "https", "host": "dinamalar.com", "path": "/video/*" },
-            { "scheme": "https", "host": "dinamalar.com", "path": "/videos/*" },
-            { "scheme": "https", "host": "dinamalar.com", "path": "/news/*" },
-            { "scheme": "https", "host": "dinamalar.com", "path": "/author/*" },
-            { "scheme": "dinamalar", "path": "/video/*" },
-            { "scheme": "dinamalar", "path": "/videos/*" },
-            { "scheme": "dinamalar", "path": "/news/*" },
-            { "scheme": "dinamalar", "path": "/author/*" }
+            {
+              "scheme": "https",
+              "host": "www.dinamalar.com",
+              "path": "/video/*"
+            },
+            {
+              "scheme": "https",
+              "host": "www.dinamalar.com",
+              "path": "/videos/*"
+            },
+            {
+              "scheme": "https",
+              "host": "www.dinamalar.com",
+              "path": "/news/*"
+            },
+            {
+              "scheme": "https",
+              "host": "www.dinamalar.com",
+              "path": "/author/*"
+            },
+            {
+              "scheme": "https",
+              "host": "dinamalar.com",
+              "path": "/video/*"
+            },
+            {
+              "scheme": "https",
+              "host": "dinamalar.com",
+              "path": "/videos/*"
+            },
+            {
+              "scheme": "https",
+              "host": "dinamalar.com",
+              "path": "/news/*"
+            },
+            {
+              "scheme": "https",
+              "host": "dinamalar.com",
+              "path": "/author/*"
+            },
+            {
+              "scheme": "dinamalar",
+              "path": "/video/*"
+            },
+            {
+              "scheme": "dinamalar",
+              "path": "/videos/*"
+            },
+            {
+              "scheme": "dinamalar",
+              "path": "/news/*"
+            },
+            {
+              "scheme": "dinamalar",
+              "path": "/author/*"
+            }
           ],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ],
       "googleServicesFile": "./google-services.json",
@@ -86,22 +129,22 @@
         "backgroundImage": "./assets/icon.png",
         "monochromeImage": "./assets/icon.png"
       },
-
       "permissions": [
-        "INTERNET"
+        "INTERNET",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"
       ]
     },
-
     "web": {
       "favicon": "./assets/icon.png"
     },
-
     "extra": {
       "eas": {
-        "projectId": "014e592e-d3e5-4958-9178-5ba4e58bd9aa"
+        "projectId": "32bed8d9-8f9a-4505-a9f8-347f429ac9f7"
       }
     },
-
-    "owner": "dinamalar"
+    "owner": "vasunthara71"
   }
 }

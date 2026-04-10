@@ -100,7 +100,7 @@ export async function getPushNotificationToken() {
 
     // Request new token
     const tokenData = await Notifications.getExpoPushTokenAsync({
-      projectId: '014e592e-d3e5-4958-9178-5ba4e58bd9aa', // Your EAS project ID
+      projectId: '32bed8d9-8f9a-4505-a9f8-347f429ac9f7', // Your new EAS project ID
     });
 
     const token = tokenData.data;
