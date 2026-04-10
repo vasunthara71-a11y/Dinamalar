@@ -931,11 +931,15 @@ useEffect(() => {
 
 }, [fetchVideos, initialCategory, initialTabKey]);
 
-  // Auto-scroll category tabs so active tab is always fully visible
+  // Auto-scroll category tabs so active tab is always fully visible (using SportsScreen pattern)
   useEffect(() => {
+    console.log('[TabScroll] Category changed to:', filters.category);
+    console.log('[TabScroll] Available tab layouts:', Object.keys(tabLayoutsRef.current));
+    
     if (!filters.category || !categoryScrollRef.current) return;
-    const activeCatValue = filters.category;
-    const layout = tabLayoutsRef.current[activeCatValue];
+    const layout = tabLayoutsRef.current[filters.category];
+    console.log('[TabScroll] Layout for active tab:', layout);
+    
     if (!layout) return;
 
     // Use requestAnimationFrame to prevent conflicts
@@ -943,6 +947,7 @@ useEffect(() => {
       if (categoryScrollRef.current) {
         // Centre the active tab: scroll so tab sits in middle of scroll view
         const scrollX = Math.max(0, layout.x - layout.width);
+        console.log('[TabScroll] Scrolling to X:', scrollX);
         categoryScrollRef.current.scrollTo({ x: scrollX, animated: true });
       }
     });
