@@ -189,9 +189,11 @@ function ImageWithFallback({ source, style, resizeMode = 'cover', iconSize = 40 
   );
 }
 
+
+
 // ─── Video Card ─────────────────────────────────────────────────────────────────
-const VideoCard = ({ video, onPress, districtLabel, index }) => {
-  const { sf } = useFontSize();
+const VideoCard = ({ video, onPress, districtLabel, index, onCategoryPress }) => { 
+   const { sf } = useFontSize();
 
   if (video.type === 'reels') return null;
   if (video.type === 'googlead') return null;
@@ -199,7 +201,7 @@ const VideoCard = ({ video, onPress, districtLabel, index }) => {
   const timeAgo = getTimeAgo(video.videodate);
   const pillLabel = districtLabel || video.ctitle || video.maincat || '';
   const shareUrl = encodeURIComponent(video.link || video.url || '');
-
+ 
   return (
     <View style={NewsCard.wrap}>
       {index === 0 && (
@@ -285,11 +287,15 @@ const VideoCard = ({ video, onPress, districtLabel, index }) => {
 
           <View style={[NewsCard.metaRow, { marginTop: vs(8) }]}>
             {!!pillLabel && (
-              <View style={NewsCard.catPill}>
+              <TouchableOpacity
+                onPress={() => onCategoryPress?.(video.ctitle || video.maincat || '')}
+                activeOpacity={0.7}
+                style={NewsCard.catPill}
+              >
                 <Text style={[NewsCard.catText, { fontSize: sf(12) }]}>
                   {pillLabel}
                 </Text>
-              </View>
+              </TouchableOpacity>
             )}
             <Text style={[NewsCard.timeText, { fontSize: sf(12), marginLeft: 'auto' }]}>
               {timeAgo || video.standarddate}
@@ -543,6 +549,31 @@ const VideosScreen = ({ navigation, route }) => {
   const [filters, setFilters] = useState({ category: '', date: '', district: '', districtSlug: '' });
   // ── Fetch: CDNApi + API_ENDPOINTS.VIDEO_MAIN (/videomain) ────────────────────
 // In fetchVideos, replace the entire params building logic with this simpler version:
+
+// Add this inside VideosScreen, near your other handlers:
+const handleCategoryPillPress = useCallback((ctitle) => {
+  if (!ctitle || categories.length === 0) return;
+
+  // Find matching category by comparing title (case-insensitive)
+  const matched = categories.find(
+    (cat) => (cat.title || '').toLowerCase() === ctitle.toLowerCase()
+  );
+
+  if (!matched) return;
+
+  const catValue = String(matched.value ?? '');
+
+  // Scroll to top
+  flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+
+  // Update filters & fetch
+  const updated = { ...filters, category: catValue };
+  setFilters(updated);
+  fetchVideos({ cat: catValue, date: updated.date, district: updated.district });
+}, [categories, filters, fetchVideos]);
+
+
+
 const fetchVideos = useCallback(async ({ cat = '', date = '', district = '', districtSlug = '', page = 1, append = false } = {}) => {
   if (!append) {
     setLoading(true);
@@ -933,12 +964,12 @@ useEffect(() => {
 
   // Auto-scroll category tabs so active tab is always fully visible (using SportsScreen pattern)
   useEffect(() => {
-    console.log('[TabScroll] Category changed to:', filters.category);
-    console.log('[TabScroll] Available tab layouts:', Object.keys(tabLayoutsRef.current));
+    // console.log('[TabScroll] Category changed to:', filters.category);
+    // console.log('[TabScroll] Available tab layouts:', Object.keys(tabLayoutsRef.current));
     
     if (!filters.category || !categoryScrollRef.current) return;
     const layout = tabLayoutsRef.current[filters.category];
-    console.log('[TabScroll] Layout for active tab:', layout);
+    // console.log('[TabScroll] Layout for active tab:', layout);
     
     if (!layout) return;
 
@@ -947,25 +978,43 @@ useEffect(() => {
       if (categoryScrollRef.current) {
         // Centre the active tab: scroll so tab sits in middle of scroll view
         const scrollX = Math.max(0, layout.x - layout.width);
-        console.log('[TabScroll] Scrolling to X:', scrollX);
+        // console.log('[TabScroll] Scrolling to X:', scrollX);
         categoryScrollRef.current.scrollTo({ x: scrollX, animated: true });
       }
     });
   }, [filters.category]);
 
-  const handleCategoryPress = (value) => {
-    const updated = {
-      ...filters,
-      category: filters.category === value ? '' : value,
-    };
-    setFilters(updated);
-    console.log('[handleCategoryPress] updated filters:', updated);
-    fetchVideos({
-      cat: updated.category,
-      date: updated.date,        // <- keeps active date
-      district: updated.district, // <- keeps active district
-    });
+  // Add this useEffect to respond to navigation params from VideoDetailScreen
+  useEffect(() => {
+    const catId = route?.params?.catId ?? '';
+    const catTitle = route?.params?.catTitle ?? '';
+    const timestamp = route?.params?.timestamp;
+    
+    if (catId !== undefined && catId !== '') {
+      console.log('[VideosScreen] Setting category from navigation params:', { catId, catTitle, timestamp });
+      
+      // Set the active category to match the passed catId
+      const updated = { ...filters, category: String(catId) };
+      setFilters(updated);
+      fetchVideos({ cat: String(catId), date: updated.date, district: updated.district });
+      
+      // Scroll to top
+      flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+    }
+  }, [route?.params?.catId, route?.params?.timestamp]); // timestamp triggers re-run
+
+const handleCategoryPress = (value) => {
+  const updated = {
+    ...filters,
+    category: filters.category === value ? '' : value,
   };
+  setFilters(updated);
+  fetchVideos({
+    cat: updated.category,
+    date: updated.date,        // <- keeps active date
+    district: updated.district, // <- keeps active district
+  });
+};
 
 // ── Date filter press — keeps district and category selection ──────────────────
 const handleSelectFilter = (ename) => {
@@ -1370,6 +1419,7 @@ return (
       ? districtOptions.find(d => String(d.id) === filters.district)?.title || ''
       : ''
     }
+    onCategoryPress={handleCategoryPillPress}
   />
           );
         }}

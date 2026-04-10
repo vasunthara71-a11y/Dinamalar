@@ -193,8 +193,8 @@ function SectionHeader({ title }) {
 // ─── Video List Card — matches Screenshot 1 layout ────────────────────────────
 // Full-width image, play button bottom-left, duration badge bottom-right,
 // title + category + time below
-const VideoListCard = ({ video, onPress, sf }) => {
-  if (!video) return null;
+const VideoListCard = ({ video, onPress, onCatPress, sf }) => {
+    if (!video) return null;
   const img = video.images || video.largeimages || video.thumbnail || '';
   const title = video.videotitle || video.newstitle || video.title || '';
   const duration = video.duration || '';
@@ -221,8 +221,16 @@ const VideoListCard = ({ video, onPress, sf }) => {
         <Text style={[S.vidListTitle, { fontSize: sf(12), lineHeight: sf(19) }]}  >
           {title}
         </Text>
-        <View style={S.vidListMeta}>
-          {!!cat && <View style={S.catPill}><Text style={[S.catTxt, { fontSize: sf(10) }]}>{cat}</Text></View>}
+       <View style={S.vidListMeta}>
+          {!!cat && (
+            <TouchableOpacity
+              style={S.catPill}
+              onPress={() => onCatPress?.(cat)}   // ← tap the pill
+              activeOpacity={0.75}
+            >
+              <Text style={[S.catTxt, { fontSize: sf(10) }]}>{cat}</Text>
+            </TouchableOpacity>
+          )}
           {!!date && <Text style={[S.metaDate, { fontSize: sf(12) }]}>{date}</Text>}
         </View>
       </View>
@@ -662,6 +670,33 @@ const VideoDetailScreen = ({ navigation, route }) => {
       console.error('Deep link test failed:', error);
     }
   };
+  // Add this category lookup near the top of VideoDetailScreen component
+const CATEGORIES = [
+  { title: "All", value: "" },
+  { title: "Live", value: "5050" },
+  { title: "அரசியல்", value: "31" },
+  { title: "பொது", value: "32" },
+  { title: "சம்பவம்", value: "33" },
+  { title: "சினிமா", value: "435" },
+  { title: "டிரைலர்", value: "436" },
+  { title: "செய்திச்சுருக்கம்", value: "594" },
+  { title: "விளையாட்டு", value: "464" },
+  { title: "சிறப்பு தொகுப்புகள்", value: "1238" },
+  { title: "ஆன்மிகம்", value: "1316" },
+  { title: "மாவட்ட செய்திகள்", value: "1585" },
+  { title: "ஷார்ட்ஸ்", value: "shorts" },
+];
+
+// Add this handler inside VideoDetailScreen
+const handleCatPillPress = useCallback((catTitle) => {
+  const match = CATEGORIES.find(c => c.title === catTitle);
+  if (!match) return;
+  navigation?.navigate('VideoScreen', {
+    catId: match.value,
+    catTitle: match.title,
+    timestamp: Date.now(), // <- forces VideoScreen to re-read params even if already mounted
+  });
+}, [navigation]);
 
   const handleSelectDistrict = (d) => {
     setDistrict(d.title); setIsLocDrawerOpen(false);
@@ -805,9 +840,17 @@ const VideoDetailScreen = ({ navigation, route }) => {
             </View>
           ) : null}
           <View style={[S.metaRow, { marginTop: vs(8) }]}>
-            <View style={S.metaLeft}>
-              {!!video?.ctitle && <View style={S.catPill}><Text style={[S.catTxt, { fontSize: sf(10) }]}>{video.ctitle}</Text></View>}
-            </View>
+          <View style={S.metaLeft}>
+  {!!video?.ctitle && (
+    <TouchableOpacity
+      style={S.catPill}
+      onPress={() => handleCatPillPress(video.ctitle)}
+      activeOpacity={0.75}
+    >
+      <Text style={[S.catTxt, { fontSize: sf(10) }]}>{video.ctitle}</Text>
+    </TouchableOpacity>
+  )}
+</View>
             <View style={S.metaRight}>
               {/* {commentCount > 0 && ( */}
               <TouchableOpacity style={S.metaBtn} onPress={() => setIsCommentsOpen(true)} activeOpacity={0.8}>
@@ -860,7 +903,7 @@ const VideoDetailScreen = ({ navigation, route }) => {
           <View style={S.section}>
             <SectionHeader title="மேலும் வீடியோக்கள்" sf={sf} />
             {videomixData.slice(0, 6).map((v, i) => (
-              <VideoListCard key={`vm-${i}-${v?.videoid || ''}`} video={v} onPress={handleVideoPress} sf={sf} />
+              <VideoListCard key={`vm-${i}-${v?.videoid || ''}`} video={v} onPress={handleVideoPress} sf={sf} onCatPress={handleCatPillPress} />
             ))}
           </View>
         )}
