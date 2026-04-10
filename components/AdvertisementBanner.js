@@ -14,6 +14,7 @@ function AdvertisementBanner({ width = 280, height = 200, showLabel = true, html
           scrollEnabled={false}
           nestedScrollEnabled={false}
         />
+        
       </View>
     );
   }
@@ -26,15 +27,13 @@ function AdvertisementBanner({ width = 280, height = 200, showLabel = true, html
             Advertisement
           </Text>
         )}
-        {/* <Text style={styles.dimensionsText}>
-          {width}x{height}
-        </Text> */}
-      </View>
-      {/* {showLabel && (
-        <Text style={styles.labelText}>
+         <Text style={styles.labelText}>
           Advertisement
         </Text>
-      )} */}
+      </View>
+      
+       
+      
     </View>
   );
 }
@@ -45,7 +44,7 @@ const styles = StyleSheet.create({
     paddingVertical: vs(12),
   },
   adBox: {
-    backgroundColor: '#f0f0f0',
+    backgroundColor: '#d0cfcf',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,

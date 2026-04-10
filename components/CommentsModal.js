@@ -13,202 +13,36 @@ import {
   Platform,
   Animated,
   Image,
+  Dimensions,
 } from 'react-native';
-import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { Comment, CommentForChat } from '../assets/svg/Icons';
-import { CDNApi, mainApi, } from '../config/api';
+import { CDNApi } from '../config/api';
 import { COLORS, FONTS } from '../utils/constants';
-import { s, vs, ms, scaledSizes } from '../utils/scaling';
-import FontSizeControl from './FontSizeControl';
+import { s, vs, ms } from '../utils/scaling';
 import { useFontSize } from '../context/FontSizeContext';
-import { addComment, addReply, getCommentsForNews, saveUserName, getUserName, saveUserEmail, getUserEmail } from '../utils/commentStorage';
+import {
+  addComment, addReply, getCommentsForNews,
+  saveUserName, getUserName, saveUserEmail, getUserEmail
+} from '../utils/commentStorage';
 import { useAuth } from '../context/AuthContext';
-import { useNavigation } from '@react-navigation/native';
 import CommentUserForm from './CommentUserForm';
 
-// Generate unique key with timestamp and random to avoid duplicates
-const generateUniqueKey = (item, index, prefix = 'comment') => {
-  const timestamp = Date.now();
-  const random = Math.random().toString(36).substr(2, 9);
-  const id = item.id || item.commentid || `no-id-${index}`;
-  return `${prefix}-${id}-${timestamp}-${random}`;
+const { height: SCREEN_H } = Dimensions.get('window');
+const SHEET_MAX_H = SCREEN_H * 0.88;
+
+const AVATAR_COLORS = ['#e53935', '#8e24aa', '#1e88e5', '#00897b', '#f4511e', '#6d4c41', '#0288d1', '#2e7d32'];
+
+const generateUniqueKey = (item, index, prefix = 'c') => {
+  const id = item.id || item.commentid || index;
+  return `${prefix}-${id}-${index}`;
 };
 
-// ─── Single Comment Row ───────────────────────────────────────────────────────
-function CommentItem({ item, index, onReply, newsId, onLike, onDislike }) {
-  const { sf } = useFontSize();
-  const name = item.name || item.username || 'பயனர்';
-  const text = item.comments || item.comment || item.text || '';
-  const ago = item.ago || item.standarddate || item.date || '';
-  const likes = parseInt(item.com_like || 0);
-  const dislikes = parseInt(item.com_dislike || 0);
-  const avatar = item.images || item.avatar || '';
-
-  const colors = ['#e53935', '#8e24aa', '#1e88e5', '#00897b', '#f4511e', '#6d4c41'];
-  const bgColor = colors[(name.charCodeAt(0) || index) % colors.length];
-  const initials = name.charAt(0).toUpperCase();
-
-  return (
-    <View style={cs.row}>
-      <View style={[cs.avatar, { backgroundColor: bgColor }]}>
-        {!!avatar
-          ? <Image source={{ uri: avatar }} style={cs.avatarImg} />
-          : <Text style={[cs.avatarTxt, { fontSize: sf(15) }]}>{initials}</Text>
-        }
-      </View>
-      <View style={cs.body}>
-        <View style={cs.nameRow}>
-          <Text style={[cs.name, { fontSize: sf(14) }]} numberOfLines={1}>{name}</Text>
-          {!!ago && <Text style={[cs.date, { fontSize: sf(12) }]}>{ago}</Text>}
-        </View>
-        <Text style={[cs.text, { fontSize: sf(14), lineHeight: sf(20) }]}>{text}</Text>
-        {item.reply && item.reply.length > 0 && (
-          <View style={cs.repliesContainer}>
-            {item.reply.map((reply, replyIndex) => (
-              <View key={`reply-${reply.id || `reply-${replyIndex}`}`} style={cs.replyItem}>
-                <View style={[cs.replyAvatar, { backgroundColor: colors[(reply.name?.charCodeAt(0) || replyIndex) % colors.length] }]}>
-                  <Text style={[cs.avatarTxt, { fontSize: sf(12) }]}>
-                    {reply.name?.charAt(0)?.toUpperCase() || 'U'}
-                  </Text>
-                </View>
-                <View style={cs.replyBody}>
-                  <Text style={[cs.replyName, { fontSize: sf(12) }]}>{reply.name || 'பயனர்'}</Text>
-                  <Text style={[cs.replyText, { fontSize: sf(12), lineHeight: sf(18) }]}>{reply.comments || reply.text}</Text>
-                  <Text style={[cs.replyDate, { fontSize: sf(10) }]}>{reply.ago || 'இப்போது'}</Text>
-                </View>
-              </View>
-            ))}
-          </View>
-        )}
-        <View style={cs.actions}>
-          <TouchableOpacity style={cs.actionBtn} onPress={() => onLike(item)}>
-            <Ionicons name="thumbs-up-outline" size={ms(18)} color={item.userLiked ? COLORS.primary : "#888"} />
-            {likes > 0 && <Text style={[cs.actionTxt, { fontSize: ms(14), color: item.userLiked ? COLORS.primary : "#888" }]}>{likes}</Text>}
-          </TouchableOpacity>
-          <TouchableOpacity style={cs.actionBtn} onPress={() => onDislike(item)}>
-            <Ionicons name="thumbs-down-outline" size={ms(18)} color={item.userDisliked ? COLORS.primary : "#888"} />
-            {dislikes > 0 && <Text style={[cs.actionTxt, { fontSize: ms(14), color: item.userDisliked ? COLORS.primary : "#888" }]}>{dislikes}</Text>}
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={cs.actionBtn}
-            onPress={() => onReply(item)}
-          >
-            <Ionicons name='chatbubble-outline' color={COLORS.grey600} size={20} />
-            <Text style={[cs.actionTxt, { fontSize: ms(14) }]}>பதில்</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </View>
-  );
-}
-
-const cs = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    paddingHorizontal: s(12),
-    paddingVertical: vs(12),
-    borderBottomWidth: 1,
-    borderBottomColor: '#f5f5f5',
-  },
-  avatar: {
-    width: s(36), height: s(36), borderRadius: s(18),
-    justifyContent: 'center', alignItems: 'center',
-    marginRight: s(10), flexShrink: 0, overflow: 'hidden',
-  },
-  avatarImg: { width: '100%', height: '100%' },
-  avatarTxt: { fontSize: ms(15), fontFamily: FONTS.muktaMalar.bold, color: '#fff' },
-  body: { flex: 1 },
-  nameRow: {
-    flexDirection: 'row', alignItems: 'center',
-    justifyContent: 'space-between', marginBottom: vs(4),
-  },
-  name: { fontSize: scaledSizes.font.md, fontFamily: FONTS.muktaMalar.semibold, color: '#1a1a1a', flex: 1 },
-  date: { fontSize: scaledSizes.font.sm, fontFamily: FONTS.muktaMalar.regular, color: '#aaa', flexShrink: 0 },
-  text: { fontSize: scaledSizes.font.md, fontFamily: FONTS.muktaMalar.regular, color: COLORS.text, lineHeight: ms(20) },
-  actions: { flexDirection: 'row', marginTop: vs(6), gap: s(14), alignItems: "center" },
-  actionBtn: { flexDirection: 'row', alignItems: 'center', gap: s(4) },
-  actionTxt: { fontSize: ms(11), fontFamily: FONTS.muktaMalar.medium, color: '#888' },
-  repliesContainer: { marginTop: vs(8), paddingLeft: s(20) },
-  replyItem: { flexDirection: 'row', marginBottom: vs(8), gap: s(8) },
-  replyAvatar: {
-    width: s(24), height: s(24), borderRadius: s(12),
-    justifyContent: 'center', alignItems: 'center', flexShrink: 0,
-  },
-  replyBody: { flex: 1 },
-  replyHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: vs(2),
-  },
-  replyDeleteBtn: {
-    padding: s(2),
-  },
-  replyName: {
-    fontSize: ms(12), fontFamily: FONTS.muktaMalar.semibold,
-    color: '#666', marginBottom: vs(2)
-  },
-  replyText: {
-    fontSize: ms(12), fontFamily: FONTS.muktaMalar.regular,
-    color: '#555', lineHeight: ms(16)
-  },
-  replyDate: {
-    fontSize: ms(10), fontFamily: FONTS.muktaMalar.regular,
-    color: '#999', marginTop: vs(2)
-  },
-});
-
-// ─── Skeleton ─────────────────────────────────────────────────────────────────
-function CommentSkeleton() {
-  return (
-    <View style={sk.row}>
-      <View style={sk.avatar} />
-      <View style={sk.body}>
-        <View style={sk.name} />
-        <View style={sk.line} />
-        <View style={[sk.line, { width: '60%' }]} />
-      </View>
-    </View>
-  );
-}
-const sk = StyleSheet.create({
-  row: { flexDirection: 'row', padding: s(16), borderBottomWidth: 1, borderBottomColor: '#f5f5f5' },
-  avatar: { width: s(36), height: s(36), borderRadius: s(18), backgroundColor: '#eee', marginRight: s(10) },
-  body: { flex: 1, gap: vs(6) },
-  name: { width: s(80), height: vs(12), backgroundColor: '#eee', borderRadius: s(4) },
-  line: { width: '90%', height: vs(10), backgroundColor: '#f2f2f2', borderRadius: s(4) },
-});
-
-// ─── Empty State ──────────────────────────────────────────────────────────────
-function EmptyComments() {
-  const { sf } = useFontSize();
-  return (
-    <View style={em.wrap}>
-      <Comment size={sf(52)} color="#ddd" />
-      <Text style={[em.title, { fontSize: sf(16) }]}>கருத்துகள் இல்லை</Text>
-      <Text style={[em.sub, { fontSize: sf(13) }]}>முதல் கருத்தை பதிவிடுங்கள்!</Text>
-    </View>
-  );
-}
-const em = StyleSheet.create({
-  wrap: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: vs(60) },
-  title: { fontSize: ms(16), fontFamily: FONTS.muktaMalar.bold, color: '#aaa', marginTop: vs(12) },
-  sub: { fontSize: ms(13), fontFamily: FONTS.muktaMalar.regular, color: '#ccc', marginTop: vs(6) },
-});
-
-// ─── Extract helpers ──────────────────────────────────────────────────────────
-// u38Api /detaildata?newsid=ID response shape (CONFIRMED):
-// { comments: { current_page: 1, data: [...], last_page: N } }
-// Each comment: { id, name, city, images, comments, com_like, com_dislike, ago, standarddate, reply: [] }
 function extractComments(d) {
   if (!d) return [];
-  // Shape 1: { comments: { data: [...] } }
   if (Array.isArray(d?.comments?.data)) return d.comments.data.filter(Boolean);
-  // Shape 2: { data: [...] }
   if (Array.isArray(d?.data)) return d.data.filter(Boolean);
-  // Shape 3: { comments: [...] }
   if (Array.isArray(d?.comments)) return d.comments.filter(Boolean);
-  // Shape 4: top-level array
   if (Array.isArray(d)) return d.filter(Boolean);
   return [];
 }
@@ -217,11 +51,193 @@ function extractLastPage(d) {
   return d?.comments?.last_page || d?.last_page || d?.meta?.last_page || 1;
 }
 
-// ─── Main CommentsModal ───────────────────────────────────────────────────────
-export default function CommentsModal({ visible, onClose, newsId, newsTitle, commentCount = 0 }) {
+// ─── Avatar ──────────────────────────────────────────────────────────────────
+function Avatar({ name, uri, size = s(38), index = 0 }) {
+  const bg = AVATAR_COLORS[(name?.charCodeAt(0) || index) % AVATAR_COLORS.length];
+  const initial = (name || 'U').charAt(0).toUpperCase();
+  return (
+    <View style={[av.circle, { width: size, height: size, borderRadius: size / 2, backgroundColor: bg }]}>
+      {uri
+        ? <Image source={{ uri }} style={av.img} />
+        : <Text style={[av.letter, { fontSize: size * 0.42 }]}>{initial}</Text>
+      }
+    </View>
+  );
+}
+const av = StyleSheet.create({
+  circle: { justifyContent: 'center', alignItems: 'center', overflow: 'hidden', flexShrink: 0 },
+  img: { width: '100%', height: '100%' },
+  letter: { color: '#fff', fontFamily: FONTS.muktaMalar.bold },
+});
+
+// ─── Reply Row ────────────────────────────────────────────────────────────────
+function ReplyRow({ reply, index }) {
+  const { sf } = useFontSize();
+  return (
+    <View style={rp.wrap}>
+      <View style={rp.line} />
+      <Avatar name={reply.name} size={s(24)} index={index + 10} />
+      <View style={rp.body}>
+        <Text style={[rp.name, { fontSize: sf(12) }]}>{reply.name || 'பயனர்'}</Text>
+        <Text style={[rp.text, { fontSize: sf(12), lineHeight: sf(18) }]}>
+          {reply.comments || reply.text || ''}
+        </Text>
+        {!!reply.ago && (
+          <Text style={[rp.time, { fontSize: sf(11) }]}>{reply.ago}</Text>
+        )}
+      </View>
+    </View>
+  );
+}
+const rp = StyleSheet.create({
+  wrap: { flexDirection: 'row', alignItems: 'flex-start', marginTop: vs(10), gap: s(8) },
+  line: {
+    width: 2, alignSelf: 'stretch', backgroundColor: '#e8e8e8',
+    borderRadius: 1, marginRight: s(4),
+  },
+  body: { flex: 1 },
+  name: { fontFamily: FONTS.muktaMalar.semibold, color: '#555', marginBottom: vs(2) },
+  text: { fontFamily: FONTS.muktaMalar.regular, color: '#444' },
+  time: { fontFamily: FONTS.muktaMalar.regular, color: '#bbb', marginTop: vs(3) },
+});
+
+// ─── Comment Item ─────────────────────────────────────────────────────────────
+function CommentItem({ item, index, onReply, onLike, onDislike }) {
+  const { sf } = useFontSize();
+  const name = item.name || item.username || 'பயனர்';
+  const text = item.comments || item.comment || item.text || '';
+  const ago = item.ago || item.standarddate || '';
+  const likes = parseInt(item.com_like || 0);
+  const dislikes = parseInt(item.com_dislike || 0);
+  const replies = Array.isArray(item.reply) ? item.reply : [];
+
+  return (
+    <View style={ci.wrap}>
+      <Avatar name={name} uri={item.images || item.avatar} index={index} />
+      <View style={ci.body}>
+        {/* Name + time */}
+        <View style={ci.nameRow}>
+          <Text style={[ci.name, { fontSize: sf(13) }]} numberOfLines={1}>{name}</Text>
+          {!!ago && <Text style={[ci.time, { fontSize: sf(11) }]}>{ago}</Text>}
+        </View>
+
+        {/* Comment text */}
+        <Text style={[ci.text, { fontSize: sf(14), lineHeight: sf(21) }]}>{text}</Text>
+
+        {/* Replies */}
+        {replies.length > 0 && (
+          <View style={ci.repliesWrap}>
+            {replies.map((reply, ri) => (
+              <ReplyRow key={`reply-${reply.id || ri}`} reply={reply} index={ri} />
+            ))}
+          </View>
+        )}
+
+        {/* Actions */}
+        <View style={ci.actions}>
+          <TouchableOpacity style={ci.actionBtn} onPress={() => onLike(item)} activeOpacity={0.7}>
+            <Ionicons
+              name={item.userLiked ? 'thumbs-up' : 'thumbs-up-outline'}
+              size={s(16)} color={item.userLiked ? COLORS.primary : '#999'}
+            />
+            {likes > 0 && (
+              <Text style={[ci.actionTxt, { color: item.userLiked ? COLORS.primary : '#999' }]}>
+                {likes}
+              </Text>
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity style={ci.actionBtn} onPress={() => onDislike(item)} activeOpacity={0.7}>
+            <Ionicons
+              name={item.userDisliked ? 'thumbs-down' : 'thumbs-down-outline'}
+              size={s(16)} color={item.userDisliked ? '#e53935' : '#999'}
+            />
+            {dislikes > 0 && (
+              <Text style={[ci.actionTxt, { color: item.userDisliked ? '#e53935' : '#999' }]}>
+                {dislikes}
+              </Text>
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity style={ci.actionBtn} onPress={() => onReply(item)} activeOpacity={0.7}>
+            <Ionicons name="chatbubble-outline" size={s(15)} color="#999" />
+            <Text style={ci.actionTxt}>பதில்</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+const ci = StyleSheet.create({
+  wrap: {
+    flexDirection: 'row', gap: s(10),
+    paddingHorizontal: s(14), paddingVertical: vs(12),
+    borderBottomWidth: 0.5, borderBottomColor: '#f2f2f2',
+  },
+  body: { flex: 1 },
+  nameRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: vs(4) },
+  name: { fontFamily: FONTS.muktaMalar.semibold, color: '#1a1a1a', flex: 1, marginRight: s(8) },
+  time: { fontFamily: FONTS.muktaMalar.regular, color: '#bbb', flexShrink: 0 },
+  text: { fontFamily: FONTS.muktaMalar.regular, color: '#333' },
+  repliesWrap: { marginTop: vs(4) },
+  actions: { flexDirection: 'row', alignItems: 'center', gap: s(18), marginTop: vs(10) },
+  actionBtn: { flexDirection: 'row', alignItems: 'center', gap: s(4) },
+  actionTxt: { fontSize: ms(12), fontFamily: FONTS.muktaMalar.medium, color: '#999' },
+});
+
+// ─── Skeleton ─────────────────────────────────────────────────────────────────
+function SkeletonItem() {
+  const fade = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(fade, { toValue: 0.4, duration: 700, useNativeDriver: true }),
+        Animated.timing(fade, { toValue: 1, duration: 700, useNativeDriver: true }),
+      ])
+    ).start();
+  }, []);
+  return (
+    <Animated.View style={[sk.wrap, { opacity: fade }]}>
+      <View style={sk.avatar} />
+      <View style={sk.body}>
+        <View style={sk.name} />
+        <View style={sk.line} />
+        <View style={[sk.line, { width: '60%', marginTop: vs(4) }]} />
+      </View>
+    </Animated.View>
+  );
+}
+const sk = StyleSheet.create({
+  wrap: { flexDirection: 'row', gap: s(10), padding: s(14), borderBottomWidth: 0.5, borderBottomColor: '#f2f2f2' },
+  avatar: { width: s(38), height: s(38), borderRadius: s(19), backgroundColor: '#ececec', flexShrink: 0 },
+  body: { flex: 1, gap: vs(6) },
+  name: { width: s(90), height: vs(11), backgroundColor: '#ececec', borderRadius: s(4) },
+  line: { width: '90%', height: vs(10), backgroundColor: '#f4f4f4', borderRadius: s(4) },
+});
+
+// ─── Empty ────────────────────────────────────────────────────────────────────
+function EmptyComments() {
+  const { sf } = useFontSize();
+  return (
+    <View style={em.wrap}>
+      <Ionicons name="chatbubbles-outline" size={s(52)} color="#e0e0e0" />
+      <Text style={[em.title, { fontSize: sf(16) }]}>கருத்துகள் இல்லை</Text>
+      <Text style={[em.sub, { fontSize: sf(13) }]}>முதல் கருத்தை பதிவிடுங்கள்!</Text>
+    </View>
+  );
+}
+const em = StyleSheet.create({
+  wrap: { alignItems: 'center', justifyContent: 'center', paddingVertical: vs(60) },
+  title: { fontFamily: FONTS.muktaMalar.bold, color: '#ccc', marginTop: vs(14) },
+  sub: { fontFamily: FONTS.muktaMalar.regular, color: '#ddd', marginTop: vs(6) },
+});
+
+// ─── Main Modal ───────────────────────────────────────────────────────────────
+export default function CommentsModal({ visible, onClose, newsId, commentCount = 0 }) {
   const { sf } = useFontSize();
   const { user, isAuthenticated } = useAuth();
-  const navigation = useNavigation();
+
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
@@ -234,246 +250,162 @@ export default function CommentsModal({ visible, onClose, newsId, newsTitle, com
   const [showNameInput, setShowNameInput] = useState(false);
   const [userDetailsLoaded, setUserDetailsLoaded] = useState(false);
 
-  const slideAnim = useRef(new Animated.Value(300)).current;
+  const slideAnim = useRef(new Animated.Value(SCREEN_H)).current;
+  const inputRef = useRef(null);
 
-  // ── Load user name and email on component mount
+  // Load saved user details
   useEffect(() => {
-    const loadUserDetails = async () => {
+    (async () => {
       try {
-        const savedName = await getUserName();
-        if (savedName) {
-          setUserName(savedName);
-        }
-        const savedEmail = await getUserEmail();
-        if (savedEmail) {
-          setUserEmail(savedEmail);
-        }
-      } catch (error) {
-        console.error('Error loading user details:', error);
-      } finally {
-        setUserDetailsLoaded(true);
-      }
-    };
-    loadUserDetails();
+        const n = await getUserName(); if (n) setUserName(n);
+        const e = await getUserEmail(); if (e) setUserEmail(e);
+      } finally { setUserDetailsLoaded(true); }
+    })();
   }, []);
 
-  // ── Animate open ────────────────────────────────────────────────────────────
+  // Animate sheet in/out
   useEffect(() => {
     if (visible) {
-      slideAnim.setValue(300);
+      slideAnim.setValue(SCREEN_H);
       Animated.spring(slideAnim, {
-        toValue: 0, tension: 65, friction: 11, useNativeDriver: true,
+        toValue: 0, tension: 60, friction: 12, useNativeDriver: true,
+      }).start();
+    } else {
+      Animated.timing(slideAnim, {
+        toValue: SCREEN_H, duration: 220, useNativeDriver: true,
       }).start();
     }
   }, [visible]);
 
-  // ── Fetch — Use dedicated /comments endpoint
-
-  // ── Load local comments and fetch remote comments
-  const loadLocalComments = useCallback(async () => {
-    if (!newsId) return;
-    try {
-      const localComments = await getCommentsForNews(newsId);
-      if (localComments.length > 0) {
-        setComments(prev => [...localComments, ...prev]);
-      }
-    } catch (error) {
-      console.error('Error loading local comments:', error);
-    }
-  }, [newsId]);
-
+  // Fetch comments
   const fetchComments = useCallback(async (id, pg = 1, append = false) => {
     if (!id) return;
     pg === 1 ? setLoading(true) : setLoadingMore(true);
-
     try {
-      // detaildata always uses newsid — videoid values ARE the newsid
-      const url = `/detaildata?newsid=${id}&page=${pg}`;
-      console.log('[CommentsModal] fetching:', url);
-      const res = await CDNApi.get(url);
-      console.log('[CommentsModal] base URL used:', CDNApi.defaults?.baseURL);
-      console.log('[CommentsModal] status:', res?.status);
-      console.log('[CommentsModal] comments data length:', res?.data?.comments?.data?.length); const d = res?.data;
-
+      const res = await CDNApi.get(`/detaildata?newsid=${id}&page=${pg}`);
+      const d = res?.data;
       const list = extractComments(d);
-      const lp = extractLastPage(d);
-      setLastPage(lp);
+      setLastPage(extractLastPage(d));
       setPage(pg);
       setComments(prev => append ? [...prev, ...list] : list);
     } catch (e) {
-      console.error('[CommentsModal] error:', e?.message);
-      setComments([]);
+      console.error('[CommentsModal]', e?.message);
+      if (!append) setComments([]);
     } finally {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, []); // no deps needed — URL is fixed
+  }, []);
 
-
-
+  // Load local + remote on open
   useEffect(() => {
     if (visible && newsId) {
-      setComments([]);
-      setPage(1);
-      setLastPage(1);
-      loadLocalComments();
-      fetchComments(newsId, 1, false);
-    }
-    if (!visible) {
       setComments([]);
       setPage(1);
       setLastPage(1);
       setInputText('');
       setReplyingTo(null);
       setShowNameInput(false);
+
+      // Load local optimistic comments first
+      getCommentsForNews(newsId).then(local => {
+        if (local?.length) setComments(local);
+      }).catch(() => { });
+
+      fetchComments(newsId, 1, false);
     }
-  }, [visible, newsId, fetchComments, loadLocalComments]); // ← add idType here too
+  }, [visible, newsId]);
 
   const handleLoadMore = () => {
     if (loadingMore || page >= lastPage) return;
     fetchComments(newsId, page + 1, true);
   };
 
-  const totalCount = commentCount || comments.length;
+  // Post comment / reply
+  const handlePost = async () => {
+    const text = inputText.trim();
+    if (!text) return;
 
-  // Handle posting new comment or reply
-  const handlePostComment = async () => {
-    if (!inputText.trim()) return;
-
-    const commentText = inputText.trim();
-
-    // For anonymous users, check if we have their details first
     if (!isAuthenticated) {
-      // Wait for user details to load if not already loaded
-      if (!userDetailsLoaded) {
-        console.log('User details still loading...');
-        return;
-      }
-
-      let name = userName.trim();
-      let email = userEmail.trim();
-
-      // If we don't have user details, show the form
-      if (!name || !email) {
+      if (!userDetailsLoaded) return;
+      if (!userName.trim() || !userEmail.trim()) {
         setShowNameInput(true);
         return;
       }
-
-      // Validate email format
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(email)) {
-        alert('Please enter a valid email address');
-        setShowNameInput(true);
-        return;
-      }
-
-      // Clear input only after validation passes
-      setInputText('');
-
-      // Save user details and post comment
-      // Only save if not already saved
-      if (!userName) await saveUserName(name);
-      if (!userEmail) await saveUserEmail(email);
-    } else {
-      setInputText('');
+      const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(userEmail.trim());
+      if (!emailOk) { setShowNameInput(true); return; }
     }
 
-    let name = isAuthenticated ? (user?.displayName || user?.email?.split('@')[0] || userName.trim()) : userName.trim();
+    setInputText('');
+    setReplyingTo(null);
+
+    const name = isAuthenticated
+      ? (user?.displayName || user?.email?.split('@')[0] || userName)
+      : userName.trim();
+
+    if (!isAuthenticated) {
+      await saveUserName(userName);
+      await saveUserEmail(userEmail);
+    }
 
     try {
       if (replyingTo) {
-        // Post reply
-        const reply = await addReply(newsId, replyingTo.id, {
-          name: name,
-          comments: commentText,
-          text: commentText
-        });
-
+        const reply = await addReply(newsId, replyingTo.id, { name, comments: text, text });
         if (reply) {
-          // Update the comment in state
-          setComments(prev => prev.map(comment => {
-            if (comment.id === replyingTo.id) {
-              return {
-                ...comment,
-                reply: [reply, ...(comment.reply || [])]
-              };
-            }
-            return comment;
-          }));
+          setComments(prev => prev.map(c =>
+            c.id === replyingTo.id
+              ? { ...c, reply: [reply, ...(c.reply || [])] }
+              : c
+          ));
         }
-        setReplyingTo(null);
       } else {
-        // Post new comment
-        const comment = await addComment(newsId, {
-          name: name,
-          comments: commentText,
-          text: commentText
-        });
-
-        if (comment) {
-          setComments(prev => [comment, ...prev]);
-        }
+        const comment = await addComment(newsId, { name, comments: text, text });
+        if (comment) setComments(prev => [comment, ...prev]);
       }
-    } catch (error) {
-      console.error('Error posting comment:', error);
+    } catch (e) {
+      console.error('Post error:', e);
     }
   };
 
   const handleReply = (comment) => {
     setReplyingTo(comment);
     setInputText('');
-    // Don't show name input - just let user type reply directly
+    setTimeout(() => inputRef.current?.focus(), 100);
   };
 
-  const handleNameSubmit = () => {
-    if (userName.trim()) {
-      setShowNameInput(false);
-      if (inputText.trim()) {
-        handlePostComment();
-      }
-    }
-  };
-
-  // Handle like/dislike functionality (mutually exclusive)
   const handleLike = (item) => {
-    setComments(prev => prev.map(comment => {
-      if (comment.id === item.id) {
-        // If user already disliked, remove dislike and add like
-        // If user already liked, remove like
-        // Otherwise, add like
-        const newLikeCount = comment.userDisliked ? comment.com_like + 1 : (comment.userLiked ? comment.com_like - 1 : comment.com_like + 1);
-        return {
-          ...comment,
-          com_like: newLikeCount,
-          com_dislike: comment.userDisliked ? 0 : comment.com_dislike,
-          userLiked: !comment.userLiked,
-          userDisliked: false
-        };
-      }
-      return comment;
+    setComments(prev => prev.map(c => {
+      if (c.id !== item.id) return c;
+      const wasDisliked = c.userDisliked;
+      const wasLiked = c.userLiked;
+      return {
+        ...c,
+        com_like: wasLiked ? c.com_like - 1 : c.com_like + 1,
+        com_dislike: wasDisliked ? c.com_dislike - 1 : c.com_dislike,
+        userLiked: !wasLiked,
+        userDisliked: false,
+      };
     }));
   };
 
   const handleDislike = (item) => {
-    setComments(prev => prev.map(comment => {
-      if (comment.id === item.id) {
-        // If user already liked, remove like and add dislike
-        // If user already disliked, remove dislike
-        // Otherwise, add dislike
-        const newDislikeCount = comment.userLiked ? comment.com_dislike + 1 : (comment.userDisliked ? comment.com_dislike - 1 : comment.com_dislike + 1);
-        return {
-          ...comment,
-          com_like: comment.userLiked ? 0 : comment.com_like,
-          com_dislike: newDislikeCount,
-          userLiked: false,
-          userDisliked: !comment.userDisliked
-        };
-      } else {
-        return comment;
-      }
+    setComments(prev => prev.map(c => {
+      if (c.id !== item.id) return c;
+      const wasLiked = c.userLiked;
+      const wasDisliked = c.userDisliked;
+      return {
+        ...c,
+        com_like: wasLiked ? c.com_like - 1 : c.com_like,
+        com_dislike: wasDisliked ? c.com_dislike - 1 : c.com_dislike + 1,
+        userLiked: false,
+        userDisliked: !wasDisliked,
+      };
     }));
   };
 
+  const totalCount = commentCount || comments.length;
+
+  // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <Modal
       visible={visible}
@@ -482,8 +414,9 @@ export default function CommentsModal({ visible, onClose, newsId, newsTitle, com
       onRequestClose={onClose}
       statusBarTranslucent
     >
-      <View style={modal.overlay}>
-        <TouchableOpacity style={modal.backdrop} activeOpacity={1} onPress={onClose} />
+      {/* Full-screen backdrop */}
+      <View style={st.overlay}>
+        <TouchableOpacity style={StyleSheet.absoluteFillObject} activeOpacity={1} onPress={onClose} />
 
         {showNameInput ? (
           <CommentUserForm
@@ -494,19 +427,10 @@ export default function CommentsModal({ visible, onClose, newsId, newsTitle, com
             commentText={inputText}
             onCommentChange={setInputText}
             onSubmit={() => {
-              if (userName.trim() && userEmail.trim()) {
-                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                if (!emailRegex.test(userEmail.trim())) {
-                  alert('Please enter a valid email address');
-                  return;
-                }
-                setShowNameInput(false);
-                if (inputText.trim()) {
-                  handlePostComment();
-                }
-              } else {
-                alert('Please enter your name and email');
-              }
+              const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(userEmail.trim());
+              if (!userName.trim() || !userEmail.trim() || !emailOk) return;
+              setShowNameInput(false);
+              if (inputText.trim()) handlePost();
             }}
             onCancel={() => {
               setShowNameInput(false);
@@ -514,69 +438,56 @@ export default function CommentsModal({ visible, onClose, newsId, newsTitle, com
               setUserEmail('');
               setInputText('');
             }}
-            onBack={() => {
-              setShowNameInput(false);
-            }}
+            onBack={() => setShowNameInput(false)}
             loading={false}
           />
         ) : (
-          <KeyboardAvoidingView
-            behavior="padding"
-            style={modal.kavWrap}
-            keyboardVerticalOffset={Platform.OS === 'android' ? 0 : 34}
-          >
-            <Animated.View style={[modal.sheet, { transform: [{ translateY: slideAnim }] }]}>
-              {/* After Animated.View closing tag, inside kavWrap */}
-              <View style={{
-                backgroundColor: '#fff',
-                height: vs(20),           // covers the rounded corner gap
-                position: 'absolute',
-                bottom: 0, left: 0, right: 0
-              }} />
+          <Animated.View style={[st.sheet, { transform: [{ translateY: slideAnim }] }]}>
+            <KeyboardAvoidingView
+              style={{ flex: 1 }}
+              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+              keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}
+            >
 
-              {/* Handle */}
-              <View style={modal.handleWrap}>
-                <View style={modal.handle} />
+              {/* Drag handle */}
+              <View style={st.handleBar}>
+                <View style={st.handle} />
               </View>
 
               {/* Header */}
-              <View style={modal.header}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: s(5) }}>
-                  <CommentForChat size={22} color="#333" />
-                  <Text style={[modal.headerTitle, { fontSize: vs(16) }]}>வாசகர்கள் கருத்துகள்</Text>
+              <View style={st.header}>
+                <View style={st.headerLeft}>
+                  <Ionicons name="chatbubbles-outline" size={s(20)} color="#333" />
+                  <Text style={[st.headerTitle, { fontSize: sf(15) }]}>வாசகர்கள் கருத்துகள்</Text>
                   {totalCount > 0 && (
-                    <Text style={[modal.headerCount, { fontSize: vs(16) }]}>( {totalCount} )</Text>
+                    <View style={st.countBadge}>
+                      <Text style={[st.countText, { fontSize: sf(12) }]}>{totalCount}</Text>
+                    </View>
                   )}
                 </View>
-                <TouchableOpacity
-                  onPress={onClose}
-                  style={modal.closeBtn}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                >
-                  <Ionicons name="close" size={sf(22)} color="#333" />
+                <TouchableOpacity onPress={onClose} style={st.closeBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                  <Ionicons name="close" size={s(20)} color="#555" />
                 </TouchableOpacity>
               </View>
 
-              <View style={modal.divider} />
+              <View style={st.headerDivider} />
 
-              {/* List */}
-              <View style={{ flex: 1 }}>
+              {/* Comments list — takes all remaining space */}
+              <View style={st.listWrapper}>
                 {loading ? (
+                  // Skeleton
                   <FlatList
                     data={[1, 2, 3, 4, 5]}
                     keyExtractor={i => `sk-${i}`}
-                    renderItem={() => <CommentSkeleton />}
-                    style={{ flex: 1 }}
-                    ListFooterComponent={
-                      loadingMore
-                        ? <ActivityIndicator size="small" color={COLORS.primary} style={{ margin: vs(16) }} />
-                        : <View style={{ height: vs(20) }} />
-                    }
+                    renderItem={() => <SkeletonItem />}
+                    scrollEnabled={false}
                   />
                 ) : (
                   <FlatList
                     data={comments}
                     keyExtractor={(item, i) => generateUniqueKey(item, i)}
+                    keyboardDismissMode="on-drag"
+                    
                     renderItem={({ item, index }) => (
                       <CommentItem
                         item={item}
@@ -584,232 +495,165 @@ export default function CommentsModal({ visible, onClose, newsId, newsTitle, com
                         onReply={handleReply}
                         onLike={handleLike}
                         onDislike={handleDislike}
-                        newsId={newsId}
                       />
                     )}
                     ListEmptyComponent={<EmptyComments />}
                     onEndReached={handleLoadMore}
                     onEndReachedThreshold={0.4}
-                    style={{ flex: 1 }}
                     showsVerticalScrollIndicator={false}
+                    keyboardShouldPersistTaps="handled"
                     ListFooterComponent={
                       loadingMore
                         ? <ActivityIndicator size="small" color={COLORS.primary} style={{ margin: vs(16) }} />
-                        : <View style={{ height: vs(20) }} />
+                        : <View style={{ height: vs(16) }} />
                     }
                   />
                 )}
               </View>
 
-              {/* Comment Input */}
-              <View style={modal.inputWrap}>
+              {/* Input bar — pinned to bottom */}
+              <View style={st.inputArea}>
                 {replyingTo && (
-                  <View style={modal.replyingBar}>
-                    <Text style={[modal.replyingText, { fontSize: sf(12) }]}>
+                  <View style={st.replyBar}>
+                    <Ionicons name="return-down-forward" size={s(14)} color={COLORS.primary} />
+                    <Text style={[st.replyBarText, { fontSize: sf(12) }]} numberOfLines={1}>
                       {replyingTo.name || 'பயனர்'}-க்கு பதிலளிக்கிறீர்கள்
                     </Text>
-                    <TouchableOpacity onPress={() => setReplyingTo(null)}>
-                      <Ionicons name="close" size={sf(16)} color="#666" />
+                    <TouchableOpacity onPress={() => setReplyingTo(null)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                      <Ionicons name="close-circle" size={s(18)} color="#aaa" />
                     </TouchableOpacity>
                   </View>
                 )}
-                <View style={modal.inputRow}>
-                  <View style={modal.inputAvatar}>
-                    <Ionicons name="person" size={s(16)} color="#999" />
+
+                <View style={st.inputRow}>
+                  {/* Avatar placeholder */}
+                  <View style={st.inputAvatar}>
+                    <Ionicons name="person" size={s(16)} color="#bbb" />
                   </View>
+
                   <TextInput
-                    style={modal.input}
-                    placeholder={replyingTo ? "Write your reply..." : "Share your thoughts..."}
+                    ref={inputRef}
+                    style={[st.textInput, { fontSize: sf(13) }]}
+                    placeholder={replyingTo ? 'பதிலை உள்ளிடுங்கள்...' : 'உங்கள் கருத்தை பதிவிடுங்கள்...'}
                     placeholderTextColor="#bbb"
                     value={inputText}
-                    onChangeText={(text) => {
-                      setInputText(text);
-                    }}
+                    onChangeText={setInputText}
                     multiline
                     maxLength={500}
-                    autoFocus={replyingTo !== null}
+                    returnKeyType="default"
                   />
+
                   <TouchableOpacity
-                    style={[modal.sendBtn, !!inputText.trim() && modal.sendBtnActive]}
-                    // onPress={() => {
-                    //   if (!isAuthenticated) {
-                    //     setShowNameInput(true);
-                    //   } else {
-                    //     handlePostComment();
-                    //   }
-                    // }}
-                    onPress={handlePostComment}
+                    style={[st.sendBtn, !!inputText.trim() && st.sendBtnActive]}
+                    onPress={handlePost}
                     disabled={!inputText.trim()}
+                    activeOpacity={0.8}
                   >
                     <Ionicons name="send" size={s(16)} color={inputText.trim() ? '#fff' : '#ccc'} />
                   </TouchableOpacity>
                 </View>
               </View>
-
-            </Animated.View>
           </KeyboardAvoidingView>
+
+          </Animated.View>
         )}
-      </View>
-    </Modal>
+    </View>
+    </Modal >
   );
 }
+
 // ─── Styles ───────────────────────────────────────────────────────────────────
-const modal = StyleSheet.create({
-  overlay: { flex: 1, justifyContent: 'flex-end' },
-  backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.5)' },
+const st = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  kavWrapper: {
+    justifyContent: 'flex-end',
+  },
   sheet: {
     backgroundColor: '#fff',
     borderTopLeftRadius: s(20),
     borderTopRightRadius: s(20),
-    // maxHeight: '90%',
-    paddingBottom: Platform.OS === 'ios' ? vs(34) : vs(10),
-    height: "75%"
+    maxHeight: SHEET_MAX_H,
+    // KEY: use flex so inner FlatList can scroll
+    flexDirection: 'column',
+    overflow: 'hidden',
+    height: "90%"
   },
-  handleWrap: { alignItems: 'center', paddingTop: vs(10), paddingBottom: vs(4) },
-  handle: { width: s(36), height: vs(4), borderRadius: s(2), backgroundColor: '#ddd' },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: s(12), paddingTop: vs(8), paddingBottom: vs(12),
 
+  // Handle
+  handleBar: { alignItems: 'center', paddingTop: vs(10), paddingBottom: vs(2) },
+  handle: { width: s(36), height: vs(4), borderRadius: s(2), backgroundColor: '#ddd' },
+
+  // Header
+  header: {
+    flexDirection: 'row', alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: s(14),
+    paddingTop: vs(8), paddingBottom: vs(12),
   },
+  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: s(8) },
   headerTitle: { fontFamily: FONTS.muktaMalar.semibold, color: '#1a1a1a' },
-  headerCount: { fontFamily: FONTS.muktaMalar.semibold, color: COLORS.black },
-  closeBtn: { padding: s(4) },
-  divider: { height: 1, backgroundColor: '#f0f0f0' },
-  inputWrap: {
-    borderTopWidth: 1, borderTopColor: '#f0f0f0',
-    paddingHorizontal: s(12), paddingVertical: vs(10),
+  countBadge: {
+    backgroundColor: '#f0f0f0', borderRadius: s(12),
+    paddingHorizontal: s(8), paddingVertical: vs(2),
+  },
+  countText: { fontFamily: FONTS.muktaMalar.semibold, color: '#666' },
+  closeBtn: {
+    width: s(30), height: s(30), borderRadius: s(15),
+    backgroundColor: '#f5f5f5',
+    justifyContent: 'center', alignItems: 'center',
+  },
+  headerDivider: { height: 0.5, backgroundColor: '#f0f0f0' },
+
+  // List — flex: 1 so it expands and FlatList scrolls inside
+  listWrapper: { flex: 1 },
+
+  // Input area — never scrolls, pinned at bottom
+  inputArea: {
+    borderTopWidth: 0.5,
+    borderTopColor: '#f0f0f0',
+    paddingHorizontal: s(12),
+    paddingTop: vs(10),
+    paddingBottom: Platform.OS === 'ios' ? vs(28) : vs(12),
+    backgroundColor: '#fff',
+  },
+  replyBar: {
+    flexDirection: 'row', alignItems: 'center', gap: s(6),
+    backgroundColor: '#f0f8ff',
+    borderWidth: 0.5, borderColor: '#cce4ff',
+    borderRadius: s(8),
+    paddingHorizontal: s(10), paddingVertical: vs(7),
+    marginBottom: vs(8),
+  },
+  replyBarText: {
+    flex: 1, fontFamily: FONTS.muktaMalar.medium, color: COLORS.primary,
   },
   inputRow: { flexDirection: 'row', alignItems: 'flex-end', gap: s(8) },
   inputAvatar: {
     width: s(34), height: s(34), borderRadius: s(17),
-    backgroundColor: '#f0f0f0', justifyContent: 'center', alignItems: 'center', flexShrink: 0,
+    backgroundColor: '#f4f4f4',
+    justifyContent: 'center', alignItems: 'center',
+    flexShrink: 0,
   },
-  input: {
-    flex: 1, minHeight: vs(36), maxHeight: vs(100),
-    backgroundColor: '#f8f8f8', borderRadius: s(18),
-    paddingHorizontal: s(14), paddingVertical: vs(8),
-    fontSize: ms(13), fontFamily: FONTS.muktaMalar.regular,
-    color: '#333', borderWidth: 1, borderColor: '#eee',
+  textInput: {
+    flex: 1,
+    minHeight: vs(38),
+    backgroundColor: '#f8f8f8',
+    borderRadius: s(20),
+    borderWidth: 0.5, borderColor: '#eee',
+    paddingHorizontal: s(14),
+    paddingTop: vs(9), paddingBottom: vs(9),
+    fontFamily: FONTS.muktaMalar.regular,
+    color: '#333',
   },
   sendBtn: {
     width: s(36), height: s(36), borderRadius: s(18),
-    backgroundColor: '#e0e0e0', justifyContent: 'center', alignItems: 'center', flexShrink: 0,
-  },
-  sendBtnActive: { backgroundColor: COLORS.primary },
-  replyingBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#f0f8ff',
-    paddingHorizontal: s(12),
-    paddingVertical: vs(6),
-    borderTopWidth: 1,
-    borderTopColor: '#e0f0ff',
-  },
-  replyingText: {
-    fontFamily: FONTS.muktaMalar.medium,
-    color: '#0066cc',
-    flex: 1,
-  },
-  nameInputWrap: {
-    borderTopWidth: 1, borderTopColor: '#f0f0f0',
-    paddingHorizontal: s(12), paddingVertical: vs(12),
-    backgroundColor: '#fafafa',
-  },
-  nameInputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: s(10),
-  },
-  nameLabel: {
-    fontFamily: FONTS.muktaMalar.medium,
-    color: '#333',
+    backgroundColor: '#e0e0e0',
+    justifyContent: 'center', alignItems: 'center',
     flexShrink: 0,
   },
-  nameInput: {
-    flex: 1,
-    height: vs(36),
-    backgroundColor: '#fff',
-    borderRadius: s(18),
-    paddingHorizontal: s(14),
-    fontSize: ms(13),
-    fontFamily: FONTS.muktaMalar.regular,
-    color: '#333',
-    borderWidth: 1,
-    borderColor: '#ddd',
-  },
-  nameSubmitBtn: {
-    width: s(36), height: s(36), borderRadius: s(18),
-    backgroundColor: '#e0e0e0', justifyContent: 'center', alignItems: 'center', flexShrink: 0,
-  },
-  kavWrap: {
-    justifyContent: 'flex-end',
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    // flex: 1,  // ← add this
-  },
-});
-
-// Auth modal styles
-const authModal = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  container: {
-    backgroundColor: '#fff',
-    borderRadius: s(16),
-    padding: s(24),
-    marginHorizontal: s(20),
-    alignItems: 'center',
-    maxWidth: s(320),
-  },
-  iconContainer: {
-    marginBottom: vs(16),
-  },
-  title: {
-    fontFamily: FONTS.muktaMalar.bold,
-    color: '#1a1a1a',
-    marginBottom: vs(8),
-    textAlign: 'center',
-  },
-  message: {
-    fontFamily: FONTS.muktaMalar.regular,
-    color: '#666',
-    textAlign: 'center',
-    marginBottom: vs(24),
-    lineHeight: vs(20),
-  },
-  buttonContainer: {
-    flexDirection: 'row',
-    gap: s(12),
-    width: '100%',
-  },
-  button: {
-    flex: 1,
-    paddingVertical: vs(12),
-    borderRadius: s(8),
-    alignItems: 'center',
-  },
-  cancelButton: {
-    backgroundColor: '#f0f0f0',
-  },
-  loginButton: {
-    backgroundColor: COLORS.primary,
-  },
-  cancelButtonText: {
-    fontFamily: FONTS.muktaMalar.medium,
-    color: '#666',
-  },
-  loginButtonText: {
-    fontFamily: FONTS.muktaMalar.medium,
-    color: '#fff',
-  },
+  sendBtnActive: { backgroundColor: COLORS.primary },
 });

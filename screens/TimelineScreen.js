@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, Image,
   ActivityIndicator, RefreshControl, Dimensions,
-  Animated, StyleSheet, Platform, Linking,
+  Animated, StyleSheet, Platform, Linking, AppState,
 } from 'react-native';
 import { 
   SpeakerIcon, 
@@ -15,7 +15,7 @@ import {
 import { WebView } from 'react-native-webview';
 import RenderHtml from 'react-native-render-html';
 import axios from 'axios';
-import { CDNApi, API_ENDPOINTS, API_BASE_URLS } from '../config/api';
+import { dmrApi, API_ENDPOINTS, API_BASE_URLS } from '../config/api';
 import { COLORS, FONTS, NewsCard } from '../utils/constants';
 import { s, vs, scaledSizes } from '../utils/scaling';
 import { useNavigation } from '@react-navigation/native';
@@ -27,7 +27,23 @@ import { useFontSize } from '../context/FontSizeContext';
 import FontSizeControl from '../components/FontSizeControl';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
-
+import { 
+  pollRealTimeNotifications, 
+  getBadgeCount, 
+  saveBadgeCount,
+  initializeNotificationService,
+  createNotificationAlert
+} from '../services/realTimeNotificationService';
+import { 
+  initializePushNotifications, 
+  getPushNotificationPreferences,
+  shouldSendPushNotification,
+  createNotificationPayload,
+  sendPushNotification,
+  handlePushNotification
+} from '../services/pushNotificationService';
+import RealTimeNotificationPopup from '../components/RealTimeNotificationPopup';
+import NotificationCenter from '../components/NotificationCenter';
 const PALETTE = {
   primary: '#096dd2',
   grey100: '#F9FAFB',
@@ -104,7 +120,7 @@ const VideoThumbnailCard = ({ item, onPress }) => {
   const { sf } = useFontSize();
   const [imageError, setImageError] = useState(false);
   const [playing, setPlaying] = useState(false);
-
+const newsRef = useRef([]);
   const thumbUrl = item.images || item.largeimages || item.thumbnail || '';
   const youtubeId = thumbUrl ? getYouTubeId(thumbUrl) : null;
   const duration = item.duration || '';
@@ -869,20 +885,11 @@ const loadMoreStyles = StyleSheet.create({
   },
 });
 
-// ─── Main Screen ──────────────────────────────────────────────────────
 export default function TimelineScreen() {
   const { sf } = useFontSize();
   const navigation = useNavigation();
 
   const [notifications, setNotifications] = useState([]);
-
-  // Ensure component re-renders when font size changes
-  useEffect(() => {
-    // Force re-render when font size context changes
-  const forceUpdate = Math.random(); // Simple trigger for re-render
-  console.log('TimelineScreen font size updated:', sf(16));
-  }, [sf]); // Dependency on sf function
-
   const [notifTitle, setNotifTitle] = useState('');
   const [latestTitle, setLatestTitle] = useState('நேரடி செய்திகள்');
   const [news, setNews] = useState([]);
@@ -897,6 +904,82 @@ export default function TimelineScreen() {
   const [isLocationDrawerVisible, setIsLocationDrawerVisible] = useState(false);
   const [selectedDistrict, setSelectedDistrict] = useState('உள்ளூர்');
   const flatListRef = useRef(null);
+
+  // Real-time notification state
+  const [notifBadgeCount, setNotifBadgeCount] = useState(0);
+  const [currentNotification, setCurrentNotification] = useState(null);
+  const [showNotificationPopup, setShowNotificationPopup] = useState(false);
+  const [showNotificationCenter, setShowNotificationCenter] = useState(false);
+
+  // Auto-refresh and notification polling timers
+  const refreshIntervalRef = useRef(null);
+  const notificationIntervalRef = useRef(null);
+  const appStateRef = useRef(AppState.currentState);
+
+  // Ensure component re-renders when font size changes
+  useEffect(() => {
+    // Force re-render when font size context changes
+  const forceUpdate = Math.random(); // Simple trigger for re-render
+  console.log('TimelineScreen font size updated:', sf(16));
+  }, [sf]); // Dependency on sf function
+
+  // Auto-refresh every 2 minutes
+  useEffect(() => {
+    const startAutoRefresh = () => {
+      // Clear existing interval
+      if (refreshIntervalRef.current) {
+        clearInterval(refreshIntervalRef.current);
+      }
+      
+      // Set new interval for auto-refresh every 2 minutes (120000 ms)
+      refreshIntervalRef.current = setInterval(() => {
+        console.log('Auto-refreshing TimelineScreen...');
+        fetchAll(1, true); // Refresh with isRefresh=true
+      }, 120000);
+    };
+
+    startAutoRefresh();
+
+    // Handle app state changes (foreground/background)
+    const handleAppStateChange = (nextAppState) => {
+      console.log('App state changed:', nextAppState);
+      
+      if (appStateRef.current.match(/inactive|background/) && nextAppState === 'active') {
+        // App came to foreground - refresh immediately
+        console.log('App came to foreground - refreshing timeline...');
+        fetchAll(1, true);
+      }
+      
+      appStateRef.current = nextAppState;
+    };
+
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+
+    // Cleanup
+    return () => {
+      if (refreshIntervalRef.current) {
+        clearInterval(refreshIntervalRef.current);
+      }
+      subscription?.remove();
+    };
+  }, [fetchAll]);
+
+  // Initialize notification service on component mount
+  useEffect(() => {
+    initializeNotificationService();
+    loadInitialBadgeCount();
+    initializePushNotifications();
+  }, []);
+
+  // Load initial badge count
+  const loadInitialBadgeCount = async () => {
+    try {
+      const count = await getBadgeCount();
+      setNotifBadgeCount(count);
+    } catch (error) {
+      console.error('Error loading badge count:', error);
+    }
+  };
 
   const handleMenuPress = (menuItem) => {
     const link = menuItem?.Link || menuItem?.link || '';
@@ -921,25 +1004,109 @@ export default function TimelineScreen() {
     }
   };
 
+  // Handle notification popup close
+  const handleNotificationPopupClose = () => {
+    setShowNotificationPopup(false);
+    setCurrentNotification(null);
+  };
+
+  // Handle notification press
+  const handleNotificationPress = (notification) => {
+    handleNotificationPopupClose();
+    
+    // Navigate to appropriate screen based on notification type
+    if (notification.link) {
+      goToArticle(notification);
+    }
+  };
+
+  // Handle notification center
+  const handleNotificationCenterPress = () => {
+    setShowNotificationCenter(true);
+  };
+
+  const handleNotificationCenterClose = () => {
+    setShowNotificationCenter(false);
+  };
+
+  const handleNotificationCenterRefresh = async () => {
+    try {
+      const result = await pollRealTimeNotifications();
+      const newCount = await getBadgeCount();
+      setNotifBadgeCount(newCount);
+    } catch (error) {
+      console.error('Error refreshing notifications:', error);
+    }
+  };
+
+  // Test function for manual push notification testing
+  const testPushNotification = async () => {
+    try {
+      console.log('Testing push notification...');
+      
+      // Create a test notification payload
+      const testPayload = {
+        title: 'Test Flash News',
+        body: 'This is a test notification from Dinamalar!',
+        data: { 
+          type: 'flash', 
+          test: true,
+          newsId: 'test-123',
+          link: '/news/test-123'
+        },
+        priority: 'high',
+        channelId: 'flash-news',
+        sound: 'default',
+      };
+
+      // Send the test notification
+      const result = await sendPushNotifications(['*'], testPayload);
+      console.log('Test notification result:', result);
+      
+      // Also show the popup for immediate visual feedback
+      setCurrentNotification({
+        id: 'test-123',
+        title: 'Test Flash News',
+        category: 'flash',
+        priority: 'high',
+        time: 'Just now',
+        link: '/news/test-123'
+      });
+      setShowNotificationPopup(true);
+      
+    } catch (error) {
+      console.error('Test notification failed:', error);
+    }
+  };
+
   // ── EXACT same fetchAll as your original working code ──
   const fetchAll = useCallback(async (pageNum = 1, isRefresh = false) => {
     try {
+      // ... (rest of the code remains the same)
       if (pageNum === 1) {
         isRefresh ? setRefreshing(true) : setLoading(true);
       } else {
         setLoadingMore(true);
       }
 
+      // Add cache-busting timestamp to ensure fresh data
+      const cacheBuster = Date.now();
       const requests = [
-        CDNApi.get('/latestmain', { params: { page: pageNum } })
+        dmrApi.get('/latestmain', { 
+          params: { 
+            page: pageNum,
+            _t: cacheBuster, // Cache-busting parameter
+            _refresh: isRefresh ? 1 : 0 // Additional refresh indicator
+          } 
+        })
       ];
       if (pageNum === 1) requests.push(
-        CDNApi.get('/latestnotify'),
-        CDNApi.get('/mostcommented')
+        dmrApi.get('/latestnotify', { params: { _t: cacheBuster, _refresh: isRefresh ? 1 : 0 } }),
+        dmrApi.get('/mostcommented', { params: { _t: cacheBuster, _refresh: isRefresh ? 1 : 0 } })
       );
 
       console.log('=== Timeline API Attempt ===');
-      console.log('Trying CDNApi:', `${API_BASE_URLS.CDN}/latestmain?page=${pageNum}`);
+      console.log('Trying dmrApi:', `${API_BASE_URLS.CDN}/latestmain?page=${pageNum}`);
 
       let results;
       try {
@@ -949,12 +1116,12 @@ export default function TimelineScreen() {
         results = [{ status: 'rejected', reason: error }];
       }
 
-      // If CDNApi fails, show error details
+      // If dmrApi fails, show error details
       if (results[0].status === 'rejected') {
-        console.log('❌ CDNApi failed');
+        console.log('❌ dmrApi failed');
         console.log('Error Details:', results[0].reason);
       } else {
-        console.log('✅ CDNApi SUCCESS');
+        console.log('✅ dmrApi SUCCESS');
       }
 
       // mainData.detail — the news items are in the detail array
@@ -1145,9 +1312,9 @@ export default function TimelineScreen() {
         statusBarStyle="dark-content"
         statusBarBackgroundColor={COLORS.white}
         onMenuPress={handleMenuPress}
-        onNotification={goToNotifs}
-        notifCount={0}
-        hideNotification={true}
+        onNotification={handleNotificationCenterPress}
+        notifCount={notifBadgeCount}
+        hideNotification={false}
         isDrawerVisible={isDrawerVisible}
         setIsDrawerVisible={setIsDrawerVisible}
         navigation={navigation}
@@ -1219,6 +1386,31 @@ export default function TimelineScreen() {
           <Ionicons name="arrow-up" size={20} color="#fff" />
         </TouchableOpacity>
       )}
+
+      {/* Test notification button (for development) */}
+      <TouchableOpacity
+        style={styles.testNotificationBtn}
+        onPress={testPushNotification}
+      >
+        <Ionicons name="notifications" size={s(20)} color="#fff" />
+        <Text style={styles.testNotificationText}>Test</Text>
+      </TouchableOpacity>
+
+      {/* Real-time notification popup */}
+      <RealTimeNotificationPopup
+        notification={currentNotification}
+        visible={showNotificationPopup}
+        onClose={handleNotificationPopupClose}
+        onPress={handleNotificationPress}
+      />
+
+      {/* Notification center modal */}
+      <NotificationCenter
+        visible={showNotificationCenter}
+        onClose={handleNotificationCenterClose}
+        onNotificationPress={handleNotificationPress}
+        onRefresh={handleNotificationCenterRefresh}
+      />
     </View>
   );
 }
@@ -1237,5 +1429,22 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary, justifyContent: 'center', alignItems: 'center',
     elevation: 6, shadowColor: '#000', shadowOffset: { width: 0, height: vs(3) },
     shadowOpacity: 0.25, shadowRadius: s(5),
+  },
+  testNotificationBtn: {
+    position: 'absolute', bottom: vs(24), left: s(16),
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: s(12),
+    paddingVertical: vs(8),
+    borderRadius: s(20),
+    elevation: 6, shadowColor: '#000', shadowOffset: { width: 0, height: vs(3) },
+    shadowOpacity: 0.25, shadowRadius: s(5),
+  },
+  testNotificationText: {
+    color: '#fff',
+    fontSize: ms(12),
+    fontFamily: FONTS.muktaMalar.bold,
+    marginLeft: s(4),
   },
 });

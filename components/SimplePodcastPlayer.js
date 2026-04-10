@@ -54,12 +54,12 @@ export default function SimplePodcastPlayer({ data, onMorePress, onPlayingChange
     }
   }
   
-  console.log('🎙️ SimplePodcastPlayer - audioUrl:', audioUrl);
-  console.log('🎙️ SimplePodcastPlayer - data prop:', data);
-  console.log('🎙️ SimplePodcastPlayer - podcastData:', podcastData);
-  console.log('🎙️ SimplePodcastPlayer - currentPodcast:', currentPodcast);
-  console.log('🎙️ SimplePodcastPlayer - data.length:', data?.length);
-  console.log('🎙️ SimplePodcastPlayer - podcastData.length:', podcastData?.length);
+  // console.log('🎙️ SimplePodcastPlayer - audioUrl:', audioUrl);
+  // console.log('🎙️ SimplePodcastPlayer - data prop:', data);
+  // console.log('🎙️ SimplePodcastPlayer - podcastData:', podcastData);
+  // console.log('🎙️ SimplePodcastPlayer - currentPodcast:', currentPodcast);
+  // console.log('🎙️ SimplePodcastPlayer - data.length:', data?.length);
+  // console.log('🎙️ SimplePodcastPlayer - podcastData.length:', podcastData?.length);
 
   // Initialize player with audio URL directly
   const player = useAudioPlayer({ uri: audioUrl || '' });
@@ -314,7 +314,7 @@ const styles = StyleSheet.create({
   collapsedTab: {
     position: 'absolute',
     right: s(0),
-    top: '40%',
+    top: '50%',
     marginTop: vs(-60),   // Center vertically by moving up half the container height
     backgroundColor: 'rgba(99, 115, 131, 0.95)',
     borderTopLeftRadius: s(10),
@@ -345,7 +345,7 @@ const styles = StyleSheet.create({
   miniPlayerContainer: {
     position: 'absolute',
     right: s(0),
-    top: '50%',
+    top: '39%',
     // marginTop: vs(-80),   // Center vertically by moving up half the container height
     backgroundColor: 'rgba(99, 115, 131, 0.95)',
     borderTopLeftRadius: s(10),

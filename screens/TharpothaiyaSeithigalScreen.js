@@ -27,7 +27,8 @@ import { mvs } from 'react-native-size-matters';
 import TEXT_STYLES from '../utils/textStyles';
 import { useFontSize } from '../context/FontSizeContext';
 import { Ionicons } from '@expo/vector-icons';
-
+import AdvertisementBanner from '../components/AdvertisementBanner';
+ 
 const PALETTE = {
   primary: '#096dd2',
   grey100: '#F9FAFB',
@@ -47,11 +48,19 @@ const { width: SCREEN_W } = Dimensions.get('window');
 const NAV_ONLY_TABS = [
   { id: 'varthagam', title: 'வர்த்தகம்', screen: 'VarthagamScreen' },
   { id: 'district', title: 'உள்ளூர்', screen: 'DistrictNewsScreen' },
+  {
+    id: 'kalvimalar', title: 'கல்விமலர்', screen: 'CommonSectionScreen', params: {
+      screenTitle: 'கல்விமலர்',
+      apiEndpoint: '/kalvimalarhome',
+      allTabLink: '/kalvimalarhome'
+    }
+  },
   { id: 'sports', title: 'விளையாட்டு', screen: 'SportsScreen' },
 ];
 
 // These tabs fetch news inline
 const TOP_TABS = [
+  { id: 'all', title: 'All', endpoint: '/seithigal' },
   { id: 'tharpothaiya', title: 'தற்போதைய செய்தி', endpoint: '/newsdata?cat=5010' },
   { id: 'tamilagam', title: 'தமிழகம்', endpoint: '/newsdata?cat=89' },
   { id: 'india', title: 'இந்தியா', endpoint: '/newsdata?cat=100' },
@@ -97,7 +106,7 @@ const sk = StyleSheet.create({
 function TharpothaiyaNewsCard({ item, onPress, isPremium = false }) {
   const { sf } = useFontSize();
   const [imageError, setImageError] = useState(false);
-  
+
   const imageUri =
     item.images ||
     item.largeimages ||
@@ -173,6 +182,88 @@ function TharpothaiyaNewsCard({ item, onPress, isPremium = false }) {
   );
 }
 
+// ─── Place this OUTSIDE TharpothaiyaSeithigalScreen ───────────────────────
+
+function SectionGroup({ group, onPressItem, onPressViewAll }) {
+  const { sf } = useFontSize();
+
+  const getTabIdFromLink = (link) => {
+    if (link?.includes('cat=5010')) return 'tharpothaiya';
+    if (link?.includes('cat=89')) return 'tamilagam';
+    if (link?.includes('cat=100')) return 'india';
+    if (link?.includes('cat=34')) return 'world';
+    if (link?.includes('cat=651')) return 'premium';
+    return null;
+  };
+
+  return (
+    <View style={sg.wrapper}>
+      {/* Section Header — left blue accent bar style */}
+      <TouchableOpacity
+        style={sg.header}
+        onPress={() => {
+          const tabId = getTabIdFromLink(group.link);
+          if (tabId) onPressViewAll(tabId);
+        }}
+        activeOpacity={0.7}
+      >
+        {/* <View style={sg.accentBar} /> */}
+        <Text style={[sg.title, { fontSize: sf(16) }]}>{group.title}</Text>
+        <View style={sg.sectionUnderline} />
+        <View style={sg.greyLine} />
+
+      </TouchableOpacity>
+
+      {/* 3 News Items */}
+      {group.data.map((item, index) => (
+        <TharpothaiyaNewsCard
+          key={`${group.id}-${item?.newsid || index}`}
+          item={item}
+          onPress={() => onPressItem(item)}
+          isPremium={group.id === '651' || group.id === 651}
+        />
+      ))}
+    </View>
+  );
+}
+
+const sg = StyleSheet.create({
+  wrapper: {
+    marginBottom: vs(8),
+    backgroundColor: '#fff',
+  },
+  header: {
+    backgroundColor: PALETTE.white,
+    paddingHorizontal: s(12),
+    paddingTop: vs(14),
+    paddingBottom: vs(10),
+  },
+  titleRow: {
+  },
+  accentBar: {
+    width: s(4),
+    height: vs(18),
+    backgroundColor: COLORS.primary,
+    borderRadius: s(2),
+    marginRight: s(8),
+  },
+  title: {
+    fontFamily: FONTS.muktaMalar.bold,
+    color: COLORS.grey800,
+    fontSize: ms(16),
+  },
+  sectionUnderline: {
+    height: vs(3),
+    width: s(40),
+    backgroundColor: PALETTE.primary,
+
+  },
+  greyLine: {
+    borderBottomWidth: 0.75,
+    borderBottomColor: COLORS.grey300
+  },
+});
+
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 export default function TharpothaiyaSeithigalScreen({ route }) {
   const { sf } = useFontSize();
@@ -212,7 +303,7 @@ export default function TharpothaiyaSeithigalScreen({ route }) {
   const [isDrawerVisible, setIsDrawerVisible] = useState(false);
   const [isLocationDrawerVisible, setIsLocationDrawerVisible] = useState(false);
   const [selectedDistrict, setSelectedDistrict] = useState('உள்ளூர்');
-
+  const [groupedNews, setGroupedNews] = useState([]); // for All tab
   const topTabScrollRef = useRef(null);
   const subTabScrollRef = useRef(null);
   const flatListRef = useRef(null);
@@ -232,7 +323,7 @@ export default function TharpothaiyaSeithigalScreen({ route }) {
     const key = activeTopTab.id;
     const layout = tabLayoutsRef.current[key];
     if (!layout) return;
-    
+
     // Use requestAnimationFrame to prevent conflicts
     requestAnimationFrame(() => {
       if (topTabScrollRef.current) {
@@ -252,7 +343,7 @@ export default function TharpothaiyaSeithigalScreen({ route }) {
     if (newTabId) {
       const navOnly = NAV_ONLY_TABS.find(t => t.id === newTabId);
       if (navOnly) {
-        navigation.navigate(navOnly.screen);
+        navigation.navigate(navOnly.screen, navOnly.params || {}); // ← was missing params
         return;
       }
 
@@ -273,7 +364,10 @@ export default function TharpothaiyaSeithigalScreen({ route }) {
   }, [route?.params?.tabId, route?.params?.initialTabTitle]);
 
   const handleScroll = useCallback((event) => {
-    setShowScrollTop(event.nativeEvent.contentOffset.y > 300);
+    const scrollY = event.nativeEvent.contentOffset.y;
+    const shouldShow = scrollY > 300;
+    console.log('Scroll Y:', scrollY, 'Should show button:', shouldShow);
+    setShowScrollTop(shouldShow);
   }, []);
 
   const scrollToTop = useCallback(() => {
@@ -286,10 +380,10 @@ export default function TharpothaiyaSeithigalScreen({ route }) {
     return `${ep}${sep}page=${pg}`;
   }, []);
 
+
   const fetchNews = useCallback(async (topTab, subTab, pg, append = false) => {
     try {
       const url = buildUrl(topTab, subTab, pg);
-      console.log('Fetching:', url);
       const res = await CDNApi.get(url);
       const d = res?.data;
 
@@ -297,20 +391,34 @@ export default function TharpothaiyaSeithigalScreen({ route }) {
         setSubTabs(d?.subcatlist || []);
       }
 
-      const list = (
-        d?.newlist?.data ||
-        d?.newslist?.data ||
-        d?.data ||
-        d?.list ||
-        []
-      ).filter(Boolean);
+      // All tab — keep grouped structure
+      if (topTab.id === 'all' && Array.isArray(d?.newlist)) {
+        const groups = d.newlist
+          .filter(cat => cat?.data?.length > 0)
+          .map(cat => ({
+            id: cat.id,
+            title: cat.title,
+            link: cat.link,
+            data: cat.data.slice(0, 3), // only 3 per section
+          }));
+        setGroupedNews(groups);
+        setNews([]); // clear flat list
+        setLastPage(1);
+        setPage(1);
+        return;
+      }
 
-      const lp =
-        d?.newlist?.last_page ||
-        d?.newslist?.last_page ||
-        d?.last_page ||
-        1;
+      // Other tabs — flat list
+      setGroupedNews([]);
+      const list = (() => {
+        if (d?.newlist?.data) return d.newlist.data;
+        if (d?.newslist?.data) return d.newslist.data;
+        if (d?.data) return d.data;
+        if (d?.list) return d.list;
+        return [];
+      })().filter(Boolean);
 
+      const lp = d?.newlist?.last_page || d?.newslist?.last_page || d?.last_page || 1;
       setLastPage(lp);
       setNews(prev => append ? [...prev, ...list] : list);
       setPage(pg);
@@ -337,7 +445,7 @@ export default function TharpothaiyaSeithigalScreen({ route }) {
   const handleTopTabPress = (tab) => {
     const navOnly = NAV_ONLY_TABS.find(t => t.id === tab.id);
     if (navOnly) {
-      navigation.navigate(navOnly.screen);
+      navigation.navigate(navOnly.screen, navOnly.params || {}); // ← fix
       return;
     }
     if (activeTopTab.id === tab.id) return;
@@ -382,7 +490,7 @@ export default function TharpothaiyaSeithigalScreen({ route }) {
   //    dx < -50 px  AND velocity > 0.3  → left-swipe   (go next)
   //
   const SWIPE_THRESHOLD = 50;   // minimum horizontal distance (px)
-  const SWIPE_VELOCITY  = 0.3;  // minimum velocity
+  const SWIPE_VELOCITY = 0.3;  // minimum velocity
 
   const panResponder = useRef(
     PanResponder.create({
@@ -404,14 +512,14 @@ export default function TharpothaiyaSeithigalScreen({ route }) {
           : 0;
 
         const isRightSwipe = gs.dx > SWIPE_THRESHOLD && Math.abs(gs.vx) > SWIPE_VELOCITY;
-        const isLeftSwipe  = gs.dx < -SWIPE_THRESHOLD && Math.abs(gs.vx) > SWIPE_VELOCITY;
+        const isLeftSwipe = gs.dx < -SWIPE_THRESHOLD && Math.abs(gs.vx) > SWIPE_VELOCITY;
 
         if (isRightSwipe && curIndex > 0) {
           // Go to previous tab
           const prevTab = tabs[curIndex - 1];
           const navOnly = NAV_ONLY_TABS.find(t => t.id === prevTab.id);
           if (navOnly) {
-            navigation.navigate(navOnly.screen);
+            navigation.navigate(navOnly.screen, navOnly.params || {}); // ← fix
           } else {
             setActiveTopTab(prevTab);
           }
@@ -420,7 +528,7 @@ export default function TharpothaiyaSeithigalScreen({ route }) {
           const nextTab = tabs[curIndex + 1];
           const navOnly = NAV_ONLY_TABS.find(t => t.id === nextTab.id);
           if (navOnly) {
-            navigation.navigate(navOnly.screen);
+            navigation.navigate(navOnly.screen, navOnly.params || {}); // ← fix
           } else {
             setActiveTopTab(nextTab);
           }
@@ -446,6 +554,7 @@ export default function TharpothaiyaSeithigalScreen({ route }) {
     if (link.includes('timeline') || link.includes('latestmain')) navigation.navigate('TimelineScreen');
     else if (link.includes('cinema')) navigation.navigate('CategoryNewsScreen', { catId: 'cinema', catName: 'சினிமா' });
     else if (link.includes('temple') || link.includes('kovilgal')) navigation.navigate('CategoryNewsScreen', { catId: 'temple', catName: 'கோவில்கள்' });
+    else if (link.includes('kalvimalar')) navigation.navigate('CommonSectionScreen', { screenTitle: 'கல்விமலர்', apiEndpoint: '/kalvimalarhome', allTabLink: '/kalvimalarhome' });
     else navigation.navigate('HomeScreen');
   };
 
@@ -462,7 +571,6 @@ export default function TharpothaiyaSeithigalScreen({ route }) {
 
   return (
     <View style={styles.container}>
-
       <UniversalHeaderComponent
         showMenu={true}
         showSearch={true}
@@ -488,114 +596,151 @@ export default function TharpothaiyaSeithigalScreen({ route }) {
         />
       </UniversalHeaderComponent>
 
-      {/* ── Page Title ── */}
-      <View style={styles.pageTitleWrap}>
-        <Text style={[styles.pageTitle, { fontSize: sf(18) }]}>
-          {activeTopTab.title === 'தற்போதைய' ? 'தற்போதைய செய்திகள்' : `${activeTopTab.title} `}
-        </Text>
-      </View>
+      <ScrollView style={styles.scrollContainer}>
+        <AdvertisementBanner width={320} height={300} showLabel={false} />
 
-      {/* ── Top Tabs ── */}
-      <View style={styles.topTabsWrapper}>
-        <ScrollView
-          ref={topTabScrollRef}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.tabsContent}
-        >
-          {ALL_DISPLAY_TABS.map((tab) => {
-            // Nav-only tabs are never shown as active
-            const isNavOnly = NAV_ONLY_TABS.some(t => t.id === tab.id);
-            const isActive = !isNavOnly && activeTopTab.id === tab.id;
-            return (
-              <TouchableOpacity
-                key={tab.id}
-                style={[styles.tab, isActive && styles.tabActive]}
-                onPress={() => handleTopTabPress(tab)}
-                onLayout={(e) => {
-                  tabLayoutsRef.current[tab.id] = {
-                    x: e.nativeEvent.layout.x,
-                    width: e.nativeEvent.layout.width,
-                  };
-                }}
-              >
-                <Text style={[styles.tabText, isActive && styles.tabTextActive,]}>
-                  {tab.title}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-        <View style={styles.tabsBottomLine} />
-      </View>
+        {/* ── Page Title ── */}
+        <View style={styles.pageTitleWrap}>
+          <Text style={[styles.pageTitle, { fontSize: sf(18) }]}>
+            {activeTopTab.id === 'all' ? 'செய்திகள்' :
+              activeTopTab.title === 'tharpothaiya' ? 'தற்போதைய செய்திகள்' :
+                activeTopTab.title === 'tamilagam' ? 'தமிழகம்' :
+                  activeTopTab.title === 'india' ? 'இந்தியா' :
+                    activeTopTab.title === 'world' ? 'உலகம்' :
+                      activeTopTab.title === 'premium' ? 'ப்ரீமியம்' :
+                        `${activeTopTab.title} `}
+          </Text>
+        </View>
 
-      {/* ── News List — wrapped with panResponder for swipe detection ── */}
-      <View style={styles.swipeArea} {...panResponder.panHandlers}>
-      <>
-        {loading ? (
-        <FlatList
-          data={[1, 2, 3, 4]}
-          keyExtractor={i => `sk-${i}`}
-          renderItem={() => <SkeletonCard />}
-          contentContainerStyle={styles.listContent}
-        />
-      ) : (
-        <FlatList
-          ref={flatListRef}
-          data={news}
-          keyExtractor={(item, i) =>
-            `news-${activeTopTab.id}-${i}-${item?.newsid || item?.id || i}`
-          }
-          renderItem={({ item }) => (
-            <TharpothaiyaNewsCard
-              item={item}
-              onPress={() => goToArticle(item)}
-              isPremium={activeTopTab.id === 'premium'}
+        {/* ── Top Tabs ── */}
+        <View style={styles.topTabsWrapper}>
+          <ScrollView
+            ref={topTabScrollRef}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.tabsContent}
+          >
+            {ALL_DISPLAY_TABS.map((tab) => {
+              // Nav-only tabs are never shown as active
+              const isNavOnly = NAV_ONLY_TABS.some(t => t.id === tab.id);
+              const isActive = !isNavOnly && activeTopTab.id === tab.id;
+              return (
+                <TouchableOpacity
+                  key={tab.id}
+                  style={[styles.tab, isActive && styles.tabActive]}
+                  onPress={() => handleTopTabPress(tab)}
+                  onLayout={(e) => {
+                    tabLayoutsRef.current[tab.id] = {
+                      x: e.nativeEvent.layout.x,
+                      width: e.nativeEvent.layout.width,
+                    };
+                  }}
+                >
+                  <Text style={[styles.tabText, isActive && styles.tabTextActive,]}>
+                    {tab.title}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+          <View style={styles.tabsBottomLine} />
+        </View>
+        
+        {/* ── News List — wrapped with panResponder for swipe detection ── */}
+        <View style={styles.swipeArea} {...panResponder.panHandlers}>
+          {loading ? (
+            <FlatList
+              data={[1, 2, 3, 4]}
+              keyExtractor={i => `sk-${i}`}
+              renderItem={() => <SkeletonCard />}
+              contentContainerStyle={styles.listContent}
+            />
+          ) : activeTopTab.id === 'all' ? (
+            // ── All Tab: Grouped Sections ──
+            <FlatList
+              ref={flatListRef}
+              data={groupedNews}
+              keyExtractor={(group) => `group-${group.id}`}
+              renderItem={({ item: group }) => (
+                <SectionGroup
+                  group={group}
+                  onPressItem={goToArticle}
+                  onPressViewAll={(tabId) => {
+                    const tab = TOP_TABS.find(t => t.id === tabId);
+                    if (tab) setActiveTopTab(tab);
+                  }}
+                  navigation={navigation}
+                />
+              )}
+              contentContainerStyle={styles.listContent}
+              showsVerticalScrollIndicator={false}
+              onScroll={handleScroll}
+              scrollEventThrottle={16}
+              refreshControl={
+                <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={handleRefresh}
+                  colors={[COLORS.primary]}
+                  tintColor={COLORS.primary}
+                />
+              }
+              // ListEmptyComponent={
+              //   <View style={styles.emptyWrap}>
+              //     <Ionicons name="newspaper-outline" size={s(48)} color="#ccc" />
+              //     <Text style={styles.emptyText}>செய்திகள் இல்லை</Text>
+              //   </View>
+              // }
+              ListFooterComponent={<View style={{ height: vs(40) }} />}
+            />
+          ) : (
+            // ── Other Tabs: Flat list ──
+            <FlatList
+              ref={flatListRef}
+              data={news}
+              keyExtractor={(item, i) =>
+                `news-${activeTopTab.id}-${i}-${item?.newsid || item?.id || i}`
+              }
+              renderItem={({ item }) => (
+                <TharpothaiyaNewsCard
+                  item={item}
+                  onPress={() => goToArticle(item)}
+                  isPremium={activeTopTab.id === 'premium'}
+                />
+              )}
+              contentContainerStyle={styles.listContent}
+              showsVerticalScrollIndicator={false}
+              onScroll={handleScroll}
+              scrollEventThrottle={16}
+              onEndReached={handleLoadMore}
+              onEndReachedThreshold={0.4}
+              refreshControl={
+                <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={handleRefresh}
+                  colors={[COLORS.primary]}
+                  tintColor={COLORS.primary}
+                />
+              }
+              // ListEmptyComponent={
+              //   <View style={styles.emptyWrap}>
+              //     <Ionicons name="newspaper-outline" size={s(48)} color="#ccc" />
+              //     <Text style={styles.emptyText}>செய்திகள் இல்லை</Text>
+              //   </View>
+              // }
+              ListFooterComponent={
+                loadingMore ? (
+                  <View style={styles.footerLoader}>
+                    <ActivityIndicator size="small" color={COLORS.primary} />
+                  </View>
+                ) : (
+                  <View style={{ height: vs(40) }} />
+                )
+              }
             />
           )}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-          onScroll={handleScroll}
-          scrollEventThrottle={16}
-          onEndReached={handleLoadMore}
-          onEndReachedThreshold={0.4}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={handleRefresh}
-              colors={[COLORS.primary]}
-              tintColor={COLORS.primary}
-            />
-          }
-          ListEmptyComponent={
-            <View style={styles.emptyWrap}>
-              <Ionicons name="newspaper-outline" size={s(48)} color="#ccc" />
-              <Text style={styles.emptyText}>செய்திகள் இல்லை</Text>
-            </View>
-          }
-          ListFooterComponent={
-            loadingMore ? (
-              <View style={styles.footerLoader}>
-                <ActivityIndicator size="small" color={COLORS.primary} />
-              </View>
-            ) : (
-              <View style={{ height: vs(40) }} />
-            )
-          }
-        />
-      )}
-      </>
-      </View>
-      {/* ── Scroll To Top ── */}
-      {showScrollTop && (
-        <TouchableOpacity
-          style={styles.scrollTopBtn}
-          onPress={scrollToTop}
-          activeOpacity={0.8}
-        >
-          <Ionicons name="arrow-up" size={s(20)} color="#fff" />
-        </TouchableOpacity>
-      )}
+        </View>
+      </ScrollView>
+   
     </View>
   );
 }
@@ -647,14 +792,14 @@ const styles = StyleSheet.create({
   },
 
   tabText: {
-     fontSize: ms(16),
+    fontSize: ms(16),
     fontFamily: FONTS.muktaMalar.medium,
     color: COLORS.black,
   },
 
   tabTextActive:
   {
-     fontSize: ms(16),
+    fontSize: ms(16),
     fontFamily: FONTS.muktaMalar.medium,
     color: COLORS.black,
   },
@@ -726,15 +871,5 @@ const styles = StyleSheet.create({
   footerLoader: {
     paddingVertical: vs(20),
     alignItems: 'center',
-  },
-
-  scrollTopBtn: {
-    position: 'absolute',
-    bottom: vs(20),
-    right: s(16),
-    backgroundColor: COLORS.primary,
-    padding: s(8),
-    borderRadius: s(30),
-    elevation: 2,
   },
 });

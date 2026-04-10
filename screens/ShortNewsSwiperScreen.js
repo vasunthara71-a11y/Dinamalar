@@ -17,7 +17,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { FONTS } from '../utils/constants';
+import { COLORS, FONTS } from '../utils/constants';
 import { ms, s, vs } from '../utils/scaling';
 import { useFontSize } from '../context/FontSizeContext';
 import CommentsModal from '../components/CommentsModal';

@@ -44,14 +44,14 @@ const FeedbackCard = ({ newsId }) => {
           </View>
 
           {/* Button — absolute bottom-right, clipped by overflow:hidden */}
-         
+
 
         </View>
-         <View style={styles.buttonContainer}>
-            <View style={styles.arrowButton}>
-              <ArrowIcon size={s(26)} color="#ffffff" />
-            </View>
+        <View style={styles.buttonContainer}>
+          <View style={styles.arrowButton}>
+            <ArrowIcon size={s(26)} color="#ffffff" />
           </View>
+        </View>
       </TouchableOpacity>
     </View>
   );
@@ -108,12 +108,12 @@ const styles = StyleSheet.create({
   },
   buttonContainer: {
     position: 'absolute',
-    right: -0,
+    right: -0.5,
     bottom: -25,
-    borderWidth: 0.5,
+    // borderWidth: 0.5,
     borderColor: '#1a56c4',
-    width:90,
-    height:65,
+    width: 90,
+    height: 65,
     alignItems: 'center',
     justifyContent: 'center',
   },

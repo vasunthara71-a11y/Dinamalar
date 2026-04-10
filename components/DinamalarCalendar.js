@@ -12,18 +12,18 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { mainApi, API_ENDPOINTS } from '../config/api';
 import { COLORS, FONTS } from '../utils/constants';
-import { vs } from 'react-native-size-matters';
+import { ms, vs } from 'react-native-size-matters';
 import { useFontSize } from '../context/FontSizeContext';
 
-const BLUE   = '#1565c0';
-const RED    = '#cc0000';
+const BLUE = '#1565c0';
+const RED = '#cc0000';
 const YELLOW = '#f9e44b';
-const GREEN  = '#06960d';
+const GREEN = '#06960d';
 const ORANGE = '#e65100';
 const BORDER = '#e0e0e0';
-const TEXT1  = '#111111';
-const TEXT2  = '#444444';
-const TEXT3  = '#777777';
+const TEXT1 = '#111111';
+const TEXT2 = '#444444';
+const TEXT3 = '#777777';
 
 function extractCalendarData(resData) {
   const dc = resData?.dayCalendar;
@@ -60,18 +60,18 @@ function extractCalendarData(resData) {
   ];
 
   const upcoming = upcomingSources.find(Array.isArray) ?? [];
-  const history  = historySources.find(Array.isArray) ?? [];
+  const history = historySources.find(Array.isArray) ?? [];
 
   return { calInfo, upcoming, history };
 }
 
 export default function DinamalarCalendarScreen() {
   const { sf } = useFontSize();
-  const [calInfo,  setCalInfo]  = useState(null);
+  const [calInfo, setCalInfo] = useState(null);
   const [upcoming, setUpcoming] = useState([]);
-  const [history,  setHistory]  = useState([]);
-  const [loading,  setLoading]  = useState(true);
-  const [error,    setError]    = useState(null);
+  const [history, setHistory] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => { fetchCalendarData(); }, []);
 
@@ -96,22 +96,22 @@ export default function DinamalarCalendarScreen() {
   };
 
   const getPanchangamRows = (d) => [
-    { label: 'நல்ல நேரம்',    value: d.nallaneram },
-    { label: 'எமகண்டம்',      value: d.yema },
-    { label: 'ராகு',          value: d.raagu },
-    { label: 'குளிகை',        value: d.kuli },
-    { label: 'திதி',          value: d.thithi },
+    { label: 'நல்ல நேரம்', value: d.nallaneram },
+    { label: 'எமகண்டம்', value: d.yema },
+    { label: 'ராகு', value: d.raagu },
+    { label: 'குளிகை', value: d.kuli },
+    { label: 'திதி', value: d.thithi },
     {
       label: 'திதி நேரம்',
       value: (d.thithi1 && d.thithi1 !== 'select')
         ? `${d.thithi1} கா ${d.thithitime}`.trim()
         : d.thithitime,
     },
-    { label: 'நட்சத்திரம்',   value: d.natchathiram },
-    { label: 'யோகம்',         value: d.yogam },
+    { label: 'நட்சத்திரம்', value: d.natchathiram },
+    { label: 'யோகம்', value: d.yogam },
     { label: 'சந்திராஷ்டமம்', value: d.santhirashtramam },
-    { label: 'சூலம்',         value: d.solam },
-    { label: 'பரிகாரம்',      value: d.parik },
+    { label: 'சூலம்', value: d.solam },
+    { label: 'பரிகாரம்', value: d.parik },
   ].filter((r) => r.value && r.value !== 'select' && String(r.value).trim() !== '');
 
   if (loading) {
@@ -152,7 +152,7 @@ export default function DinamalarCalendarScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Page title */}
-        <TouchableOpacity 
+        <TouchableOpacity
           style={st.pageTitleRow}
           onPress={() => {
             console.log('📅 CALENDAR TITLE CLICKED - Opening Play Store');
@@ -161,8 +161,10 @@ export default function DinamalarCalendarScreen() {
           }}
           activeOpacity={0.8}
         >
-          <Text style={[st.pageTitle, { fontSize: sf(18) }]}>காலண்டர்</Text>
+          <Text style={[st.pageTitle, { fontSize: sf(16) }]}>காலண்டர்</Text>
           <View style={st.titleUnderline} />
+          <View style={st.greyLine} />
+
         </TouchableOpacity>
 
         {/* Date card */}
@@ -252,95 +254,100 @@ export default function DinamalarCalendarScreen() {
 }
 
 const st = StyleSheet.create({
-  safe:      { flex: 1, backgroundColor: '#fff' },
-  center:    { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  safe: { flex: 1, backgroundColor: '#fff' },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   errorText: { fontSize: 15, color: RED, textAlign: 'center', marginBottom: 12, fontFamily: FONTS.muktaMalar.regular },
-  retryBtn:  { paddingHorizontal: 24, paddingVertical: 10, backgroundColor: BLUE, borderRadius: 6 },
+  retryBtn: { paddingHorizontal: 24, paddingVertical: 10, backgroundColor: BLUE, borderRadius: 6 },
   retryText: { color: '#fff', fontWeight: '600', fontSize: 14, fontFamily: FONTS.muktaMalar.semibold },
 
   // Scroll
-  scroll:      { flex: 1 },
+  scroll: { flex: 1 },
   scrollInner: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 16 },
 
   // Page title
-  pageTitleRow:   { marginBottom: 10 },
-  pageTitle:      { fontSize: 20, fontWeight: '700', color: TEXT1, fontFamily: FONTS.anek.bold },
+  pageTitleRow: { marginBottom: ms(10) },
+  pageTitle: { fontSize: 20, fontWeight: '700', color: TEXT1, fontFamily: FONTS.anek.bold },
   titleUnderline: { height: 3, width: 52, backgroundColor: COLORS.primary, },
+  greyLine: {
+    borderBottomWidth: 0.75,
+    borderBottomColor: COLORS.grey300
+  },
 
   // Date card
   card: {
     flexDirection: 'row',
-    borderWidth:   0.5,
-    borderColor:   BORDER,
-    borderRadius:  6,
-    overflow:      'hidden',
+    borderWidth: 0.5,
+    borderColor: BORDER,
+    borderRadius: 6,
+    overflow: 'hidden',
+   
   },
   cardLeft: {
     backgroundColor: BLUE,
-    width:           82,
+    width: 82,
     paddingVertical: 12,
-    alignItems:      'center',
-    justifyContent:  'center',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  cardNum:    { fontSize: 38, fontWeight: '800', color: '#fff', lineHeight: 42 ,fontFamily:FONTS.muktaMalar.bold},
-  cardMonth:  { fontSize: 13, fontWeight: '600', color: '#fff', marginTop: 2 ,fontFamily:FONTS.muktaMalar.bold},
-  cardDay:    { fontSize: 12, color: 'rgba(255,255,255,0.85)', marginTop: 3 ,fontFamily:FONTS.muktaMalar.semibold},
-  cardRight:  { flex: 1 },
+  cardNum: { fontSize: 38, fontWeight: '800', color: '#fff', lineHeight: 42, fontFamily: FONTS.muktaMalar.bold },
+  cardMonth: { fontSize: 13, fontWeight: '600', color: '#fff', marginTop: 2, fontFamily: FONTS.muktaMalar.bold },
+  cardDay: { fontSize: 12, color: 'rgba(255,255,255,0.85)', marginTop: 3, fontFamily: FONTS.muktaMalar.semibold },
+  cardRight: { flex: 1, },
   cardTopRow: {
-    flexDirection:     'row',
-    alignItems:        'center',
-    justifyContent:    'space-between',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 12,
-    paddingVertical:   10,
+    paddingVertical: 10,
   },
-  cardTopLeft:   { flex: 1 },
-  tamilMonth:    { fontSize: 17, fontWeight: '600', color: BLUE, fontFamily: FONTS.muktaMalar.bold },
-  tamilYear:     { fontSize: 11, color: TEXT3, marginTop: 2, fontFamily: FONTS.muktaMalar.regular },
-  tamilDateNum:  { fontSize: 24, fontWeight: '600', color: BLUE, fontFamily: FONTS.muktaMalar.bold },
-  cardSep:       { height: 0.5, backgroundColor: BORDER },
+  cardTopLeft: { flex: 1 },
+  tamilMonth: { fontSize: 17, fontWeight: '600', color: BLUE, fontFamily: FONTS.muktaMalar.bold },
+  tamilYear: { fontSize: 11, color: TEXT3, marginTop: 2, fontFamily: FONTS.muktaMalar.regular },
+  tamilDateNum: { fontSize: 24, fontWeight: '600', color: BLUE, fontFamily: FONTS.muktaMalar.bold },
+  cardSep: { height: 0.5, backgroundColor: BORDER },
   ramzanRow: {
-    flexDirection:     'row',
-    alignItems:        'center',
-    justifyContent:    'space-between',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 12,
-    paddingVertical:   10,
+    paddingVertical: 10,
   },
-  ramzanLabel: { fontSize: vs(16),  color: GREEN,fontFamily:FONTS.muktaMalar.bold },
-  ramzanNum:   { fontSize: vs(20),  color: GREEN,fontFamily:FONTS.muktaMalar.bold },
+  ramzanLabel: { fontSize: vs(16), color: GREEN, fontFamily: FONTS.muktaMalar.bold },
+  ramzanNum: { fontSize: vs(20), color: GREEN, fontFamily: FONTS.muktaMalar.bold },
 
   // Special badge — centered
   badgeWrap: {
-    alignItems:    'center',    // ← centers the badge horizontally
-    marginTop:     10,
-    marginBottom:  6,
+    alignItems: 'center',    // ← centers the badge horizontally
+    marginTop: 10,
+    marginBottom: 6,
   },
   badge: {
-    backgroundColor:   YELLOW,
+    backgroundColor: YELLOW,
     // borderRadius:      20,
     paddingHorizontal: 20,
-    paddingVertical:   6,
+    paddingVertical: 6,
   },
   badgeText: { fontSize: 13, fontWeight: '600', color: '#3e2c00', fontFamily: FONTS.muktaMalar.semibold },
 
   // Panchangam
-  panchangam: { marginTop: 8 ,justifyContent:"center",alignItems:"center"},
+  panchangam: { marginTop: 8, justifyContent: "center", alignItems: "center" },
   pRow: {
-    flexDirection:     'row',
-    paddingVertical:   7,
+    flexDirection: 'row',
+    paddingVertical: 7,
     // borderBottomWidth: 0.5,
     borderBottomColor: '#f0f0f0',
-    alignItems:        'flex-start',
-    alignItems: 'center'
+     alignItems: 'center',
+    justifyContent:"center"
   },
-  pLabel: { width: 136, fontSize: vs(12), color: TEXT1,fontFamily:FONTS.muktaMalar.regular },
-  pValue: { flex: 1, fontSize: vs(12), color: TEXT1,fontFamily:FONTS.muktaMalar.regular,    },
+  pLabel: { width: 136, fontSize: vs(12), color: TEXT1, fontFamily: FONTS.muktaMalar.regular },
+  pValue: { flex: 1, fontSize: vs(12), color: TEXT1, fontFamily: FONTS.muktaMalar.regular, },
 
   // Divider
   blockDivider: {
-    height:           8,
-    backgroundColor:  '#f5f5f5',
+    height: 8,
+    backgroundColor: '#f5f5f5',
     marginHorizontal: -16,
-    marginVertical:   16,
+    marginVertical: 16,
   },
 
   // Section heading
@@ -349,31 +356,31 @@ const st = StyleSheet.create({
   // Bullet rows
   bulletRow: {
     flexDirection: 'row',
-    alignItems:    'flex-start',
-    marginBottom:  12,
-    gap:           10,
+    alignItems: 'flex-start',
+    marginBottom: 12,
+    gap: 10,
   },
   bullet: {
-    width:           8,
-    height:          8,
-    borderRadius:    4,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
     backgroundColor: BLUE,
-    marginTop:       4,
-    flexShrink:      0,
+    marginTop: 4,
+    flexShrink: 0,
   },
   bulletContent: { flex: 1 },
-  bulletTitle:   { fontSize: 13.5, color: TEXT1, fontWeight: '500', lineHeight: 19, fontFamily: FONTS.muktaMalar.regular },
-  bulletDate:    { fontSize: 12,   color: TEXT3, marginTop: 2, fontFamily: FONTS.muktaMalar.regular },
-  histText:      { flex: 1, fontSize: 13.5, color: TEXT1, lineHeight: 22, fontFamily: FONTS.muktaMalar.regular },
+  bulletTitle: { fontSize: 13.5, color: TEXT1, fontWeight: '500', lineHeight: 19, fontFamily: FONTS.muktaMalar.regular },
+  bulletDate: { fontSize: 12, color: TEXT3, marginTop: 2, fontFamily: FONTS.muktaMalar.regular },
+  histText: { flex: 1, fontSize: 13.5, color: TEXT1, lineHeight: 22, fontFamily: FONTS.muktaMalar.regular },
 
   // More button
   moreBtn: {
-    marginTop:       10,
-    borderWidth:     1,
-    borderColor:     BORDER,
-    borderRadius:    6,
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: BORDER,
+    borderRadius: 6,
     paddingVertical: 11,
-    alignItems:      'center',
+    alignItems: 'center',
   },
   moreBtnText: { fontSize: 14, color: RED, fontWeight: '600', fontFamily: FONTS.muktaMalar.semibold },
 });

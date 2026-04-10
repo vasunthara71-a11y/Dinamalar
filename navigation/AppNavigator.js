@@ -107,7 +107,7 @@ const AppNavigator = () => {
         <Stack.Screen name='ForgotPasswordScreen' component={ForgotPasswordScreen}/>
         <Stack.Screen name='PugarPettiScreen' component={PugarPettiScreen}/>
         <Stack.Screen name='GenericWebViewScreen' component={GenericWebViewScreen}/>
-        {/* <Stack.Screen name='SignupScreen' component={SignupScreen}/> */}
+                {/* <Stack.Screen name='SignupScreen' component={SignupScreen}/> */}
 
         
       </Stack.Navigator>
