@@ -332,10 +332,10 @@ export const u38Api = axios.create({
 });
 
 export const CDNApi = axios.create({
-  baseURL:API_BASE_URLS.CDN,
-  timeout:15000, // Reduced to 15s for faster failure detection
-  headers:{
-    'Content-Type':'application/json',
+  baseURL: API_BASE_URLS.CDN,
+  timeout: 15000, // Reduced to 15s for faster failure detection
+  headers: {
+    'Content-Type': 'application/json',
     'Accept': 'application/json',
     'Accept-Encoding': 'gzip, deflate, br', // Enable compression
     'Connection': 'keep-alive' // Connection pooling
@@ -344,9 +344,13 @@ export const CDNApi = axios.create({
 
 // Add request interceptor with caching
 CDNApi.interceptors.request.use(
-   (config) => {
-    // Check cache for GET requests
-    if (config.method === 'get') {
+  (config) => {
+    // Check cache for GET requests, but bypass for timeline endpoints
+    const isTimelineEndpoint = config.url.includes('/latestmain') ||
+      config.url.includes('/latestnotify') ||
+      config.url.includes('/mostcommented');
+
+    if (config.method === 'get' && !isTimelineEndpoint) {
       const cacheKey = `${config.baseURL}${config.url}`;
       const cachedData = getCachedData(cacheKey);
       if (cachedData) {
@@ -371,8 +375,12 @@ CDNApi.interceptors.request.use(
 // Add response caching interceptor
 CDNApi.interceptors.response.use(
   (response) => {
-    // Cache successful GET responses
-    if (response.config.method === 'get' && response.status === 200) {
+    // Cache successful GET responses, but bypass for timeline endpoints
+    const isTimelineEndpoint = response.config.url.includes('/latestmain') ||
+      response.config.url.includes('/latestnotify') ||
+      response.config.url.includes('/mostcommented');
+
+    if (response.config.method === 'get' && response.status === 200 && !isTimelineEndpoint) {
       const cacheKey = `${response.config.baseURL}${response.config.url}`;
       setCachedData(cacheKey, response.data);
     }

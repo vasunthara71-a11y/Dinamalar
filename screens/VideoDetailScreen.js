@@ -824,7 +824,7 @@ const VideoDetailScreen = ({ navigation, route }) => {
         </View>
 
         {/* Deep Link Test Button (Expo Go) */}
-        <TouchableOpacity 
+        {/* <TouchableOpacity 
           style={{
             backgroundColor: PALETTE.primary,
             padding: s(12),
@@ -838,7 +838,7 @@ const VideoDetailScreen = ({ navigation, route }) => {
           <Text style={{ color: '#fff', fontSize: sf(14), fontWeight: '700' }}>
             Test Deep Links (Expo Go)
           </Text>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
 
         {/* ── Taboola mid ───────────────────────────────────────────────── */}
         {taboolaAds?.midmain && (

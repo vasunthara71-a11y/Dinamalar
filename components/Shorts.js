@@ -156,6 +156,7 @@ const styles = StyleSheet.create({
     fontSize: ms(14),
     color: '#FFFFFF',
     lineHeight: ms(22),
+    textAlign: 'center',
   },
   viewsText: {
     fontFamily: FONTS.muktaMalar.regular,

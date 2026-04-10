@@ -686,7 +686,7 @@ export default function NewsDetailsScreen() {
   const [mdescription, setMdescription] = useState(null);
   const [taboolaAds, setTaboolaAds] = useState(null);
   const [currentNewsItem, setCurrentNewsItem] = useState(newsItem);
-  
+
   // WebView modal for shorts
   const [webViewVisible, setWebViewVisible] = useState(false);
   const [webViewUrl, setWebViewUrl] = useState('');
@@ -919,7 +919,7 @@ export default function NewsDetailsScreen() {
         // Only update if this matches the current news item to prevent overwriting
         const currentItemId = currentNewsItem?.newsid || currentNewsItem?.id;
         const articleId = article?.newsid || article?.id;
-        
+
         console.log('ID Match Check:', {
           articleId: articleId,
           currentItemId: currentItemId,
@@ -927,7 +927,7 @@ export default function NewsDetailsScreen() {
           currentTitle: currentNewsItem?.newstitle?.substring(0, 50),
           match: !currentNewsItem || articleId == currentItemId
         });
-        
+
         if (!currentNewsItem || articleId == currentItemId) {
           console.log('ID Match - Setting detail from API response');
           setDetail(article);
@@ -1293,7 +1293,7 @@ export default function NewsDetailsScreen() {
                   />
                 )}
               </TouchableOpacity>
-              
+
             </View>
 
             <View style={{ paddingHorizontal: ms(12) }}>
@@ -1473,7 +1473,7 @@ export default function NewsDetailsScreen() {
             {relatedNewsData.length > 0 && (
               <View style={styles.relatedSection}>
                 <View style={styles.relatedHeader}>
-                  <Text style={[styles.relatedSectionTitle, { fontSize: sf(14) }]}>
+                  <Text style={[styles.relatedSectionTitle, { fontSize: sf(16) }]}>
                     தொடர்புடையவை
                   </Text>
                   <View style={styles.relatedHeaderLine} />
@@ -1498,12 +1498,12 @@ export default function NewsDetailsScreen() {
                         </View>
                         <View style={styles.relatedNewsContent}>
                           {!!relTitle && (
-                            <Text style={[NewsCard.title, { fontSize: sf(13), lineHeight: sf(20) }]} numberOfLines={3}>
+                            <Text style={[NewsCard.title, { fontSize: sf(14), lineHeight: sf(20) }]} numberOfLines={3}>
                               {relTitle}
                             </Text>
                           )}
                           <View style={styles.relatedNewsMetaRow}>
-                            <Text style={[NewsCard.timeText, { fontSize: sf(10) }]}>{relDate}</Text>
+                            <Text style={[NewsCard.timeText, { fontSize: sf(13) }]}>{relDate}</Text>
                             {relCommentCount > 0 && (
                               <View style={styles.relatedNewsCommentRow}>
                                 <Comment size={s(14)} color="#637381" style={{ marginRight: 2 }} />
@@ -1575,25 +1575,8 @@ export default function NewsDetailsScreen() {
         }}
       >
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <View style={{ flex: 1, flexDirection: 'row', justifyContent: 'flex-end' }}>
-            <TouchableOpacity
-              style={{ 
-                backgroundColor: '#096dd2', 
-                padding: s(10), 
-                borderRadius: s(20),
-                margin: s(10),
-                marginTop: Platform.OS === 'ios' ? 40 : 20
-              }}
-              onPress={() => {
-                setWebViewVisible(false);
-                setWebViewUrl('');
-              }}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="close" size={s(24)} color="#fff" />
-            </TouchableOpacity>
-          </View>
           
+
           <WebView
             source={{ uri: webViewUrl }}
             style={{ flex: 1 }}
@@ -1624,7 +1607,7 @@ export default function NewsDetailsScreen() {
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   container: { flex: 1, paddingTop: Platform.OS === 'android' ? vs(0) : 20 },
-  contentContainer: { flex: 1, position: 'relative',backgroundColor:"white" },
+  contentContainer: { flex: 1, position: 'relative', backgroundColor: "white" },
   edgeBtnLeft: {
     position: 'absolute', left: 0, top: '45%',
     zIndex: 5,

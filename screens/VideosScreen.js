@@ -535,6 +535,8 @@ const VideosScreen = ({ navigation, route }) => {
   const [isLocDrawerOpen, setIsLocDrawerOpen] = useState(false);
   // const [selectedVideo, setSelectedVideo] = useState(null);
   const flatListRef = useRef(null);
+  const categoryScrollRef = useRef(null);
+  const tabLayoutsRef = useRef({});   // stores {[tabKey]: {x, width}} after layout
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [webViewVisible, setWebViewVisible] = useState(false);
   const [webViewUrl, setWebViewUrl] = useState('');
@@ -892,32 +894,59 @@ useEffect(() => {
     fetchVideos({ cat: catValue });
   }
 }, [categories, initialTabKey]);
-  // useEffect(() => {
-  //   if (!initialTabKey) {
-  //     fetchVideos();
-  //   }
-  // }, [fetchVideos]);
 
 useEffect(() => {
-  if (initialCategory) {
-    setFilters(prev => ({ ...prev, category: initialCategory }));
-    fetchVideos({ cat: initialCategory });
-  } else if (!initialTabKey) {
-    fetchVideos();
+  if (!initialCategory) {
+    if (!initialTabKey && !initialTabApplied.current) {
+      fetchVideos();
+    }
+    return;
   }
-}, [fetchVideos, initialCategory]);
-  // Refresh data when screen comes into focus
-  useFocusEffect(
-    useCallback(() => {
-      if (!hasFetchedOnce.current) {
-        hasFetchedOnce.current = true;
-        // Initial fetch — don't override, let the initialTabKey effect handle it
-        if (!initialTabKey) {
-          fetchVideos();
-        }
+
+  initialTabApplied.current = true;
+  setFilters(prev => ({ ...prev, category: initialCategory }));
+
+  // Fetch filtered videos AND base data (for categories/tabs) in parallel
+  Promise.all([
+    fetchVideos({ cat: initialCategory }),  // filtered videos
+    // Also fetch base to populate category tabs
+    CDNApi.get(API_ENDPOINTS.VIDEO_MAIN).then(res => {
+      const data = res?.data;
+      if (data?.category?.length) {
+        setCategories(prev => {
+          if (prev.length > 0) return prev;
+          const seen = new Set();
+          return data.category.filter(c => {
+            const k = String(c.value ?? '');
+            if (seen.has(k)) return false;
+            seen.add(k);
+            return true;
+          });
+        });
       }
-    }, [fetchVideos, initialTabKey])
-  );
+      if (data?.filter?.length) setFilterOptions(prev => prev.length > 0 ? prev : data.filter);
+      if (data?.districtlist?.data?.length) setDistrictOptions(prev => prev.length > 0 ? prev : data.districtlist.data);
+    }).catch(() => {})  // silent fail - categories are non-critical
+  ]);
+
+}, [fetchVideos, initialCategory, initialTabKey]);
+
+  // Auto-scroll category tabs so active tab is always fully visible
+  useEffect(() => {
+    if (!filters.category || !categoryScrollRef.current) return;
+    const activeCatValue = filters.category;
+    const layout = tabLayoutsRef.current[activeCatValue];
+    if (!layout) return;
+
+    // Use requestAnimationFrame to prevent conflicts
+    requestAnimationFrame(() => {
+      if (categoryScrollRef.current) {
+        // Centre the active tab: scroll so tab sits in middle of scroll view
+        const scrollX = Math.max(0, layout.x - layout.width);
+        categoryScrollRef.current.scrollTo({ x: scrollX, animated: true });
+      }
+    });
+  }, [filters.category]);
 
   const handleCategoryPress = (value) => {
     const updated = {
@@ -928,12 +957,12 @@ useEffect(() => {
     console.log('[handleCategoryPress] updated filters:', updated);
     fetchVideos({
       cat: updated.category,
-      date: updated.date,        // ← keeps active date
-      district: updated.district, // ← keeps active district
+      date: updated.date,        // <- keeps active date
+      district: updated.district, // <- keeps active district
     });
   };
 
-  // ── Date filter press — keeps district and category selection ─────────────────--
+// ── Date filter press — keeps district and category selection ──────────────────
 const handleSelectFilter = (ename) => {
   const updated = {
     ...filters,
@@ -1150,19 +1179,27 @@ const ListHeader = () => {
         </TouchableOpacity>
 
         <ScrollView
+          ref={categoryScrollRef}
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.catTabsContent}
           style={{ flex: 1 }}
         >
           {categories.map((cat, idx) => {
-            const isActive = filters.category === String(cat.value ?? '');
+            const isActive = filters.category === String(cat.value ?? '') || 
+  (filters.category === '' && initialCategory === String(cat.value ?? ''));
             return (
               <TouchableOpacity
                 key={`cat_${cat.value ?? idx}`}
                 onPress={() => handleCategoryPress(String(cat.value ?? ''))}
                 style={[styles.catTab, isActive && styles.catTabActive]}
                 activeOpacity={0.8}
+                onLayout={(e) => {
+                  tabLayoutsRef.current[String(cat.value ?? '')] = {
+                    x: e.nativeEvent.layout.x,
+                    width: e.nativeEvent.layout.width,
+                  };
+                }}
               >
                 {String(cat.value) === '5050' && (
                   <View style={[styles.liveDot, isActive && { backgroundColor: PALETTE.white }]} />
