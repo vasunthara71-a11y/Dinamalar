@@ -1724,6 +1724,8 @@ export default function CommonSectionScreen() {
     allTabLink = '/dinamdinam',
     initialTabId,
     initialTabLink,
+    selectedNewsId,
+    selectedNewsItem,
     useFullUrl = false,
   } = route.params || {};
 
@@ -3367,6 +3369,34 @@ export default function CommonSectionScreen() {
     prevActiveTabRef.current = activeTab;
   }, [activeTab]);
 
+  // Handle auto-focus on selected item when navigating from TimelineScreen
+  useEffect(() => {
+    if (!selectedNewsId || !tabNews.length || !flatListRef.current) return;
+    
+    console.log('CommonSectionScreen - Looking for selectedNewsId:', selectedNewsId);
+    console.log('CommonSectionScreen - Available news items:', tabNews.length);
+    
+    // Find the index of the selected item
+    const selectedIndex = tabNews.findIndex(item => 
+      String(item.newsid || item.id) === String(selectedNewsId)
+    );
+    
+    if (selectedIndex !== -1) {
+      console.log('CommonSectionScreen - Found selected item at index:', selectedIndex);
+      
+      // Scroll to the selected item
+      setTimeout(() => {
+        flatListRef.current?.scrollToIndex({
+          index: selectedIndex,
+          animated: true,
+          viewPosition: 0.5 // Center the item
+        });
+      }, 500); // Small delay to ensure list is rendered
+    } else {
+      console.log('CommonSectionScreen - Selected item not found in current tab news');
+    }
+  }, [selectedNewsId, tabNews, activeTab]);
+
   const handleRefresh = () => {
     setRefreshing(true);
     setRasiDetailItem(null);
@@ -3641,6 +3671,8 @@ export default function CommonSectionScreen() {
           photoItem: item,
           apiEndpoint: `/photodetails?cat=${fallbackId}`,
           isFromAllTab: isAllTab,
+          selectedNewsId,
+          selectedNewsItem
         });
         return;
       }

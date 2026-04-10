@@ -675,7 +675,10 @@ const VideoDetailScreen = ({ navigation, route }) => {
   if (loading && !video) return (
     <SafeAreaView style={S.safe} edges={['top', 'bottom']}>
       <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
-      <View style={S.center}><ActivityIndicator size="large" color={PALETTE.primary} /><Text style={{ color: PALETTE.grey600, marginTop: vs(8), fontSize: sf(14) }}>ஏற்றுகிறது...</Text></View>
+      <View style={S.center}>
+        <ActivityIndicator size="large" color={PALETTE.primary} />
+        {/* <Text style={{ color: PALETTE.grey600, marginTop: vs(8), fontSize: sf(14) }}>ஏற்றுகிறது...</Text> */}
+        </View>
     </SafeAreaView>
   );
   if (error && !video) return (
