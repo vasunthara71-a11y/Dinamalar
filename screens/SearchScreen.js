@@ -67,7 +67,7 @@ function NewsCard({ item, onPress, sectionTitle = '' }) {
           <Image
             source={{ uri: imageUri }}
             style={[NewsCardStyles.image, { height: (item.type === 'video' || item.video === '1' || item.video === 1) ? vs(120) : vs(140) }]}
-            resizeMode="contain"
+            resizeMode="cover"
           />
         </View>
 
@@ -322,6 +322,7 @@ var SearchScreen = function () {
   var il = useState(false); var isLoading = il[0]; var setIsLoading = il[1];
   var lm = useState(false); var isLoadingMore = lm[0]; var setIsLoadingMore = lm[1];
   var er = useState(null); var error = er[0]; var setError = er[1];
+  var di = useState(''); var debugInfo = di[0]; var setDebugInfo = di[1];
   var hs = useState(false); var hasSearched = hs[0]; var setHasSearched = hs[1];
   var ac = useState('all'); var activeCategory = ac[0]; var setActiveCategory = ac[1];
   var cf = useState([]); var categoryFilter = cf[0]; var setCategoryFilter = cf[1];
@@ -353,14 +354,44 @@ var SearchScreen = function () {
 
   // Fetch trending topics on mount
   useEffect(function () {
+    console.log('[SearchScreen] Starting to fetch trending topics...');
     axios.get(SEARCH_API_BASE + 'gold')
       .then(function (response) {
         var data = response && response.data;
-        if (data && Array.isArray(data.trendingkeywords) && data.trendingkeywords.length > 0) {
-          setTrendingTopics(data.trendingkeywords[0]?.data || []);
+        console.log('[SearchScreen] Trending topics API response status:', response.status);
+        console.log('[SearchScreen] Trending topics API response:', data);
+        
+        // Debug the exact response structure
+        console.log('[SearchScreen] Response type:', typeof data);
+        console.log('[SearchScreen] Response keys:', Object.keys(data || {}));
+        console.log('[SearchScreen] Original property:', data.original);
+        console.log('[SearchScreen] Direct trendingkeywords:', data.trendingkeywords);
+        
+        // Check for trending topics in the original property (nested structure)
+        if (data && data.original && data.original.trendingkeywords && Array.isArray(data.original.trendingkeywords) && data.original.trendingkeywords.length > 0) {
+          var trendingData = data.original.trendingkeywords[0]?.data || [];
+          console.log('[SearchScreen] Found trending topics in original property:', trendingData.length, 'items');
+          console.log('[SearchScreen] Trending topics data:', trendingData);
+          setDebugInfo('Found ' + trendingData.length + ' trending topics from API');
+          setTrendingTopics(trendingData);
+        } else if (data && data.trendingkeywords && Array.isArray(data.trendingkeywords) && data.trendingkeywords.length > 0) {
+          // Fallback to direct structure
+          var trendingData = data.trendingkeywords[0]?.data || [];
+          console.log('[SearchScreen] Found trending topics in direct structure:', trendingData.length, 'items');
+          setDebugInfo('Found ' + trendingData.length + ' trending topics from API');
+          setTrendingTopics(trendingData);
+        } else {
+          console.log('[SearchScreen] No trending topics found in API response');
+          console.log('[SearchScreen] Available properties:', Object.keys(data || {}));
+          setDebugInfo('No trending topics found in API response');
+          setTrendingTopics([]);
         }
       })
-      .catch(function () { });
+      .catch(function (err) {
+        console.error('Trending topics fetch error:', err);
+        setDebugInfo('Error loading trending topics: ' + err.message);
+        setTrendingTopics([]);
+      });
 
     // Fetch most commented data
     setMostCommentedLoading(true);
@@ -368,11 +399,14 @@ var SearchScreen = function () {
       .then(function (response) {
         var data = response && response.data;
         console.log('[SearchScreen] Most commented API response:', data);
-        if (data && data.mostcommented && Array.isArray(data.mostcommented.data)) {
+        if (data && data.top10 && Array.isArray(data.top10.data) && data.top10.data.length > 0) {
+          console.log('[SearchScreen] Found top10 data:', data.top10.data.length, 'items');
+          setMostCommented(data.top10.data.slice(0, 10)); // Use top10 data as fallback
+        } else if (data && data.mostcommented && Array.isArray(data.mostcommented.data) && data.mostcommented.data.length > 0) {
           console.log('[SearchScreen] Found most commented data:', data.mostcommented.data.length, 'items');
           setMostCommented(data.mostcommented.data.slice(0, 10)); // Limit to 10 items
         } else {
-          console.log('[SearchScreen] No most commented data found');
+          console.log('[SearchScreen] No most commented or top10 data found');
         }
       })
       .catch(function (err) {
@@ -420,6 +454,7 @@ var SearchScreen = function () {
 
     setIsLoading(true);
     setError(null);
+    setDebugInfo('Searching for: ' + trimmedQuery);
     setHasSearched(true);
     setActiveCategory('all');
     setCurrentPage(1);
@@ -436,12 +471,20 @@ var SearchScreen = function () {
     searchPromise
       .then(function (response) {
         var data = response && response.data;
+        console.log('[SearchScreen] API Response:', data);
         var results = [];
 
         if (data && Array.isArray(data.detail)) {
           results = data.detail;
+          setDebugInfo('Found ' + results.length + ' results in detail array');
+          console.log('[SearchScreen] Found results in detail array:', results.length);
         } else if (Array.isArray(data)) {
           results = data;
+          setDebugInfo('Found ' + results.length + ' results in data array');
+          console.log('[SearchScreen] Found results in data array:', results.length);
+        } else {
+          setDebugInfo('No results found - unexpected API response format');
+          console.log('[SearchScreen] No results found in expected format');
         }
 
         setSearchResults(results);
@@ -474,13 +517,26 @@ var SearchScreen = function () {
       })
       .catch(function (err) {
         console.error('Search error:', err);
-        setError('தேடல் தோல்வியடைந்தது. மீண்டும் முயற்சிக்கவும.');
+        console.error('Error details:', err.response?.data || err.message);
+        setDebugInfo('Error: ' + (err.response?.status || 'Network') + ' - ' + (err.message || 'Unknown error'));
+        
+        // Show more specific error message
+        if (err.code === 'ECONNABORTED') {
+          setError('Search timeout. Please check your connection and try again.');
+        } else if (err.response?.status === 404) {
+          setError('Search service not available. Please try again later.');
+        } else if (err.response?.status >= 500) {
+          setError('Server error. Please try again later.');
+        } else {
+          setError('Search failed. Please try again.');
+        }
+        
         setSearchResults([]);
       })
       .finally(function () { setIsLoading(false); });
   }, []);
 
-  // ─── Load more (pagination) ────────────────────────────────────────────────
+  // Load more function
   var loadMore = useCallback(function () {
     if (isLoadingMore || isLoading || currentPage >= lastPage || !cq.current) return;
 
@@ -833,12 +889,15 @@ var SearchScreen = function () {
               </View>
               <View style={styles.trendingChips}>
                 {trendingTopics.map(function (topic, idx) {
+                  console.log('[SearchScreen] Rendering trending topic:', idx, topic.key);
                   return (
                     <TouchableOpacity
                       key={idx}
                       style={styles.trendingChip}
                       onPress={function () {
+                        console.log('[SearchScreen] Trending topic clicked:', topic.key);
                         setSearchQuery(topic.key);
+                        // Don't navigate, just search within current screen
                         performSearch(topic.key);
                       }}
                       activeOpacity={0.75}
@@ -948,6 +1007,8 @@ var SearchScreen = function () {
           />
         )
       ) : null}
+
+      
 
       {/* Scroll to top button */}
       {showScrollTop && (
@@ -1301,6 +1362,23 @@ var styles = StyleSheet.create({
     color: '#999',
     marginTop: vs(8),
     fontFamily: getFontFamily(400),
+  },
+
+  // ── Debug info display ───────────────────────────────────────────────────────
+  debugInfoContainer: {
+    position: 'absolute',
+    top: vs(100),
+    left: s(10),
+    right: s(10),
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    padding: s(8),
+    borderRadius: ms(4),
+    zIndex: 1000,
+  },
+  debugInfoText: {
+    color: '#fff',
+    fontSize: ms(12),
+    fontFamily: 'monospace',
   },
 
   // ── Scroll to top button ───────────────────────────────────────────────────────
