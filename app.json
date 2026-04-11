@@ -2,55 +2,139 @@
   "expo": {
     "name": "Dinamalar",
     "slug": "Dinamalar",
+    "scheme": "dinamalar",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-
-    "ios": {
-      "supportsTablet": true,
-      "googleMobileAdsAppId": "ca-app-pub-3940256099942544~1458002511"
-    },
-
-    "android": {
-      "package": "com.vasunthara71.Dinamalar",
-      "googleMobileAdsAppId": "ca-app-pub-3940256099942544~3347511713",
-      "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
-      }
-    },
-
-    "web": {
-      "favicon": "./assets/favicon.png"
-    },
-
     "plugins": [
-       [ 
+      [
         "expo-font",
         {
           "fonts": [
             "./assets/fonts/mukta/Mukta_Malar/MuktaMalar-Regular.ttf",
             "./assets/fonts/mukta/Mukta_Malar/MuktaMalar-Bold.ttf",
             "./assets/fonts/mukta/Mukta_Malar/MuktaMalar-Medium.ttf",
-            "./assets/fonts/mukta/Mukta_Malar/MuktaMalar-SemiBold.ttf"
+            "./assets/fonts/Anek/AnekTamil-Regular.ttf",
+            "./assets/fonts/Anek/AnekTamil-Bold.ttf",
+            "./assets/fonts/Anek/AnekTamil-Medium.ttf"
           ]
         }
-      ]
+      ],
+      "@react-native-firebase/app",
+      "@react-native-firebase/crashlytics",
+      "expo-asset",
+      "expo-audio",
+      "expo-secure-store",
+      "expo-sharing",
+      "expo-video"
     ],
-
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.dinamalarMobileApp",
+      "associatedDomains": [
+        "applinks:www.dinamalar.com"
+      ]
+    },
+    "android": {
+      "package": "com.dinamalarMobileApp",
+      "softwareKeyboardLayoutMode": "resize",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "www.dinamalar.com",
+              "path": "/video/*"
+            },
+            {
+              "scheme": "https",
+              "host": "www.dinamalar.com",
+              "path": "/videos/*"
+            },
+            {
+              "scheme": "https",
+              "host": "www.dinamalar.com",
+              "path": "/news/*"
+            },
+            {
+              "scheme": "https",
+              "host": "www.dinamalar.com",
+              "path": "/author/*"
+            },
+            {
+              "scheme": "https",
+              "host": "dinamalar.com",
+              "path": "/video/*"
+            },
+            {
+              "scheme": "https",
+              "host": "dinamalar.com",
+              "path": "/videos/*"
+            },
+            {
+              "scheme": "https",
+              "host": "dinamalar.com",
+              "path": "/news/*"
+            },
+            {
+              "scheme": "https",
+              "host": "dinamalar.com",
+              "path": "/author/*"
+            },
+            {
+              "scheme": "dinamalar",
+              "path": "/video/*"
+            },
+            {
+              "scheme": "dinamalar",
+              "path": "/videos/*"
+            },
+            {
+              "scheme": "dinamalar",
+              "path": "/news/*"
+            },
+            {
+              "scheme": "dinamalar",
+              "path": "/author/*"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ],
+      "googleServicesFile": "./google-services.json",
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/icon.png",
+        "backgroundImage": "./assets/icon.png",
+        "monochromeImage": "./assets/icon.png"
+      },
+      "permissions": [
+        "INTERNET",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/icon.png"
+    },
     "extra": {
       "eas": {
         "projectId": "32bed8d9-8f9a-4505-a9f8-347f429ac9f7"
       }
-    }
+    },
+    "owner": "vasunthara71"
   }
 }

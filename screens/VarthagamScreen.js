@@ -11,13 +11,15 @@ import {
   RefreshControl,
   ScrollView,
   Platform,
+  PanResponder,        // ← NEW: for swipe gesture detection
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
-import { CDNApi } from '../config/api';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import { CDNApi, mainApi } from '../config/api';
 import { s, vs, ms, scaledSizes } from '../utils/scaling';
 import { COLORS, FONTS } from '../utils/constants';
 import { TEXT_STYLES } from '../utils/textStyles';
+import { useFontSize } from '../context/FontSizeContext';
 import UniversalHeaderComponent from '../components/UniversalHeaderComponent';
 import AppHeaderComponent from '../components/AppHeaderComponent';
 import { mvs } from 'react-native-size-matters';
@@ -44,20 +46,27 @@ const sk = StyleSheet.create({
 
 // ─── Section Title ────────────────────────────────────────────────────────────
 function SectionTitle({ title }) {
+  const { sf } = useFontSize();
   return (
     <View style={st.wrap}>
-      <Text style={st.text}>{title}</Text>
+      <Text style={[st.text, { fontSize: sf(18) }]}>{title}</Text>
       <View style={st.line} />
     </View>
   );
 }
 const st = StyleSheet.create({
-  wrap: { marginBottom: vs(10), marginTop: vs(4) },
+  wrap: {
+    paddingTop: vs(14),
+    paddingBottom: vs(10),
+  },
 
-  text: TEXT_STYLES.titles.sectionTitles,
+  text: {
+    fontFamily: FONTS.muktaMalar.bold,
+    color: COLORS.text,
+  },
 
   line: {
-    height: vs(2),
+    height: vs(3),
     width: s(60),
     backgroundColor: COLORS.primary,
   },
@@ -65,6 +74,7 @@ const st = StyleSheet.create({
 
 // ─── Gold / Silver Card ───────────────────────────────────────────────────────
 function GoldSilverCard({ commodity }) {
+  const { sf } = useFontSize();
   const meta = commodity?.data?.[0] || {};
   const gold = commodity?.gold || [];
   const silver = commodity?.silver || [];
@@ -76,7 +86,7 @@ function GoldSilverCard({ commodity }) {
     const isUp = change === 'increase';
     return (
       <View style={gc.diffRow}>
-        <Text style={[gc.diffText, { color: isUp ? '#16a34a' : '#dc2626' }]}>
+        <Text style={[gc.diffText, { color: isUp ? '#16a34a' : '#dc2626', fontSize: sf(11) }]}>
           {isUp ? '+' : ''}{diff}
         </Text>
         <Ionicons
@@ -93,8 +103,8 @@ function GoldSilverCard({ commodity }) {
       <View style={gc.header}>
         <Text style={gc.icon}>🪙</Text>
         <View>
-          <Text style={gc.title}>{meta.goldtitle || ''}</Text>
-          <Text style={gc.date}>{meta.golddate || ''}</Text>
+          <Text style={[gc.title, { fontSize: sf(13) }]}>{meta.goldtitle || ''}</Text>
+          <Text style={[gc.date, { fontSize: sf(11) }]}>{meta.golddate || ''}</Text>
         </View>
       </View>
       <View style={gc.row}>
@@ -102,8 +112,8 @@ function GoldSilverCard({ commodity }) {
           <React.Fragment key={i}>
             {i > 0 && <View style={gc.divider} />}
             <View style={gc.col}>
-              <Text style={gc.label}>{labelMap[item.gtype] || item.gtype}</Text>
-              <Text style={gc.value}>{item.rate}</Text>
+              <Text style={[gc.label, { fontSize: sf(11) }]}>{labelMap[item.gtype] || item.gtype}</Text>
+              <Text style={[gc.value, { fontSize: sf(14) }]}>{item.rate}</Text>
               {renderDiff(item.diff, item.change)}
             </View>
           </React.Fragment>
@@ -185,6 +195,7 @@ const gc = StyleSheet.create({
 
 // ─── Fuel Card ────────────────────────────────────────────────────────────────
 function FuelCard({ commodity }) {
+  const { sf } = useFontSize();
   const meta = commodity?.data?.[0] || {};
   const fuel = commodity?.fuel?.[0] || {};
   if (!fuel.petrol && !fuel.diesel) return null;
@@ -194,19 +205,19 @@ function FuelCard({ commodity }) {
       <View style={fc.header}>
         <Text style={fc.icon}>⛽</Text>
         <View>
-          <Text style={fc.title}>{meta.fueltitle || 'பெட்ரோல் & டீசல் விலை ( ₹ )'}</Text>
-          <Text style={fc.date}>{fuel.date || meta.fueldate || ''}</Text>
+          <Text style={[fc.title, { fontSize: sf(13) }]}>{meta.fueltitle || 'பெட்ரோல் & டீசல் விலை ( ₹ )'}</Text>
+          <Text style={[fc.date, { fontSize: sf(11) }]}>{fuel.date || meta.fueldate || ''}</Text>
         </View>
       </View>
       <View style={fc.row}>
         <View style={fc.col}>
-          <Text style={fc.label}>பெட்ரோல்</Text>
-          <Text style={fc.value}>{fuel.petrol}</Text>
+          <Text style={[fc.label, { fontSize: sf(11) }]}>பெட்ரோல்</Text>
+          <Text style={[fc.value, { fontSize: sf(20) }]}>{fuel.petrol}</Text>
         </View>
         <View style={fc.divider} />
         <View style={fc.col}>
-          <Text style={fc.label}>டீசல்</Text>
-          <Text style={fc.value}>{fuel.diesel}</Text>
+          <Text style={[fc.label, { fontSize: sf(11) }]}>டீசல்</Text>
+          <Text style={[fc.value, { fontSize: sf(20) }]}>{fuel.diesel}</Text>
         </View>
       </View>
     </View>
@@ -238,6 +249,7 @@ const fc = StyleSheet.create({
 
 // ─── Share Market Card ────────────────────────────────────────────────────────
 function ShareMarketCard({ commodity }) {
+  const { sf } = useFontSize();
   const markets = commodity?.sharemarket || [];
   if (!markets.length) return null;
 
@@ -245,7 +257,7 @@ function ShareMarketCard({ commodity }) {
     <View style={sm.wrap}>
       <View style={sm.header}>
         <Text style={sm.icon}>📈</Text>
-        <Text style={sm.title}>பங்கு சந்தை</Text>
+        <Text style={[sm.title, { fontSize: sf(13) }]}>பங்கு சந்தை</Text>
       </View>
       <View style={sm.row}>
         {markets.map((m, i) => {
@@ -254,10 +266,10 @@ function ShareMarketCard({ commodity }) {
             <React.Fragment key={i}>
               {i > 0 && <View style={sm.divider} />}
               <View style={sm.col}>
-                <Text style={sm.label}>{m.stype?.toUpperCase()}</Text>
-                <Text style={sm.value}>{m.value}</Text>
+                <Text style={[sm.label, { fontSize: sf(12) }]}>{m.stype?.toUpperCase()}</Text>
+                <Text style={[sm.value, { fontSize: sf(15) }]}>{m.value}</Text>
                 <View style={sm.diffRow}>
-                  <Text style={[sm.diffText, { color: isUp ? '#16a34a' : '#dc2626' }]}>
+                  <Text style={[sm.diffText, { color: isUp ? '#16a34a' : '#dc2626', fontSize: sf(11) }]}>
                     {m.diff}
                   </Text>
                   <Ionicons
@@ -266,7 +278,7 @@ function ShareMarketCard({ commodity }) {
                     color={isUp ? '#16a34a' : '#dc2626'}
                   />
                 </View>
-                <Text style={sm.dateText}>{m.date}</Text>
+                <Text style={[sm.dateText, { fontSize: sf(10) }]}>{m.date}</Text>
               </View>
             </React.Fragment>
           );
@@ -309,13 +321,10 @@ function MoreLink({ label, onPress }) {
     </TouchableOpacity>
   );
 }
-const ml = StyleSheet.create({
-  wrap: { alignItems: 'flex-end', paddingVertical: vs(6), paddingHorizontal: s(2) },
-  text: { fontSize: ms(12), color: COLORS.primary, fontWeight: '600' },
-});
-
-// ─── News Card ────────────────────────────────────────────────────────────────
 function NewsCard({ item, onPress }) {
+  const { sf } = useFontSize();
+  const [imageError, setImageError] = useState(false);
+
   const imageUri =
     item.images || item.largeimages || item.image || item.thumbnail ||
     'https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_default.jpg?im=Resize,width=400';
@@ -327,7 +336,21 @@ function NewsCard({ item, onPress }) {
   return (
     <TouchableOpacity style={nc.wrap} onPress={onPress} activeOpacity={0.85}>
       <View style={nc.imageWrap}>
-        <Image source={{ uri: imageUri }} style={nc.image} resizeMode="cover" />
+        {imageError ? (
+          <View style={[nc.image, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#f5f5f5' }]}>
+            <Image
+              source={{ uri: 'https://stat.dinamalar.com/new/2025/images/dinamalar-pavala-vizha-logo-day.png' }}
+              style={{ width: s(80), height: s(40), resizeMode: 'contain' }}
+            />
+          </View>
+        ) : (
+          <Image
+            source={{ uri: imageUri }}
+            style={nc.image}
+            resizeMode="cover"
+            onError={() => setImageError(true)}
+          />
+        )}
         {hasVideo && (
           <View style={nc.playOverlay}>
             <View style={nc.playBtn}>
@@ -337,12 +360,12 @@ function NewsCard({ item, onPress }) {
         )}
       </View>
       <View style={nc.content}>
-        <Text style={nc.title} numberOfLines={3}>{title}</Text>
-        {!!category && (
-          <View style={nc.catWrap}>
-            <Text style={nc.catText}>{category}</Text>
+        <Text style={[nc.title, { fontSize: sf(14), lineHeight: sf(22) }]} numberOfLines={3}>{title}</Text>
+        {/* {!!category && (
+          <View style={nc.catPill}>
+            <Text style={[nc.catText, { fontSize: sf(12) }]}>{category}</Text>
           </View>
-        )}
+        )} */}
         <View style={nc.meta}>
           {/* <Ionicons
             name="time-outline"
@@ -350,11 +373,11 @@ function NewsCard({ item, onPress }) {
             color={COLORS.subtext}
             style={{ marginRight: s(3) }}
           /> */}
-          <Text style={nc.metaText}>{ago}</Text>
+          <Text style={[nc.timeText, { fontSize: sf(12) }]}>{ago}</Text>
           {!!item.newscomment && item.newscomment !== '0' && (
             <View style={nc.commentWrap}>
               <Ionicons name="chatbox" size={s(12)} color={COLORS.subtext} />
-              <Text style={nc.metaText}> {item.newscomment}</Text>
+              <Text style={[nc.timeText, { fontSize: sf(12) }]}> {item.newscomment}</Text>
             </View>
           )}
         </View>
@@ -382,24 +405,77 @@ const nc = StyleSheet.create({
     height: '100%',
   },
 
-  content: TEXT_STYLES.newsCard.content,
+  playOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
 
-  title: TEXT_STYLES.newsCard.title,
+  playBtn: {
+    width: s(40),
+    height: s(40),
+    borderRadius: s(20),
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
 
-  catWrap: TEXT_STYLES.newsCard.catWrap,
+  content: {
+    paddingHorizontal: s(10),
+    paddingTop: vs(10),
+    paddingBottom: vs(15),
+  },
 
-  catText: TEXT_STYLES.newsCard.category,
+  title: {
+    fontFamily: FONTS.muktaMalar.bold,
+    color: COLORS.text,
+    lineHeight: ms(23),
+    marginBottom: vs(8),
+  },
 
-  meta: TEXT_STYLES.CommentDateContainer,
+  catPill: {
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderColor: '#DFE3E8',
+    paddingHorizontal: s(10),
+    paddingVertical: s(3),
+    marginBottom: vs(10),
+  },
 
-  metaText: TEXT_STYLES.newsCard.meta,
+  catText: {
+    fontFamily: FONTS.muktaMalar.bold,
+    color: '#454F5B',
+  },
 
-  commentWrap: TEXT_STYLES.newsCard.commentWrap,
+  meta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+
+  timeText: {
+    fontFamily: FONTS.muktaMalar.regular,
+    fontSize: ms(12),
+    color: COLORS.subtext,
+  },
+
+  commentWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
 });
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 export default function VarthagamScreen() {
+  const { sf } = useFontSize();
   const navigation = useNavigation();
+  const route = useRoute();                                    // ← ADD THIS
+  const { initialTabId } = route.params || {};                // ← ADD THIS
 
   const [subTabs, setSubTabs] = useState([]);
   const [activeTab, setActiveTab] = useState(null);
@@ -421,6 +497,33 @@ export default function VarthagamScreen() {
   const [selectedDistrict, setSelectedDistrict] = useState('உள்ளூர்');
 
   const flatListRef = useRef(null);
+  const tabScrollRef = useRef(null);   // ref for horizontal tab ScrollView
+  const tabLayoutsRef = useRef({});   // stores {[tabKey]: {x, width}} after layout
+
+  // ── Refs to keep latest values accessible inside PanResponder ────────────
+  const subTabsRef = useRef([]);
+  const activeTabRef = useRef(null);
+
+  // Keep refs in sync with state
+  useEffect(() => { subTabsRef.current = subTabs; }, [subTabs]);
+  useEffect(() => { activeTabRef.current = activeTab; }, [activeTab]);
+
+  // Auto-scroll tab bar so active tab is always fully visible
+  useEffect(() => {
+    if (!activeTab || !tabScrollRef.current) return;
+    const key = activeTab.title === 'All' ? 'All' : String(activeTab.id);
+    const layout = tabLayoutsRef.current[key];
+    if (!layout) return;
+
+    // Use requestAnimationFrame to prevent conflicts
+    requestAnimationFrame(() => {
+      if (tabScrollRef.current) {
+        // Centre the active tab: scroll so tab sits in middle of scroll view
+        const scrollX = Math.max(0, layout.x - layout.width);
+        tabScrollRef.current.scrollTo({ x: scrollX, animated: true });
+      }
+    });
+  }, [activeTab]);
 
   const handleScroll = useCallback((e) => {
     setShowScrollTop(e.nativeEvent.contentOffset.y > 300);
@@ -436,16 +539,41 @@ export default function VarthagamScreen() {
       const d = res?.data;
       const tabs = (d?.subcatlist || []).filter(t => t.id !== 'commodity');
       setSubTabs(tabs);
-      if (tabs.length > 0) setActiveTab(tabs[0]);
+
+      // ── Pick initial tab based on initialTabId param ──
+      if (initialTabId) {
+        const matchedTab = tabs.find(t =>
+          String(t.id) === String(initialTabId)
+        );
+        if (matchedTab) {
+          setActiveTab(matchedTab);
+          // Fetch that tab's news immediately
+          setTabLoading(true);
+          fetchTabNews(matchedTab, 1, false);
+        } else {
+          setActiveTab(tabs[0]);
+        }
+      } else {
+        if (tabs.length > 0) setActiveTab(tabs[0]);
+      }
+
       setCommodity(d?.commodity || null);
-      setAllSections(d?.newlist || []);
+
+      const newlist = d?.newlist;
+      if (Array.isArray(newlist)) {
+        setAllSections(newlist);
+      } else if (newlist?.data) {
+        setAllSections([{ title: '', data: newlist.data }]);
+      } else {
+        setAllSections([]);
+      }
     } catch (e) {
       console.error('VarthagamScreen fetchAll error:', e?.message);
     } finally {
       setInitLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [initialTabId, fetchTabNews]);                             // ← ADD DEPS
 
   useEffect(() => { fetchAll(); }, []);
 
@@ -455,8 +583,15 @@ export default function VarthagamScreen() {
     try {
       const sep = tab.link.includes('?') ? '&' : '?';
       const url = `${tab.link}${sep}page=${pg}`;
-      const res = await CDNApi.get(url);
+
+      console.log('🔵 Fetching tab URL:', url);
+
+      // ✅ Use mainApi instead of CDNApi — /newsdata lives on www.dinamalar.com
+      const res = await mainApi.get(url);  // <-- KEY FIX
       const d = res?.data;
+
+      console.log('🟢 Tab response keys:', Object.keys(d || {}));
+
       const list = (
         d?.newlist?.data ||
         d?.newslist?.data ||
@@ -464,18 +599,116 @@ export default function VarthagamScreen() {
         d?.list ||
         []
       ).filter(Boolean);
-      const lp = d?.newlist?.last_page || d?.newslist?.last_page || d?.last_page || 1;
+
+      const lp =
+        d?.newlist?.last_page ||
+        d?.newslist?.last_page ||
+        d?.last_page ||
+        1;
+
       setTabLastPage(lp);
       setTabNews(prev => append ? [...prev, ...list] : list);
       setTabPage(pg);
     } catch (e) {
       console.error('Tab fetch error:', e?.message);
+      console.error('Tab fetch status:', e?.response?.status);
+
+      // ✅ Show user-friendly message for 500 errors
+      if (e?.response?.status === 500) {
+        setTabNews([]);  // clear any stale data
+        // Optionally set an error state to show UI message
+      }
     } finally {
       setTabLoading(false);
       setTabLoadMore(false);
       setRefreshing(false);
     }
   }, []);
+
+  // ── Swipe to next / previous tab ─────────────────────────────────────────
+  //
+  //  Swipe LEFT  → go to NEXT tab  (e.g. All → Cricket → Tennis →…)
+  //  Swipe RIGHT → go to PREV tab  (e.g. Tennis → Cricket → All)
+  //
+  //  Thresholds:
+  //    dx >  50 px  AND velocity > 0.3  → right-swipe  (go prev)
+  //    dx < -50 px  AND velocity > 0.3  → left-swipe   (go next)
+  //
+  const SWIPE_THRESHOLD = 50;   // minimum horizontal distance (px)
+  const SWIPE_VELOCITY = 0.3;  // minimum velocity
+
+  const panResponder = useRef(
+    PanResponder.create({
+      // Only claim the gesture when horizontal movement clearly dominates
+      onMoveShouldSetPanResponder: (_, gs) => {
+        return (
+          Math.abs(gs.dx) > Math.abs(gs.dy) &&   // horizontal dominates
+          Math.abs(gs.dx) > 10                     // at least 10 px moved
+        );
+      },
+      onPanResponderRelease: (_, gs) => {
+        const tabs = subTabsRef.current;
+        const curTab = activeTabRef.current;
+        if (!tabs.length) return;
+
+        // Find the index of the current tab
+        const curIndex = curTab
+          ? tabs.findIndex(t =>
+            curTab.title === 'All'
+              ? t.title === 'All'
+              : String(t.id) === String(curTab.id)
+          )
+          : 0;
+
+        const isRightSwipe = gs.dx > SWIPE_THRESHOLD && Math.abs(gs.vx) > SWIPE_VELOCITY;
+        const isLeftSwipe = gs.dx < -SWIPE_THRESHOLD && Math.abs(gs.vx) > SWIPE_VELOCITY;
+
+        if (isRightSwipe && curIndex > 0) {
+          // Go to previous tab
+          const prevTab = tabs[curIndex - 1];
+          // Use setActiveTab + fetchTabNews directly (avoid stale closure in handleTabPress)
+          setActiveTab(prevTab);
+          if (prevTab.title === 'All') {
+            setTabNews([]);
+          } else {
+            setTabLoading(true);
+            setTabNews([]);
+            setTabPage(1);
+            setTabLastPage(1);
+          }
+        } else if (isLeftSwipe && curIndex < tabs.length - 1) {
+          // Go to next tab
+          const nextTab = tabs[curIndex + 1];
+          setActiveTab(nextTab);
+          if (nextTab.title === 'All') {
+            setTabNews([]);
+          } else {
+            setTabLoading(true);
+            setTabNews([]);
+            setTabPage(1);
+            setTabLastPage(1);
+          }
+        }
+      },
+    })
+  ).current;
+
+  // Whenever activeTab changes via swipe, fetch news for the new tab
+  // (We can't call fetchTabNews inside PanResponder due to stale closures,
+  //  so we watch activeTab here instead.)
+  const prevActiveTabRef = useRef(null);
+  useEffect(() => {
+    if (!activeTab) return;
+    const prev = prevActiveTabRef.current;
+    // Skip on first mount (fetchAll already handles it)
+    if (!prev) { prevActiveTabRef.current = activeTab; return; }
+    // Check if tab actually changed
+    const changed = prev.title !== activeTab.title || String(prev.id) !== String(activeTab.id);
+    if (changed && activeTab.title !== 'All') {
+      fetchTabNews(activeTab, 1, false);
+    }
+    prevActiveTabRef.current = activeTab;
+  }, [activeTab]);
 
   const handleTabPress = (tab) => {
     if (activeTab?.id === tab.id && activeTab?.title === tab.title) return;
@@ -539,7 +772,9 @@ export default function VarthagamScreen() {
       const flat = [];
       allSections.forEach(section => {
         if (section?.data?.length > 0) {
-          flat.push({ type: 'section', title: section.title });
+          if (section.title) {  // ✅ Only show title if it exists
+            flat.push({ type: 'section', title: section.title });
+          }
           section.data.forEach(item => flat.push({ type: 'news', item }));
         }
       });
@@ -595,13 +830,16 @@ export default function VarthagamScreen() {
 
       {/* ── Page Title ── */}
       <View style={styles.pageTitleWrap}>
-        <Text style={styles.pageTitle}>வர்த்தகம்</Text>
+        <Text style={[styles.pageTitle, { fontSize: sf(18) }]}>
+          {activeTab && activeTab.title !== 'All' ? activeTab.title : 'வர்த்தகம்'}
+        </Text>
       </View>
 
       {/* ── Sub Tabs ── */}
       {subTabs.length > 0 && (
         <View style={styles.tabsWrap}>
           <ScrollView
+            ref={tabScrollRef}
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.tabsContent}
@@ -614,74 +852,81 @@ export default function VarthagamScreen() {
                 : index === 0;
               return (
                 <TouchableOpacity
-                  key={`tab-${tab.id || index}`}
-                  style={styles.tab}
+                  key={`tab-${tab.id || index}-${index}`}
+                  style={[styles.tab, isActive && styles.tabActive]}
                   onPress={() => handleTabPress(tab)}
                   activeOpacity={0.8}
+                  onLayout={(e) => {
+                    const tabKey = tab.title === 'All' ? 'All' : String(tab.id);
+                    tabLayoutsRef.current[tabKey] = {
+                      x: e.nativeEvent.layout.x,
+                      width: e.nativeEvent.layout.width,
+                    };
+                  }}
                 >
-                  <Text style={[styles.tabText, isActive && styles.tabTextActive]}>
+                  <Text style={[styles.tabText, isActive && styles.tabTextActive, { fontSize: sf(13) }]}>
                     {tab.title}
                   </Text>
-                  {isActive && <View style={styles.tabUnderline} />}
                 </TouchableOpacity>
               );
             })}
           </ScrollView>
-          {/* bottom red line same as TharpothaiyaSeithigalScreen */}
-          <View style={styles.tabsRedLine} />
+          <View style={styles.tabsBottomLine} />
         </View>
       )}
 
-      {/* ── Content ── */}
-      {isLoading ? (
-        <FlatList
-          data={[1, 2, 3, 4]}
-          keyExtractor={i => `sk-${i}`}
-          renderItem={() => <SkeletonCard />}
-          contentContainerStyle={styles.listContent}
-          style={styles.list}
-        />
-      ) : (
-        <FlatList
-          ref={flatListRef}
-          data={flatData}
-          keyExtractor={(row, i) =>
-            row.type === 'section'
-              ? `sec-${i}-${row.title}`
-              : `news-${i}-${row.item?.newsid || row.item?.id || i}`
-          }
-          renderItem={renderItem}
-          ListHeaderComponent={<ListHeader />}
-          contentContainerStyle={styles.listContent}
-          style={styles.list}
-          showsVerticalScrollIndicator={false}
-          onScroll={handleScroll}
-          scrollEventThrottle={16}
-          onEndReached={handleLoadMore}
-          onEndReachedThreshold={0.4}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={handleRefresh}
-              colors={[COLORS.primary]}
-              tintColor={COLORS.primary}
-            />
-          }
-          ListEmptyComponent={
-            <View style={styles.emptyWrap}>
-              <Ionicons name="bar-chart-outline" size={s(48)} color={COLORS.subtext} />
-              <Text style={styles.emptyText}>செய்திகள் இல்லை</Text>
-            </View>
-          }
-          ListFooterComponent={
-            tabLoadMore ? (
-              <View style={styles.footerLoader}>
-                <ActivityIndicator size="small" color={COLORS.primary} />
+      {/* ── Content — wrapped with panResponder for swipe detection ── */}
+      <View style={styles.swipeArea} {...panResponder.panHandlers}>
+        {isLoading ? (
+          <FlatList
+            data={[1, 2, 3, 4]}
+            keyExtractor={i => `sk-${i}`}
+            renderItem={() => <SkeletonCard />}
+            contentContainerStyle={styles.listContent}
+            style={styles.list}
+          />
+        ) : (
+          <FlatList
+            ref={flatListRef}
+            data={flatData}
+            keyExtractor={(row, i) =>
+              row.type === 'section'
+                ? `sec-${i}-${row.title}`
+                : `news-${i}-${row.item?.newsid || row.item?.id || i}`
+            }
+            renderItem={renderItem}
+            ListHeaderComponent={<ListHeader />}
+            contentContainerStyle={styles.listContent}
+            style={styles.list}
+            showsVerticalScrollIndicator={false}
+            onScroll={handleScroll}
+            scrollEventThrottle={16}
+            onEndReached={handleLoadMore}
+            onEndReachedThreshold={0.4}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={handleRefresh}
+                colors={[COLORS.primary]}
+                tintColor={COLORS.primary}
+              />
+            }
+            ListEmptyComponent={
+              <View style={styles.emptyWrap}>
+                <Ionicons name="bar-chart-outline" size={s(48)} color={COLORS.subtext} />
+                <Text style={[styles.emptyText, { fontSize: sf(15), color: COLORS.subtext }]}>செய்திகள் இல்லை</Text>
               </View>
-            ) : <View style={{ height: vs(40) }} />
-          }
-        />
-      )}
+            }
+            ListFooterComponent={
+              tabLoadMore ? (
+                <View style={styles.footerLoader}>
+                  <ActivityIndicator size="small" color={COLORS.primary} />
+                </View>
+              ) : <View style={{ height: vs(40) }} />
+            }
+          />
+        )}
+      </View>
 
       {/* ── Scroll To Top ── */}
       {showScrollTop && (
@@ -699,7 +944,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background || '#f2f2f2',
-    paddingTop: Platform.OS === 'android' ? vs(28) : 0,
+    paddingTop: Platform.OS === 'android' ? vs(0) : 20,
   },
   pageTitleWrap: {
     paddingHorizontal: s(14),
@@ -710,35 +955,40 @@ const styles = StyleSheet.create({
   pageTitle: {
     fontSize: ms(18),
     color: COLORS.text,
-    fontFamily: FONTS.muktaMalar.bold,
+    fontFamily: FONTS.anek.bold,
   },
   // ── Tabs ──
   tabsWrap: {
     backgroundColor: COLORS.white,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: vs(1) },
+    shadowOpacity: 0.08,
+    shadowRadius: s(2),
   },
-  tabsRedLine: {
-    height: vs(3),
-    // backgroundColor: COLORS.primary,
-  },
-  tabsContent: { paddingHorizontal: s(8) },
+  tabsContent: { paddingHorizontal: s(20), alignItems: 'center' },
   tab: {
-    paddingHorizontal: s(14),
+    paddingHorizontal: s(12),
     paddingVertical: vs(12),
     marginHorizontal: s(2),
-    alignItems: 'center',
-    position: 'relative',
+    borderBottomWidth: vs(3),
+    borderBottomColor: 'transparent',
   },
-  tabText: { fontSize: ms(13), color: COLORS.subtext, fontWeight: '600' },
-  tabTextActive: { color: COLORS.text, fontWeight: '700' },
-  tabUnderline: {
-    position: 'absolute',
-    bottom: 0, left: s(6), right: s(6),
-    height: vs(3),
-    backgroundColor: COLORS.primary,
-    borderRadius: s(2),
+  tabActive: { borderBottomColor: COLORS.primary },
+  tabText: {
+    fontSize: ms(16),
+    fontFamily: FONTS.muktaMalar.medium,
+    color: COLORS.black,
   },
+  tabTextActive: {
+    fontSize: ms(13),
+    fontFamily: FONTS.muktaMalar.bold,
+    color: COLORS.primary,
+  },
+  tabsBottomLine: { height: StyleSheet.hairlineWidth, backgroundColor: '#e0e0e0' },
+
+  // ── Swipe area wraps the entire content below tabs ──
+  swipeArea: { flex: 1 },
 
   list: { flex: 1 },
   listContent: {

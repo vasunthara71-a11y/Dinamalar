@@ -2,9 +2,16 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, Image,
   ActivityIndicator, RefreshControl, Dimensions,
-  Animated, StyleSheet, Platform, Linking,
+  Animated, StyleSheet, Platform, Linking, AppState,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import {
+  SpeakerIcon,
+  AudioIcon,
+  PhotoIcon,
+  FlashIcon,
+  DocumentIcon,
+  LatestVideoIcon
+} from '../assets/svg/Icons';
 import { WebView } from 'react-native-webview';
 import RenderHtml from 'react-native-render-html';
 import axios from 'axios';
@@ -17,7 +24,26 @@ import UniversalHeaderComponent from '../components/UniversalHeaderComponent';
 import AppHeaderComponent from '../components/AppHeaderComponent';
 import TEXT_STYLES from '../utils/textStyles';
 import { useFontSize } from '../context/FontSizeContext';
-
+import FontSizeControl from '../components/FontSizeControl';
+import { StatusBar } from 'expo-status-bar';
+import { Ionicons } from '@expo/vector-icons';
+import {
+  pollRealTimeNotifications,
+  getBadgeCount,
+  saveBadgeCount,
+  initializeNotificationService,
+  createNotificationAlert
+} from '../services/realTimeNotificationService';
+import {
+  initializePushNotifications,
+  getPushNotificationPreferences,
+  shouldSendPushNotification,
+  createNotificationPayload,
+  sendPushNotification,
+  handlePushNotification
+} from '../services/pushNotificationService';
+import RealTimeNotificationPopup from '../components/RealTimeNotificationPopup';
+import NotificationCenter from '../components/NotificationCenter';
 const PALETTE = {
   primary: '#096dd2',
   grey100: '#F9FAFB',
@@ -29,14 +55,16 @@ const PALETTE = {
   grey700: '#454F5B',
   grey800: '#212B36',
   white: '#FFFFFF',
+  black: '#0000'
 };
 
 const CAT_CONFIG = {
-  photo: { label: 'புகைப்படம்', color: '#e91e8c', icon: 'image-outline' },
-  video: { label: 'வீடியோ', color: '#f44336', icon: 'play-circle-outline' },
-  podcast: { label: 'பாட்காஸ்ட்', color: '#9c27b0', icon: 'mic-outline' },
-  seithigal: { label: 'செய்திகள்', color: '#1565c0', icon: 'newspaper-outline' },
-  default: { label: 'செய்தி', color: COLORS.primary, icon: 'radio-outline' },
+  photo: { label: 'புகைப்படம்', color: '#e91e8c', icon: PhotoIcon },
+  video: { label: 'வீடியோ', color: '#f44336', icon: LatestVideoIcon },
+  podcast: { label: 'பாட்காஸ்ட்', color: '#9c27b0', icon: AudioIcon },
+  seithigal: { label: 'செய்திகள்', color: '#1565c0', icon: DocumentIcon },
+  flash: { label: 'ஃபிளாஷ்', color: '#ff6b35', icon: FlashIcon },
+  default: { label: 'செய்தி', color: COLORS.primary, icon: FlashIcon },
 };
 const getCat = (maincat) => CAT_CONFIG[maincat] || CAT_CONFIG.default;
 
@@ -49,11 +77,41 @@ const getCat = (maincat) => CAT_CONFIG[maincat] || CAT_CONFIG.default;
 // For YouTube path: extract ID and embed inline via WebView
 // For Dinamalar videos (no youtube path): show thumbnail + play → navigate VideoScreen
 
-const isVideoItem = (item) =>
-  item.type === 'video' ||
-  item.maincat === 'video' ||
-  String(item.video) === '1' ||
-  (typeof item.slug === 'string' && item.slug.includes('/videos/'));
+const isVideoItem = (item) => {
+  const videoPath = item?.videopath || item?.y_path || item?.vidg_path || item?.video || item?.videourl || item?.path;
+  return !!videoPath || item?.type === 'video' || item?.maincat === 'video';
+};
+
+const isPhotoItem = (item) => {
+  return item?.maincat === 'photo' || item?.type === 'photo' || item?.categrorytitle === 'photo' || item?.catengtitle === 'photo';
+};
+
+const isSocialMediaCard = (item) => {
+  // Check for social media indicators in multiple fields
+  const maincat = (item?.maincat || '').toLowerCase();
+  const type = (item?.type || '').toLowerCase();
+  const categrorytitle = (item?.categrorytitle || '').toLowerCase();
+  const catengtitle = (item?.catengtitle || '').toLowerCase();
+  const title = (item?.newstitle || '').toLowerCase();
+
+  // Debug logging
+  console.log('Checking social media card for item:', {
+    maincat, type, categrorytitle, catengtitle, title
+  });
+
+  // Check for various social media indicators
+  const isSocial = maincat.includes('social') || type.includes('social') ||
+    categrorytitle.includes('social') || catengtitle.includes('social') ||
+    title.includes('social');
+
+  const isCards = maincat.includes('card') || type.includes('card') ||
+    categrorytitle.includes('card') || catengtitle.includes('card') ||
+    title.includes('card');
+
+  const result = isSocial || isCards;
+  console.log('Social media card detection result:', result);
+  return result;
+};
 
 // Extract YouTube ID from path field (latestmain only)
 const getYouTubeId = (item) => {
@@ -73,21 +131,35 @@ const getDinaVideoId = (item) => {
   return m ? m[1] : null;
 };
 
+// ─── Play Icon ──────────────────────────────────────────────────────────────────
+const PlayIcon = ({ size = 52 }) => (
+  <View style={[vtStyles.playCircle, { width: size, height: size, borderRadius: size / 2 }]}>
+    <View style={[vtStyles.playTriangle, {
+      borderTopWidth: size * 0.22,
+      borderBottomWidth: size * 0.22,
+      borderLeftWidth: size * 0.36,
+      marginLeft: size * 0.07
+    }]} />
+  </View>
+);
+
 // ─── VideoThumbnailCard ───────────────────────────────────────────────
 // Shows video thumbnail with play button overlay.
 // Tapping: if YouTube path → embed inline via WebView; else → navigate to VideoScreen
-function VideoThumbnailCard({ item, onPress }) {
+const VideoThumbnailCard = ({ item, onPress }) => {
+  const { sf } = useFontSize();
+  const [imageError, setImageError] = useState(false);
   const [playing, setPlaying] = useState(false);
-  const youtubeId = getYouTubeId(item);
-  const duration = item.duration || item.videoduration || item.video_duration || '';
+  const newsRef = useRef([]);
+  const thumbUrl = item.images || item.largeimages || item.thumbnail || '';
+  const youtubeId = thumbUrl ? getYouTubeId(thumbUrl) : null;
+  const duration = item.duration || '';
 
-  const thumbUrl =
-    (item.images && item.images.trim() !== '') ? item.images :
-      (item.largeimages && item.largeimages.trim() !== '') ? item.largeimages :
-        (item.image && item.image.trim() !== '') ? item.image :
-          (item.thumbnail && item.thumbnail.trim() !== '') ? item.thumbnail :
-            youtubeId ? `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg` :
-              'https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_default.jpg?im=Resize,width=400';
+  // Fallback: use YouTube thumbnail if YouTube video, else Dinamalar default
+  const fallbackUrl = youtubeId ? `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg` :
+    'https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_default.jpg?im=Resize,width=400';
+
+  const finalThumbUrl = imageError ? fallbackUrl : (thumbUrl || fallbackUrl);
 
   // If YouTube and user tapped play → show embedded WebView player
   if (playing && youtubeId) {
@@ -125,22 +197,36 @@ function VideoThumbnailCard({ item, onPress }) {
         }
       }}
     >
-      <Image source={{ uri: thumbUrl }} style={vtStyles.thumb} resizeMode="cover" />
+      {imageError && !finalThumbUrl.includes('youtube.com') ? (
+        <View style={[vtStyles.thumb, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#f5f5f5' }]}>
+          <Image
+            source={{ uri: 'https://stat.dinamalar.com/new/2025/images/dinamalar-pavala-vizha-logo-day.png' }}
+            style={{ width: s(60), height: s(30), resizeMode: 'contain' }}
+          />
+        </View>
+      ) : (
+        <Image
+          source={{ uri: finalThumbUrl }}
+          style={vtStyles.thumb}
+          resizeMode="contain"
+          onError={() => setImageError(true)}
+        />
+      )}
       {/* Subtle dark overlay */}
       <View style={vtStyles.overlay} />
-      {/* Centered play circle */}
-      <View style={vtStyles.playCircle}>
-        <Ionicons name="play" size={s(20)} color="#fff" style={{ marginLeft: s(2) }} />
+      {/* LatestVideoIcon in bottom-left corner */}
+      <View style={vtStyles.videoIconOverlay}>
+        <LatestVideoIcon size={s(24)} color={COLORS.white} />
       </View>
       {/* Duration badge bottom-right */}
       {!!duration && (
         <View style={vtStyles.durationBadge}>
-          <Text style={[vtStyles.durationText, { fontSize: sf(11) }]}>{String(duration)}</Text>
+          <Text style={[vtStyles.durationText, { fontSize: sf(12) }]}>{String(duration)}</Text>
         </View>
       )}
     </TouchableOpacity>
   );
-}
+};
 
 const vtStyles = StyleSheet.create({
   container: {
@@ -150,15 +236,22 @@ const vtStyles = StyleSheet.create({
     overflow: 'hidden',
   },
   thumb: { width: '100%', height: '100%' },
-  overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.25)' },
+  overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.15)' },
   playCircle: {
     position: 'absolute',
-    top: '50%', left: '50%',
-    marginTop: -s(22), marginLeft: -s(22),
-    width: s(44), height: s(44), borderRadius: s(22),
-    backgroundColor: 'rgba(0,0,0,0.60)',
-    borderWidth: 2, borderColor: 'rgba(255,255,255,0.9)',
-    justifyContent: 'center', alignItems: 'center',
+    top: s(6), left: s(6),  // Top-left corner
+    width: s(48), height: s(48), borderRadius: s(24),
+    backgroundColor: 'rgba(9, 109, 210, 0.85)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingLeft: s(3),
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.6)',
+  },
+  playTriangle: {
+    width: 0, height: 0, borderStyle: 'solid',
+    borderTopColor: 'transparent', borderBottomColor: 'transparent',
+    borderLeftColor: '#fff',
   },
   durationBadge: {
     position: 'absolute', bottom: s(6), right: s(6),
@@ -167,6 +260,14 @@ const vtStyles = StyleSheet.create({
     paddingHorizontal: s(6), paddingVertical: s(2),
   },
   durationText: { fontSize: ms(10), color: '#fff', fontFamily: FONTS.muktaMalar.regular },
+  videoIconOverlay: {
+    position: 'absolute',
+    top: s(6), left: s(6),  // Top-left corner
+    width: s(28), height: s(28), borderRadius: s(16),
+    backgroundColor: PALETTE.primary,  // Primary color background
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
 });
 
 // ─── Navigation Route Map ─────────────────────────────────────────────
@@ -249,10 +350,10 @@ const shStyles = StyleSheet.create({
     paddingBottom: vs(12),
   },
   title: {
-    fontFamily: FONTS.muktaMalar.bold,
+    fontFamily: FONTS.anek.bold,
     fontSize: ms(18),
     color: PALETTE.grey800,
-        marginBottom: vs(2),
+    marginBottom: vs(2),
   },
   underline: {
     height: vs(4),
@@ -262,10 +363,10 @@ const shStyles = StyleSheet.create({
   },
 });
 
-// ─── Notification Card ────────────────────────────────────────────────
 // Video items (type="video"): show VideoThumbnailCard, tap → VideoScreen
 // News items: show padded image with rounded corners
-function NotificationCard({ item, onPress }) {
+function NotificationCard({ item, onPress, navigation }) {
+  const [imageError, setImageError] = useState(false);
   const isVid = isVideoItem(item);
   const category = item.categrorytitle || item.catengtitle || item.maincat || '';
   const ago = item.ago || item.time_ago || '';
@@ -273,6 +374,197 @@ function NotificationCard({ item, onPress }) {
   const hasComment = !!comment && String(comment) !== '0';
   const hasAudio = item.audio === 1 || item.audio === '1' ||
     (typeof item.audio === 'string' && item.audio.length > 1 && item.audio !== '0');
+
+  // Category navigation function
+  const handleCategoryPress = (category) => {
+    console.log('Category pill pressed:', category);
+    console.log('Category length:', category.length);
+    console.log('Category char codes:', Array.from(category).map(c => c.charCodeAt(0)));
+    const normalizedCategory = category.toLowerCase().trim();
+    console.log('Normalized category:', normalizedCategory);
+    console.log('Normalized length:', normalizedCategory.length);
+    console.log('Normalized char codes:', Array.from(normalizedCategory).map(c => c.charCodeAt(0)));
+    
+    // Video categories - match exact API categories
+    if (
+      normalizedCategory === 'live' ||
+      normalizedCategory === '5050' ||
+      normalizedCategory === 'live and recorded'
+    ) {
+      navigation.navigate('VideosScreen', { 
+        initialCategory: '5050',
+        initialTabTitle: 'Live'
+      });
+    }
+    else if (
+      normalizedCategory === 'political' ||
+      normalizedCategory === '31' ||
+      normalizedCategory === 'politics tamil videos' ||
+      normalizedCategory === 'அரசியல்' ||
+      normalizedCategory === 'அரசியல் செய்திகள்'
+    ) {
+      navigation.navigate('VideosScreen', { 
+        initialCategory: '31',
+        initialTabTitle: 'Politics'
+      });
+    }
+    else if (
+      normalizedCategory === 'general' ||
+      normalizedCategory === '32' ||
+      normalizedCategory === 'general tamil videos' ||
+      normalizedCategory === 'common' ||
+      normalizedCategory === 'pothu' ||
+      normalizedCategory === 'poguthu' ||
+      normalizedCategory === 'பொது'
+    ) {
+      navigation.navigate('VideosScreen', { 
+        initialCategory: '32',
+        initialTabTitle: 'General'
+      });
+    }
+    else if (
+      normalizedCategory === 'event' ||
+      normalizedCategory === '33' ||
+      normalizedCategory === 'sambavam event videos' ||
+      normalizedCategory === 'sambavam' ||
+      normalizedCategory === 'சம்பவம்'
+    ) {
+      navigation.navigate('VideosScreen', { 
+        initialCategory: '33',
+        initialTabTitle: 'Event'
+      });
+    }
+    else if (
+      normalizedCategory === 'cinema' ||
+      normalizedCategory === '435' ||
+      normalizedCategory === 'tamil cinema videos' ||
+      normalizedCategory === 'Cinema' ||
+      normalizedCategory === 'சினிமா'
+    ) {
+      navigation.navigate('VideosScreen', { 
+        initialCategory: '435',
+        initialTabTitle: 'Cinema'
+      });
+    }
+    else if (
+      normalizedCategory === 'trailer' ||
+      normalizedCategory === '436' ||
+      normalizedCategory === 'tamil cinema movie trailer' ||
+      normalizedCategory === 'டிரைலர்'
+    ) {
+      navigation.navigate('VideosScreen', { 
+        initialCategory: '436',
+        initialTabTitle: 'Trailer'
+      });
+    }
+    
+   else if (
+       normalizedCategory === '594' ||
+       normalizedCategory ==='செய்திச்சுருக்கம்'
+    ) {
+      console.log('Short news category matched!');
+      navigation.navigate('VideosScreen', { 
+        initialCategory: '594',
+        initialTabTitle: 'Short News'
+      });
+    }
+    else if (
+      normalizedCategory === 'sports' ||
+      normalizedCategory === '464' ||
+      normalizedCategory === 'sports tamil videos' ||
+      normalizedCategory === 'விளையாட்டு'
+    ) {
+      navigation.navigate('VideosScreen', { 
+        initialCategory: '464',
+        initialTabTitle: 'Sports'
+      });
+    }
+    else if (
+      normalizedCategory === 'exclusive videos' ||
+      normalizedCategory === '1238' ||
+      normalizedCategory === 'exclusive tamil videos' ||
+      normalizedCategory === 'exclusive' ||
+      normalizedCategory === 'சிறப்பு தொகுப்புகள்'
+    ) {
+      navigation.navigate('VideosScreen', { 
+        initialCategory: '1238',
+        initialTabTitle: 'Exclusive Videos'
+      });
+    }
+    else if (
+      normalizedCategory === 'spiritual video' ||
+      normalizedCategory === '1316' ||
+      normalizedCategory === 'anmegam videos in tamil' ||
+      normalizedCategory === 'spiritual' ||
+      normalizedCategory === 'ஆன்மீகம்'
+    ) {
+      navigation.navigate('VideosScreen', { 
+        initialCategory: '1316',
+        initialTabTitle: 'Spiritual'
+      });
+    }
+    else if (
+      normalizedCategory === 'district news' ||
+      normalizedCategory === '1585' ||
+      normalizedCategory === 'district news videos' ||
+      normalizedCategory === 'மாவட்ட செய்திகள்'
+    ) {
+      navigation.navigate('VideosScreen', { 
+        initialCategory: '1585',
+        initialTabTitle: 'District News'
+      });
+    }
+    else if (
+      normalizedCategory === 'shorts' ||
+      normalizedCategory === 'shorts' ||
+      normalizedCategory === 'shorts reels' ||
+      normalizedCategory === 'ஷார்ட்ஸ்'
+    ) {
+      navigation.navigate('VideosScreen', { 
+        initialCategory: 'shorts',
+        initialTabTitle: 'Shorts'
+      });
+    }
+    // Tharpothaiya Seithigal categories - check after all video categories
+    else if (normalizedCategory === 'tamilagam' || normalizedCategory === 'tamil nadu') {
+      navigation.navigate('TharpothaiyaSeithigalScreen', {
+        tabId: 'tamilagam',
+        initialTabTitle: 'தமிழகம்'
+      });
+    } else if (normalizedCategory === 'india') {
+      navigation.navigate('TharpothaiyaSeithigalScreen', {
+        tabId: 'india',
+        initialTabTitle: 'இந்தியா'
+      });
+    } else if (normalizedCategory === 'world') {
+      navigation.navigate('TharpothaiyaSeithigalScreen', {
+        tabId: 'world',
+        initialTabTitle: 'உலகம்'
+      });
+    } else if (normalizedCategory === 'premium') {
+      navigation.navigate('TharpothaiyaSeithigalScreen', {
+        tabId: 'premium',
+        initialTabTitle: 'பிரீமியம்'
+      });
+    } else if (normalizedCategory === 'sports') {
+      navigation.navigate('TharpothaiyaSeithigalScreen', {
+        tabId: 'sports',
+        initialTabTitle: 'விளையாட்டு'
+      });
+    } else if (normalizedCategory === 'cinema') {
+      navigation.navigate('TharpothaiyaSeithigalScreen', {
+        tabId: 'cinema',
+        initialTabTitle: 'சினிமா'
+      });
+    } else if (normalizedCategory === 'business' || normalizedCategory === 'varthagam') {
+      navigation.navigate('TharpothaiyaSeithigalScreen', {
+        tabId: 'business',
+        initialTabTitle: 'வணிகம்'
+      });
+    } else {
+      console.log('Category not matched:', category);
+    }
+  };
 
   const imageUrl =
     (item.images && item.images.trim() !== '') ? item.images :
@@ -296,7 +588,27 @@ function NotificationCard({ item, onPress }) {
         // News: tappable padded image
         <TouchableOpacity onPress={() => onPress(item)} activeOpacity={0.88}>
           <View style={ncStyles.imageWrap}>
-            <Image source={{ uri: imageUrl }} style={ncStyles.image} resizeMode="cover" />
+            {imageError ? (
+              <View style={[ncStyles.image, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#f5f5f5' }]}>
+                <Image
+                  source={{ uri: 'https://stat.dinamalar.com/new/2025/images/dinamalar-pavala-vizha-logo-day.png' }}
+                  style={{ width: s(60), height: s(30), resizeMode: 'contain' }}
+                />
+              </View>
+            ) : (
+              <>
+                <Image
+                  source={{ uri: imageUrl }}
+                  style={ncStyles.image}
+                  resizeMode="cover"
+                  onError={() => setImageError(true)}
+                />
+                {/* Document icon in top-left corner for news items */}
+                <View style={ncStyles.documentIconOverlay}>
+                  <DocumentIcon size={s(18)} color={COLORS.white} />
+                </View>
+              </>
+            )}
           </View>
         </TouchableOpacity>
       )}
@@ -304,13 +616,21 @@ function NotificationCard({ item, onPress }) {
       {/* ── Text content (always tappable → article/video screen) ── */}
       <TouchableOpacity onPress={() => onPress(item)} activeOpacity={0.88}>
         <View style={ncStyles.contentContainer}>
-          <Text style={[ncStyles.title, { fontSize: sf(16), lineHeight: sf(22) }]} numberOfLines={3}>
+          <Text style={[ncStyles.title, { fontSize: sf(16), lineHeight: sf(26) }]}  >
             {String(item.newstitle || '')}
           </Text>
           {!!category && (
-            <View style={ncStyles.catPill}>
-              <Text style={[ncStyles.catText, { fontSize: sf(11) }]}>{String(category)}</Text>
-            </View>
+            <TouchableOpacity 
+              style={ncStyles.catPill}
+              onPress={(e) => {
+                e?.stopPropagation?.();
+                console.log('Category pill TouchableOpacity pressed');
+                handleCategoryPress(category);
+              }}
+              activeOpacity={0.7}
+            >
+              <Text style={[ncStyles.catText, { fontSize: sf(12) }]}>{String(category)}</Text>
+            </TouchableOpacity>
           )}
           <View style={ncStyles.metaRow}>
             <Text style={[ncStyles.timeText, { fontSize: sf(12) }]}>{String(ago)}</Text>
@@ -322,7 +642,7 @@ function NotificationCard({ item, onPress }) {
                 </View>
               )}
               {hasAudio && (
-                <Ionicons name="volume-high" size={sf(14)} color={PALETTE.grey700} />
+                <SpeakerIcon size={sf(14)} color={PALETTE.grey700} />
               )}
             </View>
           </View>
@@ -347,55 +667,48 @@ const ncStyles = StyleSheet.create({
   contentContainer: { paddingHorizontal: s(12), paddingTop: vs(10), paddingBottom: vs(14) },
   title: {
     fontFamily: FONTS.muktaMalar.bold,
-    fontSize: ms(15),
+    // fontSize: ms(15),
     color: PALETTE.grey800,
     lineHeight: ms(23),
     marginBottom: vs(8),
   },
   catPill: {
     alignSelf: 'flex-start',
-    backgroundColor: PALETTE.grey200,
+    // backgroundColor: PALETTE.grey200,
     borderWidth: 1,
-    borderColor: PALETTE.grey300,
+    borderColor: PALETTE.grey400,
     // borderRadius: s(4),
     paddingHorizontal: s(10),
     paddingVertical: s(3),
     marginBottom: vs(10),
   },
-  catText: { fontFamily: FONTS.muktaMalar.bold, fontSize: ms(11), color: PALETTE.grey700 },
+  catText: { fontFamily: FONTS.muktaMalar.bold, color: PALETTE.grey700 },
   metaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  timeText: { fontFamily: FONTS.muktaMalar.regular, fontSize: ms(14), color: PALETTE.grey600 },
+  timeText: { fontFamily: FONTS.muktaMalar.regular, color: PALETTE.black },
   metaRight: { flexDirection: 'row', alignItems: 'center', gap: s(8) },
   commentRow: { flexDirection: 'row', alignItems: 'center' },
-  commentText: { fontFamily: FONTS.muktaMalar.regular, fontSize: ms(14), color: PALETTE.grey700 },
+  commentText: { fontFamily: FONTS.muktaMalar.regular, color: PALETTE.grey700 },
   divider: { height: vs(6), backgroundColor: PALETTE.grey200 },
+  documentIconOverlay: {
+    position: 'absolute',
+    top: s(6), left: s(6),  // Top-left corner
+    width: s(28), height: s(28), borderRadius: s(14),
+    backgroundColor: PALETTE.primary,  // Primary color background
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
 });
 
 
-// ─── Timeline Item ────────────────────────────────────────────────────
-//
-// EXACT layout from screenshot (screenshot 2 / timeline.jpg):
-//
-// ┌─────────────────────────────────────────────────────────┐
-// │ [LEFT COL s(80)]        │  [RIGHT COL flex:1]           │
-// │  │  மார் 09,            │  Title bold Tamil large        │
-// │  │  2026                │                               │
-// │  │  09:00               │  [Image 16:9]                 │
-// │  ●  (colored dot        │                               │
-// │  │   on the line)       │  பாட்காஸ்ட் · 0 min ago  ())) │
-// └─────────────────────────────────────────────────────────┘
-//
-// The ● dot is in NORMAL FLOW (not absolute), same column as date/time,
-// but nudged LEFT to sit ON the vertical line via negative marginLeft.
-// The vertical line is absolute, left:s(8), full height.
 
 const LEFT_W = s(80);
 const LINE_LEFT = LEFT_W / 2;  // line runs through CENTER of left col
 
-function TimelineItem({ item, isLast, onPress }) {
+function TimelineItem({ item, isLast, onPress, navigation, resolvePhotoTab }) {
   const [imgLoad, setImgLoad] = useState(true);
   const [imgErr, setImgErr] = useState(false);
   const [pressed, setPressed] = useState(false);
+  const [titleHovered, setTitleHovered] = useState(false);
 
   if (!item) return null;
 
@@ -414,6 +727,17 @@ function TimelineItem({ item, isLast, onPress }) {
   const hasAudio = !!item.audio && String(item.audio) !== '0';
   const hasComment = !!item.newscomment && String(item.newscomment) !== '0';
   const isPodcast = item.maincat === 'podcast' || hasAudio;
+
+  // Debug logging for podcast detection
+  if (isPodcast) {
+    console.log('Podcast detected:', {
+      title: item.newstitle,
+      maincat: item.maincat,
+      audio: item.audio,
+      hasAudio,
+      isPodcast
+    });
+  }
 
   const categoryLabel = item.categrorytitle || item.catengtitle || cat.label || 'செய்தி';
   const agoLabel = String(item.ago || item.time_ago || '');
@@ -439,7 +763,7 @@ function TimelineItem({ item, isLast, onPress }) {
         <View style={tlStyles.vertLine} />
 
         {/* Date text */}
-        <View style={{right:30}}>
+        <View style={{ right: 30 }}>
           {!!item.standarddate && (
             <Text style={[tlStyles.dateText, { fontSize: sf(12) }]} numberOfLines={2}>
               {String(item.standarddate)}
@@ -458,10 +782,10 @@ function TimelineItem({ item, isLast, onPress }) {
         {/* Category icon badge — circular, sits ON the centered line */}
         <View style={[tlStyles.iconBadge, {
           width: ICON_SIZE, height: ICON_SIZE, borderRadius: ICON_RADIUS,
-          borderColor: cat.color,
+          borderColor: COLORS.grey500,
           backgroundColor: PALETTE.white,
         }]}>
-          <Ionicons name={cat.icon} size={s(14)} color={cat.color} />
+          {cat.icon({ size: s(14), color: COLORS.primary })}
         </View>
 
       </View>
@@ -470,35 +794,66 @@ function TimelineItem({ item, isLast, onPress }) {
       <View style={tlStyles.rightCol}>
 
         {/* 1. Title */}
-        <Text style={[tlStyles.title, { fontSize: sf(16), lineHeight: sf(22) }]} numberOfLines={4}>
-          {String(item.newstitle || '')}
-          {isPodcast && (
-            <View style={tlStyles.podcastRow}>
-              <Ionicons name="volume-medium" size={sf(13)} color={PALETTE.grey500} />
-              {/* <Text style={tlStyles.podcastText}> பாட்காஸ்ட்</Text> */}
-            </View>
-          )}
-        </Text>
+        <TouchableOpacity
+          onPress={() => onPress(item)}
+          onPressIn={() => setTitleHovered(true)}
+          onPressOut={() => setTitleHovered(false)}
+          activeOpacity={1}
+          style={{ alignSelf: 'flex-start' }}
+        >
+          <Text style={[
+            tlStyles.title,
+            {
+              fontSize: sf(16),
+              lineHeight: sf(22),
+              color: titleHovered ? PALETTE.primary : PALETTE.grey800
+            }
+          ]} numberOfLines={4}>
+            {String(item.newstitle || '')}
+            {isPodcast && (
+              <View style={tlStyles.podcastRow}>
+                <Ionicons name="volume-medium" size={sf(13)} color={titleHovered ? PALETTE.primary : PALETTE.grey500} />
+                {/* <Text style={tlStyles.podcastText}> பாட்காஸ்ட்</Text> */}
+              </View>
+            )}
+          </Text>
+        </TouchableOpacity>
 
         {/* 1b. Podcast/audio icon inline after title */}
-       
 
-        {/* 2. Image OR Video */}
-        {isVideo ? (
-          <View style={tlStyles.imgWrap}>
-            <VideoThumbnailCard item={item} onPress={onPress} />
-          </View>
-        ) : hasImage ? (
-          <View style={tlStyles.imgWrap}>
+
+        {/* 2. Image */}
+        {hasImage ? (
+          <TouchableOpacity
+            style={tlStyles.imgWrap}
+            onPress={() => {
+              const tab = resolvePhotoTab(item);
+              navigation.navigate('CommonSectionScreen', {
+                screenTitle: tab.screenTitle,
+                apiEndpoint: 'https://api-st.dinamalar.com/photodata',
+                allTabLink: 'https://api-st.dinamalar.com/photodata',
+                useFullUrl: true,
+                // ── Pass the specific item to open ──
+                selectedNewsId: item.newsid || item.id,
+                selectedNewsItem: item,          // full item for immediate render
+                ...(tab.initialTabId && {
+                  initialTabId: tab.initialTabId,
+                  initialTabLink: tab.initialTabLink,
+                  initialTabTitle: tab.initialTabTitle,
+                }),
+              });
+            }}
+            activeOpacity={0.8}
+          >
             {(imgLoad || imgErr) && <View style={tlStyles.imgSkeleton} />}
             <Image
               source={{ uri: imageUrl }}
               style={[tlStyles.img, (imgLoad || imgErr) && { opacity: 0, position: 'absolute' }]}
-              resizeMode="cover"
+              resizeMode="contain"
               onLoad={() => { setImgLoad(false); setImgErr(false); }}
               onError={() => { setImgLoad(false); setImgErr(true); }}
             />
-          </View>
+          </TouchableOpacity>
         ) : null}
 
         {/* 3. Meta row */}
@@ -537,7 +892,7 @@ const tlStyles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: vs(10),
     paddingBottom: vs(10),
-    left:20
+    left: 20
   },
 
   // Vertical line — centered in column
@@ -552,7 +907,7 @@ const tlStyles = StyleSheet.create({
   },
 
   dateText: {
-    fontSize: ms(10),
+    // fontSize: ms(10),
     color: PALETTE.grey600,
     lineHeight: ms(13),
     textAlign: 'center',
@@ -563,7 +918,7 @@ const tlStyles = StyleSheet.create({
   },
 
   timeText: {
-    fontSize: ms(9),
+    // fontSize: ms(9),
     color: PALETTE.grey500,
     textAlign: 'center',
     marginBottom: vs(5),
@@ -609,7 +964,6 @@ const tlStyles = StyleSheet.create({
   podcastRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    color:PALETTE.primary
     // marginBottom: vs(6),
   },
   podcastText: {
@@ -621,11 +975,12 @@ const tlStyles = StyleSheet.create({
   // Image
   imgWrap: {
     width: '100%',
-    aspectRatio: 16 / 9,
+
     backgroundColor: PALETTE.grey200,
     // borderRadius: s(3),
     overflow: 'hidden',
     marginBottom: vs(6),
+    height: ms(280)
   },
   imgSkeleton: { ...StyleSheet.absoluteFillObject, backgroundColor: '#E0E4EA' },
   img: { width: '100%', height: '100%' },
@@ -736,15 +1091,65 @@ function TimelineSkeleton() {
   );
 }
 
-// ─── Main Screen ──────────────────────────────────────────────────────
+// ─── Load More Button Component ───────────────────────────────────────────
+function LoadMoreButton({ onPress, loading }) {
+  return (
+    <View style={loadMoreStyles.container}>
+      <TouchableOpacity
+        style={loadMoreStyles.button}
+        onPress={onPress}
+        disabled={loading}
+        activeOpacity={0.8}
+      >
+        {loading ? (
+          <ActivityIndicator size="small" color={COLORS.white} />
+        ) : (
+          <>
+            <Text style={loadMoreStyles.buttonText}>மேலும் பார்க்க</Text>
+            <Ionicons name="chevron-down" size={16} color={COLORS.white} style={loadMoreStyles.icon} />
+          </>
+        )}
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+const loadMoreStyles = StyleSheet.create({
+  container: {
+    paddingHorizontal: s(16),
+    paddingVertical: vs(20),
+    alignItems: 'center',
+  },
+  button: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: s(20),
+    paddingVertical: vs(12),
+    borderRadius: s(8),
+    minWidth: s(120),
+    justifyContent: 'center',
+  },
+  buttonText: {
+    color: COLORS.white,
+    fontSize: ms(14),
+    fontFamily: FONTS.muktaMalar.bold,
+    marginRight: s(8),
+  },
+  icon: {
+    marginLeft: s(4),
+  },
+});
+
 export default function TimelineScreen() {
   const { sf } = useFontSize();
   const navigation = useNavigation();
 
   const [notifications, setNotifications] = useState([]);
   const [notifTitle, setNotifTitle] = useState('');
-  const [latestTitle, setLatestTitle] = useState('நேரடி செய்திகள்');
+  const [latestTitle, setLatestTitle] = useState('டைம்லைன் செய்திகள்');
   const [news, setNews] = useState([]);
+  const [mostCommented, setMostCommented] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -755,6 +1160,82 @@ export default function TimelineScreen() {
   const [isLocationDrawerVisible, setIsLocationDrawerVisible] = useState(false);
   const [selectedDistrict, setSelectedDistrict] = useState('உள்ளூர்');
   const flatListRef = useRef(null);
+
+  // Real-time notification state
+  const [notifBadgeCount, setNotifBadgeCount] = useState(0);
+  const [currentNotification, setCurrentNotification] = useState(null);
+  const [showNotificationPopup, setShowNotificationPopup] = useState(false);
+  const [showNotificationCenter, setShowNotificationCenter] = useState(false);
+
+  // Auto-refresh and notification polling timers
+  const refreshIntervalRef = useRef(null);
+  const notificationIntervalRef = useRef(null);
+  const appStateRef = useRef(AppState.currentState);
+
+  // Ensure component re-renders when font size changes
+  useEffect(() => {
+    // Force re-render when font size context changes
+    const forceUpdate = Math.random(); // Simple trigger for re-render
+    console.log('TimelineScreen font size updated:', sf(16));
+  }, [sf]); // Dependency on sf function
+
+  // Auto-refresh every 2 minutes
+  useEffect(() => {
+    const startAutoRefresh = () => {
+      // Clear existing interval
+      if (refreshIntervalRef.current) {
+        clearInterval(refreshIntervalRef.current);
+      }
+
+      // Set new interval for auto-refresh every 2 minutes (120000 ms)
+      refreshIntervalRef.current = setInterval(() => {
+        console.log('Auto-refreshing TimelineScreen...');
+        fetchAll(1, true); // Refresh with isRefresh=true
+      }, 120000);
+    };
+
+    startAutoRefresh();
+
+    // Handle app state changes (foreground/background)
+    const handleAppStateChange = (nextAppState) => {
+      console.log('App state changed:', nextAppState);
+
+      if (appStateRef.current.match(/inactive|background/) && nextAppState === 'active') {
+        // App came to foreground - refresh immediately
+        console.log('App came to foreground - refreshing timeline...');
+        fetchAll(1, true);
+      }
+
+      appStateRef.current = nextAppState;
+    };
+
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+
+    // Cleanup
+    return () => {
+      if (refreshIntervalRef.current) {
+        clearInterval(refreshIntervalRef.current);
+      }
+      subscription?.remove();
+    };
+  }, [fetchAll]);
+
+  // Initialize notification service on component mount
+  // useEffect(() => {
+  //   initializeNotificationService();
+  //   loadInitialBadgeCount();
+  //   initializePushNotifications(); // Now safe - uses compatibility service
+  // }, []);
+
+  // Load initial badge count
+  const loadInitialBadgeCount = async () => {
+    try {
+      const count = await getBadgeCount();
+      setNotifBadgeCount(count);
+    } catch (error) {
+      console.error('Error loading badge count:', error);
+    }
+  };
 
   const handleMenuPress = (menuItem) => {
     const link = menuItem?.Link || menuItem?.link || '';
@@ -779,24 +1260,109 @@ export default function TimelineScreen() {
     }
   };
 
+  // Handle notification popup close
+  const handleNotificationPopupClose = () => {
+    setShowNotificationPopup(false);
+    setCurrentNotification(null);
+  };
+
+  // Handle notification press
+  const handleNotificationPress = (notification) => {
+    handleNotificationPopupClose();
+
+    // Navigate to appropriate screen based on notification type
+    if (notification.link) {
+      goToArticle(notification);
+    }
+  };
+
+  // Handle notification center
+  const handleNotificationCenterPress = () => {
+    setShowNotificationCenter(true);
+  };
+
+  const handleNotificationCenterClose = () => {
+    setShowNotificationCenter(false);
+  };
+
+  const handleNotificationCenterRefresh = async () => {
+    try {
+      const result = await pollRealTimeNotifications();
+      const newCount = await getBadgeCount();
+      setNotifBadgeCount(newCount);
+    } catch (error) {
+      console.error('Error refreshing notifications:', error);
+    }
+  };
+
+  // Test function for manual push notification testing
+  const testPushNotification = async () => {
+    try {
+      console.log('Testing push notification...');
+
+      // Create a test notification payload
+      const testPayload = {
+        title: 'Test Flash News',
+        body: 'This is a test notification from Dinamalar!',
+        data: {
+          type: 'flash',
+          test: true,
+          newsId: 'test-123',
+          link: '/news/test-123'
+        },
+        priority: 'high',
+        channelId: 'flash-news',
+        sound: 'default',
+      };
+
+      // Send the test notification
+      const result = await sendPushNotifications(['*'], testPayload);
+      console.log('Test notification result:', result);
+
+      // Also show the popup for immediate visual feedback
+      setCurrentNotification({
+        id: 'test-123',
+        title: 'Test Flash News',
+        category: 'flash',
+        priority: 'high',
+        time: 'Just now',
+        link: '/news/test-123'
+      });
+      setShowNotificationPopup(true);
+
+    } catch (error) {
+      console.error('Test notification failed:', error);
+    }
+  };
+
   // ── EXACT same fetchAll as your original working code ──
   const fetchAll = useCallback(async (pageNum = 1, isRefresh = false) => {
     try {
+      // ... (rest of the code remains the same)
       if (pageNum === 1) {
         isRefresh ? setRefreshing(true) : setLoading(true);
       } else {
         setLoadingMore(true);
       }
 
+      // Add cache-busting timestamp to ensure fresh data
+      const cacheBuster = Date.now();
       const requests = [
-        CDNApi.get('/latestmain')
+        CDNApi.get('/latestmain', {
+          params: {
+            page: pageNum,
+            _t: cacheBuster, // Cache-busting parameter
+            _refresh: isRefresh ? 1 : 0 // Additional refresh indicator
+          }
+        })
       ];
       if (pageNum === 1) requests.push(
-        CDNApi.get('/latestnotify')
+        CDNApi.get('/latestnotify', { params: { _t: cacheBuster, _refresh: isRefresh ? 1 : 0 } }),
+        CDNApi.get('/mostcommented', { params: { _t: cacheBuster, _refresh: isRefresh ? 1 : 0 } })
       );
 
       console.log('=== Timeline API Attempt ===');
-      console.log('Trying u38Api:', `${API_BASE_URLS.CDN}/latestmain?page=${pageNum}`);
+      console.log('Trying CDNApi:', `${API_BASE_URLS.CDN}/latestmain?page=${pageNum}`);
 
       let results;
       try {
@@ -806,12 +1372,12 @@ export default function TimelineScreen() {
         results = [{ status: 'rejected', reason: error }];
       }
 
-      // If u38Api fails, show error details
+      // If CDNApi fails, show error details
       if (results[0].status === 'rejected') {
-        console.log('❌ u38Api failed');
+        console.log('❌ CDNApi failed');
         console.log('Error Details:', results[0].reason);
       } else {
-        console.log('✅ u38Api SUCCESS');
+        console.log('✅ CDNApi SUCCESS');
       }
 
       // mainData.detail — the news items are in the detail array
@@ -833,7 +1399,17 @@ export default function TimelineScreen() {
         console.log('Setting news state with', mainItems.length, 'items');
         setNews(prev => pageNum === 1 ? mainItems : [...prev, ...mainItems]);
         setPage(pageNum);
-        setHasMore(mainItems.length >= 10);
+
+        // Use pagination info from API response
+        const pagination = mainData?.pagination;
+        if (pagination) {
+          setHasMore(pagination.current_page < pagination.last_page);
+          console.log('Pagination info:', pagination);
+        } else {
+          // Fallback to item count if pagination not available
+          setHasMore(mainItems.length >= 10);
+        }
+
         console.log('News state updated for page', pageNum);
       } else {
         console.log('No items found, setting empty news array');
@@ -853,6 +1429,16 @@ export default function TimelineScreen() {
           setNotifications([]);
           setNotifTitle('');
         }
+
+        // Handle most commented data (results[2])
+        if (results[2]?.status === 'fulfilled') {
+          const mostCommentedData = results[2].value.data;
+          const mostCommentedItems = (mostCommentedData?.data || []).filter(item => item != null);
+          console.log('Most commented items:', mostCommentedItems.length);
+          setMostCommented(mostCommentedItems);
+        } else {
+          setMostCommented([]);
+        }
       }
     } catch (err) {
       console.error('Timeline fetch error:', err);
@@ -868,11 +1454,141 @@ export default function TimelineScreen() {
   const onRefresh = () => { setHasMore(true); fetchAll(1, true); };
   const onEndReached = () => { if (!loadingMore && hasMore && !loading) fetchAll(page + 1); };
 
+  // ─── resolvePhotoTab — matches exact tab IDs from /photodata API ─────────────
+  // Tabs: All | இன்றைய போட்டோ (81) | புகைப்பட ஆல்பம் (5001) | கார்ட்டூன்ஸ் (5002)
+  //       NRI ஆல்பம் (5003) | கார்ட்ஸ் (socialcards) | வெப் ஸ்டோரீஸ் (webstoriesupdate)
+
+  const resolvePhotoTab = (item) => {
+    const maincat = (item?.maincat || '').toLowerCase();
+    const type = (item?.type || '').toLowerCase();
+    const catEng = (item?.catengtitle || '').toLowerCase();
+    const catTitle = (item?.categrorytitle || '').toLowerCase();
+    const catSlug = (item?.catslug || '').toLowerCase();
+    const catId = String(item?.maincatid || item?.catid || '');
+    const reacturl = (item?.reacturl || '').toLowerCase();
+    const slug = (item?.slug || '').toLowerCase();
+
+    // Combine all string fields for keyword matching
+    const all = `${maincat} ${type} ${catEng} ${catTitle} ${catSlug} ${reacturl} ${slug}`;
+
+    // ── கார்ட்ஸ் / Social Media Cards (id: "socialcards", link: /getsocialmedia) ──
+    if (
+      catId === 'socialcards' ||
+      all.includes('social') ||
+      all.includes('socialcard') ||
+      all.includes('social-media-card') ||
+      all.includes('getsocialmedia')
+    )
+      return {
+        screenTitle: 'கார்ட்ஸ்',
+        initialTabId: 'socialcards',
+        initialTabLink: '/getsocialmedia',
+        initialTabTitle: 'கார்ட்ஸ்',
+      };
+
+    // ── வெப் ஸ்டோரீஸ் (id: "webstoriesupdate", link: /webstoriesupdate) ──
+    if (
+      catId === 'webstoriesupdate' ||
+      all.includes('webstorie') ||
+      all.includes('web-storie') ||
+      all.includes('web_storie')
+    )
+      return {
+        screenTitle: 'வெப் ஸ்டோரீஸ்',
+        initialTabId: 'webstoriesupdate',
+        initialTabLink: '/webstoriesupdate',
+        initialTabTitle: 'வெப் ஸ்டோரீஸ்',
+      };
+
+    // ── கார்ட்டூன்ஸ் (id: "5002", link: /photoitem?cat=5002) ──
+    if (
+      catId === '5002' ||
+      all.includes('cartoon') ||
+      all.includes('caricature') ||
+      all.includes('dinamalar-cartoon')
+    )
+      return {
+        screenTitle: 'கார்ட்டூன்ஸ்',
+        initialTabId: '5002',
+        initialTabLink: '/photoitem?cat=5002',
+        initialTabTitle: 'கார்ட்டூன்ஸ்',
+      };
+
+    // ── NRI ஆல்பம் (id: "5003", link: /photoitem?cat=5003) ──
+    if (
+      catId === '5003' ||
+      all.includes('nri') ||
+      all.includes('world-tamilar')
+    )
+      return {
+        screenTitle: 'NRI ஆல்பம்',
+        initialTabId: '5003',
+        initialTabLink: '/photoitem?cat=5003',
+        initialTabTitle: 'NRI ஆல்பம்',
+      };
+
+    // ── புகைப்பட ஆல்பம் (id: "5001", link: /photoitem?cat=5001) ──
+    if (
+      catId === '5001' ||
+      all.includes('pugai-pada') ||
+      all.includes('pugaipada') ||
+      all.includes('album')
+    )
+      return {
+        screenTitle: 'புகைப்பட ஆல்பம்',
+        initialTabId: '5001',
+        initialTabLink: '/photoitem?cat=5001',
+        initialTabTitle: 'புகைப்பட ஆல்பம்',
+      };
+
+    // ── இன்றைய போட்டோ (id: "81", link: /photoitem?cat=81) ──
+    if (
+      catId === '81' ||
+      all.includes('today-photo') ||
+      all.includes('indraiya') ||
+      all.includes('indraya') ||
+      all.includes('இன்றைய')
+    )
+      return {
+        screenTitle: 'இன்றைய போட்டோ',
+        initialTabId: '81',
+        initialTabLink: '/photoitem?cat=81',
+        initialTabTitle: 'இன்றைய போட்டோ',
+      };
+
+    // ── Default: All photos tab (no initialTabId → CommonSectionScreen loads "All") ──
+    return {
+      screenTitle: 'போட்டோ',
+      initialTabId: null,
+      initialTabLink: null,
+      initialTabTitle: null,
+    };
+  };
+
   const goToArticle = (item) => {
     if (isVideoItem(item)) {
       // Navigate to VideoScreen with the Dinamalar video ID
       const videoId = getDinaVideoId(item) || item.newsid || item.id;
-      navigation.navigate('VideoScreen', { videoId, videoItem: item });
+      navigation.navigate('VideoDetailScreen', { videoId, videoItem: item });
+    } else if (isPhotoItem(item)) {
+      // Use resolvePhotoTab to determine navigation
+      const tab = resolvePhotoTab(item);
+      console.log('goToArticle — item catId/maincat:', item?.maincatid, item?.maincat, '→ tab:', tab.initialTabId);
+
+      navigation.navigate('CommonSectionScreen', {
+        screenTitle: tab.screenTitle,
+        apiEndpoint: 'https://api-st.dinamalar.com/photodata',
+        allTabLink: 'https://api-st.dinamalar.com/photodata',
+        useFullUrl: true,
+        // Pass the specific item to open/focus
+        selectedNewsId: item.newsid || item.id,
+        selectedNewsItem: item,
+        ...(tab.initialTabId && {
+          initialTabId: tab.initialTabId,
+          initialTabLink: tab.initialTabLink,
+          initialTabTitle: tab.initialTabTitle,
+        }),
+      });
     } else {
       const newsId = item.id || item.newsid;
       navigation.navigate('NewsDetailsScreen', { newsId, newsItem: item });
@@ -903,7 +1619,7 @@ export default function TimelineScreen() {
     let lastDate = null;
     const validNews = news.filter(Boolean);
     console.log('Valid news after filter:', validNews.length);
-    
+
     validNews.forEach((item, idx) => {
       if (item.date !== lastDate) {
         out.push({ _type: 'date', _key: `date-${item.date}-${idx}`, date: item.standarddate });
@@ -913,32 +1629,78 @@ export default function TimelineScreen() {
       out.push({ _type: 'item', _key: `item-${item.id}-${idx}`, _isLast: isLast, ...item });
     });
 
+    // Add load more button - always visible if there are news items
+    if (news.length > 0 && !loading) {
+      out.push({ _type: 'loadMore', _key: 'load-more' });
+    }
+
+    // Add most commented section if data is available (always show)
+    if (mostCommented.length > 0) {
+      out.push({ _type: 'thickDivider', _key: 'thick-most-commented' });
+      out.push({ _type: 'sectionHeader', _key: 'sh-most-commented', title: 'அதிகம் விமர்ச்சிக்கப்பட்டவை' });
+
+      mostCommented.forEach((item, idx) => {
+        // Convert most commented item to timeline item format
+        const timelineItem = {
+          id: item.newsid,
+          newsid: item.newsid,
+          newstitle: item.newstitle,
+          newsdate: item.newsdate,
+          standarddate: item.standarddate,
+          date: item.date,
+          time: item.time,
+          ago: item.ago,
+          images: item.images,
+          newscomment: item.newscomment,
+          maincat: item.maincat,
+          maincatid: item.maincatid,
+          audio: item.audio,
+          video: item.video,
+          path: item.path,
+          slug: item.slug,
+          reacturl: item.reacturl,
+          catslug: item.catslug,
+        };
+
+        const isLast = idx === mostCommented.length - 1;
+        out.push({ _type: 'item', _key: `most-commented-${item.newsid}-${idx}`, _isLast: isLast, ...timelineItem });
+
+        if (idx < mostCommented.length - 1) {
+          out.push({ _type: 'divider', _key: `mc-divider-${idx}` });
+        }
+      });
+    }
+
     console.log('Final listData length:', out.length);
     console.log('=== End listData Creation ===');
 
     return out;
-  }, [notifications, news, notifTitle, latestTitle]);
+  }, [notifications, news, notifTitle, latestTitle, mostCommented]);
 
   const renderItem = ({ item }) => {
     switch (item._type) {
       case 'sectionHeader': return <SectionHeader title={item.title} />;
-      case 'notif': return <NotificationCard item={item} onPress={goToArticle} />;
-      case 'item': return <TimelineItem item={item} isLast={item._isLast} onPress={goToArticle} />;
+      case 'notif': return <NotificationCard item={item} onPress={goToArticle} navigation={navigation} />;
+      case 'item': return <TimelineItem item={item} isLast={item._isLast} onPress={goToArticle} navigation={navigation} resolvePhotoTab={resolvePhotoTab} />;
       case 'date': return <DateSeparator date={item.date} />;
       case 'divider': return <View style={{ height: vs(1), backgroundColor: PALETTE.grey200 }} />;
       case 'thickDivider': return <View style={{ height: vs(8), backgroundColor: PALETTE.grey200 }} />;
+      case 'loadMore': return <LoadMoreButton onPress={() => fetchAll(page + 1)} loading={loadingMore} />;
       default: return null;
     }
   };
 
   return (
     <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
+
       <UniversalHeaderComponent
-        statusBarStyle="light-content"
+        statusBarStyle="dark-content"
         statusBarBackgroundColor={COLORS.white}
         onMenuPress={handleMenuPress}
-        onNotification={goToNotifs}
-        notifCount={0}
+        onNotification={handleNotificationCenterPress}
+        notifCount={notifBadgeCount}
+        hideNotification={false}
         isDrawerVisible={isDrawerVisible}
         setIsDrawerVisible={setIsDrawerVisible}
         navigation={navigation}
@@ -989,8 +1751,6 @@ export default function TimelineScreen() {
           renderItem={renderItem}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
-          onEndReached={onEndReached}
-          onEndReachedThreshold={0.4}
           onScroll={e => setShowScrollTop(e.nativeEvent.contentOffset.y > 400)}
           scrollEventThrottle={16}
           ListFooterComponent={
@@ -1012,6 +1772,31 @@ export default function TimelineScreen() {
           <Ionicons name="arrow-up" size={20} color="#fff" />
         </TouchableOpacity>
       )}
+
+      {/* Test notification button (for development) - Hidden for testing */}
+      {/* <TouchableOpacity
+        style={styles.testNotificationBtn}
+        onPress={testPushNotification}
+      >
+        <Ionicons name="notifications" size={s(20)} color="#fff" />
+        <Text style={styles.testNotificationText}>Test</Text>
+      </TouchableOpacity> */}
+
+      {/* Real-time notification popup */}
+      {/* <RealTimeNotificationPopup
+        notification={currentNotification}
+        visible={showNotificationPopup}
+        onClose={handleNotificationPopupClose}
+        onPress={handleNotificationPress}
+      /> */}
+
+      {/* Notification center modal */}
+      {/* <NotificationCenter
+        visible={showNotificationCenter}
+        onClose={handleNotificationCenterClose}
+        onNotificationPress={handleNotificationPress}
+        onRefresh={handleNotificationCenterRefresh}
+      /> */}
     </View>
   );
 }
@@ -1020,7 +1805,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: PALETTE.grey200,
-    paddingTop: Platform.OS === 'android' ? vs(30) : 0,
+    paddingTop: Platform.OS === 'android' ? vs(0) : 0,
   },
   listContent: { paddingBottom: vs(40) },
   footerLoader: { justifyContent: 'center', alignItems: 'center', paddingVertical: vs(16) },
@@ -1030,5 +1815,22 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary, justifyContent: 'center', alignItems: 'center',
     elevation: 6, shadowColor: '#000', shadowOffset: { width: 0, height: vs(3) },
     shadowOpacity: 0.25, shadowRadius: s(5),
+  },
+  testNotificationBtn: {
+    position: 'absolute', bottom: vs(24), left: s(16),
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: s(12),
+    paddingVertical: vs(8),
+    borderRadius: s(20),
+    elevation: 6, shadowColor: '#000', shadowOffset: { width: 0, height: vs(3) },
+    shadowOpacity: 0.25, shadowRadius: s(5),
+  },
+  testNotificationText: {
+    color: '#fff',
+    fontSize: ms(12),
+    fontFamily: FONTS.muktaMalar.bold,
+    marginLeft: s(4),
   },
 });

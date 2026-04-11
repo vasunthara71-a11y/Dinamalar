@@ -6,9 +6,12 @@ import {
   ScrollView,
   TouchableOpacity,
   Switch,
+  StatusBar,
 } from 'react-native';
 import Slider from '@react-native-community/slider';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useFontSize } from '../context/FontSizeContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { COLORS, FONTS } from '../utils/constants';
 
 // ─── Font Size Row ────────────────────────────────────────────────────────────
@@ -349,12 +352,42 @@ const nr = StyleSheet.create({
 
 // ─── Main ProfileScreen ───────────────────────────────────────────────────────
 const ProfileScreen = () => {
+  const navigation = useNavigation();
   const [notifications, setNotifications] = React.useState(true);
   const [darkMode, setDarkMode] = React.useState(false);
+  const [userEmail, setUserEmail] = React.useState(null);
   const { sf } = useFontSize();
+
+  // Load user email from AsyncStorage on component mount and when screen comes into focus
+useFocusEffect(
+  React.useCallback(() => {
+    const loadUserEmail = async () => {
+      try {
+        const email = await AsyncStorage.getItem('userEmail');
+        console.log('ProfileScreen: Loaded email from AsyncStorage:', email);
+
+        if (email) {
+          setUserEmail(email);
+        } else {
+          console.log('ProfileScreen: No email found in AsyncStorage');
+        }
+      } catch (error) {
+        console.log('Error loading user email:', error);
+      }
+    };
+
+    loadUserEmail();
+  }, [])
+);
+
+  const goToBookmarks = () => {
+    navigation.navigate('BookmarkListScreen');
+  };
 
   return (
     <ScrollView style={styles.container}>
+            <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
+
 
       {/* ── Header ── */}
       <View style={styles.header}>
@@ -362,7 +395,7 @@ const ProfileScreen = () => {
           <Text style={[styles.avatarText, { fontSize: sf(32) }]}>பி</Text>
         </View> */}
         <Text style={[styles.userName, { fontSize: sf(20) }]}>பயனர்</Text>
-        <Text style={[styles.userEmail, { fontSize: sf(14) }]}>user@dinamalar.com</Text>
+        <Text style={[styles.userEmail, { fontSize: sf(14) }]}>{userEmail || 'user@dinamalar.com'}</Text>
       </View>
 
       {/* ── Font Size + Notifications block (matches screenshot) ── */}
@@ -375,7 +408,7 @@ const ProfileScreen = () => {
       {/* ── Saved News ── */}
       <View style={styles.section}>
         <Text style={[styles.sectionTitle, { fontSize: sf(16) }]}>சேமித்த செய்திகள்</Text>
-        <TouchableOpacity style={styles.menuItem}>
+        <TouchableOpacity style={styles.menuItem} onPress={goToBookmarks}>
           <Text style={[styles.menuText, { fontSize: sf(16) }]}>புக்மார்க் செய்தவை</Text>
           <Text style={[styles.arrow, { fontSize: sf(20) }]}>›</Text>
         </TouchableOpacity>

@@ -11,9 +11,10 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { s, vs } from '../utils/scaling';
 import axios from 'axios';
-import { FONTS } from '../utils/constants';
+import { COLORS, FONTS } from '../utils/constants';
 import { ms } from 'react-native-size-matters';
 import { useFontSize } from '../context/FontSizeContext';
+import { useNavigation } from '@react-navigation/native';
 
 // ─── Exact colors from screenshot ────────────────────────────────────────────
 // Pills:     white bg (#FFFFFF), border (#D8D8D8), text (#212B36 near-black)
@@ -26,7 +27,8 @@ const CategoryTab = ({
   onCategoryPress,
   trendingTags = [],
 }) => {
-  // const { ms } = useFontSize(); // Add font scaling
+  const { sf } = useFontSize(); // Add font scaling
+  const navigation = useNavigation();
   
   const [specialTodayData, setSpecialTodayData] = useState([]);
   const [loadingSpecial, setLoadingSpecial] = useState(false);
@@ -42,13 +44,18 @@ const CategoryTab = ({
   const fetchSpecialTodayData = async () => {
     try {
       setLoadingSpecial(true);
-      const response = await axios.get('https://api-st-cdn.dinamalar.com/home');
+      const response = await axios.get('https://api-st.dinamalar.com/home');
       const data     = response.data;
       const specialData = data?.specialtoday?.data || [];
       setSpecialTodayData(specialData.slice(0, 8));
     } catch (error) {
-      console.error('Error fetching Special Today data:', error);
-      setSpecialTodayData([]);
+      if (error.response && error.response.status === 404) {
+        console.error('API endpoint not found:', error);
+        setSpecialTodayData([]);
+      } else {
+        console.error('Error fetching Special Today data:', error);
+        setSpecialTodayData([]);
+      }
     } finally {
       setLoadingSpecial(false);
     }
@@ -61,18 +68,63 @@ const CategoryTab = ({
     url:  tag.url || null,
   }));
 
-  const handleRow1Press = (tag) => {
-    setRow1Active(row1Active === tag.id ? null : tag.id);
-    if (tag.url) Linking.openURL(tag.url);
-    else onCategoryPress?.(tag.id);
-  };
+ const handleRow1Press = (tag) => {
+  setRow1Active(row1Active === tag.id ? null : tag.id);
+  if (tag.url) {
+    if (tag.url.includes('anmegam-spirituality') || tag.url.includes('hindu-kathikal')) {
+      navigation.navigate('CommonSectionScreen', {
+        screenTitle: 'ஆன்மீகம்',
+        apiEndpoint: 'https://api-st.dinamalar.com/anmeegam',
+        allTabLink: 'https://www.dinamalar.com/anmegam-spirituality'
+      });
+    } else if (tag.url.includes('malarkal/ariviyal-malar')) {
+      navigation.navigate('CommonSectionScreen', {
+        screenTitle: 'அறிவியல் மலர்',
+        apiEndpoint: 'https://api-st.dinamalar.com/ariviyal',
+        allTabLink: 'https://www.dinamalar.com/malarkal/ariviyal-malar-science-articles'
+      });
+ } else {
+  const tagName = (tag.name || '').toLowerCase();
+  const tagUrl  = (tag.url  || '').toLowerCase();
+
+  const isGoldRateTag =
+    tagName.includes('gold') ||
+    tagName.includes('thangam') ||
+    tagName.includes('தங்கம்') ||     // Tamil: gold
+    tagName.includes('தங்க விலை') ||  // Tamil: gold rate
+    tagUrl.includes('gold') ||
+    tagUrl.includes('thangam') ||
+    tagUrl.includes('commodity');
+
+  if (isGoldRateTag) {
+    navigation.navigate('GenericWebViewScreen', {
+      url: 'https://www.dinamalar.com/news/business-commodity',
+      title: tag.name || 'Gold Rate',
+    });
+  } else {
+    navigation.navigate('SearchScreen', {
+      searchTerm: tag.name || '',
+    });
+  }
+}
+  } else {
+    onCategoryPress?.(tag.id);
+  }
+};
 
   const handleRow2Press = (item, index) => {
     const id = item.key || `special-${index}`;
     setRow2Active(row2Active === id ? null : id);
     const url = item.url || item.link || item.Url;
-    if (url) Linking.openURL(url);
-    else onCategoryPress?.(id);
+    if (url) {
+      // Navigate to GenericWebViewScreen instead of opening in browser
+      navigation.navigate('GenericWebViewScreen', {
+        url: url,
+        title: item.key || 'Web View'
+      });
+    } else {
+      onCategoryPress?.(id);
+    }
   };
 
   if (row1Tags.length === 0 && specialTodayData.length === 0 && !loadingSpecial) {
@@ -86,9 +138,13 @@ const CategoryTab = ({
       {row1Tags.length > 0 && (
         <View style={st.row}>
           {/* Icon box — square, white bg, gray border, blue icon */}
-          <View style={st.iconBox}>
-            <Ionicons name="trending-up" size={ms(15)} color="#096dd2" />
-          </View>
+          <TouchableOpacity 
+            style={st.iconBox}
+            onPress={() => navigation.navigate('TagsScreen')}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="trending-up" size={ms(25)} color="#096dd2" />
+          </TouchableOpacity>
 
           <ScrollView
             horizontal
@@ -106,7 +162,7 @@ const CategoryTab = ({
                   onPress={() => handleRow1Press(tag)}
                   activeOpacity={0.7}
                 >
-                  <Text style={[st.pillText, isActive && st.pillTextActive, { fontSize: ms(11) }]}>
+                  <Text style={[st.pillText, isActive && st.pillTextActive,  ]}>
                     {tag.name}
                   </Text>
                 </TouchableOpacity>
@@ -117,17 +173,25 @@ const CategoryTab = ({
       )}
 
       {/* Thin divider between rows */}
-      {row1Tags.length > 0 && (specialTodayData.length > 0 || loadingSpecial) && (
+      {/* {row1Tags.length > 0 && (specialTodayData.length > 0 || loadingSpecial) && (
         <View style={st.rowDivider} />
-      )}
+      )} */}
 
       {/* ── Row 2: Special Today ─────────────────────────────────────────── */}
       {(specialTodayData.length > 0 || loadingSpecial) && (
         <View style={st.row}>
           {/* Icon box — calendar, same style */}
-          <View style={st.iconBox}>
-            <Ionicons name="calendar-clear-outline" size={ms(15)} color="#096dd2" />
-          </View>
+          <TouchableOpacity 
+            style={st.iconBox}
+            onPress={() => navigation.navigate('SpecialTodayScreen', {
+              screenTitle: 'சிறப்பு இன்று',
+              apiEndpoint: 'https://api-st.dinamalar.com/specialtoday',
+              allTabLink: 'https://www.dinamalar.com/specialtoday'
+            })}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="calendar-clear" size={ms(25)} color="#096dd2" />
+          </TouchableOpacity>
 
           <ScrollView
             horizontal
@@ -149,7 +213,7 @@ const CategoryTab = ({
                     onPress={() => handleRow2Press(item, index)}
                     activeOpacity={0.7}
                   >
-                    <Text style={[st.pillText, isActive && st.pillTextActive,{ fontSize: ms(11) }]}>
+                    <Text style={[st.pillText, isActive && st.pillTextActive ]}>
                       {item.key}
                     </Text>
                   </TouchableOpacity>
@@ -178,7 +242,7 @@ const st = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: vs(7),
+    paddingVertical: vs(5),
     paddingRight: s(8),
   },
 
@@ -213,31 +277,33 @@ const st = StyleSheet.create({
     borderRadius:    ms(20),       // fully rounded pill
     paddingHorizontal: ms(14),
     paddingVertical: vs(5),
-    backgroundColor: '#eeeeee',   // pure white — matches screenshot
+    // backgroundColor: '#eeeeee',   // pure white — matches screenshot
     alignItems:      'center',
     justifyContent:  'center',
+    backgroundColor:COLORS.bg
   },
 
   // Active pill — blue bg, blue border
-  pillActive: {
-    backgroundColor: '#096dd2',
-    borderColor:     '#096dd2',
-  },
+  // pillActive: {
+  //   backgroundColor: '#096dd2',
+  //   borderColor:     '#096dd2',
+  // },
 
   // Pill text — near-black — matches screenshot dark text on white pill
   pillText: {
     fontFamily: FONTS.muktaMalar.medium,
-    fontSize:   ms(14),
-    color:      '#212B36',        // GREY[800] — near-black, matches screenshot
+    fontSize:   ms(13),
+    color:      COLORS.text,       // GREY[800] — near-black, matches screenshot
     textAlign:  'center',
+    fontWeight:"600"
   },
 
   // Active text — white
-  pillTextActive: {
-    fontFamily: FONTS.muktaMalar.bold,
-    color:      '#FFFFFF',
-    fontSize:   ms(14),
-  },
+  // pillTextActive: {
+  //   fontFamily: FONTS.muktaMalar.bold,
+  //   color:      '#FFFFFF',
+  //   fontSize:   ms(14),
+  // },
 
   // Thin divider between row 1 and row 2
   rowDivider: {

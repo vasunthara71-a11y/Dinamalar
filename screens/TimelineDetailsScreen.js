@@ -104,7 +104,7 @@ export default function TimelineDetailsScreen() {
 
   const handleShare = async () => {
     try {
-      const url = article?.shareurl || `https://www.dinamalar.com/news/${newsItem.id || newsItem.newsid}`;
+      const url = article?.shareurl || `dinamalar://news/${newsItem.id || newsItem.newsid}`;
       const title = article?.newstitle || newsItem.newstitle || 'தினமலர் செய்தி';
       
       await Share.share({
@@ -118,7 +118,7 @@ export default function TimelineDetailsScreen() {
   };
 
   const openInBrowser = () => {
-    const url = article?.shareurl || `https://www.dinamalar.com/news/${newsItem.id || newsItem.newsid}`;
+    const url = article?.shareurl || `dinamalar://news/${newsItem.id || newsItem.newsid}`;
     Linking.openURL(url);
   };
 
@@ -129,7 +129,7 @@ export default function TimelineDetailsScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+        <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
         <ActivityIndicator size="large" color={COLORS.primary} />
         <Text style={styles.loadingText}>ஏற்றுகிறது...</Text>
       </View>
@@ -139,7 +139,7 @@ export default function TimelineDetailsScreen() {
   if (!article && !newsItem) {
     return (
       <View style={styles.errorContainer}>
-        <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+        <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
         <Ionicons name="alert-circle" size={60} color={COLORS.primary} />
         <Text style={styles.errorText}>செய்தி கிடைக்கவில்லை</Text>
         <TouchableOpacity 
@@ -461,7 +461,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#f0f0f0',
     paddingTop: vs(16),
-    paddingHorizontal: s(16),
+    paddingHorizontal: s(12),
   },
   relatedTitle: {
     fontSize: scaledSizes.font.lg,

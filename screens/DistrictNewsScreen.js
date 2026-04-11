@@ -12,16 +12,21 @@ import {
   ScrollView,
   Modal,
   Platform,
+  StatusBar,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { SpeakerIcon } from '../assets/svg/Icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { CDNApi } from '../config/api';
 import { s, vs, ms, scaledSizes } from '../utils/scaling';
 import { COLORS, FONTS, NewsCard as NewsCardStyles } from '../utils/constants';
 import UniversalHeaderComponent from '../components/UniversalHeaderComponent';
 import AppHeaderComponent from '../components/AppHeaderComponent';
+import { useFontSize } from '../context/FontSizeContext';
 import { mvs } from 'react-native-size-matters';
 import TEXT_STYLES from '../utils/textStyles';
+import { Ionicons } from '@expo/vector-icons';
+import CustomCalendarModal from '../components/Customcalendarmodal';
+import { TaboolaAdSection } from '../components/TaboolaComponent';
 
 const PALETTE = {
   primary: '#096dd2',
@@ -46,6 +51,28 @@ const stripHtml = (html) => {
 // The All tab has no `id` field and link === '/district'
 const isAllDistrict = (d) => !d || !d.id || d.title === 'All';
 
+// ─── Group news by date ───────────────────────────────────────────────────────
+function groupByDate(items) {
+  const flat = [];
+  let currentDate = null;
+  let isFirstDate = true; // Track if this is the first (latest) date
+
+  items.forEach(item => {
+    const rawDate = item.ago || item.date || item.time_date || '';
+    // Normalize date to a comparable key
+    const dateKey = rawDate.split(' ')[0] || rawDate; // Take just the date part
+
+    if (dateKey && dateKey !== currentDate) {
+      currentDate = dateKey;
+      flat.push({ type: 'dateHeader', date: rawDate, dateKey, isClickable: isFirstDate });
+      isFirstDate = false; // Only the first date is clickable
+    }
+    flat.push({ type: 'item', item });
+  });
+
+  return flat;
+}
+
 // ─── Skeleton ─────────────────────────────────────────────────────────────────
 function SkeletonCard() {
   return (
@@ -60,31 +87,35 @@ function SkeletonCard() {
   );
 }
 const sk = StyleSheet.create({
-  card:  { backgroundColor: '#fff', marginBottom: vs(8) },
+  card: { backgroundColor: '#fff', marginBottom: vs(8) },
   image: { width: '100%', height: vs(200), backgroundColor: '#e8e8e8' },
-  body:  { padding: s(12) },
-  line:  { height: vs(12), backgroundColor: '#e8e8e8', borderRadius: s(4), marginBottom: vs(6), width: '90%' },
+  body: { padding: s(12) },
+  line: { height: vs(12), backgroundColor: '#e8e8e8', borderRadius: s(4), marginBottom: vs(6), width: '90%' },
 });
 
 // ─── Section Title ─────────────────────────────────────────────────────────────
 function SectionTitle({ title }) {
+  const { sf } = useFontSize();
   return (
     <View style={st.wrap}>
-      <Text style={st.text}>{title}</Text>
+      <Text style={[st.text, { fontSize: sf(16) }]}>{title}</Text>
       <View style={st.underline} />
     </View>
   );
 }
 const st = StyleSheet.create({
-  wrap:      { marginBottom: vs(8), marginTop: vs(2) },
-  text:      { fontSize: scaledSizes.font.lg, fontFamily: FONTS.muktaMalar.bold, color: '#1a1a1a', marginBottom: vs(4) },
-  underline: { height: vs(2), width: s(40), backgroundColor: COLORS.primary },
+  wrap: { marginBottom: vs(8), marginTop: vs(2) },
+  text: { fontSize: scaledSizes.font.lg, fontFamily: FONTS.muktaMalar.bold, color: '#1a1a1a', marginBottom: vs(4) },
+  underline: { height: vs(5), width: s(40), backgroundColor: COLORS.primary },
 });
 
 // ─── News Card ────────────────────────────────────────────────────────
 // News Card (sub-tab full-width — image 3 style)
 // ─────────────────────────────────────────────────────────────────────
 function NewsCard({ item, onPress }) {
+  const { sf } = useFontSize();
+  const [imageError, setImageError] = useState(false);
+
   const imageUri =
     item.largeimages || item.images || item.image || item.thumbnail || item.thumb ||
     'https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_default.jpg?im=Resize,width=400';
@@ -102,36 +133,51 @@ function NewsCard({ item, onPress }) {
 
         {/* Image with horizontal padding */}
         <View style={NewsCardStyles.imageWrap}>
-          <Image source={{ uri: imageUri }} style={NewsCardStyles.image} resizeMode="contain" />
+          {imageError ? (
+            <View style={[NewsCardStyles.image, NewsCardStyles.imageErrorContainer]}>
+              <Image
+                source={{ uri: 'https://stat.dinamalar.com/new/2025/images/dinamalar-pavala-vizha-logo-day.png' }}
+                style={[NewsCardStyles.placeholderImage]}
+                resizeMode="contain"
+              />
+            </View>
+          ) : (
+            <Image
+              source={{ uri: imageUri }}
+              style={NewsCardStyles.image}
+              resizeMode="contain"
+              onError={() => setImageError(true)}
+            />
+          )}
         </View>
 
         {/* Content */}
         <View style={NewsCardStyles.contentContainer}>
           {!!title && (
-            <Text style={NewsCardStyles.title} numberOfLines={3}>{title}</Text>
+            <Text style={[NewsCardStyles.title, { fontSize: sf(14), lineHeight: sf(22) }]} numberOfLines={3}>{title}</Text>
           )}
 
           {/* Category pill — gray, matches screenshot */}
-          {!!category && (
+          {/* {!!category && (
             <View style={NewsCardStyles.catPill}>
-              <Text style={NewsCardStyles.catText}>{category}</Text>
+              <Text style={[NewsCardStyles.catText, { fontSize: sf(12) }]}>{category}</Text>
             </View>
-          )}
+          )} */}
 
           {/* Meta row */}
           <View style={NewsCardStyles.metaRow}>
-            <Text style={NewsCardStyles.timeText}>{ago}</Text>
+            <Text style={[NewsCardStyles.timeText, { fontSize: sf(12) }]}>{ago}</Text>
             <View style={NewsCardStyles.metaRight}>
-              
+
               {!!newscomment && newscomment !== '0' && (
                 <View style={NewsCardStyles.commentRow}>
                   <Ionicons name="chatbox" size={s(14)} color={PALETTE.grey700} />
-                  <Text style={NewsCardStyles.commentText}> {newscomment}</Text>
+                  <Text style={[NewsCardStyles.commentText, { fontSize: sf(12) }]}> {newscomment}</Text>
                 </View>
               )}
               {hasAudio && (
                 <View style={NewsCardStyles.audioIcon}>
-                  <Ionicons name="volume-high" size={s(14)} color={PALETTE.grey700} />
+                  <SpeakerIcon size={s(14)} color={PALETTE.grey700} />
                 </View>
               )}
             </View>
@@ -147,6 +193,7 @@ function NewsCard({ item, onPress }) {
 
 // ─── District Picker Modal ────────────────────────────────────────────────────
 function DistrictPicker({ visible, districts, selectedId, onSelect, onClose }) {
+  const { sf } = useFontSize();
   return (
     <Modal
       visible={visible}
@@ -158,7 +205,7 @@ function DistrictPicker({ visible, districts, selectedId, onSelect, onClose }) {
       <TouchableOpacity style={dp.backdrop} activeOpacity={1} onPress={onClose}>
         <View style={dp.sheet}>
           <View style={dp.header}>
-            <Text style={dp.headerTitle}>மாவட்டம் தேர்வு செய்க</Text>
+            <Text style={[dp.headerTitle, { fontSize: sf(16) }]}>மாவட்டம் தேர்வு செய்க</Text>
             <TouchableOpacity onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
               <Ionicons name="close" size={s(20)} color="#333" />
             </TouchableOpacity>
@@ -173,7 +220,7 @@ function DistrictPicker({ visible, districts, selectedId, onSelect, onClose }) {
                   onPress={() => onSelect(d)}
                   activeOpacity={0.7}
                 >
-                  <Text style={[dp.rowText, isSelected && dp.rowTextActive]}>
+                  <Text style={[dp.rowText, isSelected && dp.rowTextActive, { fontSize: sf(14) }]}>
                     {d.title}
                   </Text>
                   {isSelected && (
@@ -206,7 +253,7 @@ const dp = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: s(16),
+    paddingHorizontal: s(12),
     paddingVertical: vs(14),
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
@@ -216,46 +263,65 @@ const dp = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: s(16),
+    paddingHorizontal: s(12),
     paddingVertical: vs(12),
     borderBottomWidth: 1,
     borderBottomColor: '#f8f8f8',
   },
-  rowActive:    { backgroundColor: '#c7e8ff' },
-  rowText:     TEXT_STYLES.body.large,
-  rowTextActive:{ fontFamily: FONTS.muktaMalar.bold, color: COLORS.primary },
+  rowActive: { backgroundColor: '#cae9ff' },
+  rowText: {
+    fontFamily: FONTS.muktaMalar.medium,
+    color: COLORS.text,
+    lineHeight: ms(22),
+  },
+  rowTextActive: { fontFamily: FONTS.muktaMalar.bold, color: COLORS.primary },
 });
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 export default function DistrictNewsScreen() {
   const navigation = useNavigation();
-  const route      = useRoute();
+  const route = useRoute();
 
-  const initialDistrictId    = route?.params?.districtId    || null;
+  const initialDistrictId = route?.params?.districtId || null;
   const initialDistrictTitle = route?.params?.districtTitle || null;
+  const fromPugarPetti = route?.params?.fromPugarPetti || false;
+  const showAllTab = route?.params?.showAllTab || false;
 
-  const [districts,      setDistricts]      = useState([]);
+  console.log('[DistrictNews] Route params debug:', {
+    initialDistrictId,
+    initialDistrictTitle,
+    fromPugarPetti,
+    showAllTab
+  });
+
+  const [districts, setDistricts] = useState([]);
   const [activeDistrict, setActiveDistrict] = useState(null);
-  const [pickerVisible,  setPickerVisible]  = useState(false);
+  const [pickerVisible, setPickerVisible] = useState(false);
 
-  const [allSections,  setAllSections]  = useState([]);
+  const [allSections, setAllSections] = useState([]);
   const [districtNews, setDistrictNews] = useState([]);
-  const [page,         setPage]         = useState(1);
-  const [lastPage,     setLastPage]     = useState(1);
-  const [tabLoading,   setTabLoading]   = useState(false);
-  const [loadMore,     setLoadMore]     = useState(false);
+  const [page, setPage] = useState(1);
+  const [lastPage, setLastPage] = useState(1);
+  const [tabLoading, setTabLoading] = useState(false);
+  const [loadMore, setLoadMore] = useState(false);
 
-  const [initLoading,   setInitLoading]   = useState(true);
-  const [refreshing,    setRefreshing]    = useState(false);
+  const [initLoading, setInitLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
 
-  const [isDrawerVisible,         setIsDrawerVisible]         = useState(false);
+  const [isDrawerVisible, setIsDrawerVisible] = useState(false);
   const [isLocationDrawerVisible, setIsLocationDrawerVisible] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [showCalendar, setShowCalendar] = useState(false);
+  const [allDistrictNews, setAllDistrictNews] = useState([]); // keep original unfiltered
+  const [taboolaAds, setTaboolaAds] = useState(null); // Taboola ads state
 
   const flatListRef = useRef(null);
+  const { sf } = useFontSize();
 
   const handleScroll = useCallback((e) => {
-    setShowScrollTop(e.nativeEvent.contentOffset.y > 300);
+    const offsetY = e.nativeEvent.contentOffset.y;
+    setShowScrollTop(offsetY > 300);
   }, []);
 
   const scrollToTop = useCallback(() => {
@@ -265,87 +331,99 @@ export default function DistrictNewsScreen() {
   // ── Fetch /district (All tab) ─────────────────────────────────────────────
   const fetchAll = useCallback(async () => {
     try {
-      const res  = await CDNApi.get('/district');
-      const d    = res?.data;
+      const res = await CDNApi.get('/district');
+      const d = res?.data;
       const tabs = d?.subcatlist || [];
       setDistricts(tabs);
 
-      // Always store All sections regardless of which district is active
       const sections = (d?.newlist || []).filter(
         sec => Array.isArray(sec?.data) && sec.data.length > 0
       );
       setAllSections(sections);
 
+      // 1. Try match by numeric ID first
       if (initialDistrictId) {
-        // Pre-select district passed via navigation params (e.g. from DistrictDrawer)
         const found = tabs.find(t => String(t.id) === String(initialDistrictId));
         if (found) {
           setActiveDistrict(found);
-          // fetchDistrictNews will be triggered by the useEffect below
-          // initLoading will be cleared after district news loads
           return;
         }
       }
 
-      // Default: All tab (tabs[0] has no id)
-      setActiveDistrict(tabs[0] || null);
+      // 2. Try match by title (from LocationDrawer which gives string IDs)
+      if (initialDistrictTitle) {
+        const found = tabs.find(t => t.title === initialDistrictTitle);
+        if (found) {
+          setActiveDistrict(found);
+          return;
+        }
+      }
+
+      // 3. Default to Chennai
+      const chennaiDistrict = tabs.find(
+        t => t.title && (t.title.includes('சென்னை') || t.title.toLowerCase().includes('chennai'))
+      );
+      setActiveDistrict(chennaiDistrict || tabs[0] || null);
+
+      // Set Taboola ads from API response
+      if (d?.taboola_ads?.mobile) {
+        setTaboolaAds(d.taboola_ads.mobile);
+      }
+
     } catch (e) {
       console.error('DistrictNewsScreen fetchAll error:', e?.message);
     } finally {
       setInitLoading(false);
       setRefreshing(false);
     }
-  }, [initialDistrictId]);
+  }, [initialDistrictId, initialDistrictTitle]); // ← add initialDistrictTitle to deps
 
   useEffect(() => { fetchAll(); }, []);
 
   // ── Extract news list from ANY response shape ─────────────────────────────
   const extractList = (d) => (
     d?.districtlisting?.data ||   // Chennai, Namakkal, most districts
-    d?.newlist?.data         ||
-    d?.newslist?.data        ||
-    d?.districtlist?.data    ||
-    d?.districtNews?.data    ||
-    d?.news?.data            ||
-    d?.data?.data            ||
-    d?.data                  ||
-    d?.list                  ||
+    d?.newlist?.data ||
+    d?.newslist?.data ||
+    d?.districtlist?.data ||
+    d?.districtNews?.data ||
+    d?.news?.data ||
+    d?.data?.data ||
+    d?.data ||
+    d?.list ||
     []
   ).filter(Boolean);
 
   const extractLastPage = (d) => (
     d?.districtlisting?.last_page ||
-    d?.newlist?.last_page         ||
-    d?.newslist?.last_page        ||
-    d?.districtlist?.last_page    ||
-    d?.districtNews?.last_page    ||
-    d?.news?.last_page            ||
-    d?.data?.last_page            ||
-    d?.last_page                  ||
+    d?.newlist?.last_page ||
+    d?.newslist?.last_page ||
+    d?.districtlist?.last_page ||
+    d?.districtNews?.last_page ||
+    d?.news?.last_page ||
+    d?.data?.last_page ||
+    d?.last_page ||
     1
   );
 
   // ── Fetch specific district news ──────────────────────────────────────────
   const fetchDistrictNews = useCallback(async (district, pg, append = false) => {
-    // Skip if no district or it's the All tab (no id)
     if (isAllDistrict(district)) return;
-
     try {
-      // district.link is like "/districtdata?cat=267" — always has a ?
       const sep = district.link.includes('?') ? '&' : '?';
       const url = `${district.link}${sep}page=${pg}`;
-      console.log('DistrictNews fetch:', url);
-
-      const res  = await CDNApi.get(url);
-      const d    = res?.data;
+      const res = await CDNApi.get(url);
+      const d = res?.data;
       const list = extractList(d);
-      const lp   = extractLastPage(d);
-
-      console.log(`District ${district.title}: found ${list.length} items`);
+      const lp = extractLastPage(d);
 
       setLastPage(lp);
-      setDistrictNews(prev => append ? [...prev, ...list] : list);
       setPage(pg);
+      // ✅ Store original unfiltered list
+      setAllDistrictNews(prev => append ? [...prev, ...list] : list);
+      setDistrictNews(prev => append ? [...prev, ...list] : list);
+      // ✅ Clear date filter when new district loads
+      setSelectedDate(null);
     } catch (e) {
       console.error('DistrictNews fetch error:', e?.message);
     } finally {
@@ -354,6 +432,88 @@ export default function DistrictNewsScreen() {
       setRefreshing(false);
     }
   }, []);
+
+
+  const handleDateSelect = (date) => {
+    setSelectedDate(date);
+    setShowCalendar(false);
+
+    if (!date) {
+      // Clear filter — restore full list
+      setDistrictNews(allDistrictNews);
+      return;
+    }
+
+    // Format selected date to match item.ago format: "05-Apr-2026"
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const d = date.getDate().toString().padStart(2, '0');
+    const m = months[date.getMonth()];
+    const y = date.getFullYear();
+    const formattedDate = `${d}-${m}-${y}`;
+
+    console.log('[DistrictNews] Filtering by date:', formattedDate);
+
+    const filtered = allDistrictNews.filter(item => {
+      const itemDate = item.ago || item.date || '';
+      return itemDate === formattedDate;
+    });
+
+    console.log('[DistrictNews] Filtered count:', filtered.length);
+    setDistrictNews(filtered);
+  };
+
+  const handleDateHeaderPress = (dateStr) => {
+    // Parse the date string to set initial date for picker
+    let parsedDate = new Date();
+    if (dateStr) {
+      // Handle formats: "2025-08-06", "06-Aug-2025", "06/08/2025"
+      if (dateStr.match(/^\d{4}-\d{2}-\d{2}/)) {
+        const [year, month, day] = dateStr.split('T')[0].split('-');
+        parsedDate = new Date(year, month - 1, day);
+      } else if (dateStr.match(/^\d{2}-[A-Za-z]{3}-\d{4}/)) {
+        const parts = dateStr.split('-');
+        const day = parts[0];
+        const engMonths = {
+          Jan: '01', Feb: '02', Mar: '03', Apr: '04', May: '05', Jun: '06',
+          Jul: '07', Aug: '08', Sep: '09', Oct: '10', Nov: '11', Dec: '12',
+        };
+        const month = engMonths[parts[1]] || '01';
+        const year = parts[2];
+        parsedDate = new Date(year, month - 1, day);
+      } else if (dateStr.match(/^\d{2}\/\d{2}\/\d{4}/)) {
+        const [day, month, year] = dateStr.split('/');
+        parsedDate = new Date(year, month - 1, day);
+      }
+    }
+    setSelectedDate(parsedDate);
+    setShowCalendar(true);
+  };
+
+  // Extract available dates from current news list
+  const availableDates = React.useMemo(() => {
+    const dateSet = new Set();
+    allDistrictNews.forEach(item => {
+      const rawDate = item.ago || item.date || '';
+      if (!rawDate) return;
+      let isoDate = null;
+      if (rawDate.match(/^\d{2}-[A-Za-z]{3}-\d{4}/)) {
+        const ENG = {
+          Jan: '01', Feb: '02', Mar: '03', Apr: '04', May: '05', Jun: '06',
+          Jul: '07', Aug: '08', Sep: '09', Oct: '10', Nov: '11', Dec: '12',
+        };
+        const [d, m, y] = rawDate.split('-');
+        isoDate = `${y}-${ENG[m] || '01'}-${d.padStart(2, '0')}`;
+      } else if (rawDate.match(/^\d{2}-\d{2}-\d{4}/)) {
+        const [d, m, y] = rawDate.split('-');
+        isoDate = `${y}-${m}-${d}`;
+      } else if (rawDate.match(/^\d{4}-\d{2}-\d{2}/)) {
+        isoDate = rawDate.substring(0, 10);
+      }
+      if (isoDate) dateSet.add(isoDate);
+    });
+    return Array.from(dateSet).sort((a, b) => new Date(b) - new Date(a));
+  }, [allDistrictNews]);
+
 
   // ── Re-fetch when district changes ───────────────────────────────────────
   useEffect(() => {
@@ -398,7 +558,7 @@ export default function DistrictNewsScreen() {
 
   const goToArticle = (item) => {
     const category = item.maincat || item.categrorytitle || item.ctitle || item.maincategory || '';
-    
+
     // Debug: Log all available category fields
     console.log('=== DistrictNews goToArticle DEBUG ===');
     console.log('Item:', item);
@@ -408,59 +568,59 @@ export default function DistrictNewsScreen() {
     console.log('maincategory:', item.maincategory);
     console.log('Final category:', category);
     console.log('===================================');
-    
+
     // Handle special category navigation - more flexible matching
     const categoryLower = category.toLowerCase().trim();
-    
+
     // Tharpothaiya - expanded with all possible variations
-    if (categoryLower.includes('தர்போதைய') || categoryLower.includes('tharpothaiya') || 
-        categoryLower.includes('தர்போதைய செய்திகள்') || categoryLower.includes('தர்போதையா') ||
-        categoryLower.includes('தற்போதைய') || categoryLower.includes('தற்போதைய செய்தி') ||
-        categoryLower.includes('தர்போதையா') || categoryLower.includes('தர்போதையா செய்தி')) {
+    if (categoryLower.includes('தர்போதைய') || categoryLower.includes('tharpothaiya') ||
+      categoryLower.includes('தர்போதைய செய்திகள்') || categoryLower.includes('தர்போதையா') ||
+      categoryLower.includes('தற்போதைய') || categoryLower.includes('தற்போதைய செய்தி') ||
+      categoryLower.includes('தர்போதையா') || categoryLower.includes('தர்போதையா செய்தி')) {
       console.log('🎯 MATCH: Tharpothaiya - Navigating to TharpothaiyaSeithigalScreen');
       navigation?.navigate('TharpothaiyaSeithigalScreen');
       return;
     }
-    
+
     // Varthagam/Business - expanded variations
-    if (categoryLower.includes('வர்த்தகம்') || categoryLower.includes('varthagam') || 
-        categoryLower.includes('business') || categoryLower.includes('வணிகம்') ||
-        categoryLower.includes('வர்த்தகம்') || categoryLower.includes('வணிகம்')) {
+    if (categoryLower.includes('வர்த்தகம்') || categoryLower.includes('varthagam') ||
+      categoryLower.includes('business') || categoryLower.includes('வணிகம்') ||
+      categoryLower.includes('வர்த்தகம்') || categoryLower.includes('வணிகம்')) {
       console.log('🎯 MATCH: Varthagam - Navigating to VarthagamScreen');
       navigation?.navigate('VarthagamScreen');
       return;
     }
-    
+
     // Dinam Dinam - expanded variations
-    if (categoryLower.includes('தினம் தினம்') || categoryLower.includes('dinamdinam') || 
-        categoryLower.includes('தினம்தினம்') || categoryLower.includes('தினம் தினம்')) {
+    if (categoryLower.includes('தினம் தினம்') || categoryLower.includes('dinamdinam') ||
+      categoryLower.includes('தினம்தினம்') || categoryLower.includes('தினம் தினம்')) {
       console.log('🎯 MATCH: Dinam Dinam - Navigating to DinamDinamScreen');
       navigation?.navigate('DinamDinamScreen');
       return;
     }
-    
+
     // Sports - expanded variations
-    if (categoryLower.includes('விளையாட்டு') || categoryLower.includes('sports') || 
-        categoryLower.includes('விளையாட்டுகள்') || categoryLower.includes('sport') ||
-        categoryLower.includes('விளையாட்டு') || categoryLower.includes('விளையாட்டுகள்')) {
+    if (categoryLower.includes('விளையாட்டு') || categoryLower.includes('sports') ||
+      categoryLower.includes('விளையாட்டுகள்') || categoryLower.includes('sport') ||
+      categoryLower.includes('விளையாட்டு') || categoryLower.includes('விளையாட்டுகள்')) {
       console.log('🎯 MATCH: Sports - Navigating to SportsScreen');
       navigation?.navigate('SportsScreen');
       return;
     }
-    
+
     // Tamil Nadu - expanded variations
-    if (categoryLower.includes('தமிழ்நாடு') || categoryLower.includes('tamil nadu') || 
-        categoryLower.includes('tamilnadu') || categoryLower.includes('தமிழ்நாடு') ||
-        categoryLower.includes('தமிழ்நாடு') || categoryLower.includes('தமிழ்நாடு')) {
+    if (categoryLower.includes('தமிழ்நாடு') || categoryLower.includes('tamil nadu') ||
+      categoryLower.includes('tamilnadu') || categoryLower.includes('தமிழ்நாடு') ||
+      categoryLower.includes('தமிழ்நாடு') || categoryLower.includes('தமிழ்நாடு')) {
       console.log('🎯 MATCH: Tamil Nadu - Navigating to TamilNaduScreen');
       navigation?.navigate('TamilNaduScreen');
       return;
     }
-    
+
     // Default to NewsDetailsScreen for regular news
     console.log('❌ NO MATCH: Default navigation to NewsDetailsScreen');
     navigation.navigate('NewsDetailsScreen', {
-      newsId:   item.newsid || item.id,
+      newsId: item.newsid || item.id,
       newsItem: item,
     });
   };
@@ -468,21 +628,25 @@ export default function DistrictNewsScreen() {
   const goToSearch = () => navigation.navigate('SearchScreen');
 
   const handleSelectDistrict = (district) => {
-    console.log('DistrictNews district selected from location drawer:', district);
-    if (district?.title) {
-      // If the same district is selected, just close drawer
-      if (district.title === headerTitle) {
-        setIsLocationDrawerVisible(false);
-        return;
-      }
-      
-      // Navigate to DistrictNewsScreen with the selected district
-      // This will work whether we're on DistrictNewsScreen or another screen
-      navigation.navigate('DistrictNewsScreen', {
-        districtId: district.id,
-        districtTitle: district.title
-      });
+    setIsLocationDrawerVisible(false);
+
+    // Match by title against the districts array loaded from /district API
+    // (which has proper numeric id + link fields needed for fetching)
+    const matched = districts.find(
+      d => d.title === district.title ||
+        (district.id && String(d.id) === String(district.id))
+    );
+
+    if (!matched) {
+      console.warn('[DistrictNews] No match found for:', district.title);
+      return;
     }
+
+    // Skip if same district already active
+    if (String(matched.id) === String(activeDistrict?.id)) return;
+
+    flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
+    setActiveDistrict(matched);
   };
 
   const isAllTab = isAllDistrict(activeDistrict);
@@ -497,14 +661,13 @@ export default function DistrictNewsScreen() {
       });
       return flat;
     }
-    return districtNews.map((item) => ({ type: 'news', item }));
+    // Group district news by date for clickable date filtering
+    return groupByDate(districtNews);
   };
 
-  const flatData    = buildFlatData();
-  const isLoading   = initLoading || tabLoading;
-  const headerTitle = (!isAllTab && activeDistrict?.title)
-    ? activeDistrict.title
-    : 'உள்ளூர்';
+  const flatData = buildFlatData();
+  const isLoading = initLoading || tabLoading;
+  const headerTitle = (!isAllTab && activeDistrict?.title) ? activeDistrict.title : 'உள்ளூர்';
 
   const renderItem = ({ item: row }) => {
     if (row.type === 'section') {
@@ -514,11 +677,41 @@ export default function DistrictNewsScreen() {
         </View>
       );
     }
+    if (row.type === 'dateHeader') {
+      if (row.isClickable) {
+        return (
+          <TouchableOpacity 
+            style={styles.dateHeaderWrap}
+            onPress={() => handleDateHeaderPress(row.date)}
+            activeOpacity={0.7}
+          >
+            <View style={styles.dateHeaderInner}>
+              <Ionicons name="calendar-outline" size={s(15)} color="#555" style={styles.dateHeaderIcon} />
+              <Text style={styles.dateHeaderText}>{row.date}</Text>
+            </View>
+          </TouchableOpacity>
+        );
+      } else {
+        // Non-clickable date header - left aligned without TouchableOpacity
+        return (
+          <View style={styles.dateHeaderWrapLeft}>
+            <View style={[styles.dateHeaderInner,{borderTopRightRadius: s(8), borderBottomRightRadius: s(8)}]}>
+              <Ionicons name="calendar-outline" size={s(15)} color="#555" style={styles.dateHeaderIcon} />
+              <Text style={styles.dateHeaderText}>{row.date}</Text>
+            </View>
+          </View>
+        );
+      }
+    }
+    if (row.type === 'item') {
+      return <NewsCard item={row.item} onPress={() => goToArticle(row.item)} />;
+    }
     return <NewsCard item={row.item} onPress={() => goToArticle(row.item)} />;
   };
 
   return (
     <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
 
       <UniversalHeaderComponent
         showMenu showSearch showNotifications showLocation
@@ -536,33 +729,77 @@ export default function DistrictNewsScreen() {
           onSearch={goToSearch}
           onMenu={() => setIsDrawerVisible(true)}
           onLocation={() => setIsLocationDrawerVisible(true)}
-          selectedDistrict={headerTitle}
+          selectedDistrict={"உள்ளூர்"}
         />
       </UniversalHeaderComponent>
 
-      {/* ── Page Title Row ── */}
       <View style={styles.pageTitleRow}>
         <View style={styles.pageTitleLeft}>
-          <Text style={styles.pageTitle}>{headerTitle}</Text>
+          <Text style={[styles.pageTitle, { fontSize: sf(16) }]}>{headerTitle}</Text>
           <View style={styles.pageTitleUnderline} />
         </View>
 
-        <TouchableOpacity
-          style={styles.pickerBtn}
-          onPress={() => setPickerVisible(true)}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.pickerBtnText}>உள்ளூர் செய்திகள்</Text>
-          <Ionicons name="chevron-down" size={s(14)} color={COLORS.primary} />
-        </TouchableOpacity>
+        {/* All tab flow: show district picker */}
+        {showAllTab && (
+          <TouchableOpacity
+            style={styles.pickerBtn}
+            onPress={() => setPickerVisible(true)}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.pickerBtnText, { fontSize: sf(10) }]}>உள்ளூர் செய்திகள்</Text>
+            <Ionicons name="chevron-down" size={s(14)} color={COLORS.text} />
+          </TouchableOpacity>
+        )}
+
+        {/* Specific district flow: show புகார் பெட்டி back button */}
+        {fromPugarPetti && !showAllTab && (
+          <TouchableOpacity
+            style={styles.seithigalBox}
+            onPress={() => navigation.navigate('PugarPettiScreen', {
+              initialDistrictId: activeDistrict?.id,
+            })}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.seithigalText}>புகார் பெட்டி</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
-      {/* ── Content ── */}
+      {/* ── District Tabs (horizontal view like PugarPetti) - only show when from PugarPetti and not All tab ── */}
+      {fromPugarPetti && !showAllTab && districts.length > 0 && (
+        <View style={styles.tabsWrap}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.tabsContent}
+          >
+            {districts.map((district, index) => {
+              const isActive = activeDistrict?.id
+                ? String(district.id) === String(activeDistrict.id)
+                : activeDistrict === null && index === 0;
+              const tabKey = String(district.id || index);
+              return (
+                <TouchableOpacity
+                  key={`tab-${tabKey}-${index}`}
+                  style={[styles.tab, isActive && styles.tabActive]}
+                  onPress={() => handleDistrictSelect(district)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[styles.tabText, isActive && styles.tabTextActive, { fontSize: ms(15) }]}>
+                    {district.title}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+          <View style={styles.tabsBottomLine} />
+        </View>
+      )}
+
       {isLoading ? (
         <FlatList
           data={[1, 2, 3, 4]}
           keyExtractor={i => `sk-${i}`}
-          renderItem={() => <SkeletonCard />}
           contentContainerStyle={styles.listContent}
           style={styles.list}
         />
@@ -591,20 +828,32 @@ export default function DistrictNewsScreen() {
               tintColor={COLORS.primary}
             />
           }
-          ListEmptyComponent={
-            <View style={styles.emptyWrap}>
-              <Ionicons name="location-outline" size={s(48)} color="#ccc" />
-              <Text style={styles.emptyText}>செய்திகள் இல்லை</Text>
-            </View>
-          }
-          ListFooterComponent={
-            loadMore ? (
-              <View style={styles.footerLoader}>
-                <ActivityIndicator size="small" color={COLORS.primary} />
-              </View>
-            ) : <View style={{ height: vs(40) }} />
-          }
         />
+      )}
+
+      {/* ── Taboola Ads ── */}
+      {!isAllTab && taboolaAds && (
+        <>
+          {/* Mid-content Taboola ad */}
+          {taboolaAds.midmain && (
+            <TaboolaAdSection
+              taboolaAds={taboolaAds}
+              position="midmain"
+              pageUrl="https://www.dinamalar.com/district"
+              pageType="article"
+            />
+          )}
+          
+          {/* Bottom Taboola ad */}
+          {taboolaAds.bottom && (
+            <TaboolaAdSection
+              taboolaAds={taboolaAds}
+              position="bottom"
+              pageUrl="https://www.dinamalar.com/district"
+              pageType="article"
+            />
+          )}
+        </>
       )}
 
       {/* ── Scroll To Top ── */}
@@ -623,6 +872,15 @@ export default function DistrictNewsScreen() {
         onClose={() => setPickerVisible(false)}
       />
 
+      {/* ── Calendar Modal ── */}
+      <CustomCalendarModal
+        visible={showCalendar}
+        selectedDate={selectedDate}
+        availableDates={availableDates}
+        onDateSelect={handleDateSelect}
+        onClose={() => setShowCalendar(false)}
+      />
+
     </View>
   );
 }
@@ -632,50 +890,54 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f2f2f2',
-    paddingTop: Platform.OS === 'android' ? vs(28) : 0,
+    paddingTop: Platform.OS === 'android' ? vs(0) : 20,
   },
   pageTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: s(14),
+    paddingHorizontal: s(12),
     paddingTop: vs(14),
     paddingBottom: vs(10),
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
   },
-  pageTitleLeft: {},
+  pageTitleLeft: {
+    alignItems: 'flex-start',
+  },
   pageTitle: {
-    fontSize: scaledSizes.font.lg,
+    fontSize: sf(16),
     fontFamily: FONTS.muktaMalar.bold,
     color: '#1a1a1a',
-    marginBottom: vs(3),
+    // marginBottom: vs(3),
   },
   pageTitleUnderline: {
-    height: vs(2),
-    width: s(40),
+    height: vs(3),
+    width: '50%',
     backgroundColor: COLORS.primary,
   },
   pickerBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: s(4),
-    borderWidth: 1,
-    borderColor: COLORS.primary,
+    // borderWidth: 1,
+    borderColor: COLORS.text,
     // borderRadius: s(4),
     paddingHorizontal: s(5),
     paddingVertical: vs(5),
+    backgroundColor: '#e9e9e9',
   },
   pickerBtnText: {
-    fontSize: ms(10),
+    fontSize: ms(12),
     fontFamily: FONTS.muktaMalar.regular,
-    color: COLORS.primary,
+    color: COLORS.text,
+    fontWeight: '700'
   },
-  list:        { flex: 1 },
+  list: { flex: 1 },
   listContent: { paddingTop: vs(6), paddingBottom: vs(30) },
   sectionWrap: {
-    paddingHorizontal: s(14),
+    paddingHorizontal: s(12),
     paddingTop: vs(16),
     paddingBottom: vs(4),
     backgroundColor: '#f2f2f2',
@@ -684,7 +946,12 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
     paddingVertical: vs(80), gap: vs(12),
   },
-  emptyText:    { fontSize: ms(15), fontFamily: FONTS.muktaMalar.semibold, color: '#aaa' },
+  emptyText: { fontSize: ms(15), fontFamily: FONTS.muktaMalar.semibold, color: '#aaa' },
+  placeholderImage: {
+    width: s(120),
+    height: s(120),
+    opacity: 0.3,
+  },
   footerLoader: { paddingVertical: vs(20), alignItems: 'center' },
   scrollTopBtn: {
     position: 'absolute',
@@ -697,5 +964,83 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: vs(2) },
     shadowOpacity: 0.2,
     shadowRadius: s(4),
+  },
+  seithigalContainer: {
+    backgroundColor: '#fff',
+    paddingHorizontal: s(12),
+    paddingVertical: vs(8),
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  seithigalBox: {
+    borderWidth: 1,
+    borderColor: COLORS.primary,
+    borderRadius: s(4),
+    paddingHorizontal: s(10),
+    paddingVertical: vs(4),
+    alignSelf: 'flex-start',
+  },
+  seithigalText: {
+    fontSize: ms(13),
+    fontFamily: FONTS.muktaMalar.medium,
+    color: COLORS.primary,
+    fontWeight: '600',
+  },
+  tabsWrap: {
+    backgroundColor: COLORS.white,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: vs(1) },
+    shadowOpacity: 0.08,
+    shadowRadius: s(2),
+  },
+  tabsContent: { paddingHorizontal: s(14), alignItems: 'center' },
+  tab: { paddingHorizontal: s(12), paddingVertical: vs(12), marginHorizontal: s(2), borderBottomWidth: vs(3), borderBottomColor: 'transparent' },
+  tabActive: { borderBottomColor: COLORS.primary },
+  tabText: {
+    fontSize: ms(16),
+    fontFamily: FONTS.muktaMalar.medium,
+    color: COLORS.black,
+  },
+  tabTextActive: {
+    fontSize: ms(13),
+    fontFamily: FONTS.muktaMalar.bold,
+    color: COLORS.primary,
+  },
+  tabsBottomLine: { height: StyleSheet.hairlineWidth, backgroundColor: '#e0e0e0' },
+  dateHeaderWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: vs(2),
+    gap: s(6),
+    paddingHorizontal: ms(12),
+    justifyContent: "flex-end"
+  },
+  dateHeaderWrapLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: vs(2),
+    gap: s(6),
+    paddingHorizontal: ms(12),
+    justifyContent: "flex-start"
+  },
+  dateHeaderInner: {
+    borderWidth: 1,
+    flexDirection: "row",
+    paddingVertical: ms(3),
+    paddingHorizontal: ms(8),
+    alignItems: "center",
+    borderColor: '#6c757d',
+    // borderRadius: s(8),
+  },
+  dateHeaderIcon: {
+    marginRight: s(3),
+    color: '#6c757d',
+  },
+  dateHeaderText: {
+    fontSize: ms(14),
+    fontFamily: FONTS.muktaMalar.medium,
+    color: '#6c757d',
+    fontWeight: '600',
   },
 });

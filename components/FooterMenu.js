@@ -13,6 +13,7 @@ import { FONTS } from '../utils/constants';
 import { s, vs } from '../utils/scaling';
 import { ms } from 'react-native-size-matters';
 import { mainApi, API_ENDPOINTS } from '../config/api';
+import { SvgXml } from 'react-native-svg';
 
 // ─── Palette ──────────────────────────────────────────────────────────────────
 const P = {
@@ -25,27 +26,38 @@ const P = {
   grey600: '#637381',
   grey700: '#454F5B',
   grey800: '#212B36',
-  white:   '#FFFFFF',
+  white: '#FFFFFF',
+};
+
+const BASE_URL = 'https://www.dinamalar.com';
+
+/** Always resolves to a full https URL */
+const toFullUrl = (link) => {
+  if (!link) return null;
+  if (link.startsWith('http://') || link.startsWith('https://')) return link;
+  return `${BASE_URL}${link.startsWith('/') ? '' : '/'}${link}`;
 };
 
 function FooterMenu() {
-  const navigation   = useNavigation();
+  const navigation = useNavigation();
   const [footerData, setFooterData] = useState([]);
-  const [ourApps,    setOurApps]    = useState([]);
-  const [followUs,   setFollowUs]   = useState([]);
+  const [ourApps, setOurApps] = useState([]);
+  const [followUs, setFollowUs] = useState([]);
   const [footerText, setFooterText] = useState([]);
-  const [loading,    setLoading]    = useState(true);
-  const [activeIdx,  setActiveIdx]  = useState(null);
-
+  const [loading, setLoading] = useState(true);
+  const [activeIdx, setActiveIdx] = useState(null);
+  const bigApps = ourApps.slice(0, 2);
+  const smallApps = ourApps.slice(2);
   useEffect(() => {
     (async () => {
       try {
         const res = await mainApi.get(API_ENDPOINTS.MENU);
-        const d   = res.data;
-        if (d?.footermenu?.footerdata)    setFooterData(d.footermenu.footerdata);
+        const d = res.data;
+        if (d?.footermenu?.footerdata) setFooterData(d.footermenu.footerdata);
         if (d?.footermenu?.footerourapps) setOurApps(d.footermenu.footerourapps);
-        if (d?.follow)                    setFollowUs(d.follow);
-        if (d?.footermenu?.footertext)    setFooterText(d.footermenu.footertext);
+        if (d?.follow) setFollowUs(d.follow);
+        if (d?.footermenu?.footertext) setFooterText(d.footermenu.footertext);
+
       } catch (e) {
         console.error('FooterMenu fetch error:', e);
       } finally {
@@ -54,27 +66,22 @@ function FooterMenu() {
     })();
   }, []);
 
+  // ── Main footer menu links (can navigate inside app or open browser) ────────
   const handleLinkPress = (item, index) => {
     setActiveIdx(index);
-    if (!item.Link) return;
-    if (item.Targetlink === '_blank' || item.Targetlink === 'targetblank' || item.Link.startsWith('http')) {
-      Linking.openURL(item.Link);
-    } else if (item.id) {
-      navigation.navigate('CategoryNewsScreen', { catId: item.id, catName: item.Title });
-    } else if (item.slug) {
-      navigation.navigate('CategoryNewsScreen', { catId: item.slug.replace('/', ''), catName: item.Title });
-    }
+    const url = toFullUrl(item.Link || item.slug);
+    if (!url) return;
+    Linking.openURL(url);
   };
 
+
+  // ── Footer text links → ALWAYS open in the device browser ─────────────────
+  // These are static pages (Contact Us, Terms, Privacy, Copyright etc.)
+  // We never navigate to an in-app screen for these.
   const handleFooterTextPress = (item) => {
-    if (!item.Link) return;
-    if (item.Targetlink === '_blank' || item.Targetlink === 'targetblank' || item.Link.startsWith('http')) {
-      Linking.openURL(item.Link);
-    } else if (item.id) {
-      navigation.navigate('CategoryNewsScreen', { catId: item.id, catName: item.Title });
-    } else if (item.slug) {
-      navigation.navigate('CategoryNewsScreen', { catId: item.slug.replace('/', ''), catName: item.Title });
-    }
+    const url = toFullUrl(item.Link || item.slug);
+    if (!url) return;
+    Linking.openURL(url);
   };
 
   if (loading) {
@@ -85,8 +92,8 @@ function FooterMenu() {
     );
   }
 
-  const half     = Math.ceil(footerData.length / 2);
-  const leftCol  = footerData.slice(0, half);
+  const half = Math.ceil(footerData.length / 2);
+  const leftCol = footerData.slice(0, half);
   const rightCol = footerData.slice(half);
 
   return (
@@ -109,7 +116,6 @@ function FooterMenu() {
       {/* ── Footer Menu — two columns ─────────────────────────────────────── */}
       {footerData.length > 0 && (
         <View style={st.menuRow}>
-          {/* Left column */}
           <View style={st.col}>
             {leftCol.map((item, i) => (
               <TouchableOpacity
@@ -125,10 +131,8 @@ function FooterMenu() {
             ))}
           </View>
 
-          {/* Column separator */}
           <View style={st.colSep} />
 
-          {/* Right column */}
           <View style={st.col}>
             {rightCol.map((item, i) => {
               const realIdx = i + half;
@@ -155,8 +159,10 @@ function FooterMenu() {
       {ourApps.length > 0 && (
         <View style={st.section}>
           <Text style={st.sectionTitle}>Our Apps Available On</Text>
-          <View style={st.appsRow}>
-            {ourApps.map((app, i) => (
+
+          {/* 🔹 Small icons (TOP) */}
+          <View style={st.smallAppsRow}>
+            {smallApps.map((app, i) => (
               <TouchableOpacity
                 key={i}
                 style={st.appItem}
@@ -167,6 +173,21 @@ function FooterMenu() {
               </TouchableOpacity>
             ))}
           </View>
+
+          {/* 🔹 Big icons (BOTTOM) */}
+          <View style={st.bigAppsRow}>
+            {bigApps.map((app, i) => (
+              <TouchableOpacity
+                key={i}
+                style={st.bigAppItem}
+                onPress={() => app.Link && Linking.openURL(app.Link)}
+                activeOpacity={0.7}
+              >
+                <Image source={{ uri: app.icon }} style={st.bigAppIcon} resizeMode="contain" />
+              </TouchableOpacity>
+            ))}
+          </View>
+
         </View>
       )}
 
@@ -184,7 +205,15 @@ function FooterMenu() {
                 onPress={() => item.Link && Linking.openURL(item.Link)}
                 activeOpacity={0.7}
               >
-                <Image source={{ uri: item.Icon }} style={st.followIcon} resizeMode="contain" />
+                {item.Icon?.includes('<svg') ? (
+                  <SvgXml xml={item.Icon} width={22} height={22} />
+                ) : (
+                  <Image
+                    source={{ uri: item.Icon }}
+                    style={st.followIcon}
+                    resizeMode="contain"
+                  />
+                )}
               </TouchableOpacity>
             ))}
           </View>
@@ -193,28 +222,30 @@ function FooterMenu() {
 
       <View style={st.divider} />
 
-      {/* ── Footer Text Links ────────────────────────────────────────────── */}
+      {/* ── Footer Text Links — open in browser, never in-app ────────────── */}
       {footerText.length > 0 && (
         <View style={st.footerTextWrap}>
-          {footerText.map((item, i) => (
-            <View key={i} style={st.footerTextItem}>
-              <TouchableOpacity onPress={() => handleFooterTextPress(item)} activeOpacity={0.7}>
-                <Text style={st.footerTextLink}>{item.Title}</Text>
-              </TouchableOpacity>
-              {i < footerText.length - 1 && (
-                <Text style={st.footerTextSep}>|</Text>
-              )}
-            </View>
+          {footerText.slice(0, 3).map((item, i) => (<View key={i} style={st.footerTextItem}>
+            <TouchableOpacity
+              onPress={() => handleFooterTextPress(item)}
+              activeOpacity={0.7}
+            >
+              <Text style={st.footerTextLink}>{item.Title}</Text>
+            </TouchableOpacity>
+            {i < footerText.length - 1 && (
+              <Text style={st.footerTextSep}>|</Text>
+            )}
+          </View>
           ))}
         </View>
       )}
 
       {/* ── Copyright ────────────────────────────────────────────────────── */}
-      <View style={st.copyright}>
+      {/* <View style={st.copyright}>
         <Text style={st.copyrightText}>
           © {new Date().getFullYear()} Dinamalar. All Rights Reserved.
         </Text>
-      </View>
+      </View> */}
 
     </View>
   );
@@ -230,19 +261,46 @@ const st = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: P.white,
   },
+  smallAppsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: s(10),
+    marginBottom: vs(14),
+  },
+
+  bigAppsRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: s(16),
+  },
+
+  bigAppItem: {
+    width: s(60),
+    height: s(60),
+    borderRadius: s(12),
+    borderWidth: 1,
+    borderColor: P.grey300,
+    backgroundColor: P.grey100,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  bigAppIcon: {
+    width: s(60),
+    height: s(60),
+  },
 
   container: {
     backgroundColor: P.white,
     paddingBottom: vs(10),
   },
 
-  // Blue top accent bar
   accentBar: {
     height: vs(4),
     backgroundColor: P.primary,
   },
 
-  // Logo
   logoWrap: {
     alignItems: 'center',
     paddingVertical: vs(18),
@@ -252,7 +310,6 @@ const st = StyleSheet.create({
     height: vs(38),
   },
 
-  // Thin gray divider
   divider: {
     height: 1,
     backgroundColor: P.grey200,
@@ -260,10 +317,9 @@ const st = StyleSheet.create({
     marginVertical: vs(4),
   },
 
-  // ── Menu columns ────────────────────────────────────────────────────────────
   menuRow: {
     flexDirection: 'row',
-    paddingHorizontal: s(16),
+    paddingHorizontal: s(12),
     paddingVertical: vs(8),
   },
   col: {
@@ -280,17 +336,16 @@ const st = StyleSheet.create({
   menuText: {
     fontFamily: FONTS.muktaMalar.regular,
     fontSize: ms(13),
-    color: P.grey700,             // #454F5B dark gray
+    color: P.grey700,
     lineHeight: ms(20),
   },
   menuTextActive: {
     fontFamily: FONTS.muktaMalar.bold,
-    color: P.primary,             // blue when active
+    color: P.primary,
   },
 
-  // ── Generic section wrapper ──────────────────────────────────────────────────
   section: {
-    paddingHorizontal: s(16),
+    paddingHorizontal: s(12),
     paddingVertical: vs(14),
   },
   centerSection: {
@@ -299,25 +354,23 @@ const st = StyleSheet.create({
   sectionTitle: {
     fontFamily: FONTS.muktaMalar.bold,
     fontSize: ms(16),
-    color: P.grey800,             // #212B36 near-black
+    color: P.grey800,
     marginBottom: vs(12),
-    // textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
 
-  // ── Our Apps ────────────────────────────────────────────────────────────────
   appsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: s(10),
   },
   appItem: {
-    width: s(46),
-    height: s(46),
+    width: s(36),
+    height: s(36),
     borderRadius: s(10),
     borderWidth: 1,
-    borderColor: P.grey300,       // #DFE3E8
-    backgroundColor: P.grey100,   // #F9FAFB
+    borderColor: P.grey300,
+    backgroundColor: P.grey100,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
@@ -327,7 +380,6 @@ const st = StyleSheet.create({
     height: s(40),
   },
 
-  // ── Follow Us ───────────────────────────────────────────────────────────────
   followRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -337,7 +389,7 @@ const st = StyleSheet.create({
   followItem: {
     width: s(40),
     height: s(40),
-    borderRadius: s(20),          // full circle
+    borderRadius: s(20),
     borderWidth: 1,
     borderColor: P.grey300,
     backgroundColor: P.grey100,
@@ -350,7 +402,6 @@ const st = StyleSheet.create({
     height: s(22),
   },
 
-  // ── Footer Text Links ────────────────────────────────────────────────────────
   footerTextWrap: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -367,27 +418,26 @@ const st = StyleSheet.create({
   footerTextLink: {
     fontFamily: FONTS.muktaMalar.regular,
     fontSize: ms(11),
-    color: P.grey600,             // #637381
+    color: P.grey600,
   },
   footerTextSep: {
     fontFamily: FONTS.muktaMalar.regular,
     fontSize: ms(11),
-    color: P.grey400,             // #C4CDD5
+    color: P.grey400,
     marginHorizontal: s(6),
   },
 
-  // ── Copyright ───────────────────────────────────────────────────────────────
   copyright: {
     alignItems: 'center',
     paddingVertical: vs(14),
-    paddingHorizontal: s(16),
+    paddingHorizontal: s(12),
     backgroundColor: P.grey100,
     marginTop: vs(4),
   },
   copyrightText: {
     fontFamily: FONTS.muktaMalar.regular,
     fontSize: ms(11),
-    color: P.grey500,             // #919EAB muted gray
+    color: P.grey500,
     textAlign: 'center',
   },
 });

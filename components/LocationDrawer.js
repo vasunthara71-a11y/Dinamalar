@@ -68,10 +68,14 @@ const FALLBACK = [
   { title: 'விருதுநகர்',     id: 'virudhunagar' },
 ];
 
-function LocationDrawer({ isVisible, onClose, onSelectDistrict, selectedDistrict }) {
-  const { sf } = useFontSize();
+function LocationDrawer({ isVisible, onClose, onSelectDistrict = () => {}, selectedDistrict }) {  const { sf } = useFontSize();
   const [districts, setDistricts] = useState([]);
   const [loading,   setLoading]   = useState(true);
+
+  // Default function to prevent errors
+  const defaultSelectDistrict = (district) => {
+    console.log('Default selectDistrict called with:', district);
+  };
 
   useEffect(() => {
     if (!isVisible) return;
@@ -123,7 +127,10 @@ function LocationDrawer({ isVisible, onClose, onSelectDistrict, selectedDistrict
                 <TouchableOpacity
                   key={`${district.id || i}-${district.title}`}
                   style={[st.item, isActive && st.itemActive]}
-                  onPress={() => { onSelectDistrict(district); onClose(); }}
+                 onPress={() => {
+  onSelectDistrict(district);
+  onClose();
+}}
                   activeOpacity={0.6}
                 >
                   {/* Large filled blue location pin — matches screenshot */}
@@ -175,13 +182,14 @@ const st = StyleSheet.create({
   // White panel — right side, ~75% width matches screenshot
   panel: {
     width:           '75%',
-    height:          '100%',
+    height:          '85%',
     backgroundColor: P.white,
     shadowColor:     '#000',
     shadowOffset:    { width: -4, height: 0 },
     shadowOpacity:   0.18,
     shadowRadius:    12,
     elevation:       20,
+    top: 80
   },
 
   // ── Header ──────────────────────────────────────────────────────────────────
@@ -190,8 +198,8 @@ const st = StyleSheet.create({
     alignItems:       'center',
     justifyContent:   'space-between',
     paddingHorizontal: s(20),
-    paddingTop:       Platform.OS === 'android' ? vs(22) : vs(58),
-    paddingBottom:    vs(20),
+    paddingTop:       Platform.OS === 'android' ? vs(15) : vs(58),
+    paddingBottom:    vs(7),
   },
 
   // Blue bold title — matches screenshot exactly
@@ -211,7 +219,7 @@ const st = StyleSheet.create({
   item: {
     flexDirection:     'row',
     alignItems:        'center',
-    paddingHorizontal: s(16),
+    paddingHorizontal: s(12),
     paddingVertical:   vs(7),        // tall rows — matches screenshot
     backgroundColor:   P.white,
   },

@@ -20,24 +20,40 @@ import KadalThamaraiScreen from "../screens/KadalThamaraiScreen";
 import VarthagamScreen from '../screens/VarthagamScreen';
 import SportsScreen from '../screens/SportsScreen';
 import DistrictNewsScreen from '../screens/DistrictNewsScreen';
- import DinamDinamScreen from '../screens/DinamDinamScreen';
-import JoshiyamScreen from '../screens/JoshiyamScreen';
-import CommonSectionScreen from '../screens/CommonSectionScreen';
+ import CommonSectionScreen from '../screens/CommonSectionScreen';
 import RasiDetailScreen from '../screens/RasiDetailScreen';
 import PhotoDetailsScreen from '../screens/PhotoDetailsScreen';
 import ShortNewsSwiperScreen from '../screens/ShortNewsSwiperScreen';
 import VideoDetailScreen from '../screens/VideoDetailScreen';
-  
+import PodcastPlayer from '../screens/PodcastPlayer';
+import CommodityScreen from '../screens/CommodityScreen';
+import CommodityWebViewScreen from '../screens/CommodityWebViewScreen';
+import TempleWebViewScreen from '../screens/TempleWebViewScreen';
+import JoshiyamWebViewScreen from '../screens/JoshiyamWebViewScreen';
+import BookmarkListScreen from '../screens/BookmarkListScreen';
+import AuthorScreen from '../screens/AuthorScreen';
+import TagsScreen from '../screens/TagsScreen';
+import SpecialTodayScreen from '../screens/SpecialTodayScreen';
+import EditorChoiceScreen from '../screens/EditorChoiceScreen';
+import linking from './linking';
+import FeedbackForm from '../screens/FeedbackForm';
+import LoginScreen from '../screens/Auth/LoginScreen';
+import ForgotPasswordScreen from '../screens/Auth/ForgotPasswordScreen';
+import PugarPettiScreen from '../screens/PugarPettiScreen';
+import GenericWebViewScreen from '../screens/GenericWebViewScreen';
+// import SignupScreen from '../screens/Auth/SignUpScreen';
+   
 const Stack = createNativeStackNavigator();
 
 // Stack Navigator for individual screens
 const AppNavigator = () => {
   return (
-    <NavigationContainer>
+    <NavigationContainer linking={linking}>
       <Stack.Navigator
         screenOptions={{
           headerShown: false,
         }}
+        initialRouteName="MainTabs"
       >
         <Stack.Screen name="MainTabs" component={TabNavigator} />
         <Stack.Screen name="HomeScreen" component={HomeScreen} />
@@ -68,14 +84,32 @@ const AppNavigator = () => {
         <Stack.Screen name="About" component={ProfileScreen} />
         <Stack.Screen name='SportsScreen' component={SportsScreen}/>
         <Stack.Screen name='DistrictNewsScreen' component={DistrictNewsScreen}/>
-        <Stack.Screen name='DinamDinamScreen' component={DinamDinamScreen}/>
-
-        <Stack.Screen name='JoshiyamScreen' component={JoshiyamScreen}/>
-        <Stack.Screen name='CommonSectionScreen' component={CommonSectionScreen}/>
+ 
+         <Stack.Screen name='CommonSectionScreen' component={CommonSectionScreen}/>
         <Stack.Screen name='RasiDetailScreen' component={RasiDetailScreen}/>
         <Stack.Screen name='PhotoDetailsScreen' component={PhotoDetailsScreen}/>
         <Stack.Screen name='ShortNewsSwiperScreen' component={ShortNewsSwiperScreen}/>
         <Stack.Screen name='VideoDetailScreen' component={VideoDetailScreen}/>
+        <Stack.Screen name='PodcastPlayer' component={PodcastPlayer}/>
+        <Stack.Screen name='CommodityScreen' component={CommodityScreen}/>
+        <Stack.Screen name='CommodityWebViewScreen' component={CommodityWebViewScreen}/>
+        <Stack.Screen name='TempleWebViewScreen' component={TempleWebViewScreen}/>
+        <Stack.Screen name='JoshiyamWebViewScreen' component={JoshiyamWebViewScreen}/>
+        <Stack.Screen name='BookmarkListScreen' component={BookmarkListScreen}/>
+        <Stack.Screen name='AuthorScreen' component={AuthorScreen}/>
+        <Stack.Screen name='TagsScreen' component={TagsScreen}/>
+        <Stack.Screen name='SpecialTodayScreen' component={SpecialTodayScreen}/>
+        <Stack.Screen name='EditorChoiceScreen' component={EditorChoiceScreen}/>
+        <Stack.Screen name='FeedbackFormScreen' component={FeedbackForm}/>
+
+
+        <Stack.Screen name='LoginScreen' component={LoginScreen}/>
+        <Stack.Screen name='ForgotPasswordScreen' component={ForgotPasswordScreen}/>
+        <Stack.Screen name='PugarPettiScreen' component={PugarPettiScreen}/>
+        <Stack.Screen name='GenericWebViewScreen' component={GenericWebViewScreen}/>
+                {/* <Stack.Screen name='SignupScreen' component={SignupScreen}/> */}
+
+        
       </Stack.Navigator>
     </NavigationContainer>
   );

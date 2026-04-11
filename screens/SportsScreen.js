@@ -11,9 +11,11 @@ import {
   RefreshControl,
   ScrollView,
   Platform,
+  Linking,
+  PanResponder,        // ← NEW: for swipe gesture detection
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { SpeakerIcon } from '../assets/svg/Icons';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { CDNApi } from '../config/api';
 import { s, vs, ms, scaledSizes } from '../utils/scaling';
 import { COLORS, FONTS, NewsCard } from '../utils/constants';
@@ -21,6 +23,8 @@ import UniversalHeaderComponent from '../components/UniversalHeaderComponent';
 import AppHeaderComponent from '../components/AppHeaderComponent';
 import { mvs } from 'react-native-size-matters';
 import TEXT_STYLES from '../utils/textStyles';
+import { useFontSize } from '../context/FontSizeContext';
+import { Ionicons } from '@expo/vector-icons';
 
 const PALETTE = {
   primary: '#096dd2',
@@ -57,24 +61,37 @@ const sk = StyleSheet.create({
 
 // ─── Section Title ────────────────────────────────────────────────────────────
 function SectionTitle({ title }) {
+  const { sf } = useFontSize();
   return (
     <View style={st.wrap}>
-      <Text style={st.text}>{title}</Text>
+      <Text style={[st.text, { fontSize: sf(16) }]}>{title}</Text>
       <View style={st.underline} />
     </View>
   );
 }
 const st = StyleSheet.create({
-  wrap: {
-    marginBottom: vs(8),
-    marginTop: vs(2),
+  wrap: { 
+    paddingTop: vs(14), 
+    paddingBottom: vs(10),
   },
-  text: TEXT_STYLES.titles.sectionTitles,
-  underline: { height: vs(4), width: s(40), backgroundColor: COLORS.primary },
+
+  text: {
+    fontFamily: FONTS.muktaMalar.bold,
+    color: COLORS.text,
+  },
+
+  underline: {
+    height: vs(3),
+    width: s(60),
+    backgroundColor: COLORS.primary,
+   },
 });
 
 // ─── News Card (same as HomeScreen) ────────────────────────────────────────────────────────
 function SportsNewsCard({ item, onPress }) {
+  const { sf } = useFontSize();
+  const [imageError, setImageError] = useState(false);
+  
   const imageUri =
     item.images ||
     item.largeimages ||
@@ -94,36 +111,38 @@ function SportsNewsCard({ item, onPress }) {
 
         {/* Image with horizontal padding */}
         <View style={NewsCard.imageWrap}>
-          <Image source={{ uri: imageUri }} style={NewsCard.image} resizeMode="cover" />
+          {imageError ? (
+            <View style={[NewsCard.image, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#f5f5f5' }]}>
+              <Image
+                source={{ uri: 'https://stat.dinamalar.com/new/2025/images/dinamalar-pavala-vizha-logo-day.png' }}
+                style={{ width: s(80), height: s(40), resizeMode: 'contain' }}
+              />
+            </View>
+          ) : (
+            <Image source={{ uri: imageUri }} style={NewsCard.image} resizeMode="cover" onError={() => setImageError(true)} />
+          )}
         </View>
 
         {/* Content */}
         <View style={NewsCard.contentContainer}>
           {!!title && (
-            <Text style={NewsCard.title} numberOfLines={3}>{title}</Text>
-          )}
-
-          {/* Category pill — gray, matches screenshot */}
-          {!!category && (
-            <View style={NewsCard.catPill}>
-              <Text style={NewsCard.catText}>{category}</Text>
-            </View>
+            <Text style={[NewsCard.title, { fontSize: sf(14), lineHeight: sf(22) }]} numberOfLines={3}>{title}</Text>
           )}
 
           {/* Meta row */}
           <View style={NewsCard.metaRow}>
-            <Text style={NewsCard.timeText}>{ago}</Text>
+            <Text style={[NewsCard.timeText, { fontSize: sf(12) }]}>{ago}</Text>
             <View style={NewsCard.metaRight}>
               
               {!!newscomment && newscomment !== '0' && (
                 <View style={NewsCard.commentRow}>
                   <Ionicons name="chatbox" size={s(14)} color={PALETTE.grey700} />
-                  <Text style={NewsCard.commentText}> {newscomment}</Text>
+                  <Text style={[NewsCard.commentText, { fontSize: sf(12) }]}> {newscomment}</Text>
                 </View>
               )}
               {hasAudio && (
                 <View style={NewsCard.audioIcon}>
-                  <Ionicons name="volume-high" size={s(14)} color={PALETTE.grey700} />
+                  <SpeakerIcon size={s(14)} color={PALETTE.grey700} />
                 </View>
               )}
             </View>
@@ -139,7 +158,12 @@ function SportsNewsCard({ item, onPress }) {
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 export default function SportsScreen() {
+  const { sf } = useFontSize();
   const navigation = useNavigation();
+  const route = useRoute();
+  
+  // Get initial tab parameters from navigation
+  const { initialTabId, initialTabTitle } = route?.params || {};
 
   const [subTabs, setSubTabs] = useState([]);
   const [activeTab, setActiveTab] = useState(null);
@@ -163,6 +187,33 @@ export default function SportsScreen() {
   const [selectedDistrict, setSelectedDistrict] = useState('உள்ளூர்');
 
   const flatListRef = useRef(null);
+  const tabScrollRef = useRef(null);   // ref for horizontal tab ScrollView
+  const tabLayoutsRef = useRef({});   // stores {[tabKey]: {x, width}} after layout
+
+  // ── Refs to keep latest values accessible inside PanResponder ────────────
+  const subTabsRef = useRef([]);
+  const activeTabRef = useRef(null);
+
+  // Keep refs in sync with state
+  useEffect(() => { subTabsRef.current = subTabs; }, [subTabs]);
+  useEffect(() => { activeTabRef.current = activeTab; }, [activeTab]);
+
+  // Auto-scroll tab bar so active tab is always fully visible
+  useEffect(() => {
+    if (!activeTab || !tabScrollRef.current) return;
+    const key = activeTab.title === 'All' ? 'All' : String(activeTab.id);
+    const layout = tabLayoutsRef.current[key];
+    if (!layout) return;
+    
+    // Use requestAnimationFrame to prevent conflicts
+    requestAnimationFrame(() => {
+      if (tabScrollRef.current) {
+        // Centre the active tab: scroll so tab sits in middle of scroll view
+        const scrollX = Math.max(0, layout.x - layout.width);
+        tabScrollRef.current.scrollTo({ x: scrollX, animated: true });
+      }
+    });
+  }, [activeTab]);
 
   const handleScroll = useCallback((e) => {
     setShowScrollTop(e.nativeEvent.contentOffset.y > 300);
@@ -181,10 +232,30 @@ export default function SportsScreen() {
       // subcatlist → tabs
       const tabs = d?.subcatlist || [];
       setSubTabs(tabs);
-      if (tabs.length > 0) setActiveTab(tabs[0]);
+      
+      // Handle initial tab selection
+      let selectedTab = null;
+      if (initialTabId) {
+        selectedTab = tabs.find(t => String(t.id) === String(initialTabId));
+        console.log('SportsScreen: Looking for tab by ID', initialTabId, 'found:', selectedTab);
+      }
+      if (!selectedTab && initialTabTitle) {
+        selectedTab = tabs.find(t => t.title === initialTabTitle || t.title.toLowerCase().includes(initialTabTitle.toLowerCase()));
+        console.log('SportsScreen: Looking for tab by title', initialTabTitle, 'found:', selectedTab);
+      }
+      if (!selectedTab) {
+        selectedTab = tabs[0];
+        console.log('SportsScreen: Defaulting to first tab');
+      }
+      
+      if (selectedTab) {
+        setActiveTab(selectedTab);
+        if (selectedTab.title !== 'All') {
+          setTabLoading(true);
+          fetchTabNews(selectedTab, 1, false);
+        }
+      }
 
-      // newlist → [{title, id, link, data:[...newsItems]}]
-      // Each section has a .data array with the news items
       const sections = (d?.newlist || []).filter(
         section => Array.isArray(section?.data) && section.data.length > 0
       );
@@ -195,7 +266,7 @@ export default function SportsScreen() {
       setInitLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [initialTabId, initialTabTitle, fetchTabNews]);
 
   useEffect(() => { fetchAll(); }, []);
 
@@ -209,8 +280,6 @@ export default function SportsScreen() {
       const res = await CDNApi.get(url);
       const d = res?.data;
 
-      // Sub-tab endpoints return newsdata structure:
-      // d.newlist.data OR d.newslist.data OR d.data OR d.list
       const list = (
         d?.newlist?.data ||
         d?.newslist?.data ||
@@ -238,7 +307,7 @@ export default function SportsScreen() {
   }, []);
 
   // ── Tab press ─────────────────────────────────────────────────────────────
-  const handleTabPress = (tab) => {
+  const handleTabPress = useCallback((tab) => {
     const alreadyActive = activeTab
       ? (tab.title === 'All'
         ? activeTab.title === 'All'
@@ -258,7 +327,92 @@ export default function SportsScreen() {
     setTabPage(1);
     setTabLastPage(1);
     fetchTabNews(tab, 1, false);
-  };
+  }, [activeTab, fetchTabNews]);
+
+  // ── Swipe to next / previous tab ─────────────────────────────────────────
+  //
+  //  Swipe LEFT  → go to NEXT tab  (e.g. All → Cricket → Tennis →…)
+  //  Swipe RIGHT → go to PREV tab  (e.g. Tennis → Cricket → All)
+  //
+  //  Thresholds:
+  //    dx >  50 px  AND velocity > 0.3  → right-swipe  (go prev)
+  //    dx < -50 px  AND velocity > 0.3  → left-swipe   (go next)
+  //
+  const SWIPE_THRESHOLD = 50;   // minimum horizontal distance (px)
+  const SWIPE_VELOCITY  = 0.3;  // minimum velocity
+
+  const panResponder = useRef(
+    PanResponder.create({
+      // Only claim the gesture when horizontal movement clearly dominates
+      onMoveShouldSetPanResponder: (_, gs) => {
+        return (
+          Math.abs(gs.dx) > Math.abs(gs.dy) &&   // horizontal dominates
+          Math.abs(gs.dx) > 10                     // at least 10 px moved
+        );
+      },
+      onPanResponderRelease: (_, gs) => {
+        const tabs     = subTabsRef.current;
+        const curTab   = activeTabRef.current;
+        if (!tabs.length) return;
+
+        // Find the index of the current tab
+        const curIndex = curTab
+          ? tabs.findIndex(t =>
+              curTab.title === 'All'
+                ? t.title === 'All'
+                : String(t.id) === String(curTab.id)
+            )
+          : 0;
+
+        const isRightSwipe = gs.dx > SWIPE_THRESHOLD && Math.abs(gs.vx) > SWIPE_VELOCITY;
+        const isLeftSwipe  = gs.dx < -SWIPE_THRESHOLD && Math.abs(gs.vx) > SWIPE_VELOCITY;
+
+        if (isRightSwipe && curIndex > 0) {
+          // Go to previous tab
+          const prevTab = tabs[curIndex - 1];
+          // Use setActiveTab + fetchTabNews directly (avoid stale closure in handleTabPress)
+          setActiveTab(prevTab);
+          if (prevTab.title === 'All') {
+            setTabNews([]);
+          } else {
+            setTabLoading(true);
+            setTabNews([]);
+            setTabPage(1);
+            setTabLastPage(1);
+          }
+        } else if (isLeftSwipe && curIndex < tabs.length - 1) {
+          // Go to next tab
+          const nextTab = tabs[curIndex + 1];
+          setActiveTab(nextTab);
+          if (nextTab.title === 'All') {
+            setTabNews([]);
+          } else {
+            setTabLoading(true);
+            setTabNews([]);
+            setTabPage(1);
+            setTabLastPage(1);
+          }
+        }
+      },
+    })
+  ).current;
+
+  // Whenever activeTab changes via swipe, fetch news for the new tab
+  // (We can't call fetchTabNews inside PanResponder due to stale closures,
+  //  so we watch activeTab here instead.)
+  const prevActiveTabRef = useRef(null);
+  useEffect(() => {
+    if (!activeTab) return;
+    const prev = prevActiveTabRef.current;
+    // Skip on first mount (fetchAll already handles it)
+    if (!prev) { prevActiveTabRef.current = activeTab; return; }
+    // Check if tab actually changed
+    const changed = prev.title !== activeTab.title || String(prev.id) !== String(activeTab.id);
+    if (changed && activeTab.title !== 'All') {
+      fetchTabNews(activeTab, 1, false);
+    }
+    prevActiveTabRef.current = activeTab;
+  }, [activeTab]);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -287,10 +441,8 @@ export default function SportsScreen() {
     const link = menuItem?.Link || menuItem?.link || '';
     const title = menuItem?.Title || menuItem?.title || '';
     if (link && (link.startsWith('http://') || link.startsWith('https://'))) {
-      // External link - could open in browser if needed
       console.log('External menu link:', link);
     } else {
-      // Internal navigation
       navigation?.navigate('TimelineScreen', { catName: title });
     }
   };
@@ -309,15 +461,11 @@ export default function SportsScreen() {
   const isAllTab = !activeTab || activeTab.title === 'All';
 
   // ── Build flat list ───────────────────────────────────────────────────────
-  // All tab  → section header row + news rows per section
-  // Sub tab  → flat news rows only
   const buildFlatData = () => {
     if (isAllTab) {
       const flat = [];
       allSections.forEach((section) => {
-        // Push section header
         flat.push({ type: 'section', title: section.title, id: section.id });
-        // Push each news item in this section
         (section.data || []).forEach((item) => {
           flat.push({ type: 'news', item });
         });
@@ -369,13 +517,16 @@ export default function SportsScreen() {
 
       {/* ── Page Title ── */}
       <View style={styles.pageTitleWrap}>
-        <Text style={styles.pageTitle}>விளையாட்டு</Text>
+        <Text style={[styles.pageTitle, { fontSize: sf(16) }]}>
+          {isAllTab ? 'விளையாட்டு' : (activeTab?.title || 'விளையாட்டு')}
+        </Text>
       </View>
-
+      
       {/* ── Tabs from subcatlist ── */}
       {subTabs.length > 0 && (
         <View style={styles.tabsWrap}>
           <ScrollView
+            ref={tabScrollRef}
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.tabsContent}
@@ -392,8 +543,15 @@ export default function SportsScreen() {
                   style={[styles.tab, isActive && styles.tabActive]}
                   onPress={() => handleTabPress(tab)}
                   activeOpacity={0.8}
+                  onLayout={(e) => {
+                    const tabKey = tab.title === 'All' ? 'All' : String(tab.id);
+                    tabLayoutsRef.current[tabKey] = {
+                      x: e.nativeEvent.layout.x,
+                      width: e.nativeEvent.layout.width,
+                    };
+                  }}
                 >
-                  <Text style={[styles.tabText, isActive && styles.tabTextActive]}>
+                  <Text style={[styles.tabText, isActive && styles.tabTextActive, { fontSize: ms(16) }]}>
                     {tab.title}
                   </Text>
                 </TouchableOpacity>
@@ -404,55 +562,57 @@ export default function SportsScreen() {
         </View>
       )}
 
-      {/* ── Content ── */}
-      {isLoading ? (
-        <FlatList
-          data={[1, 2, 3, 4]}
-          keyExtractor={i => `sk-${i}`}
-          renderItem={() => <SkeletonCard />}
-          contentContainerStyle={styles.listContent}
-          style={styles.list}
-        />
-      ) : (
-        <FlatList
-          ref={flatListRef}
-          data={flatData}
-          keyExtractor={(row, i) =>
-            row.type === 'section'
-              ? `sec-${row.id || i}-${row.title}`
-              : `news-${i}-${row.item?.newsid || row.item?.id || i}`
-          }
-          renderItem={renderItem}
-          contentContainerStyle={styles.listContent}
-          style={styles.list}
-          showsVerticalScrollIndicator={false}
-          onScroll={handleScroll}
-          scrollEventThrottle={16}
-          onEndReached={handleLoadMore}
-          onEndReachedThreshold={0.4}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={handleRefresh}
-              colors={[COLORS.primary]}
-              tintColor={COLORS.primary}
-            />
-          }
-          ListEmptyComponent={
-            <View style={styles.emptyWrap}>
-              <Ionicons name="football-outline" size={s(48)} color="#ccc" />
-              <Text style={styles.emptyText}>செய்திகள் இல்லை</Text>
-            </View>
-          }
-          ListFooterComponent={
-            tabLoadMore ? (
-              <View style={styles.footerLoader}>
-                <ActivityIndicator size="small" color={COLORS.primary} />
+      {/* ── Content — wrapped with panResponder for swipe detection ── */}
+      <View style={styles.swipeArea} {...panResponder.panHandlers}>
+        {isLoading ? (
+          <FlatList
+            data={[1, 2, 3, 4]}
+            keyExtractor={i => `sk-${i}`}
+            renderItem={() => <SkeletonCard />}
+            contentContainerStyle={styles.listContent}
+            style={styles.list}
+          />
+        ) : (
+          <FlatList
+            ref={flatListRef}
+            data={flatData}
+            keyExtractor={(row, i) =>
+              row.type === 'section'
+                ? `sec-${row.id || i}-${row.title}`
+                : `news-${i}-${row.item?.newsid || row.item?.id || i}`
+            }
+            renderItem={renderItem}
+            contentContainerStyle={styles.listContent}
+            style={styles.list}
+            showsVerticalScrollIndicator={false}
+            onScroll={handleScroll}
+            scrollEventThrottle={16}
+            onEndReached={handleLoadMore}
+            onEndReachedThreshold={0.4}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={handleRefresh}
+                colors={[COLORS.primary]}
+                tintColor={COLORS.primary}
+              />
+            }
+            ListEmptyComponent={
+              <View style={styles.emptyWrap}>
+                <Ionicons name="football-outline" size={s(48)} color="#ccc" />
+                <Text style={[styles.emptyText, { fontSize: sf(14) }]}>செய்திகள் இல்லை</Text>
               </View>
-            ) : <View style={{ height: vs(40) }} />
-          }
-        />
-      )}
+            }
+            ListFooterComponent={
+              tabLoadMore ? (
+                <View style={styles.footerLoader}>
+                  <ActivityIndicator size="small" color={COLORS.primary} />
+                </View>
+              ) : <View style={{ height: vs(40) }} />
+            }
+          />
+        )}
+      </View>
 
       {/* ── Scroll To Top ── */}
       {showScrollTop && (
@@ -470,7 +630,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f2f2f2',
-    paddingTop: Platform.OS === 'android' ? vs(28) : 0,
+    paddingTop: Platform.OS === 'android' ? vs(0) : 20,
   },
 
   pageTitleWrap: {
@@ -480,7 +640,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   pageTitle: TEXT_STYLES.titles.large,
-  // ── Tabs — same style as TharpothaiyaSeithigalScreen ──
+
+  // ── Tabs ──
   tabsWrap: {
     backgroundColor: '#fff',
     elevation: 3,
@@ -489,28 +650,37 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: s(2),
   },
-  tabsContent: { paddingHorizontal: s(4), alignItems: 'center' },
+  tabsContent: { paddingHorizontal: s(20), alignItems: 'center' },
   tab: {
-    paddingHorizontal: s(14),
+    paddingHorizontal: s(12),
     paddingVertical: vs(12),
     marginHorizontal: s(2),
     borderBottomWidth: vs(3),
     borderBottomColor: 'transparent',
   },
   tabActive: { borderBottomColor: COLORS.primary },
-  tabText: TEXT_STYLES.tabs.small,
-  tabTextActive: TEXT_STYLES.tabs.smallActive,
+  tabText: {
+    fontSize: ms(16),
+    fontFamily: FONTS.muktaMalar.medium,
+    color: COLORS.black,
+  },
+  tabTextActive: {
+    fontSize: ms(13),
+    fontFamily: FONTS.muktaMalar.bold,
+    color: COLORS.primary,
+  },
   tabsBottomLine: { height: StyleSheet.hairlineWidth, backgroundColor: '#e0e0e0' },
+
+  // ── Swipe area wraps the entire content below tabs ──
+  swipeArea: { flex: 1 },
 
   list: { flex: 1 },
   listContent: { paddingTop: vs(6), paddingBottom: vs(30) },
 
-  // Section header sits on the grey background between white news cards
   sectionWrap: {
     paddingHorizontal: s(14),
-    paddingTop: vs(16),
     paddingBottom: vs(4),
-    backgroundColor: '#f2f2f2',
+    backgroundColor: '#ffffff',
   },
 
   emptyWrap: {

@@ -12,12 +12,15 @@ import { WebView } from 'react-native-webview';
 import YoutubePlayer from 'react-native-youtube-iframe';
 import { ms, s, vs } from '../utils/scaling';
 import { CDNApi } from '../config/api';
-import { FONTS } from '../utils/constants';
+import { COLORS, FONTS } from '../utils/constants';
 import { useFontSize } from '../context/FontSizeContext';
 import AppHeaderComponent from '../components/AppHeaderComponent';
 import DrawerMenu from '../components/DrawerMenu';
 import LocationDrawer from '../components/LocationDrawer';
 import CommentsModal from '../components/CommentsModal';
+import LazyImage from '../components/LazyImage';
+import { dataPreloader } from '../utils/preloader';
+import { backgroundRefresh } from '../utils/backgroundRefresh';
 
 const { width: SW, height: SH } = Dimensions.get('window');
 const VH = (SW * 9) / 16;
@@ -51,6 +54,60 @@ function TaboolaWidget({ pageUrl, mode, container, placement, pageType = 'video'
         nestedScrollEnabled={false} />
     </View>
   );
+}
+
+function ReadMoreContent({ html, contentWidth, sf }) {
+  const [expanded, setExpanded] = useState(false);
+  const truncated = html.length > 400 ? html.slice(0, 400) : html;
+  const lineHeight = Math.round(sf(16) * 1.6);
+const maxHeight = lineHeight * 3;
+
+return (
+  <View style={{ marginVertical: vs(4) }}>
+    
+    <View style={{ height: expanded ? undefined : maxHeight, overflow: 'hidden' }}>
+      <RenderHtml
+        contentWidth={contentWidth}
+        source={{ html }}
+        baseStyle={{
+          fontSize: sf(13),
+          lineHeight: lineHeight,
+          color: PALETTE.grey800,
+          fontFamily: FONTS?.muktaMalar?.regular || undefined
+        }}
+        tagsStyles={{
+          p: {
+            margin: 0,
+            marginBottom: vs(12),
+            fontSize: sf(13),
+            color: PALETTE.grey800,
+            lineHeight: lineHeight,
+            fontFamily: FONTS?.muktaMalar?.medium || undefined
+          },
+          strong: { fontWeight: '700', color: PALETTE.grey800 },
+          b: { fontWeight: '700', color: PALETTE.grey800 },
+          a: {
+            color: PALETTE.primary,
+            textDecorationLine: 'underline',
+            fontWeight: '600'
+          },
+        }}
+      />
+    </View>
+
+    <TouchableOpacity onPress={() => setExpanded(!expanded)} activeOpacity={0.7}>
+      <Text style={{
+        color: PALETTE.primary,
+        fontWeight: '700',
+        fontSize: sf(13),
+        marginTop: vs(4)
+      }}>
+        {expanded ? '<< Read Less' : 'Read More >>'}
+      </Text>
+    </TouchableOpacity>
+
+  </View>
+);
 }
 
 // ─── Google Ad Banner ─────────────────────────────────────────────────────────
@@ -121,13 +178,13 @@ function SectionHeader({ title }) {
   return (
     <View style={S.sectionHeader}>
       <Text
-        style={[S.sectionTitle, { fontSize: sf(18) }]}
+        style={[S.sectionTitle, { fontSize: sf(16) }]}
         onLayout={(e) => setTitleWidth(e.nativeEvent.layout.width)}
       >
         {title}
       </Text>
       {titleWidth > 0 && (
-        <View style={[S.sectionUnderline, { width: titleWidth * 0.3 }]} />
+        <View style={[S.sectionUnderline, { width: titleWidth * 0.15 }]} />
       )}
     </View>
   );
@@ -136,8 +193,8 @@ function SectionHeader({ title }) {
 // ─── Video List Card — matches Screenshot 1 layout ────────────────────────────
 // Full-width image, play button bottom-left, duration badge bottom-right,
 // title + category + time below
-const VideoListCard = ({ video, onPress, sf }) => {
-  if (!video) return null;
+const VideoListCard = ({ video, onPress, onCatPress, sf }) => {
+    if (!video) return null;
   const img = video.images || video.largeimages || video.thumbnail || '';
   const title = video.videotitle || video.newstitle || video.title || '';
   const duration = video.duration || '';
@@ -148,7 +205,12 @@ const VideoListCard = ({ video, onPress, sf }) => {
       <View style={S.vidListThumb}>
         {img
           ? <Image source={{ uri: img }} style={S.vidThumnail} resizeMode="cover" />
-          : <View style={[S.vidThumnail]}><Text style={{ fontSize: ms(28) }}>🎬</Text></View>}
+          : <View style={[S.vidThumnail, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#f5f5f5' }]}>
+            <Image
+              source={{ uri: 'https://stat.dinamalar.com/new/2025/images/dinamalar-pavala-vizha-logo-day.png' }}
+              style={{ width: s(60), height: s(30), resizeMode: 'contain' }}
+            />
+          </View>}
         {/* <View style={S.vidListOverlay} /> */}
         <View style={S.vidListPlayWrap}><PlayIcon size={s(30)} /></View>
         {!!duration && (
@@ -156,9 +218,19 @@ const VideoListCard = ({ video, onPress, sf }) => {
         )}
       </View>
       <View style={S.vidListInfo}>
-        <Text style={[S.vidListTitle, { fontSize: sf(12), lineHeight: sf(19) }]}  >{title}</Text>
-        <View style={S.vidListMeta}>
-          {!!cat && <View style={S.catPill}><Text style={[S.catTxt, { fontSize: sf(10) }]}>{cat}</Text></View>}
+        <Text style={[S.vidListTitle, { fontSize: sf(12), lineHeight: sf(19) }]}  >
+          {title}
+        </Text>
+       <View style={S.vidListMeta}>
+          {!!cat && (
+            <TouchableOpacity
+              style={S.catPill}
+              onPress={() => onCatPress?.(cat)}   // ← tap the pill
+              activeOpacity={0.75}
+            >
+              <Text style={[S.catTxt, { fontSize: sf(10) }]}>{cat}</Text>
+            </TouchableOpacity>
+          )}
           {!!date && <Text style={[S.metaDate, { fontSize: sf(12) }]}>{date}</Text>}
         </View>
       </View>
@@ -174,7 +246,16 @@ const ReelCard = ({ item, onPress, sf }) => {
   return (
     <TouchableOpacity style={S.reelCard} onPress={() => onPress?.(item)} activeOpacity={0.85} >
       <View style={S.reelThumb}>
-        <Image source={{ uri: img }} style={S.image} resizeMode="cover" />
+        {img ? (
+          <Image source={{ uri: img }} style={S.image} resizeMode="cover" />
+        ) : (
+          <View style={[S.reelThumb, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#f5f5f5' }]}>
+            <Image
+              source={{ uri: 'https://stat.dinamalar.com/new/2025/images/dinamalar-pavala-vizha-logo-day.png' }}
+              style={{ width: s(40), height: s(20), resizeMode: 'contain' }}
+            />
+          </View>
+        )}
 
         {/* <View style={S.vidListOverlay} /> */}
       </View>
@@ -189,12 +270,45 @@ const ReelCard = ({ item, onPress, sf }) => {
           <Ionicons name="play" size={s(12)} color="#fff" />
         </View>
       </View> */}
-      {/* )} */}
     </TouchableOpacity>
   );
 };
 
-// ─── District Tag Pill ────────────────────────────────────────────────────────
+// Shorts Grid Card (for grid layout) 
+const ShortsGridCard = ({ item, onPress, sf }) => {
+  const img = item.images || '';
+  const title = item.title || item.videotitle || '';
+  
+  return (
+    <TouchableOpacity
+      style={S.shortsGridCard}
+      onPress={() => onPress?.(item)}
+      activeOpacity={0.85}
+    >
+      <View style={S.shortsGridThumb}>
+        {img ? (
+          <Image source={{ uri: img }} style={S.shortsGridImage} resizeMode="cover" />
+        ) : (
+          <View style={[S.shortsGridThumb, S.shortsGridPlaceholder]}>
+            <Image
+              source={{ uri: 'https://stat.dinamalar.com/new/2025/images/dinamalar-pavala-vizha-logo-day.png' }}
+              style={{ width: s(40), height: s(20), resizeMode: 'contain' }}
+            />
+          </View>
+        )}
+        {!!title && (
+          <View style={S.titleOverlay}>
+            <Text style={[S.bottomTitle, { fontSize: sf(10) }]} >
+              {title}
+            </Text>
+          </View>
+        )}
+      </View>
+    </TouchableOpacity>
+  );
+};
+
+// District Tag Pill
 const DistrictTagList = ({ districts, onPress, sf }) => {
   if (!districts?.length) return null;
   return (
@@ -250,7 +364,7 @@ const NewsCard = ({ item, onPress, sf }) => {
         {/* Title */}
         <Text
           style={[S.newsCardTitle, { fontSize: sf(12), lineHeight: sf(21) }]}
-           
+
         >
           {title}
         </Text>
@@ -292,8 +406,22 @@ const NewsCard = ({ item, onPress, sf }) => {
 const VideoDetailScreen = ({ navigation, route }) => {
   const { sf } = useFontSize();
   const passedVideo = route?.params?.video ?? null;
-  const videoId = passedVideo?.videoid ?? route?.params?.videoId ?? null;
-
+  
+  // Debug: Log what video data we received
+  console.log('VideoDetailScreen - Received video data:', {
+    passedVideo: passedVideo,
+    videoId: passedVideo?.videoid || passedVideo?.videoId || passedVideo?.video_id || route?.params?.videoId,
+    title: passedVideo?.videotitle || passedVideo?.newstitle || passedVideo?.title,
+    path: passedVideo?.videopath || passedVideo?.path || passedVideo?.y_path,
+    allFields: Object.keys(passedVideo || {})
+  });
+  
+  const videoId =
+    passedVideo?.videoid ??
+    passedVideo?.videoId ??
+    passedVideo?.video_id ??
+    route?.params?.videoId ??
+    null;
   const [latestvideo, setLatestvideo] = useState(null);
   // data.relatedvideos — fresh related videos (main list, screenshot 1 style)
   const [relatedVideos, setRelatedVideos] = useState([]);
@@ -324,11 +452,14 @@ const VideoDetailScreen = ({ navigation, route }) => {
   const [bookmarked, setBookmarked] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isLocDrawerOpen, setIsLocDrawerOpen] = useState(false);
+  const [showScrollTop, setShowScrollTop] = useState(false);
   const [district, setDistrict] = useState('உள்ளூர்');
   const [isCommentsOpen, setIsCommentsOpen] = useState(false);
   const [activeYtId, setActiveYtId] = useState(null);
   const [activeRawUrl, setActiveRawUrl] = useState(null);
   const [pip, setPip] = useState(false);
+  const [embedFailed, setEmbedFailed] = useState(false);
+  const [playing, setPlaying] = useState(true);
 
   const pipRef = useRef(false);
   const scrollRef = useRef(null);
@@ -382,81 +513,92 @@ const VideoDetailScreen = ({ navigation, route }) => {
     if (!id) { setError('Video ID not found'); setLoading(false); return; }
     setLoading(true); setError(null);
     try {
+      // Main video detail fetch
       const res = await CDNApi.get(`/videodetail?id=${id}`);
       const data = res.data;
 
       if (data?.latestvideo) setLatestvideo(data.latestvideo);
       if (data?.comments?.data) setVideoComments(data.comments.data);
 
-      // Taboola & ads
+      // Taboola & ads (non-critical, can be set async)
       setTaboolaAds(data?.taboola_ads?.mobile ?? null);
       setMobileAds(data?.googleads?.mobileads ?? null);
 
-      // ── Fetch /relatedmost — videos.data → தொடர்புடையவை, reels.data → ஷார்ட்ஸ் ──
+      // ── Parallel fetch of related content ───────────────────────────────
       const relatedEndpoint = data?.morerelated ?? `/relatedmost?videoid=${id}`;
-      try {
-        const relatedRes = await CDNApi.get(relatedEndpoint);
-        const relatedApiData = relatedRes.data;
 
-        // data.videos.data → தொடர்புடையவை section
-        const videosData = relatedApiData?.videos?.data ?? [];
-        setRelatedVideos(videosData.filter(v => v && v.videoid));
+      // Create array of parallel requests
+      const parallelRequests = [
+        // Related videos, reels, and news
+        CDNApi.get(relatedEndpoint).catch(e => {
+          console.warn('relatedmost fetch error', e);
+          return { data: { videos: { data: data?.relatedvideos || [] }, reels: { data: data?.relatedreels || [] }, newlist: { data: [] } } };
+        }),
+      ];
 
-        // data.reels.data → ஷார்ட்ஸ் section (replaces relatedReels)
-        const reelsData = relatedApiData?.reels?.data ?? [];
-        setRelatedReels(reelsData.filter(r => r && r.id));
-
-        // data.newlist.data → செய்திகள் section
-        const newsListData = relatedApiData?.newlist?.data ?? [];
-        setNewsList(newsListData.filter(n => n && (n.newsid || n.id)));
-
-      } catch (e) {
-        console.warn('relatedmost fetch error', e);
-        // fallback to original API fields
-        setRelatedVideos(data?.relatedvideos ?? []);
-        setRelatedReels(data?.relatedreels ?? []);
+      // Add morerelated fetch if endpoint exists
+      if (data?.morerelated) {
+        parallelRequests.push(
+          CDNApi.get(data.morerelated).catch(e => {
+            console.warn('morerelated fetch error', e);
+            return { data: { data: [] } };
+          })
+        );
       }
 
-      // ── data.videoreels.data — separate by type (unchanged) ─────────────
-      const vrData = data?.videoreels?.data ?? [];
-      const relatedReelIds = new Set((data?.relatedreels ?? []).map(r => String(r.id || '')));
-      setVideoReelReels(vrData.filter(v => v && v.type === 'reels' && !relatedReelIds.has(String(v.id || ''))));
-      setVideoReelNews(vrData.filter(v => v && (v.type === 'news' || (v.videoid && !v.type))));
+      Promise.allSettled(parallelRequests).then(results => {
+        // Process related content
+        const relatedResult = results[0];
+        if (relatedResult.status === 'fulfilled') {
+          const relatedApiData = relatedResult.value.data;
 
+          // data.videos.data → தொடர்புடையவை section
+          const videosData = relatedApiData?.videos?.data ?? [];
+          setRelatedVideos(videosData.filter(v => v && v.videoid));
 
+          // data.reels.data → ஷார்ட்ஸ் section
+          const reelsData = relatedApiData?.reels?.data ?? [];
+          setRelatedReels(reelsData.filter(r => r && r.id));
 
-      // ── data.morerelated — fetch immediately for "மேலும் வீடியோக்கள்" ──
-      if (data?.morerelated) {
-        setMoreRelated(data.morerelated);
-        try {
-          const moreRes = await CDNApi.get(data.morerelated);
-          const moreData = moreRes.data?.data ?? moreRes.data ?? [];
+          // data.newlist.data → செய்திகள் section
+          const newsListData = relatedApiData?.newlist?.data ?? [];
+          setNewsList(newsListData.filter(n => n && (n.newsid || n.id)));
+        }
+
+        // Process morerelated if exists
+        if (data?.morerelated && results[1]?.status === 'fulfilled') {
+          const moreData = results[1].value.data?.data ?? results[1].value.data ?? [];
           setVideoReelNews(Array.isArray(moreData) ? moreData.filter(v => v && v.videoid) : []);
-        } catch (e) {
-          console.warn('morerelated fetch error', e);
-          // fallback: use videoreels type=news if morerelated fails
+          setMoreRelated(data.morerelated);
+        }
+
+        // Process other data (non-blocking)
+        const vrData = data?.videoreels?.data ?? [];
+        const relatedReelIds = new Set((data?.relatedreels ?? []).map(r => String(r.id || '')));
+        setVideoReelReels(vrData.filter(v => v && v.type === 'reels' && !relatedReelIds.has(String(v.id || ''))));
+
+        // Use morerelated or fallback to videoreels type=news
+        if (!data?.morerelated) {
           setVideoReelNews(vrData.filter(v => v && (v.type === 'news' || (v.videoid && !v.type))));
         }
-      } else {
-        // No morerelated endpoint — fall back to videoreels type=news
-        setVideoReelNews(vrData.filter(v => v && (v.type === 'news' || (v.videoid && !v.type))));
-      }
 
-      // ── data.videomix.data — older related ──────────────────────────────
-      setVideomixData((data?.videomix?.data ?? []).filter(v => v && v.type !== 'googlead' && v.type !== 'reels'));
+        setVideomixData((data?.videomix?.data ?? []).filter(v => v && v.type !== 'googlead' && v.type !== 'reels'));
+        setVideoDistrict(Array.isArray(data?.videodistrict) ? data.videodistrict : []);
+      }).catch(err => {
+        console.warn('Error loading related content:', err);
+      });
 
-      // ── data.videodistrict — array of {id, districtname} ────────────────
-      setVideoDistrict(Array.isArray(data?.videodistrict) ? data.videodistrict : []);
-
-      // ── data.morerelated ────────────────────────────────────────────────
-      if (data?.morerelated) setMoreRelated(data.morerelated);
-
-    } catch (err) { setError(err?.message || 'பிழை ஏற்பட்டது'); }
-    finally { setLoading(false); }
+    } catch (err) {
+      console.error('Error fetching video details:', err);
+      setError(err?.message || 'பிழை ஏற்பட்டது');
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
-    setLatestvideo(null); setRelatedVideos([]); setRelatedReels([]);
+    setLatestvideo(null);
+    setEmbedFailed(false);
+    setRelatedVideos([]); setRelatedReels([]);
     setVideoReelNews([]); setVideoReelReels([]); setVideomixData([]);
     setVideoDistrict([]); setMobileAds(null); setTaboolaAds(null);
     setMoreRelated(null); setMoreRelatedData([]); setVideoComments([]);
@@ -465,13 +607,29 @@ const VideoDetailScreen = ({ navigation, route }) => {
     fetchDetail(videoId);
   }, [videoId]);
 
+  useEffect(() => {
+    if (ytId) {
+      setPlaying(true);
+    }
+  }, [ytId]);
+
   const video = latestvideo ?? passedVideo;
-  const rawUrl = video?.videopath ?? video?.y_path ?? video?.vidg_path ?? null;
+  // Enhanced URL detection to handle both mapped and raw video data
+  const rawUrl =
+    video?.videopath ??
+    video?.y_path ??
+    video?.vidg_path ??
+    video?.video ??        // HomeScreen/SearchScreen mapped field
+    video?.videourl ??     // fallback mapped field
+    video?.path ??         // Raw VideosScreen field
+    video?.videopath ??    // Raw VideosScreen field
+    video?.videourl ??     // Raw VideosScreen field
+    null;
   const ytId = getYouTubeId(rawUrl);
   const bodyText = video?.videodescription ?? '';
   const timeAgo = getTimeAgo(video?.videodate);
   const commentCount = parseInt(video?.nmcomment || 0);
-  const shareUrl = video?.slug ? `https://www.dinamalar.com${video.slug}` : `https://www.dinamalar.com/video/${videoId}`;
+  const shareUrl = video?.slug ? `https://www.dinamalar.com${video.slug}` : `dinamalar://video/${videoId}`;
   const isPlayerActive = !!(activeYtId || activeRawUrl);
 
   const startVideo = useCallback((yId, rUrl) => {
@@ -485,6 +643,7 @@ const VideoDetailScreen = ({ navigation, route }) => {
   const handlePlayVideo = () => startVideo(ytId, rawUrl);
 
   const onScroll = useCallback((e) => {
+    setShowScrollTop(e.nativeEvent.contentOffset.y > 300);
     if (!isPlayerActive) return;
     const past = e.nativeEvent.contentOffset.y > slotY.current + VH - s(20);
     if (past && !pipRef.current) { setPip(true); goPip(); }
@@ -501,7 +660,13 @@ const VideoDetailScreen = ({ navigation, route }) => {
 
   const handleReelPress = (item) => {
     const link = item.link || item.url || '';
-    if (link) Linking.openURL(link).catch(() => { });
+    const title = item.title || item.videotitle || 'Shorts';
+    if (link) {
+      navigation?.navigate('GenericWebViewScreen', {
+        url: link,
+        title: title
+      });
+    }
   };
 
   const handleNewsPress = (item) => {
@@ -528,6 +693,50 @@ const VideoDetailScreen = ({ navigation, route }) => {
   const handleShare = async () => {
     try { await Share.share({ message: `${video?.videotitle ?? 'Dinamalar Video'}\n${shareUrl}` }); } catch { }
   };
+
+  // Test deep links in Expo Go
+  const testDeepLinks = async () => {
+    try {
+      console.log('Testing deep links in Expo Go...');
+      // Test with Expo Go URL scheme
+      const expoUrl = `exp://192.168.1.100:8081/--/video/336048`; // Replace with your IP
+      await Linking.openURL(expoUrl);
+      
+      setTimeout(async () => {
+        await Linking.openURL('dinamalar://video/336048');
+      }, 2000);
+    } catch (error) {
+      console.error('Deep link test failed:', error);
+    }
+  };
+  // Add this category lookup near the top of VideoDetailScreen component
+const CATEGORIES = [
+  { title: "All", value: "" },
+  { title: "Live", value: "5050" },
+  { title: "அரசியல்", value: "31" },
+  { title: "பொது", value: "32" },
+  { title: "சம்பவம்", value: "33" },
+  { title: "சினிமா", value: "435" },
+  { title: "டிரைலர்", value: "436" },
+  { title: "செய்திச்சுருக்கம்", value: "594" },
+  { title: "விளையாட்டு", value: "464" },
+  { title: "சிறப்பு தொகுப்புகள்", value: "1238" },
+  { title: "ஆன்மிகம்", value: "1316" },
+  { title: "மாவட்ட செய்திகள்", value: "1585" },
+  { title: "ஷார்ட்ஸ்", value: "shorts" },
+];
+
+// Add this handler inside VideoDetailScreen
+const handleCatPillPress = useCallback((catTitle) => {
+  const match = CATEGORIES.find(c => c.title === catTitle);
+  if (!match) return;
+  navigation?.navigate('VideoScreen', {
+    catId: match.value,
+    catTitle: match.title,
+    timestamp: Date.now(), // <- forces VideoScreen to re-read params even if already mounted
+  });
+}, [navigation]);
+
   const handleSelectDistrict = (d) => {
     setDistrict(d.title); setIsLocDrawerOpen(false);
     if (d.id) navigation?.navigate('DistrictNewsScreen', { districtId: d.id, districtTitle: d.title });
@@ -539,13 +748,16 @@ const VideoDetailScreen = ({ navigation, route }) => {
   // ── Loading / Error ───────────────────────────────────────────────────────
   if (loading && !video) return (
     <SafeAreaView style={S.safe} edges={['top', 'bottom']}>
-      <StatusBar barStyle="dark-content" backgroundColor={PALETTE.white} />
-      <View style={S.center}><ActivityIndicator size="large" color={PALETTE.primary} /><Text style={{ color: PALETTE.grey600, marginTop: vs(8), fontSize: sf(14) }}>ஏற்றுகிறது...</Text></View>
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
+      <View style={S.center}>
+        <ActivityIndicator size="large" color={PALETTE.primary} />
+        {/* <Text style={{ color: PALETTE.grey600, marginTop: vs(8), fontSize: sf(14) }}>ஏற்றுகிறது...</Text> */}
+        </View>
     </SafeAreaView>
   );
   if (error && !video) return (
     <SafeAreaView style={S.safe} edges={['top', 'bottom']}>
-      <StatusBar barStyle="dark-content" backgroundColor={PALETTE.white} />
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
       <View style={S.center}>
         <Text style={{ fontSize: ms(40), marginBottom: vs(12) }}>😕</Text>
         <Text style={{ color: PALETTE.grey800, fontSize: sf(15) }}>வீடியோ ஏற்ற முடியவில்லை</Text>
@@ -556,11 +768,11 @@ const VideoDetailScreen = ({ navigation, route }) => {
 
   return (
     <SafeAreaView style={S.safe} edges={['top', 'bottom']}>
-      <StatusBar barStyle="dark-content" backgroundColor={PALETTE.white} />
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
 
       <View onLayout={e => { headerH.current = e.nativeEvent.layout.y + e.nativeEvent.layout.height; }}>
         <AppHeaderComponent
-          onSearch={() => navigation?.navigate('Search')}
+          onSearch={() => navigation?.navigate('SearchScreen')}
           onMenu={() => setIsDrawerOpen(true)}
           onLocation={() => setIsLocDrawerOpen(true)}
           selectedDistrict={district}
@@ -568,58 +780,123 @@ const VideoDetailScreen = ({ navigation, route }) => {
       </View>
 
       <ScrollView ref={scrollRef} showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: vs(80), paddingHorizontal: ms(12) ,paddingTop:ms(20)}}
+        contentContainerStyle={{ paddingBottom: vs(80), paddingHorizontal: ms(12), paddingTop: ms(20) }}
         onScroll={onScroll} scrollEventThrottle={100}>
 
-        {/* ── Video slot ─────────────────────────────────────────────────── */}
+        {/* ── Video slot ─────────────────────────────────────────── */}
+        {/* ── Video slot — autoplay, no manual button ── */}
         <View style={S.slot} onLayout={e => { slotY.current = e.nativeEvent.layout.y; }}>
-          {video?.images
-            ? <Image source={{ uri: video.images }} style={S.image} resizeMode="contain" />
-            : <View style={[StyleSheet.absoluteFill, S.thumbPh]} />}
-          <View style={S.grad} />
-          {!isPlayerActive && (
-            <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={0.92} onPress={handlePlayVideo}>
-              <View style={S.centerPlay}><PlayIcon size={s(62)} /></View>
-              {!!video?.duration && <View style={S.durBadge}><Text style={{ color: '#fff', fontWeight: '700', fontSize: sf(12) }}>{video.duration}</Text></View>}
-              {loading && <View style={S.loadBadge}><ActivityIndicator size="small" color="#fff" /></View>}
+          {ytId && !embedFailed ? (
+            <YoutubePlayer
+              height={VH}
+              width={SW}
+              videoId={ytId}
+              play={true}
+              forceAndroidAutoplay={true}
+              allowWebViewZoom={false}
+              allowFullscreen={false}
+              onReady={() => {
+                console.log('YT ready, playing:', ytId);
+                // Force play again after ready
+                setTimeout(() => {
+                  console.log('Force playing after timeout');
+                }, 500);
+              }}
+              onError={(e) => {
+                console.log('YT error:', e);
+                setEmbedFailed(true);
+              }}
+              webViewStyle={{ backgroundColor: '#000', opacity: 0.99 }}
+              webViewProps={{ 
+                androidLayerType: 'hardware',
+                allowsInlineMediaPlayback: true,
+                mediaPlaybackRequiresUserAction: false
+              }}
+              initialPlayerParams={{
+                autoplay: 1,
+                controls: 1,
+                modestbranding: 1,
+                rel: 0,
+                mute: 0,
+                showinfo: 0,
+                iv_load_policy: 3,
+                start: 0
+              }}
+            />
+          ) : embedFailed ? (
+            <TouchableOpacity
+              style={[StyleSheet.absoluteFill, S.thumbPh, { justifyContent: 'center', alignItems: 'center', gap: vs(8) }]}
+              onPress={() => Linking.openURL(`https://www.youtube.com/watch?v=${ytId}`)}
+              activeOpacity={0.85}
+            >
+              <Ionicons name="logo-youtube" size={s(48)} color="#FF0000" />
+              <Text style={{ color: '#fff', fontSize: sf(13), fontWeight: '700' }}>YouTube-ல் பார்க்க</Text>
             </TouchableOpacity>
-          )}
-          {pip && (
-            <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={0.9} onPress={expandPip}>
-              <View style={S.pipHint}>
-                <Ionicons name="play-circle" size={ms(13)} color="#fff" />
-                <Text style={{ color: '#fff', fontWeight: '600', fontSize: sf(11) }}>  Playing in mini — tap to expand</Text>
-              </View>
-            </TouchableOpacity>
+          ) : rawUrl ? (
+            <WebView
+              source={{ html: buildIframeHtml(rawUrl) }}
+              style={{ flex: 1 }}
+              javaScriptEnabled
+              domStorageEnabled
+              allowsInlineMediaPlayback
+              mediaPlaybackRequiresUserAction={false}
+              allowsFullscreenVideo
+              mixedContentMode="always"
+              originWhitelist={['*']}
+              scrollEnabled={false}
+            />
+          ) : (
+            // Show loading indicator while video data is loading
+            <View style={[StyleSheet.absoluteFill, S.thumbPh]}>
+              {loading || (!video && !latestvideo) ? (
+                <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#000' }}>
+                  <ActivityIndicator size="large" color={PALETTE.primary} />
+                  <Text style={{ color: '#fff', marginTop: vs(12), fontSize: sf(14) }}>Loading video...</Text>
+                </View>
+              ) : !rawUrl ? (
+                <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#000' }}>
+                  <Ionicons name="play-circle" size={s(60)} color="#666" />
+                  <Text style={{ color: '#666', marginTop: vs(8), fontSize: sf(14) }}>No video available</Text>
+                </View>
+              ) : null}
+            </View>
           )}
         </View>
 
         {/* ── Article body ──────────────────────────────────────────────── */}
         <View style={S.articleBody}>
-          <Text style={[S.articleTitle, { fontSize: sf(17), lineHeight: sf(26) }]}>{video?.videotitle ?? ''}</Text>
+          <Text style={[S.articleTitle, { fontSize: sf(14), lineHeight: sf(22) }]}>
+            {video?.videotitle ?? ''}
+          </Text>
           {loading && !latestvideo ? (
             <View style={{ gap: vs(10), marginVertical: vs(10) }}>
               {[1, .9, .75].map((w, i) => <View key={i} style={[S.skelLine, { width: `${w * 100}%` }]} />)}
             </View>
           ) : !!bodyText ? (
-            <View style={{ marginVertical: vs(4) }}>
-              <RenderHtml contentWidth={SW - s(28)} source={{ html: bodyText }}
-                baseStyle={{ fontSize: sf(14), lineHeight: sf(24), color: PALETTE.grey800, fontFamily: FONTS.muktaMalar.regular }}
-                tagsStyles={{ p: { marginVertical: vs(4) }, strong: { fontWeight: '700' }, a: { color: PALETTE.primary } }} />
+            <View>
+              <ReadMoreContent html={bodyText} contentWidth={SW - s(28)} sf={sf} />
               <Text style={[S.metaDate, { fontSize: sf(14), marginTop: vs(6) }]}>{video?.standarddate || timeAgo || ''}</Text>
             </View>
           ) : null}
           <View style={[S.metaRow, { marginTop: vs(8) }]}>
-            <View style={S.metaLeft}>
-              {!!video?.ctitle && <View style={S.catPill}><Text style={[S.catTxt, { fontSize: sf(10) }]}>{video.ctitle}</Text></View>}
-            </View>
+          <View style={S.metaLeft}>
+  {!!video?.ctitle && (
+    <TouchableOpacity
+      style={S.catPill}
+      onPress={() => handleCatPillPress(video.ctitle)}
+      activeOpacity={0.75}
+    >
+      <Text style={[S.catTxt, { fontSize: sf(10) }]}>{video.ctitle}</Text>
+    </TouchableOpacity>
+  )}
+</View>
             <View style={S.metaRight}>
-              {commentCount > 0 && (
-                <TouchableOpacity style={S.metaBtn} onPress={() => setIsCommentsOpen(true)} activeOpacity={0.8}>
-                  <Ionicons name="chatbox" size={ms(18)} color={PALETTE.grey600} />
-                  <Text style={{ fontSize: sf(11), color: PALETTE.grey600, marginLeft: s(3) }}>{commentCount}</Text>
-                </TouchableOpacity>
-              )}
+              {/* {commentCount > 0 && ( */}
+              <TouchableOpacity style={S.metaBtn} onPress={() => setIsCommentsOpen(true)} activeOpacity={0.8}>
+                <Ionicons name="chatbox" size={ms(18)} color={PALETTE.grey600} />
+                {/* <Text style={{ fontSize: sf(11), color: PALETTE.grey600, marginLeft: s(3) }}>{commentCount}</Text> */}
+              </TouchableOpacity>
+              {/* )} */}
               <TouchableOpacity style={S.metaBtn} onPress={() => setBookmarked(b => !b)} activeOpacity={0.8}>
                 <Ionicons name={bookmarked ? 'bookmark' : 'bookmark-outline'} size={ms(18)} color={bookmarked ? PALETTE.primary : PALETTE.grey600} />
               </TouchableOpacity>
@@ -630,6 +907,23 @@ const VideoDetailScreen = ({ navigation, route }) => {
           </View>
           <View style={S.divider} />
         </View>
+
+        {/* Deep Link Test Button (Expo Go) */}
+        {/* <TouchableOpacity 
+          style={{
+            backgroundColor: PALETTE.primary,
+            padding: s(12),
+            borderRadius: s(8),
+            marginVertical: vs(10),
+            alignItems: 'center'
+          }}
+          onPress={testDeepLinks}
+          activeOpacity={0.8}
+        >
+          <Text style={{ color: '#fff', fontSize: sf(14), fontWeight: '700' }}>
+            Test Deep Links (Expo Go)
+          </Text>
+        </TouchableOpacity> */}
 
         {/* ── Taboola mid ───────────────────────────────────────────────── */}
         {taboolaAds?.midmain && (
@@ -648,7 +942,7 @@ const VideoDetailScreen = ({ navigation, route }) => {
           <View style={S.section}>
             <SectionHeader title="மேலும் வீடியோக்கள்" sf={sf} />
             {videomixData.slice(0, 6).map((v, i) => (
-              <VideoListCard key={`vm-${i}-${v?.videoid || ''}`} video={v} onPress={handleVideoPress} sf={sf} />
+              <VideoListCard key={`vm-${i}-${v?.videoid || ''}`} video={v} onPress={handleVideoPress} sf={sf} onCatPress={handleCatPillPress} />
             ))}
           </View>
         )}
@@ -679,20 +973,17 @@ const VideoDetailScreen = ({ navigation, route }) => {
             adSize={mobileAds.mid_300x250.ad_size} adSize1={mobileAds.mid_300x250.ad_size1} />
         )} */}
 
-        {/* ── ரீல்ஸ் — data.relatedreels ONLY (separate, horizontal) ─────── */}
+        {/* ── ரீல்ஸ் — data.relatedreels ONLY (separate, grid) ──────── */}
         {relatedReels.length > 0 && (
           <View style={S.section}>
             <SectionHeader title="ஷார்ட்ஸ்" sf={sf} />
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ paddingHorizontal: s(12), paddingVertical: vs(10), gap: s(10) }}>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-around',  paddingVertical: vs(12), marginBottom: vs(20) }}>
               {relatedReels.map((item, i) => (
-                <ReelCard key={`rr-${i}-${item?.id || ''}`} item={item} sf={sf} onPress={handleReelPress} />
+                <ShortsGridCard key={`rr-${i}-${item?.id || ''}`} item={item} sf={sf} onPress={handleReelPress} />
               ))}
-            </ScrollView>
+            </View>
           </View>
         )}
-
-        {/* ── தொடர்புடையவை — data.relatedvideos (Screenshot 1 style) ─────── */}
         {relatedVideos.length > 0 && (
           <View style={S.section}>
             <SectionHeader title="தொடர்புடையவை" sf={sf} />
@@ -701,8 +992,6 @@ const VideoDetailScreen = ({ navigation, route }) => {
             ))}
           </View>
         )}
-
-        {/* ── செய்திகள் — data.newlist from relatedmost ─────────────────── */}
         {newsList.length > 0 && (
           <View style={S.section}>
             <SectionHeader title="செய்திகள்" sf={sf} />
@@ -721,29 +1010,6 @@ const VideoDetailScreen = ({ navigation, route }) => {
           <View style={S.section}>
             <SectionHeader title="மேலும் வீடியோக்கள்" sf={sf} />
             {videoReelNews.map((v, i) => (
-              <VideoListCard key={`vrn-${i}-${v?.videoid || ''}`} video={v} onPress={handleVideoPress} sf={sf} />
-            ))}
-          </View>
-        )} */}
-
-        {/* ── ஷார்ட்ஸ் — data.videoreels type=reels (separate, horizontal) ─ */}
-        {/* {videoReelReels.length > 0 && (
-          <View style={S.section}>
-            <SectionHeader title="ஷார்ட்ஸ்" sf={sf} />
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ paddingHorizontal: s(12), paddingVertical: vs(10), gap: s(10) }}>
-              {videoReelReels.map((item, i) => (
-                <ReelCard key={`vrs-${i}-${item?.id || ''}`} item={item} sf={sf} onPress={handleReelPress} />
-              ))}
-            </ScrollView>
-          </View>
-        )} */}
-
-
-
-        {/* ── மாவட்டங்கள் tag row — data.videodistrict ─────────────────── */}
-        {/* <DistrictTagList districts={videoDistrict} onPress={handleDistrictTagPress} sf={sf} /> */}
-
         {/* ── Google Ad BTF ─────────────────────────────────────────────── */}
         {/* {mobileAds?.bottom_300x250 && (
           <GoogleAdBanner slotId={mobileAds.bottom_300x250.slotId} adUnit={mobileAds.bottom_300x250.ad_unit}
@@ -752,9 +1018,11 @@ const VideoDetailScreen = ({ navigation, route }) => {
 
       </ScrollView>
 
-      <TouchableOpacity style={S.fab} onPress={() => scrollRef.current?.scrollTo({ y: 0, animated: true })}>
-        <Ionicons name="arrow-up" size={22} color={PALETTE.white} />
-      </TouchableOpacity>
+      {showScrollTop && (
+        <TouchableOpacity style={S.scrollTopBtn} onPress={() => scrollRef.current?.scrollTo({ y: 0, animated: true })}>
+          <Ionicons name="arrow-up" size={s(20)} color={PALETTE.white} />
+        </TouchableOpacity>
+      )}
 
       {/* ── Floating Player ───────────────────────────────────────────────── */}
       {isPlayerActive && (
@@ -762,7 +1030,7 @@ const VideoDetailScreen = ({ navigation, route }) => {
           style={[S.floatFull, pip ? S.floatPip : null, { left: aLeft, top: aTop, transform: [{ translateX: aDX }, { translateY: aDY }] }]}
           {...(pip ? pan.panHandlers : {})}>
           {activeYtId ? (
-            <YoutubePlayer height={VH} width={SW} videoId={activeYtId} play={true}
+            <YoutubePlayer height={VH} width={SW} videoId={activeYtId} play={true}forceAndroidAutoplay={true}
               onReady={() => { }} onChangeState={() => { }}
               webViewStyle={{ backgroundColor: '#000', opacity: 0.99 }}
               webViewProps={{ androidLayerType: 'hardware' }}
@@ -801,7 +1069,7 @@ const S = StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: vs(12) },
   retryBtn: { marginTop: vs(16), backgroundColor: PALETTE.primary, borderRadius: s(8), paddingHorizontal: s(20), paddingVertical: vs(10) },
 
-  slot: { width: '100%', height: VH, backgroundColor: '#000', overflow: 'hidden' },
+  slot: { width: '100%', height: VH, backgroundColor: '#000', overflow: 'hidden',justifyContent:"center",alignItems:"center",},
   grad: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,.28)' },
   thumbPh: { flex: 1, backgroundColor: '#2A2A2A', justifyContent: 'center', alignItems: 'center' },
   centerPlay: { position: 'absolute', top: '50%', left: '50%', transform: [{ translateX: -s(31) }, { translateY: -s(31) }] },
@@ -818,23 +1086,23 @@ const S = StyleSheet.create({
   pipBar: { position: 'absolute', bottom: 0, left: 0, right: 0, height: s(16), justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,.3)' },
   pipBarLine: { width: s(28), height: s(3), borderRadius: s(2), backgroundColor: 'rgba(255,255,255,.55)' },
 
-  articleBody: { backgroundColor: PALETTE.white, paddingTop: vs(12), paddingBottom: vs(4) },
-  articleTitle: { fontFamily: FONTS.muktaMalar.bold, color: PALETTE.grey800, fontWeight: '800', marginBottom: vs(8) },
+  articleBody: {  paddingTop: vs(12), paddingBottom: vs(4) },
+  articleTitle: { fontFamily: FONTS.muktaMalar.semibold, color: COLORS.text, marginBottom: vs(8) },
   metaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: vs(4) },
   metaLeft: { flexDirection: 'row', alignItems: 'center', gap: s(8), flex: 1 },
   metaRight: { flexDirection: 'row', alignItems: 'center', gap: s(6) },
   metaBtn: { flexDirection: 'row', alignItems: 'center', padding: s(6), borderRadius: s(4), backgroundColor: PALETTE.grey100, borderWidth: 1, borderColor: PALETTE.grey300 },
-  catPill: { paddingHorizontal: s(8), paddingVertical: vs(2), borderWidth: 1, borderColor: PALETTE.grey400,fontFamily:FONTS.muktaMalar.regular },
-  catTxt: {  color: PALETTE.grey600, fontWeight: '600',fontFamily:FONTS.muktaMalar.regular  },
-  metaDate: { color: PALETTE.grey500,fontFamily:FONTS.muktaMalar.regular },
+  catPill: { paddingHorizontal: s(8), paddingVertical: vs(2), borderWidth: 1, borderColor: PALETTE.grey400, fontFamily: FONTS.muktaMalar.regular },
+  catTxt: { color: PALETTE.grey600, fontWeight: '600', fontFamily: FONTS.muktaMalar.regular },
+  metaDate: { color: PALETTE.grey500, fontFamily: FONTS.muktaMalar.regular },
   divider: { height: 1, backgroundColor: PALETTE.grey300, marginTop: vs(10) },
   skelLine: { height: vs(14), backgroundColor: PALETTE.grey300, borderRadius: s(4) },
 
   section: { backgroundColor: PALETTE.white, marginTop: vs(6) },
   newsCardDivider: {
-  height: vs(8),
-  backgroundColor: PALETTE.grey200,
-},
+    height: vs(8),
+    backgroundColor: PALETTE.grey200,
+  },
 
   sectionHeader: {
     backgroundColor: PALETTE.white,
@@ -899,10 +1167,10 @@ const S = StyleSheet.create({
     alignItems: 'center',
     paddingLeft: s(2),
   },
-  vidListPlayWrap: { position: 'absolute', bottom: vs(10), left: s(10) },
+  vidListPlayWrap: { position: 'absolute', bottom: vs(8), left: s(8) },
   vidDurBadge: { position: 'absolute', bottom: vs(6), right: s(8), backgroundColor: 'rgba(0,0,0,.75)', paddingHorizontal: s(6), paddingVertical: vs(2), borderRadius: s(3) },
-  vidDurTxt: { color: PALETTE.white, fontWeight: '700',fontFamily:FONTS.muktaMalar.regular },
-  vidListInfo: { paddingVertical: vs(8),paddingHorizontal:ms(12) },
+  vidDurTxt: { color: PALETTE.white, fontWeight: '700', fontFamily: FONTS.muktaMalar.regular },
+  vidListInfo: { paddingVertical: vs(8), paddingHorizontal: ms(12) },
   vidListTitle: { fontFamily: FONTS.muktaMalar.bold, color: PALETTE.grey800, fontWeight: '700', marginBottom: vs(4) },
   vidListMeta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: ms(7) },
   cardDivider: { height: vs(6), backgroundColor: PALETTE.grey200 },
@@ -927,13 +1195,39 @@ const S = StyleSheet.create({
   reelPlayWrap: { position: 'absolute', top: '50%', left: '50%', transform: [{ translateX: -s(14) }, { translateY: -s(14) }] },
   reelTitle: { color: PALETTE.grey800, marginTop: vs(4), paddingHorizontal: s(2) },
 
+  // ShortsGridCard (for grid layout)
+  shortsGridCard: {
+    width: '48%',
+    marginHorizontal: '1%',
+    marginBottom: s(8),
+    backgroundColor: PALETTE.white,
+    borderRadius: s(8),
+    overflow: 'hidden'
+  },
+  shortsGridThumb: {
+    width: '100%',
+    aspectRatio: 9/16,
+    backgroundColor: PALETTE.grey200,
+    borderRadius: s(8),
+    overflow: 'hidden'
+  },
+  shortsGridImage: {
+    width: '100%',
+    height: '100%'
+  },
+  shortsGridPlaceholder: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5'
+  },
+
   // District tags
   distTagSec: { backgroundColor: PALETTE.white, marginTop: vs(6) },
   distTag: { flexDirection: 'row', alignItems: 'center', gap: s(4), paddingHorizontal: s(12), paddingVertical: vs(7), borderRadius: s(20), borderWidth: 1, borderColor: PALETTE.primary, backgroundColor: PALETTE.primary + '12' },
   distTagTxt: { color: PALETTE.primary, fontWeight: '600' },
 
   // News Card
-  newsCard: { backgroundColor: PALETTE.white,  },
+  newsCard: { backgroundColor: PALETTE.white, },
   newsCardThumb: { width: '100%', height: vs(200), backgroundColor: PALETTE.grey200, overflow: 'hidden' },
   newsCardPlaceholder: { backgroundColor: '#f0f0f0', justifyContent: 'center', alignItems: 'center' },
   newsCardPlaceholderLogo: { width: s(140), height: vs(60), opacity: 0.25 },
@@ -946,16 +1240,33 @@ const S = StyleSheet.create({
   newsCardTitle: { fontFamily: FONTS.muktaMalar.bold, color: PALETTE.grey800, fontWeight: '700', marginBottom: vs(8) },
   newsCardCatWrap: { marginBottom: vs(6) },
   newsCardCatPill: { alignSelf: 'flex-start', borderWidth: 1, borderColor: PALETTE.grey400, paddingHorizontal: s(10), paddingVertical: vs(3) },
-  newsCardCatTxt: { color: PALETTE.grey600, fontWeight: '600',fontFamily:FONTS.muktaMalar.regular },
+  newsCardCatTxt: { color: PALETTE.grey600, fontWeight: '600', fontFamily: FONTS.muktaMalar.regular },
   newsCardMetaRow: { flexDirection: 'row', alignItems: 'center', gap: s(8), marginTop: vs(2) },
   newsCardCommentRow: { flexDirection: 'row', alignItems: 'center' },
-  newsCardAgo: { color: PALETTE.primary,fontFamily:FONTS.muktaMalar.regular },
+  newsCardAgo: { color: PALETTE.primary, fontFamily: FONTS.muktaMalar.regular },
 
   // Load more
   loadMoreBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: s(6), marginHorizontal: s(14), marginVertical: vs(4), paddingVertical: vs(12), borderWidth: 1, borderColor: PALETTE.primary, borderRadius: s(8), backgroundColor: PALETTE.white },
   loadMoreTxt: { color: PALETTE.primary, fontWeight: '700' },
 
   fab: { position: 'absolute', bottom: vs(24), right: s(20), width: s(48), height: s(48), borderRadius: s(24), backgroundColor: PALETTE.primary, alignItems: 'center', justifyContent: 'center', elevation: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.25, shadowRadius: 6 },
+  scrollTopBtn: {
+    position: 'absolute',
+    bottom: vs(50),
+    right: s(16),
+    width: s(42),
+    height: s(42),
+    borderRadius: s(21),
+    backgroundColor: '#096dd2',
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: vs(2) },
+    shadowOpacity: 0.22,
+    shadowRadius: s(4),
+    zIndex: 100,
+  },
 });
 
 export default VideoDetailScreen;

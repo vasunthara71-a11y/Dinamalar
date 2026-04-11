@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "636469607657",
+    "project_id": "dmrmobileapp",
+    "storage_bucket": "dmrmobileapp.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:636469607657:android:d42db0aa57e39607118478",
+        "android_client_info": {
+          "package_name": "com.dinamalarMobileApp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDdhP3r7DjWexpYdTwIAar5pNNlaZ0bedI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

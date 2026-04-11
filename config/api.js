@@ -1,12 +1,31 @@
 import axios from 'axios';
 
+// ─── Simple Request Cache ───────────────────────────────────────────────────────
+const requestCache = new Map();
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+const getCachedData = (key) => {
+  const cached = requestCache.get(key);
+  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+    return cached.data;
+  }
+  return null;
+};
+
+const setCachedData = (key, data) => {
+  requestCache.set(key, {
+    data,
+    timestamp: Date.now()
+  });
+};
+
 // ─── API Base URLs ────────────────────────────────────────────────────────
 export const API_BASE_URLS = {
-  MAIN: 'https://api-st-cdn.dinamalar.com',
-  // DMR_API: 'https://dmrapi.dinamalar.com',
+  MAIN: 'https://api-st.dinamalar.com',
+  DMR_API: 'https://dmrapi.dinamalar.com',
   U38: 'https://u38.dinamalar.com',
-  OPEN_API: 'https://openapi-st-cdn.dinamalar.com',
-  CDN: 'https://api-st-cdn.dinamalar.com',
+  OPEN_API: 'https://openapi-st.dinamalar.com',
+  CDN: 'https://api-st.dinamalar.com',
   CHUNK_BUCKET: 'https://d4zhduaroqbqc.cloudfront.net',
   WEBSITE: 'https://www.dinamalar.com',
   PROD_MAIN: 'https://www.dinamalar.com',
@@ -54,6 +73,7 @@ export const API_ENDPOINTS = {
 
   // NRI APIs
   NRI: '/nri',
+  NRI_MAIN: '/nrimain',
   NRI_ENGLISH: '/nri?lang=en',
   NRITAMILCAT: '/nricategory?lang=ta&cat',
   NRIENGCAT: '/nricategory?lang=en&cat',
@@ -108,6 +128,13 @@ export const API_ENDPOINTS = {
   SPECIALCATLIST: '/specialcatlist',
   EDITOR_CHOICE: '/editorchoice',
   TODAY_SPECIAL: '/todayspecial',
+
+  // Static Pages
+  CONTACT_US: '/contactus',
+  COPYRIGHT: '/copyright',
+  PRIVACY_POLICY: '/privacypolicy',
+  TERMS_CONDITIONS: '/termsconditions',
+  ABOUT_US: '/aboutus',
 
   // Web Stories
   WEBSTORY: '/webstoriesupdate',
@@ -292,11 +319,11 @@ export const mainApi = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
-// export const dmrApi = axios.create({
-//   baseURL: API_BASE_URLS.DMR_API,
-//   timeout: 12000,
-//   headers: { 'Content-Type': 'application/json' },
-// });
+export const dmrApi = axios.create({
+  baseURL: API_BASE_URLS.DMR_API,
+  timeout: 12000,
+  headers: { 'Content-Type': 'application/json' },
+});
 
 export const u38Api = axios.create({
   baseURL: API_BASE_URLS.U38,
@@ -305,44 +332,61 @@ export const u38Api = axios.create({
 });
 
 export const CDNApi = axios.create({
-  baseURL:API_BASE_URLS.CDN,
-  timeout:30000, // Increased from 12s to 30s for better mobile network handling
-  headers:{
-    'Content-Type':'application/json',
-    'Cache-Control': 'no-cache, no-store, must-revalidate',
-    'Pragma': 'no-cache',
-    'Expires': '0'
+  baseURL: API_BASE_URLS.CDN,
+  timeout: 15000, // Reduced to 15s for faster failure detection
+  headers: {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+    'Accept-Encoding': 'gzip, deflate, br', // Enable compression
+    'Connection': 'keep-alive' // Connection pooling
   },
 });
 
-// Add request interceptor for debugging
+// Add request interceptor with caching
 CDNApi.interceptors.request.use(
-   (config) => {
-    // console.log('=== API REQUEST DEBUG ===');
-    // console.log('URL:', config.baseURL + config.url);
-    // console.log('Method:', config.method);
-    // console.log('Headers:', config.headers);
-    // console.log('========================');
+  (config) => {
+    // Check cache for GET requests, but bypass for timeline endpoints
+    const isTimelineEndpoint = config.url.includes('/latestmain') ||
+      config.url.includes('/latestnotify') ||
+      config.url.includes('/mostcommented');
+
+    if (config.method === 'get' && !isTimelineEndpoint) {
+      const cacheKey = `${config.baseURL}${config.url}`;
+      const cachedData = getCachedData(cacheKey);
+      if (cachedData) {
+        // Return cached data immediately
+        config.adapter = () => Promise.resolve({
+          data: cachedData,
+          status: 200,
+          statusText: 'OK',
+          headers: {},
+          config,
+          request: {},
+        });
+      }
+    }
     return config;
   },
   (error) => {
-    // console.error('API Request Error:', error);
     return Promise.reject(error);
   }
-)
+);
 
+// Add response caching interceptor
+CDNApi.interceptors.response.use(
+  (response) => {
+    // Cache successful GET responses, but bypass for timeline endpoints
+    const isTimelineEndpoint = response.config.url.includes('/latestmain') ||
+      response.config.url.includes('/latestnotify') ||
+      response.config.url.includes('/mostcommented');
 
-u38Api.interceptors.request.use(
-  (config) => {
-    // console.log('=== API REQUEST DEBUG ===');
-    // console.log('URL:', config.baseURL + config.url);
-    // console.log('Method:', config.method);
-    // console.log('Headers:', config.headers);
-    // console.log('========================');
-    return config;
+    if (response.config.method === 'get' && response.status === 200 && !isTimelineEndpoint) {
+      const cacheKey = `${response.config.baseURL}${response.config.url}`;
+      setCachedData(cacheKey, response.data);
+    }
+    return response;
   },
   (error) => {
-    console.error('API Request Error:', error);
     return Promise.reject(error);
   }
 );
@@ -445,6 +489,7 @@ export const api = {
 
   // NRI APIs
   getNri: () => mainApi.get(API_ENDPOINTS.NRI),
+  getNriMain: () => mainApi.get(API_ENDPOINTS.NRI_MAIN),
   getNriEnglish: () => mainApi.get(API_ENDPOINTS.NRI_ENGLISH),
   getNriTamilCat: (cat) => mainApi.get(`${API_ENDPOINTS.NRITAMILCAT}${cat}`),
   getNriEngCat: (cat) => mainApi.get(`${API_ENDPOINTS.NRIENGCAT}${cat}`),
@@ -499,6 +544,13 @@ export const api = {
   getSpecialCatList: () => mainApi.get(API_ENDPOINTS.SPECIALCATLIST),
   getEditorChoice: () => mainApi.get(API_ENDPOINTS.EDITOR_CHOICE),
   getTodaySpecial: () => mainApi.get(API_ENDPOINTS.TODAY_SPECIAL),
+
+  // Static Pages
+  getContactUs: () => mainApi.get(API_ENDPOINTS.CONTACT_US),
+  getCopyright: () => mainApi.get(API_ENDPOINTS.COPYRIGHT),
+  getPrivacyPolicy: () => mainApi.get(API_ENDPOINTS.PRIVACY_POLICY),
+  getTermsConditions: () => mainApi.get(API_ENDPOINTS.TERMS_CONDITIONS),
+  getAboutUs: () => mainApi.get(API_ENDPOINTS.ABOUT_US),
 
   // Web Stories
   getWebStory: () => mainApi.get(API_ENDPOINTS.WEBSTORY),

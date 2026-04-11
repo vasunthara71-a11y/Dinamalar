@@ -15,7 +15,7 @@ import {
   ActivityIndicator,
   Dimensions,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { SpeakerIcon } from '../assets/svg/Icons';
 
 // Try to import expo-av, fallback gracefully
 let Audio, Video, ResizeMode;
@@ -30,6 +30,7 @@ try {
 
 import { s, vs, ms } from '../utils/scaling';
 import { COLORS } from '../utils/constants';
+import { Ionicons } from '@expo/vector-icons';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 
@@ -97,7 +98,7 @@ function AudioPlayer({ audioUrl }) {
     // Fallback: open in browser
     return (
       <TouchableOpacity style={ap.fallback} onPress={() => Linking.openURL(audioUrl)}>
-        <Ionicons name="volume-high" size={s(20)} color="#fff" />
+        <SpeakerIcon size={s(20)} color="#fff" />
         <Text style={ap.fallbackText}>🎧 கேட்க இங்கே தட்டவும்</Text>
         <Ionicons name="open-outline" size={s(16)} color="rgba(255,255,255,0.7)" />
       </TouchableOpacity>
@@ -190,7 +191,7 @@ function AudioPlayer({ audioUrl }) {
     <View style={audio.container}>
       {/* ── Header row ── */}
       <View style={audio.header}>
-        <Ionicons name="volume-high" size={s(16)} color="#fff" />
+        <SpeakerIcon size={s(16)} color="#fff" />
         <Text style={audio.headerText}>கேளுங்கள்</Text>
       </View>
 

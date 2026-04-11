@@ -13,24 +13,120 @@ import {
   Image,
   Keyboard,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { SpeakerIcon } from '../assets/svg/Icons';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { s, vs } from '../utils/scaling';
 import { ms } from 'react-native-size-matters';
 import { FONTS, getFontFamily } from '../utils/fonts';
+import { COLORS, NewsCard as NewsCardStyles } from '../utils/constants';
+import { useFontSize } from '../context/FontSizeContext';
 import UniversalHeaderComponent from '../components/UniversalHeaderComponent';
 import AppHeaderComponent from '../components/AppHeaderComponent';
 import axios from 'axios';
+import { Ionicons } from '@expo/vector-icons';
 
-const SEARCH_API_BASE = 'https://api-st-cdn.dinamalar.com/searchfilter?search=';
+const SEARCH_API_BASE = 'https://api-st.dinamalar.com/searchfilter?search=';
+
+// Cache for search results to avoid repeated API calls
+const searchCache = new Map();
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache
+
+
+const PALETTE = {
+  primary: '#096dd2',
+  grey100: '#F9FAFB',
+  grey200: '#F4F6F8',
+  grey300: '#DFE3E8',
+  grey400: '#C4CDD5',
+  grey500: '#919EAB',
+  grey600: '#637381',
+  grey700: '#637381',
+  grey800: '#212B36',
+  white: '#FFFFFF',
+};
+// News Card (same as CommonSectionScreen)
+// ─────────────────────────────────────────────────────────────────────────────
+function NewsCard({ item, onPress, sectionTitle = '' }) {
+  const { sf } = useFontSize();
+
+  const imageUri =
+    item.largeimages || item.images || item.image || item.thumbnail || item.thumb ||
+    'https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_default.jpg?im=Resize,width=400';
+
+  const title = item.newstitle || item.title || item.videotitle || item.name || '';
+  const category = item.maincat || item.categrorytitle || item.ctitle || item.maincategory || sectionTitle || '';
+  const ago = item.ago || item.time_ago || item.standarddate || item.date || '';
+  const newscomment = item.newscomment || item.commentcount || item.nmcomment || item.comments?.total || '';
+  const hasAudio = item.audio === 1 || item.audio === '1' || item.audio === true ||
+    (typeof item.audio === 'string' && item.audio.length > 1 && item.audio !== '0');
+
+  return (
+    <View style={[NewsCardStyles.wrap,]}>
+      <TouchableOpacity onPress={() => onPress?.(item)} activeOpacity={0.88}>
+        <View style={[NewsCardStyles.imageWrap, { marginHorizontal: ms(0), height: (item.type === 'video' || item.video === '1' || item.video === 1) ? vs(120) : vs(140) }]}>
+          <Image
+            source={{ uri: imageUri }}
+            style={[NewsCardStyles.image, { height: (item.type === 'video' || item.video === '1' || item.video === 1) ? vs(120) : vs(140) }]}
+            resizeMode="contain"
+          />
+        </View>
+
+        <View style={[NewsCardStyles.contentContainer, { paddingHorizontal: ms(0) }]}>
+          {!!title && (
+            <Text style={[NewsCardStyles.title, { fontSize: sf(13), lineHeight: sf(22) }]} numberOfLines={3}>{title}</Text>
+          )}
+
+          {!!category && (
+            <View style={NewsCardStyles.catPill}>
+              <Text style={[NewsCardStyles.catText, { fontSize: sf(12) }]}>{category}</Text>
+            </View>
+          )}
+
+          <View style={NewsCardStyles.metaRow}>
+            <Text style={[NewsCardStyles.timeText, { fontSize: sf(13) }]}>{ago}</Text>
+            <View style={NewsCardStyles.metaRight}>
+              {hasAudio && (
+                <View style={NewsCardStyles.audioIcon}>
+                  <SpeakerIcon size={s(14)} color={COLORS.text} />
+                </View>
+              )}
+
+              {!!newscomment && newscomment !== '0' && (
+                <View style={NewsCardStyles.commentRow}>
+                  <Ionicons name="chatbox" size={s(16)} color={COLORS.subtext} />
+                  <Text style={[NewsCardStyles.commentText, { fontSize: sf(14) }]}> {newscomment}</Text>
+                </View>
+              )}
+            </View>
+          </View>
+        </View>
+      </TouchableOpacity>
+
+      <View style={NewsCardStyles.divider} />
+    </View>
+  );
+}
+
+// Section Title (same as CommonSectionScreen)
+// ─────────────────────────────────────────────────────────────────────────────
+function SectionTitle({ title }) {
+  const { sf } = useFontSize();
+
+  return (
+    <View style={styles.sectionHeader}>
+      <Text style={[styles.sectionTitle, { fontSize: sf(16) }]}>{title || ''}</Text>
+      <View style={styles.sectionUnderline} />
+    </View>
+  );
+}
 
 // ─── Short Card (Dinamalar mobile website style - landscape like video cards) ──
 const ShortCard = ({ video, onPress }) => {
-  const title    = video.newstitle || video.title || video.videotitle || '';
+  const title = video.newstitle || video.title || video.videotitle || '';
   const imageUri = video.images || video.largeimages || video.image || '';
   const duration = video.duration || '';
   const catLabel = video.maincat || video.CatName || '';
-  const pubDate  = video.ago || video.standarddate || '';
+  const pubDate = video.ago || video.standarddate || '';
 
   return (
     <TouchableOpacity
@@ -94,7 +190,7 @@ const ShortsSectionRow = ({ items, onPress }) => {
     <View style={styles.shortsSectionContainer}>
       <View style={styles.shortsSectionHeader}>
         <View style={styles.shortsSectionTitleWrap}>
-          <Text style={styles.shortsSectionTitle}>Shorts</Text>
+          <Text style={styles.sectionTitle}>Shorts</Text>
           <View style={styles.shortsSectionUnderline} />
         </View>
       </View>
@@ -119,13 +215,16 @@ const ShortsSectionRow = ({ items, onPress }) => {
 };
 
 // ─── Result Card (full-width image, title, category, meta) ───────────────────
-var SearchResultItem = function(props) {
-  var item    = props.item;
+var SearchResultItem = function (props) {
+  var item = props.item;
   var onPress = props.onPress;
 
-  var isReels  = item.type === 'reels';
-  var isVideo  = item.type === 'video' || item.video === '1' || item.video === 1;
-  var isPhoto  = item.type === 'photo';
+  var isReels = item.type === 'reels';
+  var isVideo = item.type === 'video' ||
+    item.type === 'reels' ||
+    item.video === '1' ||
+    item.video === 1;
+  var isPhoto = item.type === 'photo';
   var hasAudio = item.audio === '1' || item.audio === 1;
 
   // For reels, render as portrait short card
@@ -137,61 +236,61 @@ var SearchResultItem = function(props) {
     );
   }
 
-  var title         = item.newstitle    || item.Title    || item.title    || '';
-  var imageUrl      = item.images       || item.ImageUrl || item.imageurl || '';
-  var pubDate       = item.ago          || item.standarddate || item.newsdate || '';
-  var catLabel      = item.maincat      || item.CatName  || item.catname  || '';
+  var title = item.newstitle || item.Title || item.title || '';
+  var imageUrl = item.images || item.ImageUrl || item.imageurl || '';
+  var pubDate = item.ago || item.standarddate || item.newsdate || '';
+  var catLabel = item.maincat || item.CatName || item.catname || '';
   var commentsCount = parseInt(item.newscomment || item.CommentCount || 0);
+
+  // Use placeholder if no image URL
+  var imageSource = imageUrl ? { uri: imageUrl } : require('../assets/images/videoPlaceHolder.png');
 
   return (
     <TouchableOpacity
       style={styles.resultCard}
-      onPress={function() { onPress && onPress(item); }}
+      onPress={function () { onPress && onPress(item); }}
       activeOpacity={0.88}
     >
       {/* Full width image */}
-      {imageUrl ? (
-        <View style={styles.resultImageWrap}>
-          <Image source={{ uri: imageUrl }} style={styles.resultImage} resizeMode="cover" />
-          {(isVideo || isReels) && (
-            <View style={styles.playOverlay}>
-              <View style={styles.playCircle}>
-                <Ionicons name="play" size={ms(18)} color="#fff" />
-              </View>
+      <View style={[styles.resultImageWrap, isPhoto && styles.resultImageWrapPhoto]}>
+        <Image source={imageSource} style={styles.resultImage} resizeMode="contain" />
+        {(isVideo || isReels) && (
+          <View style={styles.playOverlay}>
+            <View style={styles.playCircle}>
+              <Ionicons name="play" size={ms(18)} color="#fff" />
             </View>
-          )}
-          {isPhoto && (
-            <View style={styles.imageOverlay}>
-              <View style={styles.imageCircle}>
-                <Ionicons name="image" size={ms(18)} color="#fff" />
-              </View>
+          </View>
+        )}
+        {isPhoto && (
+          <View style={styles.imageOverlay}>
+            <View style={styles.imageCircle}>
+              <Ionicons name="image" size={ms(18)} color="#fff" />
             </View>
-          )}
-          {isReels && (
-            <View style={styles.reelsBadge}>
-              <Text style={styles.reelsBadgeText}>ஷார்ட்ஸ்</Text>
-            </View>
-          )}
-        </View>
-      ) : null}
+          </View>
+        )}
+        {isReels && (
+          <View style={styles.reelsBadge}>
+            <Text style={styles.reelsBadgeText}>ஷார்ட்ஸ்</Text>
+          </View>
+        )}
+      </View>
 
       {/* Text content */}
       <View style={styles.resultBody}>
-        <Text style={styles.resultTitle}  >{title}</Text>
+        <Text style={NewsCardStyles.title}  >{title}</Text>
 
         {catLabel ? (
-          <View style={styles.catPill}>
-            <Text style={styles.catPillText}>{catLabel}</Text>
+          <View style={NewsCardStyles.catPill}>
+            <Text style={NewsCardStyles.catPillText}>{catLabel}</Text>
           </View>
         ) : null}
 
         {/* Meta row: date + audio + comments */}
-        <View style={styles.metaRow}>
-          <Text style={styles.metaDate}>{pubDate}</Text>
-          <View style={styles.metaIcons}>
+        <View style={NewsCardStyles.metaRow}>
+          <Text style={NewsCardStyles.metaDate}>{pubDate}</Text>
+          <View style={NewsCardStyles.metaIcons}>
             {hasAudio ? (
-              <Ionicons
-                name="volume-high-outline"
+              <SpeakerIcon
                 size={ms(16)}
                 color="#555"
                 style={{ marginRight: s(10) }}
@@ -214,46 +313,80 @@ var SearchResultItem = function(props) {
 };
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
-var SearchScreen = function() {
+var SearchScreen = function () {
   var navigation = useNavigation();
+  var route = useRoute();
 
-  var sq = useState('');         var searchQuery    = sq[0]; var setSearchQuery    = sq[1];
-  var sr = useState([]);         var searchResults  = sr[0]; var setSearchResults  = sr[1];
-  var il = useState(false);      var isLoading      = il[0]; var setIsLoading      = il[1];
-  var lm = useState(false);      var isLoadingMore  = lm[0]; var setIsLoadingMore  = lm[1];
-  var er = useState(null);       var error          = er[0]; var setError          = er[1];
-  var hs = useState(false);      var hasSearched    = hs[0]; var setHasSearched    = hs[1];
-  var ac = useState('all');      var activeCategory = ac[0]; var setActiveCategory = ac[1];
-  var cf = useState([]);         var categoryFilter = cf[0]; var setCategoryFilter = cf[1];
-  var tk = useState([]);         var trendingTopics = tk[0]; var setTrendingTopics = tk[1];
-  var cp = useState(1);          var currentPage    = cp[0]; var setCurrentPage    = cp[1];
-  var lp = useState(1);          var lastPage       = lp[0]; var setLastPage       = lp[1];
+  var sq = useState(''); var searchQuery = sq[0]; var setSearchQuery = sq[1];
+  var sr = useState([]); var searchResults = sr[0]; var setSearchResults = sr[1];
+  var il = useState(false); var isLoading = il[0]; var setIsLoading = il[1];
+  var lm = useState(false); var isLoadingMore = lm[0]; var setIsLoadingMore = lm[1];
+  var er = useState(null); var error = er[0]; var setError = er[1];
+  var hs = useState(false); var hasSearched = hs[0]; var setHasSearched = hs[1];
+  var ac = useState('all'); var activeCategory = ac[0]; var setActiveCategory = ac[1];
+  var cf = useState([]); var categoryFilter = cf[0]; var setCategoryFilter = cf[1];
+  var tk = useState([]); var trendingTopics = tk[0]; var setTrendingTopics = tk[1];
+  var mc = useState([]); var mostCommented = mc[0]; var setMostCommented = mc[1];
+  var ml = useState(false); var mostCommentedLoading = ml[0]; var setMostCommentedLoading = ml[1];
+  var cp = useState(1); var currentPage = cp[0]; var setCurrentPage = cp[1];
+  var lp = useState(1); var lastPage = lp[0]; var setLastPage = lp[1];
   var cq = useRef('');           // track current query for load more
-  var fs = useState(false);      var showScrollTop  = fs[0]; var setShowScrollTop  = fs[1];
+  var fs = useState(false); var showScrollTop = fs[0]; var setShowScrollTop = fs[1];
   var flatListRef = useRef(null);
 
-  var dv = useState(false);      var isDrawerVisible         = dv[0]; var setIsDrawerVisible         = dv[1];
-  var lv = useState(false);      var isLocationDrawerVisible = lv[0]; var setIsLocationDrawerVisible = lv[1];
-  var sd = useState('உள்ளூர்'); var selectedDistrict        = sd[0]; var setSelectedDistrict        = sd[1];
+  var dv = useState(false); var isDrawerVisible = dv[0]; var setIsDrawerVisible = dv[1];
+  var lv = useState(false); var isLocationDrawerVisible = lv[0]; var setIsLocationDrawerVisible = lv[1];
+  var sd = useState('உள்ளூர்'); var selectedDistrict = sd[0]; var setSelectedDistrict = sd[1];
 
   var inputRef = useRef(null);
 
+  // Set initial search query from route params
+  useEffect(function () {
+    var initialSearchTerm = route.params?.searchTerm;
+    if (initialSearchTerm) {
+      setSearchQuery(initialSearchTerm);
+      cq.current = initialSearchTerm;
+      // Trigger search automatically
+      performSearch(initialSearchTerm);
+    }
+  }, [route.params?.searchTerm]);
+
   // Fetch trending topics on mount
-  useEffect(function() {
+  useEffect(function () {
     axios.get(SEARCH_API_BASE + 'gold')
-      .then(function(response) {
+      .then(function (response) {
         var data = response && response.data;
         if (data && Array.isArray(data.trendingkeywords) && data.trendingkeywords.length > 0) {
           setTrendingTopics(data.trendingkeywords[0]?.data || []);
         }
       })
-      .catch(function() {});
+      .catch(function () { });
+
+    // Fetch most commented data
+    setMostCommentedLoading(true);
+    axios.get('https://api-st.dinamalar.com/photodata')
+      .then(function (response) {
+        var data = response && response.data;
+        console.log('[SearchScreen] Most commented API response:', data);
+        if (data && data.mostcommented && Array.isArray(data.mostcommented.data)) {
+          console.log('[SearchScreen] Found most commented data:', data.mostcommented.data.length, 'items');
+          setMostCommented(data.mostcommented.data.slice(0, 10)); // Limit to 10 items
+        } else {
+          console.log('[SearchScreen] No most commented data found');
+        }
+      })
+      .catch(function (err) {
+        console.error('Most commented fetch error:', err);
+      })
+      .finally(function () {
+        setMostCommentedLoading(false);
+      });
   }, []);
 
-  var handleMenuPress = function(menuItem) {};
-  var goToSearch      = function() {};
-  var goToNotifs      = function() { navigation && navigation.navigate('NotificationScreen'); };
-  var handleSelectDistrict = function(district) {
+  var handleMenuPress = function (menuItem) { };
+  var goToSearch = function () { };
+  var goToNotifs = function () { navigation && navigation.navigate('NotificationScreen'); };
+  var handleSelectDistrict = function (district) {
     setSelectedDistrict(district.title);
     setIsLocationDrawerVisible(false);
     if (district.id) {
@@ -264,18 +397,44 @@ var SearchScreen = function() {
   };
 
   // ─── Search ────────────────────────────────────────────────────────────────
-  var performSearch = useCallback(function(query) {
-    if (!query || !query.trim()) return;
-    Keyboard.dismiss();
+  var performSearch = useCallback(function (query) {
+    if (!query || query.trim().length === 0) return;
+
+    var trimmedQuery = query.trim();
+
+    // Check cache first
+    var cacheKey = trimmedQuery + '_page1';
+    var cached = searchCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+      console.log('🚀 Using cached search results for:', trimmedQuery);
+      setSearchResults(cached.results);
+      setCurrentPage(cached.currentPage || 1);
+      setLastPage(cached.lastPage || 1);
+      setCategoryFilter(cached.categoryFilter || []);
+      setTrendingTopics(cached.trendingTopics || []);
+      setIsLoading(false);
+      setHasSearched(true);
+      setActiveCategory('all');
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
     setHasSearched(true);
     setActiveCategory('all');
     setCurrentPage(1);
-    cq.current = query.trim();
+    cq.current = trimmedQuery;
 
-    axios.get(SEARCH_API_BASE + encodeURIComponent(query.trim()) + '&page=1')
-      .then(function(response) {
+    var searchPromise = axios.get(SEARCH_API_BASE + encodeURIComponent(trimmedQuery) + '&page=1', {
+      timeout: 10000, // 10 second timeout for faster failure
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      }
+    });
+
+    searchPromise
+      .then(function (response) {
         var data = response && response.data;
         var results = [];
 
@@ -286,6 +445,16 @@ var SearchScreen = function() {
         }
 
         setSearchResults(results);
+
+        // Cache the results
+        searchCache.set(cacheKey, {
+          results: results,
+          currentPage: data?.pagination?.current_page || 1,
+          lastPage: data?.pagination?.last_page || 1,
+          categoryFilter: data?.categoryfilter || [],
+          trendingTopics: data?.trendingkeywords?.[0]?.data || [],
+          timestamp: Date.now()
+        });
 
         // Save pagination info
         if (data && data.pagination) {
@@ -303,24 +472,45 @@ var SearchScreen = function() {
           setTrendingTopics(data.trendingkeywords[0]?.data || []);
         }
       })
-      .catch(function(err) {
+      .catch(function (err) {
         console.error('Search error:', err);
-        setError('தேடல் தோல்வியடைந்தது. மீண்டும் முயற்சிக்கவும்.');
+        setError('தேடல் தோல்வியடைந்தது. மீண்டும் முயற்சிக்கவும.');
         setSearchResults([]);
       })
-      .finally(function() { setIsLoading(false); });
+      .finally(function () { setIsLoading(false); });
   }, []);
 
   // ─── Load more (pagination) ────────────────────────────────────────────────
-  var loadMore = useCallback(function() {
+  var loadMore = useCallback(function () {
     if (isLoadingMore || isLoading || currentPage >= lastPage || !cq.current) return;
 
     var nextPage = currentPage + 1;
     setIsLoadingMore(true);
 
     var typeParam = activeCategory !== 'all' ? '&type=' + activeCategory : '';
-    axios.get(SEARCH_API_BASE + encodeURIComponent(cq.current) + '&page=' + nextPage + typeParam)
-      .then(function(response) {
+    var cacheKey = cq.current + '_page' + nextPage + (typeParam || '_all');
+
+    // Check cache first for pagination
+    var cached = searchCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+      console.log('🚀 Using cached load more results for page:', nextPage);
+      setSearchResults(function (prev) { return prev.concat(cached.results); });
+      setCurrentPage(cached.currentPage || nextPage);
+      setLastPage(cached.lastPage || 1);
+      setIsLoadingMore(false);
+      return;
+    }
+
+    var loadMorePromise = axios.get(SEARCH_API_BASE + encodeURIComponent(cq.current) + '&page=' + nextPage + typeParam, {
+      timeout: 8000, // 8 second timeout for pagination
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      }
+    });
+
+    loadMorePromise
+      .then(function (response) {
         var data = response && response.data;
         var results = [];
 
@@ -330,63 +520,127 @@ var SearchScreen = function() {
           results = data;
         }
 
+        // Cache the pagination results
+        searchCache.set(cacheKey, {
+          results: results,
+          currentPage: data?.pagination?.current_page || nextPage,
+          lastPage: data?.pagination?.last_page || 1,
+          timestamp: Date.now()
+        });
+
         // Append to existing results
-        setSearchResults(function(prev) { return prev.concat(results); });
+        setSearchResults(function (prev) { return prev.concat(results); });
 
         if (data && data.pagination) {
           setCurrentPage(data.pagination.current_page || nextPage);
           setLastPage(data.pagination.last_page || 1);
         }
       })
-      .catch(function(err) {
+      .catch(function (err) {
         console.error('Load more error:', err);
       })
-      .finally(function() { setIsLoadingMore(false); });
+      .finally(function () { setIsLoadingMore(false); });
   }, [isLoadingMore, isLoading, currentPage, lastPage, activeCategory]);
 
   // ─── Filter results by active tab ─────────────────────────────────────────
-  var filteredResults = React.useMemo(function() {
+  var filteredResults = React.useMemo(function () {
     if (activeCategory === 'all') return searchResults;
-    return searchResults.filter(function(item) {
-      var itemType    = (item.type || '').toLowerCase();
+    return searchResults.filter(function (item) {
+      var itemType = (item.type || '').toLowerCase();
       var itemMaincat = (item.maincat || '').toLowerCase();
-      var itemCatId   = String(item.maincatid || '').toLowerCase();
+      var itemCatId = String(item.maincatid || '').toLowerCase();
 
       if (activeCategory === 'news') {
         return itemType === 'news' &&
-               itemMaincat !== 'ஷார்ட்ஸ்' &&
-               itemCatId !== 'shorts';
+          itemMaincat !== 'ஷார்ட்ஸ்' &&
+          itemCatId !== 'shorts';
       }
       if (activeCategory === 'video') {
         return itemType === 'video' || itemType === 'reels' ||
-               itemMaincat === 'ஷார்ட்ஸ்' || itemCatId === 'shorts';
+          itemMaincat === 'ஷார்ட்ஸ்' || itemCatId === 'shorts';
       }
       if (activeCategory === 'photo') {
         return itemType === 'photo' || itemMaincat.includes('photo') ||
-               itemCatId.includes('photo') || itemMaincat.includes('படம்') ||
-               itemMaincat.includes('புகைப்படம்');
+          itemCatId.includes('photo') || itemMaincat.includes('படம்') ||
+          itemMaincat.includes('புகைப்படம்');
       }
       if (activeCategory === 'kalvimalar') {
-        return itemMaincat.includes('கல்வி') || itemCatId.includes('kalvi') ||
-               itemMaincat.includes('kalvi');
+        // Debug: log the maincat values to see what we're working with
+        console.log('🔍 Kalvimalar Filter - itemMaincat:', itemMaincat, 'itemType:', itemType);
+
+        // Check for education-related content using multiple indicators
+        var isEducationContent =
+          itemMaincat.includes('கல்வி') ||
+          itemCatId.includes('kalvi') ||
+          itemMaincat.includes('kalvi') ||
+          itemMaincat.includes('கல்விமலர்') ||
+          itemMaincat.includes('கல்வித்') ||
+          itemMaincat.includes('பள்ளி') ||
+          itemMaincat.includes('கல்லூரி') ||
+          itemMaincat.includes('பல்கலைக்கழகம்') ||
+          itemMaincat.includes('தேர்வு') ||
+          itemMaincat.includes('படிப்பியல்') ||
+          // Check title/content for education indicators
+          (item.newstitle && (
+            item.newstitle.toLowerCase().includes('education') ||
+            item.newstitle.toLowerCase().includes('school') ||
+            item.newstitle.toLowerCase().includes('college') ||
+            item.newstitle.toLowerCase().includes('exam') ||
+            item.newstitle.toLowerCase().includes('student') ||
+            item.newstitle.toLowerCase().includes('university')
+          )) ||
+          (item.newsdescription && (
+            item.newsdescription.toLowerCase().includes('education') ||
+            item.newsdescription.toLowerCase().includes('school') ||
+            item.newsdescription.toLowerCase().includes('college') ||
+            item.newsdescription.toLowerCase().includes('exam') ||
+            item.newsdescription.toLowerCase().includes('student') ||
+            item.newsdescription.toLowerCase().includes('university')
+          ));
+
+        return isEducationContent;
       }
       if (activeCategory === 'nri') {
-        return itemMaincat.includes('உலக') || itemCatId.includes('nri') ||
-               itemMaincat.includes('nri');
+        // Debug: log the maincat values to see what we're working with
+        console.log('🔍 NRI Filter - itemMaincat:', itemMaincat, 'itemType:', itemType);
+
+        // Check for NRI-related content using multiple indicators
+        var isNRIContent =
+          itemMaincat.includes('உலக') ||
+          itemCatId.includes('nri') ||
+          itemMaincat.includes('nri') ||
+          itemMaincat.includes('உலகத்தமிலார்') ||
+          itemMaincat.includes('உலகத்') ||
+          itemMaincat.includes('தமிழர்') ||
+          // Check title/content for NRI indicators
+          (item.newstitle && item.newstitle.toLowerCase().includes('india')) ||
+          (item.newsdescription && item.newsdescription.toLowerCase().includes('india'));
+
+        return isNRIContent;
       }
       return itemType.indexOf(activeCategory) !== -1 ||
-             itemMaincat.indexOf(activeCategory) !== -1 ||
-             itemCatId.indexOf(activeCategory) !== -1;
+        itemMaincat.indexOf(activeCategory) !== -1 ||
+        itemCatId.indexOf(activeCategory) !== -1;
     });
   }, [searchResults, activeCategory]);
 
-  var handleItemPress = function(item) {
-    var newsId   = item.id || item.Id || item.NewsId || item.newsid;
+  var handleItemPress = function (item) {
+    var newsId = item.id || item.Id || item.NewsId || item.newsid;
     var itemType = (item.type || '').toLowerCase();
-    if (itemType === 'reels' || itemType === 'video') {
-      // Map search result fields to VideoDetailScreen expected fields based on actual API structure
+    
+    // Check if this is from the video category tab and should go to VideoDetailScreen
+    if (activeCategory === 'video' && (itemType === 'video' || item.video === '1' || item.video === 1)) {
+      console.log('VIDEO CATEGORY ITEM CLICKED - Navigating to VideoDetailScreen');
+      console.log('Clicking video item data:', { 
+        newsId: newsId, 
+        title: item.newstitle || item.title,
+        type: itemType,
+        path: item.path
+      });
+      
+      // Map to video format for VideoDetailScreen
       var mappedVideo = {
-        videoid: item.id || item.Id || item.NewsId || item.newsid,
+        videoid: newsId,
         videotitle: item.newstitle || item.Title || item.title || '',
         images: item.images || item.ImageUrl || item.imageurl || '',
         videodescription: item.newsdescription || item.description || item.content || '',
@@ -398,18 +652,37 @@ var SearchScreen = function() {
         nmcomment: item.newscomment || item.CommentCount || 0,
         type: item.type || 'video',
         slug: item.slug || '',
-        videopath: item.path || item.videopath || item.y_path || item.vidg_path || ''
+        videopath: item.path || item.videopath || item.y_path || item.vidg_path || '',
+        video: item.video || item.path || item.videopath || '',
+        videourl: item.path || item.videopath || item.y_path || item.vidg_path || '',
+        y_path: item.path || item.videopath || item.y_path || item.vidg_path || '',
+        vidg_path: item.path || item.videopath || item.y_path || item.vidg_path || ''
       };
       navigation && navigation.navigate('VideoDetailScreen', { video: mappedVideo });
+    } else if (newsId) {
+      // Handle all other items (including news videos) to go to NewsDetailsScreen like HomeScreen
+      console.log('SEARCH RESULT ITEM CLICKED - Navigating to NewsDetailsScreen like HomeScreen');
+      console.log('Clicking item data:', { 
+        newsId: newsId, 
+        title: item.newstitle || item.title,
+        type: itemType,
+        isVideo: item.video === '1' || item.video === 1,
+        category: activeCategory
+      });
+      
+      // Navigate to NewsDetailsScreen with original item like HomeScreen goToArticle function
+      navigation && navigation.navigate('NewsDetailsScreen', {
+        newsId: item.id || item.newsid,
+        newsItem: item,
+        slug: item.slug || '',
+      });
     } else {
-      if (newsId) {
-        navigation && navigation.navigate('NewsDetailsScreen', { newsId: newsId, newsItem: item });
-      }
+      console.log('NO NEWSID FOUND - Cannot navigate');
     }
   };
 
   // When a category tab is clicked, fetch filtered results from API using type param
-  var handleCategoryPress = useCallback(function(ename) {
+  var handleCategoryPress = useCallback(function (ename) {
     setActiveCategory(ename);
     if (!cq.current) return;
 
@@ -419,8 +692,14 @@ var SearchScreen = function() {
     setCurrentPage(1);
 
     var url = SEARCH_API_BASE + encodeURIComponent(cq.current) + '&page=1&type=' + ename;
-    axios.get(url)
-      .then(function(response) {
+    axios.get(url, {
+      timeout: 6000, // 8 second timeout for category filtering
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      }
+    })
+      .then(function (response) {
         var data = response && response.data;
         var results = [];
         if (data && Array.isArray(data.detail)) {
@@ -428,7 +707,7 @@ var SearchScreen = function() {
         } else if (Array.isArray(data)) {
           results = data;
         }
-        setSearchResults(function(prev) {
+        setSearchResults(function (prev) {
           return results;
         });
         if (data && data.pagination) {
@@ -436,25 +715,30 @@ var SearchScreen = function() {
           setLastPage(data.pagination.last_page || 1);
         }
       })
-      .catch(function() {})
-      .finally(function() { setIsLoading(false); });
+      .catch(function () { })
+      .finally(function () { setIsLoading(false); });
   }, []);
 
   // Build category tabs from API categoryfilter
-  var categoryTabs = React.useMemo(function() {
+  var categoryTabs = React.useMemo(function () {
     if (categoryFilter.length === 0) return [];
-    return categoryFilter.map(function(cf) {
-      return { id: cf.ename, label: cf.name, count: cf.count };
-    });
+    return categoryFilter
+      .filter(function (cf) {
+        // Remove 'all' tab from results
+        return cf.ename && cf.ename !== 'all';
+      })
+      .map(function (cf) {
+        return { id: cf.ename, label: cf.name, count: cf.count };
+      });
   }, [categoryFilter]);
 
   // ─── Scroll to top handler ─────────────────────────────────────────────────────
-  var handleScroll = function(event) {
+  var handleScroll = function (event) {
     var offsetY = event.nativeEvent.contentOffset.y;
     setShowScrollTop(offsetY > 300);
   };
 
-  var scrollToTop = function() {
+  var scrollToTop = function () {
     if (flatListRef.current) {
       flatListRef.current.scrollToOffset({ offset: 0, animated: true });
     }
@@ -462,11 +746,11 @@ var SearchScreen = function() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
 
       <UniversalHeaderComponent
-        statusBarStyle="dark-content"
-        statusBarBackgroundColor="#fff"
+        statusBarStyle="light-content"
+        statusBarBackgroundColor={COLORS.primary}
         onMenuPress={handleMenuPress}
         onNotification={goToNotifs}
         notifCount={0}
@@ -480,8 +764,8 @@ var SearchScreen = function() {
       >
         <AppHeaderComponent
           onSearch={goToSearch}
-          onMenu={function() { setIsDrawerVisible(true); }}
-          onLocation={function() { setIsLocationDrawerVisible(true); }}
+          onMenu={function () { setIsDrawerVisible(true); }}
+          onLocation={function () { setIsLocationDrawerVisible(true); }}
           selectedDistrict="உள்ளூர்"
         />
       </UniversalHeaderComponent>
@@ -496,14 +780,14 @@ var SearchScreen = function() {
             placeholderTextColor="#999"
             value={searchQuery}
             onChangeText={setSearchQuery}
-            onSubmitEditing={function() { performSearch(searchQuery); }}
+            onSubmitEditing={function () { performSearch(searchQuery); }}
             returnKeyType="search"
             autoCorrect={false}
           />
           {searchQuery.length > 0 && (
             <TouchableOpacity
-              onPress={function() { 
-                setSearchQuery(''); 
+              onPress={function () {
+                setSearchQuery('');
                 setSearchResults([]);
                 setHasSearched(false);
                 setActiveCategory('all');
@@ -520,7 +804,7 @@ var SearchScreen = function() {
         </View>
         <TouchableOpacity
           style={styles.searchBtn}
-          onPress={function() { performSearch(searchQuery); }}
+          onPress={function () { performSearch(searchQuery); }}
           activeOpacity={0.85}
         >
           <Text style={styles.searchBtnText}>Search</Text>
@@ -531,14 +815,14 @@ var SearchScreen = function() {
       {!hasSearched ? (
         <ScrollView style={styles.preSearchWrap} showsVerticalScrollIndicator={false}>
           {/* English hint */}
-          <View style={styles.englishHint}>
+          {/* <View style={styles.englishHint}>
             <Text style={styles.englishHintText}>
               To <Text style={styles.boldText}>type / voice search</Text> in English{' '}
             </Text>
             <TouchableOpacity style={styles.clickHereBtn} activeOpacity={0.8}>
               <Text style={styles.clickHereText}>Click Here</Text>
             </TouchableOpacity>
-          </View>
+          </View> */}
 
           {/* Trending topics */}
           {trendingTopics.length > 0 && (
@@ -548,12 +832,12 @@ var SearchScreen = function() {
                 <Text style={styles.trendingTitle}> TRENDING TOPICS</Text>
               </View>
               <View style={styles.trendingChips}>
-                {trendingTopics.map(function(topic, idx) {
+                {trendingTopics.map(function (topic, idx) {
                   return (
                     <TouchableOpacity
                       key={idx}
                       style={styles.trendingChip}
-                      onPress={function() {
+                      onPress={function () {
                         setSearchQuery(topic.key);
                         performSearch(topic.key);
                       }}
@@ -564,6 +848,25 @@ var SearchScreen = function() {
                   );
                 })}
               </View>
+            </View>
+          )}
+
+          {/* Most Commented */}
+          {mostCommented.length > 0 && (
+            <SectionTitle title="அதிகம் விமர்ச்சிக்கப்பட்டவை" />
+          )}
+          {mostCommented.length > 0 && (
+            <View style={styles.mostCommentedList}>
+              {mostCommented.map(function (item, idx) {
+                return (
+                  <NewsCard
+                    key={`most-commented-${idx}`}
+                    item={item}
+                    onPress={handleItemPress}
+                    sectionTitle="Most Commented"
+                  />
+                );
+              })}
             </View>
           )}
         </ScrollView>
@@ -577,13 +880,13 @@ var SearchScreen = function() {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.categoryScroll}
           >
-            {categoryTabs.map(function(tab) {
+            {categoryTabs.map(function (tab) {
               var isActive = activeCategory === tab.id;
               return (
                 <TouchableOpacity
                   key={tab.id}
                   style={[styles.catTab, isActive && styles.catTabActive]}
-                  onPress={function() { handleCategoryPress(tab.id); }}
+                  onPress={function () { handleCategoryPress(tab.id); }}
                   activeOpacity={0.75}
                 >
                   <Text style={[styles.catTabText, isActive && styles.catTabTextActive]}>
@@ -607,7 +910,7 @@ var SearchScreen = function() {
             <Text style={styles.errorText}>{error}</Text>
             <TouchableOpacity
               style={styles.retryBtn}
-              onPress={function() { performSearch(searchQuery); }}
+              onPress={function () { performSearch(searchQuery); }}
             >
               <Text style={styles.retryBtnText}>மீண்டும் முயற்சி</Text>
             </TouchableOpacity>
@@ -621,10 +924,10 @@ var SearchScreen = function() {
           <FlatList
             ref={flatListRef}
             data={filteredResults}
-            keyExtractor={function(item, index) {
+            keyExtractor={function (item, index) {
               return String(item.id || item.Id || item.NewsId || item.newsid || '') + '_' + index;
             }}
-            renderItem={function(info) {
+            renderItem={function (info) {
               return <SearchResultItem item={info.item} onPress={handleItemPress} />;
             }}
             contentContainerStyle={styles.listContent}
@@ -634,7 +937,7 @@ var SearchScreen = function() {
             scrollEventThrottle={16}
             onEndReached={loadMore}
             onEndReachedThreshold={0.5}
-            ListFooterComponent={function() {
+            ListFooterComponent={function () {
               if (!isLoadingMore) return null;
               return (
                 <View style={styles.loadMoreFooter}>
@@ -665,7 +968,7 @@ var styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
-    paddingTop: Platform.OS === 'android' ? vs(30) : 0,
+    paddingTop: Platform.OS === 'android' ? vs(0) : 20,
   },
 
   // ── Search bar ──────────────────────────────────────────────────────────────
@@ -706,7 +1009,7 @@ var styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: ms(6),
-    height:vs(30)
+    height: vs(30)
   },
   searchBtnText: {
     color: '#fff',
@@ -721,10 +1024,10 @@ var styles = StyleSheet.create({
     backgroundColor: '#fff',
     paddingHorizontal: s(14),
   },
-  englishHint:{
-    paddingVertical:vs(15),
-    justifyContent:"center",
-    alignItems:"center"
+  englishHint: {
+    paddingVertical: vs(15),
+    justifyContent: "center",
+    alignItems: "center"
   },
   englishHintText: {
     fontSize: ms(13),
@@ -774,13 +1077,39 @@ var styles = StyleSheet.create({
     borderColor: '#bbb',
     borderRadius: ms(20),
     paddingHorizontal: s(14),
-    paddingVertical: vs(6),
+    paddingVertical: vs(5),
     backgroundColor: '#fff',
   },
   trendingChipText: {
     fontSize: ms(13),
     color: '#333',
-    fontFamily: 'MuktaMalar',
+    fontFamily: FONTS.muktaMalar.regular
+  },
+
+  // ── Section Title (same as CommonSectionScreen) ───────────────────────────────
+  sectionHeader: {
+    backgroundColor: PALETTE.white,
+    // paddingHorizontal: s(12),
+    paddingTop: vs(14),
+    paddingBottom: vs(10),
+  },
+  titleContainer: {
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+  },
+  sectionTitle: {
+    fontFamily: FONTS.muktaMalar.bold,
+    color: PALETTE.grey800,
+  },
+  sectionUnderline: {
+    height: vs(3),
+    width: '30%',
+    backgroundColor: '#1565C0',
+  },
+
+  // ── Most Commented ───────────────────────────────────────────────────────────
+  mostCommentedList: {
+    backgroundColor: '#f2f2f2',
   },
 
   // ── Category tabs ────────────────────────────────────────────────────────────
@@ -822,18 +1151,23 @@ var styles = StyleSheet.create({
     paddingTop: vs(8),
   },
   resultCard: {
-    backgroundColor: '#fff',
+    // backgroundColor: '#fff',
     marginHorizontal: s(12),
     marginBottom: vs(10),
+    // justifyContent: "center",
+    // alignItems: "center"
   },
 
   // ── FIX: use aspectRatio instead of fixed height so image never gets cut ──
   resultImageWrap: {
     width: '100%',
-    aspectRatio: 16 / 9,
-    backgroundColor: '#e8e8e8',
+    aspectRatio: 13 / 9,
+    // backgroundColor: '#e8e8e8',
     position: 'relative',
     overflow: 'hidden',
+  },
+  resultImageWrapPhoto: {
+    aspectRatio: 3 / 3, // Larger aspect ratio for photos
   },
   resultImage: {
     width: '100%',
@@ -847,26 +1181,19 @@ var styles = StyleSheet.create({
     left: s(8),
   },
   playCircle: {
-    width: s(36),
-    height: s(36),
+    width: s(34),
+    height: s(34),
     borderRadius: s(18),
-    backgroundColor: '#096dd2',
+    backgroundColor: 'rgba(9, 109, 210, 0.7)', // Semi-transparent blue
     justifyContent: 'center',
     alignItems: 'center',
     paddingLeft: s(2),
+
   },
   imageOverlay: {
     position: 'absolute',
     bottom: vs(5),
     left: s(5),
-  },
-  imageCircle: {
-    width: s(30),
-    height: s(30),
-    borderRadius: s(15),
-    backgroundColor: '#096dd2',
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   reelsBadge: {
     position: 'absolute',
@@ -884,7 +1211,7 @@ var styles = StyleSheet.create({
     fontFamily: getFontFamily(700),
   },
   resultBody: {
-    paddingHorizontal: s(14),
+    paddingHorizontal: s(0),
     paddingTop: vs(10),
     paddingBottom: vs(12),
   },

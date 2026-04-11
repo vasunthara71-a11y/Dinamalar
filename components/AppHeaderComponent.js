@@ -27,35 +27,33 @@ export default function AppHeaderComponent({
   return (
     <View style={styles.appHeader}>
 
-      {/* ── Left: hamburger + logo ─────────────────────────────────────── */}
-      <View style={styles.appHeaderLeft}>
-        <TouchableOpacity style={styles.iconBtn} onPress={onMenu} activeOpacity={0.7}>
-          <Ionicons name="menu" size={s(24)} color={TEXT} />
-        </TouchableOpacity>
+      {/* ── Left: Menu icon only ─────────────────────────────────────── */}
+      <TouchableOpacity style={styles.menuIcon} onPress={onMenu} activeOpacity={0.7}>
+        <Ionicons name="menu" size={s(24)} color={TEXT} />
+      </TouchableOpacity>
 
-        <TouchableOpacity onPress={()=>navigation.navigate("HomeScreen")}>
-          <Image
-            source={{ uri: 'https://stat.dinamalar.com/new/2025/images/dinamalar-pavala-vizha-logo-day.png' }}
-            style={styles.logoImage}
-            resizeMode="contain"
-          />
-        </TouchableOpacity>
-
-      </View>
+      {/* ── Center: Logo ─────────────────────────────────────── */}
+      <TouchableOpacity style={styles.logoContainer} onPress={()=>navigation.navigate("MainTabs", { screen: 'Home' })}>
+        <Image
+          source={{ uri: 'https://stat.dinamalar.com/new/2025/images/dinamalar-pavala-vizha-logo-day.png' }}
+          style={styles.logoImage}
+          resizeMode="contain"
+        />
+      </TouchableOpacity>
 
       {/* ── Right: search + location ──────────────────────────────────── */}
       <View style={styles.appHeaderRight}>
 
         {/* Search — filled icon, dark gray, NO border */}
         <TouchableOpacity style={styles.iconBtn} onPress={onSearch} activeOpacity={0.7}>
-          <Ionicons name="search" size={s(20)} color={PRIMARY} />
+          <Ionicons name="search" size={s(18)} color={PRIMARY} />
         </TouchableOpacity>
 
         {/* Location — filled pin + text + chevron, all blue, NO border box */}
         <TouchableOpacity style={styles.locationBtn} onPress={onLocation} activeOpacity={0.7}>
           <Ionicons name="location" size={s(15)} color={PRIMARY} />
           <Text style={styles.locationText}>{selectedDistrict}</Text>
-          <Ionicons name="chevron-down" size={s(13)} color={PRIMARY} />
+          {/* <Ionicons name="chevron-down" size={s(13)} color={PRIMARY} /> */}
         </TouchableOpacity>
 
       </View>
@@ -72,7 +70,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     paddingTop: Platform.OS === 'android' ? vs(10) : vs(52),
     paddingBottom: vs(10),
-    paddingHorizontal: s(14),
+    paddingHorizontal: s(12),
     // borderBottomWidth: 1,
     // borderBottomColor: '#F4F6F8',
     elevation: 2,
@@ -82,11 +80,21 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
   },
 
-  // Left group: hamburger + logo
-  appHeaderLeft: {
-    flexDirection: 'row',
+  // Menu icon - positioned at absolute left
+  menuIcon: {
+    padding: s(0),
+  },
+
+  // Logo container - centered
+  logoContainer: {
+    flex: 1,
     alignItems: 'center',
-    gap: s(8),
+  },
+
+  // Logo
+  logoImage: {
+    width: s(130),
+    height: vs(30),
   },
 
   // Right group: search + location
@@ -94,12 +102,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: s(14),
-  },
-
-  // Logo
-  logoImage: {
-    width: s(130),
-    height: vs(32),
   },
 
   // Plain icon touch target — no border, no background
@@ -117,7 +119,7 @@ const styles = StyleSheet.create({
   // Location text — blue, MuktaMalar-Bold
   locationText: {
     fontFamily: FONTS.muktaMalar.bold,
-    fontSize: ms(13),
+    fontSize: ms(14),
     color: PRIMARY,
   },
 });
