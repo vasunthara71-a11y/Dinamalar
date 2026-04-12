@@ -17,15 +17,33 @@ import axios from 'axios';
 import { Ionicons } from '@expo/vector-icons';
 import VoiceSearchModal from '../components/VoiceSearchModal';
 import { SpeakerIcon } from '../assets/svg/Icons';
+import TopMenuStrip from '../components/TopMenuStrip';
+import { SafeAreaView } from 'react-native';
 
-const SEARCH_API   = 'https://api-st.dinamalar.com/searchfilter?search=';
-const INITIAL_API  = 'https://api-st.dinamalar.com/search';
-const RECENT_KEY   = 'dm_recent_searches';
-const MAX_RECENT   = 8;
-const DEBOUNCE_MS  = 200;
-const CACHE_TTL    = 5 * 60 * 1000;
+const SEARCH_API = 'https://api-st.dinamalar.com/searchfilter?search=';
+const INITIAL_API = 'https://api-st.dinamalar.com/search';
+const RECENT_KEY = 'dm_recent_searches';
+const MAX_RECENT = 8;
+const DEBOUNCE_MS = 200;
+const CACHE_TTL = 5 * 60 * 1000;
 
 const searchCache = new Map();
+
+const PALETTE = {
+  grey100: '#F9FAFB',
+  grey200: '#F4F6F8',
+  grey300: '#DFE3E8',
+  grey400: '#C4CDD5',
+  grey500: '#919EAB',
+  grey600: '#637381',
+  grey700: '#637381',
+  grey800: '#212B36',
+  white: '#FFFFFF',
+  red: '#E63946',
+  dark: '#1A1A1A',
+  blue: '#003580',
+  primary: '#096dd2',
+};
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function getFromCache(key) {
@@ -43,12 +61,12 @@ function NewsCard({ item, onPress, onCategoryPress }) {
   const imageUri =
     item.largeimages || item.images || item.image ||
     'https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_default.jpg?im=Resize,width=400';
-  const title      = item.newstitle || item.title || '';
-  const category   = item.maincat   || item.categrorytitle || '';
-  const ago        = item.ago       || item.standarddate   || '';
-  const comments   = item.newscomment || 0;
-  const hasAudio   = item.audio === 1 || item.audio === '1';
-  const isVideo    = item.video === 1 || item.video === '1';
+  const title = item.newstitle || item.title || '';
+  const category = item.maincat || item.categrorytitle || '';
+  const ago = item.ago || item.standarddate || '';
+  const comments = item.newscomment || 0;
+  const hasAudio = item.audio === 1 || item.audio === '1';
+  const isVideo = item.video === 1 || item.video === '1';
 
   return (
     <View style={NewsCardStyles.wrap}>
@@ -65,8 +83,8 @@ function NewsCard({ item, onPress, onCategoryPress }) {
             </Text>
           )}
           {!!category && (
-            <TouchableOpacity 
-              style={NewsCardStyles.catPill} 
+            <TouchableOpacity
+              style={NewsCardStyles.catPill}
               onPress={() => onCategoryPress?.(category, item)}
               activeOpacity={0.7}
             >
@@ -94,14 +112,14 @@ function NewsCard({ item, onPress, onCategoryPress }) {
 
 // ─── SearchResultItem ─────────────────────────────────────────────────────────
 const SearchResultItem = React.memo(({ item, onPress }) => {
-  const title      = item.newstitle || item.title || '';
-  const imageUrl   = item.images    || item.largeimages || '';
-  const pubDate    = item.ago       || item.standarddate || '';
-  const catLabel   = item.maincat   || '';
-  const comments   = parseInt(item.newscomment || 0);
-  const isVideo    = item.type === 'video' || item.type === 'reels' || item.video == 1;
-  const isPhoto    = item.type === 'photo';
-  const hasAudio   = item.audio === '1' || item.audio === 1;
+  const title = item.newstitle || item.title || '';
+  const imageUrl = item.images || item.largeimages || '';
+  const pubDate = item.ago || item.standarddate || '';
+  const catLabel = item.maincat || '';
+  const comments = parseInt(item.newscomment || 0);
+  const isVideo = item.type === 'video' || item.type === 'reels' || item.video == 1;
+  const isPhoto = item.type === 'photo';
+  const hasAudio = item.audio === '1' || item.audio === 1;
 
   const imageSource = imageUrl
     ? { uri: imageUrl }
@@ -153,7 +171,7 @@ function TrendingChip({ topic, rank, onPress }) {
   const isTop3 = rank <= 3;
   return (
     <TouchableOpacity style={styles.trendChip} onPress={() => onPress(topic.key)} activeOpacity={0.75}>
-      
+
       <Text style={styles.trendChipText}>{topic.key}</Text>
     </TouchableOpacity>
   );
@@ -178,7 +196,7 @@ function RecentChip({ query, onPress, onRemove }) {
 const Top10Item = ({ item, index, onPress, onCategoryPress }) => {
   return (
     <View style={styles.top10Item}>
-      
+
       <View style={styles.top10CardWrap}>
         <NewsCard item={item} onPress={onPress} onCategoryPress={onCategoryPress} />
       </View>
@@ -206,11 +224,11 @@ function SectionHeader({ title, onSeeMore }) {
 
 // ShortCard Component for Shorts UI
 const ShortCard = ({ video, onPress }) => {
-  const title    = video.newstitle || video.title || video.videotitle || '';
+  const title = video.newstitle || video.title || video.videotitle || '';
   const imageUri = video.images || video.largeimages || video.image || '';
   const duration = video.duration || '';
   const catLabel = video.maincat || video.CatName || '';
-  const pubDate  = video.ago || video.standarddate || '';
+  const pubDate = video.ago || video.standarddate || '';
 
   return (
     <TouchableOpacity
@@ -322,38 +340,38 @@ function CategoryTabs({ tabs, active, onSelect }) {
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 export default function SearchScreen() {
   const navigation = useNavigation();
-  const route      = useRoute();
+  const route = useRoute();
 
-  const [query,           setQuery]           = useState('');
-  const [results,         setResults]         = useState([]);
-  const [categoryFilter,  setCategoryFilter]  = useState([]);
-  const [activeTab,       setActiveTab]       = useState('all');
-  const [trendingTopics,  setTrendingTopics]  = useState([]);
-  const [recentSearches,  setRecentSearches]  = useState([]);
-  const [top10Data,       setTop10Data]       = useState([]);
-  const [isLoading,       setIsLoading]       = useState(false);
-  const [isLoadingMore,   setIsLoadingMore]   = useState(false);
-  const [trendLoading,    setTrendLoading]    = useState(true);
-  const [error,           setError]           = useState(null);
-  const [hasSearched,     setHasSearched]     = useState(false);
-  const [currentPage,     setCurrentPage]     = useState(1);
-  const [lastPage,        setLastPage]        = useState(1);
-  const [showScrollTop,   setShowScrollTop]   = useState(false);
-  const [voiceModal,      setVoiceModal]      = useState(false);
-  const [isDrawerVisible,        setIsDrawerVisible]        = useState(false);
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState([]);
+  const [categoryFilter, setCategoryFilter] = useState([]);
+  const [activeTab, setActiveTab] = useState('all');
+  const [trendingTopics, setTrendingTopics] = useState([]);
+  const [recentSearches, setRecentSearches] = useState([]);
+  const [top10Data, setTop10Data] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [trendLoading, setTrendLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [hasSearched, setHasSearched] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [lastPage, setLastPage] = useState(1);
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  const [voiceModal, setVoiceModal] = useState(false);
+  const [isDrawerVisible, setIsDrawerVisible] = useState(false);
   const [isLocationDrawerVisible, setIsLocationDrawerVisible] = useState(false);
-  const [selectedDistrict,        setSelectedDistrict]        = useState('உள்ளூர்');
+  const [selectedDistrict, setSelectedDistrict] = useState('உள்ளூர்');
 
-  const debounceRef  = useRef(null);
+  const debounceRef = useRef(null);
   const currentQuery = useRef('');
-  const flatListRef  = useRef(null);
-  const inputRef     = useRef(null);
+  const flatListRef = useRef(null);
+  const inputRef = useRef(null);
 
   // ── Load recent searches ──────────────────────────────────────────────────
   useEffect(() => {
     AsyncStorage.getItem(RECENT_KEY)
       .then(v => { if (v) setRecentSearches(JSON.parse(v)); })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   // ── Fetch trending on mount ───────────────────────────────────────────────
@@ -376,13 +394,13 @@ export default function SearchScreen() {
         const top10 = topics.slice(0, 10);
         setToCache('__initial__', top10);
         setTrendingTopics(top10);
-        
+
         // Extract top10 most viewed data
         const top10Data = Array.isArray(data.top10?.data) ? data.top10.data : [];
         console.log('Initial API top10 data:', top10Data.length);
         setTop10Data(top10Data);
       })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setTrendLoading(false));
   }, []);
 
@@ -398,22 +416,74 @@ export default function SearchScreen() {
     if (!trimmed) return;
     setRecentSearches(prev => {
       const updated = [trimmed, ...prev.filter(x => x !== trimmed)].slice(0, MAX_RECENT);
-      AsyncStorage.setItem(RECENT_KEY, JSON.stringify(updated)).catch(() => {});
+      AsyncStorage.setItem(RECENT_KEY, JSON.stringify(updated)).catch(() => { });
       return updated;
     });
   }, []);
 
+  const handleMenuPress = (menuItem) => {
+    // Debug: Log the menu item structure
+    // console.log('TopMenuStrip menu item clicked:', menuItem);
+    // console.log('TopMenuStrip menu item clicked:', menuItem);
+
+    // Handle menu item navigation based on menu item properties
+    if (menuItem?.screen_name) {
+      // console.log('Navigating to screen:', menuItem.screen_name);
+      navigation?.navigate?.(menuItem.screen_name);
+    } else if (menuItem?.url) {
+      // Handle URL navigation if needed
+      // console.log('Navigate to URL:', menuItem.url);
+    } else if (menuItem?.Title || menuItem?.title) {
+      // Try to navigate based on title
+      const title = menuItem.Title || menuItem.title;
+      // console.log('Menu title:', title);
+
+      // Map common titles to screen names
+      const screenMapping = {
+        'Home': 'HomeScreen',
+        'Videos': 'VideosScreen',
+        'News': 'NewsScreen',
+        'Cinema': 'CinemaScreen',
+        'Sports': 'SportsScreen',
+        'Business': 'BusinessScreen',
+        'Technology': 'TechnologyScreen',
+        'Health': 'HealthScreen',
+        'Education': 'EducationScreen',
+        'வீடியோ': 'VideosScreen',
+        'செய்திகள்': 'NewsScreen',
+        'சினிமா': 'CinemaScreen',
+        'விளையாடம்': 'SportsScreen',
+      };
+
+      const targetScreen = screenMapping[title];
+      if (targetScreen) {
+        // console.log('Mapped title to screen:', targetScreen);
+        navigation?.navigate?.(targetScreen);
+      } else {
+        // console.log('No screen mapping found for title:', title);
+        // Fallback to opening drawer
+        navigation?.openDrawer?.();
+      }
+    } else {
+      // console.log('No navigation info found, opening drawer');
+      // Fallback to opening drawer if no specific navigation is defined
+      navigation?.openDrawer?.();
+    }
+  };
+  const handleSearch = () => navigation?.navigate?.('Search');
+  const handleNotification = () => console.log('Notifications');
+
   const removeRecent = useCallback(async (q) => {
     setRecentSearches(prev => {
       const updated = prev.filter(x => x !== q);
-      AsyncStorage.setItem(RECENT_KEY, JSON.stringify(updated)).catch(() => {});
+      AsyncStorage.setItem(RECENT_KEY, JSON.stringify(updated)).catch(() => { });
       return updated;
     });
   }, []);
 
   const clearRecent = useCallback(async () => {
     setRecentSearches([]);
-    AsyncStorage.removeItem(RECENT_KEY).catch(() => {});
+    AsyncStorage.removeItem(RECENT_KEY).catch(() => { });
   }, []);
 
   // ── Core search ───────────────────────────────────────────────────────────
@@ -429,7 +499,7 @@ export default function SearchScreen() {
     saveRecent(trimmed);
 
     const cacheKey = trimmed + '_p1';
-    const cached   = getFromCache(cacheKey);
+    const cached = getFromCache(cacheKey);
     if (cached) {
       setResults(cached.results);
       setCategoryFilter(cached.tabs);
@@ -454,13 +524,13 @@ export default function SearchScreen() {
     })
       .then(res => {
         const data = res.data?.original || res.data || {};
-        
+
         const list = Array.isArray(data.detail) ? data.detail
-                   : Array.isArray(data)         ? data
-                   : [];
+          : Array.isArray(data) ? data
+            : [];
         const tabs = Array.isArray(data.categoryfilter) ? data.categoryfilter : [];
-        const lp   = data.pagination?.last_page || 1;
-        const cp   = data.pagination?.current_page || 1;
+        const lp = data.pagination?.last_page || 1;
+        const cp = data.pagination?.current_page || 1;
         const total = data.pagination?.total || 0;
         const top10 = Array.isArray(data.top10?.data) ? data.top10.data : [];
 
@@ -485,11 +555,11 @@ export default function SearchScreen() {
   const onChangeText = useCallback((text) => {
     setQuery(text);
     clearTimeout(debounceRef.current);
-    if (!text.trim()) { 
-      setHasSearched(false); 
-      setResults([]); 
+    if (!text.trim()) {
+      setHasSearched(false);
+      setResults([]);
       setCategoryFilter([]);
-      return; 
+      return;
     }
     debounceRef.current = setTimeout(() => triggerSearch(text), DEBOUNCE_MS);
   }, [triggerSearch]);
@@ -498,18 +568,18 @@ export default function SearchScreen() {
   const loadMore = useCallback(() => {
     if (isLoadingMore || isLoading || currentPage >= lastPage || !currentQuery.current) return;
     const next = currentPage + 1;
-    
+
     setIsLoadingMore(true);
     axios.get(SEARCH_API + encodeURIComponent(currentQuery.current) + '&page=' + next, { timeout: 5000 })
       .then(res => {
         const data = res.data || {};
         const list = Array.isArray(data.detail) ? data.detail : [];
         const newPage = data.pagination?.current_page || next;
-        
+
         setResults(prev => [...prev, ...list]);
         setCurrentPage(newPage);
       })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setIsLoadingMore(false));
   }, [isLoadingMore, isLoading, currentPage, lastPage]);
 
@@ -525,14 +595,14 @@ export default function SearchScreen() {
       .then(res => {
         const data = res.data || {};
         const list = Array.isArray(data.detail) ? data.detail
-                   : Array.isArray(data)         ? data
-                   : [];
+          : Array.isArray(data) ? data
+            : [];
         const lp = data.pagination?.last_page || 1;
         setResults(list);
         setLastPage(lp);
         setCurrentPage(data.pagination?.current_page || 1);
       })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setIsLoading(false));
   }, []);
 
@@ -542,42 +612,42 @@ export default function SearchScreen() {
     if (!activeTab || activeTab === 'all' || activeTab === '') {
       return results;
     }
-    
+
     const filtered = results.filter(item => {
       const t = (item.type || '').toLowerCase();
       const maincat = (item.maincat || '').toLowerCase();
       const categoryTitle = (item.categrorytitle || '').toLowerCase();
       const categoryName = (item.categoryname || '').toLowerCase();
       const isVideo = item.video == 1 || item.video === '1';
-      
+
       // Specific tab logic - optimized
       if (activeTab === 'video') return t === 'video' || t === 'reels' || isVideo;
       if (activeTab === 'photo') return t === 'photo';
       if (activeTab === 'news') return t === 'news' || t === '' || !t;
       if (activeTab === 'education' || activeTab === 'kalvi') {
-        return t === 'education' || t === 'kalvi' || 
-               maincat.includes('education') || maincat.includes('kalvi') ||
-               categoryTitle.includes('education') || categoryTitle.includes('kalvi') ||
-               categoryName.includes('education') || categoryName.includes('kalvi');
+        return t === 'education' || t === 'kalvi' ||
+          maincat.includes('education') || maincat.includes('kalvi') ||
+          categoryTitle.includes('education') || categoryTitle.includes('kalvi') ||
+          categoryName.includes('education') || categoryName.includes('kalvi');
       }
       if (activeTab === 'inaippu' || activeTab === 'inaippumalar' || activeTab === 'weekly') {
         return t === 'inaippu' || t === 'inaippumalar' || t === 'weekly' ||
-               maincat.includes('inaippu') || maincat.includes('inaippumalar') || maincat.includes('weekly') ||
-               categoryTitle.includes('inaippu') || categoryTitle.includes('inaippumalar') || categoryTitle.includes('weekly') ||
-               categoryName.includes('inaippu') || categoryName.includes('weekly');
+          maincat.includes('inaippu') || maincat.includes('inaippumalar') || maincat.includes('weekly') ||
+          categoryTitle.includes('inaippu') || categoryTitle.includes('inaippumalar') || categoryTitle.includes('weekly') ||
+          categoryName.includes('inaippu') || categoryName.includes('weekly');
       }
       if (activeTab === 'kavi' || activeTab === 'kavimalar' || activeTab === 'kalvimalar') {
         return t === 'kavi' || t === 'kavimalar' || t === 'kalvimalar' ||
-               maincat.includes('kavi') || maincat.includes('kavimalar') || maincat.includes('kalvimalar') ||
-               categoryTitle.includes('kavi') || categoryTitle.includes('kavimalar') || categoryTitle.includes('kalvimalar') ||
-               categoryName.includes('kavi') || categoryName.includes('kavimalar') || categoryName.includes('kalvimalar');
+          maincat.includes('kavi') || maincat.includes('kavimalar') || maincat.includes('kalvimalar') ||
+          categoryTitle.includes('kavi') || categoryTitle.includes('kavimalar') || categoryTitle.includes('kalvimalar') ||
+          categoryName.includes('kavi') || categoryName.includes('kavimalar') || categoryName.includes('kalvimalar');
       }
       if (activeTab === 'general') return t === 'general' || t === '' || !t;
-      
+
       // Fallback: return item if any field matches activeTab
       return t === activeTab || maincat === activeTab || categoryTitle === activeTab || categoryName === activeTab;
     });
-    
+
     return filtered;
   }, [results, activeTab]);
 
@@ -589,7 +659,7 @@ export default function SearchScreen() {
     const isNewsTab = activeTab === 'news' || activeTab === 'seithigal';
     const isVideoTab = activeTab === 'video';
     const isPhotoTab = activeTab === 'photo';
-  
+
     // For videos tab, always go to VideoDetailScreen
     if (isVideoTab) {
       const normalizedVideo = {
@@ -604,16 +674,16 @@ export default function SearchScreen() {
         video: item.video || 1,
         type: 'video'
       };
-      
+
       navigation.navigate('VideoDetailScreen', { video: normalizedVideo });
       return;
     }
-    
+
     // For photo tab, go to CommonSectionScreen with specific tab detection
     if (isPhotoTab) {
       let initialTabId = null;
       let targetScreenTitle = 'போட்டோ';
-      
+
       // Check for specific photo categories
       const maincatLower = (item.maincat || '').toLowerCase();
       const categorynameLower = (item.categoryname || '').toLowerCase();
@@ -621,92 +691,92 @@ export default function SearchScreen() {
       const catnameLower = (item.catname || '').toLowerCase();
       const sectionLower = (item.section || '').toLowerCase();
       const newstitleLower = (item.newstitle || '').toLowerCase();
-      
+
       // Cards detection
       if (maincatLower.includes('card') || maincatLower.includes('cards') ||
-          categorynameLower.includes('card') || categorynameLower.includes('cards') ||
-          categrorytitleLower.includes('card') || categrorytitleLower.includes('cards') ||
-          catnameLower.includes('card') || catnameLower.includes('cards') ||
-          sectionLower.includes('card') || sectionLower.includes('cards') ||
-          newstitleLower.includes('card') || newstitleLower.includes('cards') ||
-          item.maincatid === 'socialcards' || item.scatid === 'socialcards' || item.subcatid === 'socialcards') {
+        categorynameLower.includes('card') || categorynameLower.includes('cards') ||
+        categrorytitleLower.includes('card') || categrorytitleLower.includes('cards') ||
+        catnameLower.includes('card') || catnameLower.includes('cards') ||
+        sectionLower.includes('card') || sectionLower.includes('cards') ||
+        newstitleLower.includes('card') || newstitleLower.includes('cards') ||
+        item.maincatid === 'socialcards' || item.scatid === 'socialcards' || item.subcatid === 'socialcards') {
         initialTabId = 'socialcards';
       }
       // Cartoons detection
       else if (maincatLower.includes('cartoon') || maincatLower.includes('caricature') ||
-               categorynameLower.includes('cartoon') || categorynameLower.includes('caricature') ||
-               categrorytitleLower.includes('cartoon') || categrorytitleLower.includes('caricature') ||
-               catnameLower.includes('cartoon') || catnameLower.includes('caricature') ||
-               sectionLower.includes('cartoon') || sectionLower.includes('caricature') ||
-               newstitleLower.includes('cartoon') || newstitleLower.includes('caricature') ||
-               item.maincatid === '5002' || item.scatid === '5002' || item.subcatid === '5002') {
+        categorynameLower.includes('cartoon') || categorynameLower.includes('caricature') ||
+        categrorytitleLower.includes('cartoon') || categrorytitleLower.includes('caricature') ||
+        catnameLower.includes('cartoon') || catnameLower.includes('caricature') ||
+        sectionLower.includes('cartoon') || sectionLower.includes('caricature') ||
+        newstitleLower.includes('cartoon') || newstitleLower.includes('caricature') ||
+        item.maincatid === '5002' || item.scatid === '5002' || item.subcatid === '5002') {
         initialTabId = '5002';
       }
       // Today Photos detection
       else if (maincatLower.includes('today') || maincatLower.includes('innrai') ||
-               categorynameLower.includes('today') || categorynameLower.includes('innrai') ||
-               categrorytitleLower.includes('today') || categrorytitleLower.includes('innrai') ||
-               catnameLower.includes('today') || catnameLower.includes('innrai') ||
-               sectionLower.includes('today') || sectionLower.includes('innrai') ||
-               newstitleLower.includes('today') || newstitleLower.includes('innrai') ||
-               item.maincatid === '81' || item.scatid === '81' || item.subcatid === '81') {
+        categorynameLower.includes('today') || categorynameLower.includes('innrai') ||
+        categrorytitleLower.includes('today') || categrorytitleLower.includes('innrai') ||
+        catnameLower.includes('today') || catnameLower.includes('innrai') ||
+        sectionLower.includes('today') || sectionLower.includes('innrai') ||
+        newstitleLower.includes('today') || newstitleLower.includes('innrai') ||
+        item.maincatid === '81' || item.scatid === '81' || item.subcatid === '81') {
         initialTabId = '81';
       }
       // Photo Album detection
       else if (maincatLower.includes('album') || maincatLower.includes('pugai') ||
-               categorynameLower.includes('album') || categorynameLower.includes('pugai') ||
-               categrorytitleLower.includes('album') || categrorytitleLower.includes('pugai') ||
-               catnameLower.includes('album') || catnameLower.includes('pugai') ||
-               sectionLower.includes('album') || sectionLower.includes('pugai') ||
-               newstitleLower.includes('album') || newstitleLower.includes('pugai') ||
-               item.maincatid === '5001' || item.scatid === '5001' || item.subcatid === '5001') {
+        categorynameLower.includes('album') || categorynameLower.includes('pugai') ||
+        categrorytitleLower.includes('album') || categrorytitleLower.includes('pugai') ||
+        catnameLower.includes('album') || catnameLower.includes('pugai') ||
+        sectionLower.includes('album') || sectionLower.includes('pugai') ||
+        newstitleLower.includes('album') || newstitleLower.includes('pugai') ||
+        item.maincatid === '5001' || item.scatid === '5001' || item.subcatid === '5001') {
         initialTabId = '5001';
       }
       // NRI Album detection
       else if (maincatLower.includes('nri') ||
-               categorynameLower.includes('nri') ||
-               categrorytitleLower.includes('nri') ||
-               catnameLower.includes('nri') ||
-               sectionLower.includes('nri') ||
-               newstitleLower.includes('nri') ||
-               item.maincatid === '5003' || item.scatid === '5003' || item.subcatid === '5003') {
+        categorynameLower.includes('nri') ||
+        categrorytitleLower.includes('nri') ||
+        catnameLower.includes('nri') ||
+        sectionLower.includes('nri') ||
+        newstitleLower.includes('nri') ||
+        item.maincatid === '5003' || item.scatid === '5003' || item.subcatid === '5003') {
         initialTabId = '5003';
       }
       // Web Stories detection
       else if (maincatLower.includes('webstory') || maincatLower.includes('web story') ||
-               categorynameLower.includes('webstory') || categorynameLower.includes('web story') ||
-               categrorytitleLower.includes('webstory') || categrorytitleLower.includes('web story') ||
-               catnameLower.includes('webstory') || catnameLower.includes('web story') ||
-               sectionLower.includes('webstory') || sectionLower.includes('web story') ||
-               newstitleLower.includes('webstory') || newstitleLower.includes('web story') ||
-               item.maincatid === 'webstoriesupdate' || item.scatid === 'webstoriesupdate' || item.subcatid === 'webstoriesupdate') {
+        categorynameLower.includes('webstory') || categorynameLower.includes('web story') ||
+        categrorytitleLower.includes('webstory') || categrorytitleLower.includes('web story') ||
+        catnameLower.includes('webstory') || catnameLower.includes('web story') ||
+        sectionLower.includes('webstory') || sectionLower.includes('web story') ||
+        newstitleLower.includes('webstory') || newstitleLower.includes('web story') ||
+        item.maincatid === 'webstoriesupdate' || item.scatid === 'webstoriesupdate' || item.subcatid === 'webstoriesupdate') {
         initialTabId = 'webstoriesupdate';
         targetScreenTitle = 'Web Stories';
       }
-      
+
       const navigationParams = {
         screenTitle: targetScreenTitle,
         apiEndpoint: 'https://api-st.dinamalar.com/photodata',
         allTabLink: 'https://api-st.dinamalar.com/photodata',
         item: item
       };
-      
+
       // Add initialTabId only if detected
       if (initialTabId) {
         navigationParams.initialTabId = initialTabId;
       }
-      
+
       // Add selectedNewsId for exact news item targeting
       const newsId = item.id || item.newsid;
       if (newsId) {
         navigationParams.selectedNewsId = String(newsId);
         navigationParams.selectedNewsItem = item;
       }
-      
+
       navigation.navigate('CommonSectionScreen', navigationParams);
       return;
     }
-    
+
     // For other tabs (except news), check video type for navigation
     if (!isNewsTab && (type === 'video' || type === 'reels' || item.video == 1)) {
       navigation.navigate('VideoDetailScreen', { video: item });
@@ -742,7 +812,7 @@ export default function SearchScreen() {
   // Category navigation handler
   const handleCategoryPress = useCallback((category, item) => {
     const categoryLower = category.toLowerCase().trim();
-    
+
     // Map categories to screen names and tabs (including Tamil variations)
     const categoryMappings = {
       // English variations
@@ -758,7 +828,7 @@ export default function SearchScreen() {
       'politics': { screen: 'TharpothaiyaSeithigalScreen', tabId: 'politics', initialTabTitle: 'Politics' },
       'education': { screen: 'TharpothaiyaSeithigalScreen', tabId: 'education', initialTabTitle: 'Education' },
       'premium': { screen: 'TharpothaiyaSeithigalScreen', tabId: 'premium', initialTabTitle: 'Premium' },
-      
+
       // Tamil variations
       'இந்தியா': { screen: 'TharpothaiyaSeithigalScreen', tabId: 'india', initialTabTitle: 'இந்தியா' },
       'தமிழ்நாடு': { screen: 'TharpothaiyaSeithigalScreen', tabId: 'tamilagam', initialTabTitle: 'தமிழ்நாடு' },
@@ -772,11 +842,11 @@ export default function SearchScreen() {
     };
 
     const mapping = categoryMappings[categoryLower];
-    
+
     if (mapping) {
-      navigation.navigate(mapping.screen, { 
+      navigation.navigate(mapping.screen, {
         tabId: mapping.tabId,
-        initialTabTitle: mapping.initialTabTitle 
+        initialTabTitle: mapping.initialTabTitle
       });
     } else {
       // For unmapped categories, navigate to CommonSectionScreen
@@ -784,7 +854,7 @@ export default function SearchScreen() {
         screenTitle: category,
         apiEndpoint: 'https://api-st.dinamalar.com/photodata',
         allTabLink: 'https://api-st.dinamalar.com/photodata',
-        categoryFilter: category 
+        categoryFilter: category
       });
     }
   }, [navigation]);
@@ -804,79 +874,66 @@ export default function SearchScreen() {
           {trendingTopics.map((t, i) => (
             <TrendingChip key={i} topic={t} rank={i + 1} onPress={handleTrendingPress} />
           ))}
+        </View>
+      )}
+
+      <View style={styles.sectionDivider} />
+
+      {/* Recent Searches */}
+      {recentSearches.length > 0 && (
+        <>
+          <View style={styles.sectionHeaderWithClear}>
+            <Text style={[styles.sectionTitle, { fontSize: ms(17) }]}>RECENT SEARCHES</Text>
+            <TouchableOpacity onPress={clearRecent} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Text style={styles.clearAllText}>Clear All</Text>
+            </TouchableOpacity>
           </View>
-        )}
-
-        <View style={styles.sectionDivider} />
-
-        {/* Recent Searches */}
-        {recentSearches.length > 0 && (
-          <>
-            <View style={styles.sectionHeaderWithClear}>
-              <Text style={[styles.sectionTitle, { fontSize: ms(17) }]}>RECENT SEARCHES</Text>
-              <TouchableOpacity onPress={clearRecent} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                <Text style={styles.clearAllText}>Clear All</Text>
-              </TouchableOpacity>
-            </View>
-            {/* <View style={styles.sectionUnderline} /> */}
-            {/* <View style={styles.greyLine} /> */}
-            <View style={styles.chipRow}>
-              {recentSearches.map((q, i) => (
-                <RecentChip key={i} query={q} onPress={handleRecentPress} onRemove={removeRecent} />
-              ))}
-            </View>
-          </>
-        )}
-
-        <View style={styles.sectionDivider} />
-
-        {/* Top10 Most Viewed */}
-        <View>
-          <SectionHeader title="அதிகம் பார்த்தவைகள்" />
-          <View style={styles.top10Container}>
-            {top10Data.slice(0, 5).map((item, index) => (
-              <Top10Item 
-                key={item.id || item.newsid || index} 
-                item={item} 
-                index={index} 
-                onPress={handleItemPress} 
-                onCategoryPress={handleCategoryPress}
-              />
+          {/* <View style={styles.sectionUnderline} /> */}
+          {/* <View style={styles.greyLine} /> */}
+          <View style={styles.chipRow}>
+            {recentSearches.map((q, i) => (
+              <RecentChip key={i} query={q} onPress={handleRecentPress} onRemove={removeRecent} />
             ))}
           </View>
+        </>
+      )}
+
+      <View style={styles.sectionDivider} />
+
+      {/* Top10 Most Viewed */}
+      <View>
+        <SectionHeader title="அதிகம் பார்த்தவைகள்" />
+        <View style={styles.top10Container}>
+          {top10Data.slice(0, 5).map((item, index) => (
+            <Top10Item
+              key={item.id || item.newsid || index}
+              item={item}
+              index={index}
+              onPress={handleItemPress}
+              onCategoryPress={handleCategoryPress}
+            />
+          ))}
         </View>
+      </View>
     </ScrollView>
   );
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.safe}>
       <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
-
-      <UniversalHeaderComponent
-        statusBarStyle="light-content"
-        statusBarBackgroundColor={COLORS.primary}
-        onMenuPress={() => {}}
-        onNotification={() => navigation.navigate('NotificationScreen')}
-        notifCount={0}
-        isDrawerVisible={isDrawerVisible}
-        setIsDrawerVisible={setIsDrawerVisible}
+      <TopMenuStrip
+        onMenuPress={handleMenuPress}
+        onNotification={handleNotification}
+        notifCount={3}
         navigation={navigation}
-        isLocationDrawerVisible={isLocationDrawerVisible}
-        setIsLocationDrawerVisible={setIsLocationDrawerVisible}
-        onSelectDistrict={(d) => {
-          setSelectedDistrict(d.title);
-          setIsLocationDrawerVisible(false);
-          if (d.id) navigation.navigate('DistrictNewsScreen', { districtId: d.id, districtTitle: d.title });
-        }}
+      />
+
+      <AppHeaderComponent
+        onMenu={() => setIsDrawerVisible(true)}
+        onLocation={() => setIsLocationDrawerVisible(true)}
         selectedDistrict={selectedDistrict}
-      >
-        <AppHeaderComponent
-          onMenu={() => setIsDrawerVisible(true)}
-          onLocation={() => setIsLocationDrawerVisible(true)}
-          selectedDistrict={selectedDistrict}
-        />
-      </UniversalHeaderComponent>
+      />
 
       {/* ── Search Bar ── */}
       <View style={styles.searchBar}>
@@ -971,16 +1028,16 @@ export default function SearchScreen() {
           <Ionicons name="arrow-up" size={s(20)} color="#fff" />
         </TouchableOpacity>
       )}
-    </View>
+    </SafeAreaView>
   );
 }
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  container: {
+  safe: {
     flex: 1,
-    backgroundColor: '#fff',
-    paddingTop: Platform.OS === 'android' ? 0 : 20,
+    backgroundColor: PALETTE.grey100,
+    paddingTop: Platform.OS === 'android' ? vs(20) : 0,
   },
 
   // Search bar
@@ -1012,7 +1069,7 @@ const styles = StyleSheet.create({
     paddingVertical: 0,
     fontFamily: getFontFamily(400),
   },
-  micBtn:   { paddingHorizontal: s(4) },
+  micBtn: { paddingHorizontal: s(4) },
   clearBtn: { paddingLeft: s(4) },
   searchBtn: {
     backgroundColor: '#1565C0',
@@ -1139,31 +1196,31 @@ const styles = StyleSheet.create({
     fontFamily: getFontFamily(400),
   },
 
-// Category tabs — update these existing keys in styles
-tabsWrap: {
-  backgroundColor: '#fff',
-  borderBottomWidth: 1,
-  borderBottomColor: '#e0e0e0',
-  height: vs(44),           // ← add this
-},
-tabsContent: {
-  paddingHorizontal: s(8),
-  alignItems: 'center',
-  flexDirection: 'row',
-  height: vs(44),           // ← add this
-},
-tab: {
-  paddingHorizontal: s(14),
-  height: vs(44),           // ← change from paddingVertical to height
-  justifyContent: 'center',
-  alignItems: 'center',
-  borderBottomWidth: 2.5,
-  borderBottomColor: 'transparent',
-  marginRight: s(2),
-},
-tabActive:     { borderBottomColor: '#1565C0' },
-tabText:       { fontSize: ms(13), color: '#666', fontFamily: getFontFamily(400) },
-tabTextActive: { color: '#1565C0', fontWeight: '700', fontFamily: getFontFamily(700) },
+  // Category tabs — update these existing keys in styles
+  tabsWrap: {
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+    height: vs(44),           // ← add this
+  },
+  tabsContent: {
+    paddingHorizontal: s(8),
+    alignItems: 'center',
+    flexDirection: 'row',
+    height: vs(44),           // ← add this
+  },
+  tab: {
+    paddingHorizontal: s(14),
+    height: vs(44),           // ← change from paddingVertical to height
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderBottomWidth: 2.5,
+    borderBottomColor: 'transparent',
+    marginRight: s(2),
+  },
+  tabActive: { borderBottomColor: '#1565C0' },
+  tabText: { fontSize: ms(13), color: '#666', fontFamily: getFontFamily(400) },
+  tabTextActive: { color: '#1565C0', fontWeight: '700', fontFamily: getFontFamily(700) },
 
   // Result card
   resultCard: {
@@ -1181,7 +1238,7 @@ tabTextActive: { color: '#1565C0', fontWeight: '700', fontFamily: getFontFamily(
     backgroundColor: '#f0f0f0',
   },
   resultImageWrapPhoto: { aspectRatio: 1 },
-  resultImage:   { width: '100%', height: '100%' },
+  resultImage: { width: '100%', height: '100%' },
   playOverlay: {
     position: 'absolute',
     bottom: vs(8),
@@ -1204,17 +1261,17 @@ tabTextActive: { color: '#1565C0', fontWeight: '700', fontFamily: getFontFamily(
     borderRadius: s(4),
     padding: s(4),
   },
-  resultBody:  { padding: vs(10) },
+  resultBody: { padding: vs(10) },
   commentWrap: { flexDirection: 'row', alignItems: 'center' },
-  commentCount:{ fontSize: ms(12), color: '#555', fontFamily: getFontFamily(400) },
+  commentCount: { fontSize: ms(12), color: '#555', fontFamily: getFontFamily(400) },
 
   // States
   listContent: { paddingBottom: vs(30), backgroundColor: '#f2f2f2', paddingTop: vs(8) },
-  center:      { flex: 1, justifyContent: 'center', alignItems: 'center', gap: vs(10), padding: s(24) },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: vs(10), padding: s(24) },
   loadingText: { fontSize: ms(13), color: '#666', fontFamily: getFontFamily(400) },
-  errorText:   { fontSize: ms(14), color: '#c62828', textAlign: 'center', fontFamily: getFontFamily(400) },
-  emptyText:   { fontSize: ms(14), color: '#999', fontFamily: getFontFamily(400) },
-  emptyHint:   { fontSize: ms(13), color: '#bbb', paddingVertical: vs(8), fontFamily: getFontFamily(400) },
+  errorText: { fontSize: ms(14), color: '#c62828', textAlign: 'center', fontFamily: getFontFamily(400) },
+  emptyText: { fontSize: ms(14), color: '#999', fontFamily: getFontFamily(400) },
+  emptyHint: { fontSize: ms(13), color: '#bbb', paddingVertical: vs(8), fontFamily: getFontFamily(400) },
   retryBtn: {
     backgroundColor: '#1565C0',
     paddingHorizontal: s(24),
@@ -1248,7 +1305,7 @@ tabTextActive: { color: '#1565C0', fontWeight: '700', fontFamily: getFontFamily(
   top10Item: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-   },
+  },
   top10Rank: {
     width: s(24),
     height: s(24),

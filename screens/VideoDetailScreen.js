@@ -21,6 +21,7 @@ import CommentsModal from '../components/CommentsModal';
 import LazyImage from '../components/LazyImage';
 import { dataPreloader } from '../utils/preloader';
 import { backgroundRefresh } from '../utils/backgroundRefresh';
+import TopMenuStrip from '../components/TopMenuStrip';
 
 const { width: SW, height: SH } = Dimensions.get('window');
 const VH = (SW * 9) / 16;
@@ -60,54 +61,54 @@ function ReadMoreContent({ html, contentWidth, sf }) {
   const [expanded, setExpanded] = useState(false);
   const truncated = html.length > 400 ? html.slice(0, 400) : html;
   const lineHeight = Math.round(sf(16) * 1.6);
-const maxHeight = lineHeight * 3;
+  const maxHeight = lineHeight * 3;
 
-return (
-  <View style={{ marginVertical: vs(4) }}>
-    
-    <View style={{ height: expanded ? undefined : maxHeight, overflow: 'hidden' }}>
-      <RenderHtml
-        contentWidth={contentWidth}
-        source={{ html }}
-        baseStyle={{
-          fontSize: sf(13),
-          lineHeight: lineHeight,
-          color: PALETTE.grey800,
-          fontFamily: FONTS?.muktaMalar?.regular || undefined
-        }}
-        tagsStyles={{
-          p: {
-            margin: 0,
-            marginBottom: vs(12),
+  return (
+    <View style={{ marginVertical: vs(4) }}>
+
+      <View style={{ height: expanded ? undefined : maxHeight, overflow: 'hidden' }}>
+        <RenderHtml
+          contentWidth={contentWidth}
+          source={{ html }}
+          baseStyle={{
             fontSize: sf(13),
-            color: PALETTE.grey800,
             lineHeight: lineHeight,
-            fontFamily: FONTS?.muktaMalar?.medium || undefined
-          },
-          strong: { fontWeight: '700', color: PALETTE.grey800 },
-          b: { fontWeight: '700', color: PALETTE.grey800 },
-          a: {
-            color: PALETTE.primary,
-            textDecorationLine: 'underline',
-            fontWeight: '600'
-          },
-        }}
-      />
+            color: PALETTE.grey800,
+            fontFamily: FONTS?.muktaMalar?.regular || undefined
+          }}
+          tagsStyles={{
+            p: {
+              margin: 0,
+              marginBottom: vs(12),
+              fontSize: sf(13),
+              color: PALETTE.grey800,
+              lineHeight: lineHeight,
+              fontFamily: FONTS?.muktaMalar?.medium || undefined
+            },
+            strong: { fontWeight: '700', color: PALETTE.grey800 },
+            b: { fontWeight: '700', color: PALETTE.grey800 },
+            a: {
+              color: PALETTE.primary,
+              textDecorationLine: 'underline',
+              fontWeight: '600'
+            },
+          }}
+        />
+      </View>
+
+      <TouchableOpacity onPress={() => setExpanded(!expanded)} activeOpacity={0.7}>
+        <Text style={{
+          color: PALETTE.primary,
+          fontWeight: '700',
+          fontSize: sf(13),
+          marginTop: vs(4)
+        }}>
+          {expanded ? '<< Read Less' : 'Read More >>'}
+        </Text>
+      </TouchableOpacity>
+
     </View>
-
-    <TouchableOpacity onPress={() => setExpanded(!expanded)} activeOpacity={0.7}>
-      <Text style={{
-        color: PALETTE.primary,
-        fontWeight: '700',
-        fontSize: sf(13),
-        marginTop: vs(4)
-      }}>
-        {expanded ? '<< Read Less' : 'Read More >>'}
-      </Text>
-    </TouchableOpacity>
-
-  </View>
-);
+  );
 }
 
 // ─── Google Ad Banner ─────────────────────────────────────────────────────────
@@ -150,7 +151,7 @@ function getYouTubeId(url) {
 
 function buildYouTubeHtml(videoId) {
   return `<!DOCTYPE html>
-<html>
+<html>    
 <head>
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
   <style>
@@ -259,7 +260,7 @@ function SectionHeader({ title }) {
 // Full-width image, play button bottom-left, duration badge bottom-right,
 // title + category + time below
 const VideoListCard = ({ video, onPress, onCatPress, sf }) => {
-    if (!video) return null;
+  if (!video) return null;
   const img = video.images || video.largeimages || video.thumbnail || '';
   const title = video.videotitle || video.newstitle || video.title || '';
   const duration = video.duration || '';
@@ -286,7 +287,7 @@ const VideoListCard = ({ video, onPress, onCatPress, sf }) => {
         <Text style={[S.vidListTitle, { fontSize: sf(12), lineHeight: sf(19) }]}  >
           {title}
         </Text>
-       <View style={S.vidListMeta}>
+        <View style={S.vidListMeta}>
           {!!cat && (
             <TouchableOpacity
               style={S.catPill}
@@ -343,7 +344,7 @@ const ReelCard = ({ item, onPress, sf }) => {
 const ShortsGridCard = ({ item, onPress, sf }) => {
   const img = item.images || '';
   const title = item.title || item.videotitle || '';
-  
+
   return (
     <TouchableOpacity
       style={S.shortsGridCard}
@@ -471,7 +472,7 @@ const NewsCard = ({ item, onPress, sf }) => {
 const VideoDetailScreen = ({ navigation, route }) => {
   const { sf } = useFontSize();
   const passedVideo = route?.params?.video ?? null;
-  
+
   // Debug: Log what video data we received
   console.log('VideoDetailScreen - Received video data:', {
     passedVideo: passedVideo,
@@ -480,7 +481,7 @@ const VideoDetailScreen = ({ navigation, route }) => {
     path: passedVideo?.videopath || passedVideo?.path || passedVideo?.y_path,
     allFields: Object.keys(passedVideo || {})
   });
-  
+
   const videoId =
     passedVideo?.videoid ??
     passedVideo?.videoId ??
@@ -530,7 +531,74 @@ const VideoDetailScreen = ({ navigation, route }) => {
   const scrollRef = useRef(null);
   const slotY = useRef(0);
   const headerH = useRef(0);
+  const playerRef = useRef(null);
+  const [isMuted, setIsMuted] = useState(true); // start muted to bypass autoplay block
   useEffect(() => { pipRef.current = pip; }, [pip]);
+
+  // ── Nav Handlers ───────────────────────────────────────────────────────────────
+  const handleMenuPress = (menuItem) => {
+    console.log('🔍 VideoDetailScreen handleMenuPress called with full menu item:', JSON.stringify(menuItem, null, 2));
+    
+    const link = menuItem?.Link || menuItem?.link || '';
+    const title = menuItem?.Title || menuItem?.title || '';
+    const normalizedCategory = title.toLowerCase().trim();
+    
+    console.log('📝 Extracted values - Link:', link, 'Title:', title, 'Normalized:', normalizedCategory);
+
+    // Handle DinamalarTV navigation like HomeScreen
+    if (normalizedCategory === 'தினமலர்டிவி' || normalizedCategory === 'dinamalartv' || normalizedCategory === 'dinamalar tv') {
+      console.log('🎯 Dinamalar TV main category matched! Navigating to VideoScreen...');
+      navigation.navigate('VideoScreen');
+      return;
+    }
+
+    // Handle other menu items
+    if (menuItem?.screen_name) {
+      console.log('Navigating to screen:', menuItem.screen_name);
+      navigation?.navigate(menuItem.screen_name, menuItem.params || {});
+    } else if (menuItem?.url) {
+      console.log('Opening URL:', menuItem.url);
+      Linking.openURL(menuItem.url);
+    } else if (title) {
+      // Map common titles to screen names
+      const screenMapping = {
+        
+        'வீடியோ': 'VideosScreen',
+        
+      };
+
+      const targetScreen = screenMapping[title];
+      if (targetScreen) {
+        console.log('Navigating to target screen:', targetScreen);
+        navigation?.navigate(targetScreen);
+      } else {
+        console.log('No mapping found, opening drawer');
+        // Fallback to opening drawer
+        navigation?.openDrawer?.();
+      }
+    } else {
+      console.log('No menu item properties found, opening drawer');
+      // Fallback to opening drawer if no specific navigation is defined
+      navigation?.openDrawer?.();
+    }
+  };
+
+  const handleNotification = () => {
+    console.log('Notifications pressed');
+  };
+
+  const video = latestvideo ?? passedVideo;
+  const rawUrl =
+    video?.videopath ??
+    video?.y_path ??
+    video?.vidg_path ??
+    video?.video ??        // HomeScreen/SearchScreen mapped field
+    video?.videourl ??     // fallback mapped field
+    video?.path ??         // Raw VideosScreen field
+    video?.videopath ??    // Raw VideosScreen field
+    video?.videourl ??     // Raw VideosScreen field
+    null;
+  const ytId = getYouTubeId(rawUrl);
 
   const aLeft = useRef(new Animated.Value(0)).current;
   const aTop = useRef(new Animated.Value(0)).current;
@@ -663,7 +731,9 @@ const VideoDetailScreen = ({ navigation, route }) => {
   useEffect(() => {
     setLatestvideo(null);
     setEmbedFailed(false);
+    setPlaying(false);
     setRelatedVideos([]); setRelatedReels([]);
+    setIsMuted(true);
     setVideoReelNews([]); setVideoReelReels([]); setVideomixData([]);
     setVideoDistrict([]); setMobileAds(null); setTaboolaAds(null);
     setMoreRelated(null); setMoreRelatedData([]); setVideoComments([]);
@@ -678,19 +748,6 @@ const VideoDetailScreen = ({ navigation, route }) => {
     }
   }, [ytId]);
 
-  const video = latestvideo ?? passedVideo;
-  // Enhanced URL detection to handle both mapped and raw video data
-  const rawUrl =
-    video?.videopath ??
-    video?.y_path ??
-    video?.vidg_path ??
-    video?.video ??        // HomeScreen/SearchScreen mapped field
-    video?.videourl ??     // fallback mapped field
-    video?.path ??         // Raw VideosScreen field
-    video?.videopath ??    // Raw VideosScreen field
-    video?.videourl ??     // Raw VideosScreen field
-    null;
-  const ytId = getYouTubeId(rawUrl);
   const bodyText = video?.videodescription ?? '';
   const timeAgo = getTimeAgo(video?.videodate);
   const commentCount = parseInt(video?.nmcomment || 0);
@@ -766,7 +823,7 @@ const VideoDetailScreen = ({ navigation, route }) => {
       // Test with Expo Go URL scheme
       const expoUrl = `exp://192.168.1.100:8081/--/video/336048`; // Replace with your IP
       await Linking.openURL(expoUrl);
-      
+
       setTimeout(async () => {
         await Linking.openURL('dinamalar://video/336048');
       }, 2000);
@@ -775,32 +832,32 @@ const VideoDetailScreen = ({ navigation, route }) => {
     }
   };
   // Add this category lookup near the top of VideoDetailScreen component
-const CATEGORIES = [
-  { title: "All", value: "" },
-  { title: "Live", value: "5050" },
-  { title: "அரசியல்", value: "31" },
-  { title: "பொது", value: "32" },
-  { title: "சம்பவம்", value: "33" },
-  { title: "சினிமா", value: "435" },
-  { title: "டிரைலர்", value: "436" },
-  { title: "செய்திச்சுருக்கம்", value: "594" },
-  { title: "விளையாட்டு", value: "464" },
-  { title: "சிறப்பு தொகுப்புகள்", value: "1238" },
-  { title: "ஆன்மிகம்", value: "1316" },
-  { title: "மாவட்ட செய்திகள்", value: "1585" },
-  { title: "ஷார்ட்ஸ்", value: "shorts" },
-];
+  const CATEGORIES = [
+    { title: "All", value: "" },
+    { title: "Live", value: "5050" },
+    { title: "அரசியல்", value: "31" },
+    { title: "பொது", value: "32" },
+    { title: "சம்பவம்", value: "33" },
+    { title: "சினிமா", value: "435" },
+    { title: "டிரைலர்", value: "436" },
+    { title: "செய்திச்சுருக்கம்", value: "594" },
+    { title: "விளையாட்டு", value: "464" },
+    { title: "சிறப்பு தொகுப்புகள்", value: "1238" },
+    { title: "ஆன்மிகம்", value: "1316" },
+    { title: "மாவட்ட செய்திகள்", value: "1585" },
+    { title: "ஷார்ட்ஸ்", value: "shorts" },
+  ];
 
-// Add this handler inside VideoDetailScreen
-const handleCatPillPress = useCallback((catTitle) => {
-  const match = CATEGORIES.find(c => c.title === catTitle);
-  if (!match) return;
-  navigation?.navigate('VideoScreen', {
-    catId: match.value,
-    catTitle: match.title,
-    timestamp: Date.now(), // <- forces VideoScreen to re-read params even if already mounted
-  });
-}, [navigation]);
+  // Add this handler inside VideoDetailScreen
+  const handleCatPillPress = useCallback((catTitle) => {
+    const match = CATEGORIES.find(c => c.title === catTitle);
+    if (!match) return;
+    navigation?.navigate('VideoScreen', {
+      catId: match.value,
+      catTitle: match.title,
+      timestamp: Date.now(), // <- forces VideoScreen to re-read params even if already mounted
+    });
+  }, [navigation]);
 
   const handleSelectDistrict = (d) => {
     setDistrict(d.title); setIsLocDrawerOpen(false);
@@ -817,7 +874,7 @@ const handleCatPillPress = useCallback((catTitle) => {
       <View style={S.center}>
         <ActivityIndicator size="large" color={PALETTE.primary} />
         {/* <Text style={{ color: PALETTE.grey600, marginTop: vs(8), fontSize: sf(14) }}>ஏற்றுகிறது...</Text> */}
-        </View>
+      </View>
     </SafeAreaView>
   );
   if (error && !video) return (
@@ -835,6 +892,12 @@ const handleCatPillPress = useCallback((catTitle) => {
     <SafeAreaView style={S.safe} edges={['top', 'bottom']}>
       <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
 
+      <TopMenuStrip
+        onMenuPress={handleMenuPress}
+        onNotification={handleNotification}
+        notifCount={3}
+        navigation={navigation}
+      />
       <View onLayout={e => { headerH.current = e.nativeEvent.layout.y + e.nativeEvent.layout.height; }}>
         <AppHeaderComponent
           onSearch={() => navigation?.navigate('SearchScreen')}
@@ -852,65 +915,106 @@ const handleCatPillPress = useCallback((catTitle) => {
         {/* ── Video slot — autoplay, no manual button ── */}
         <View style={S.slot} onLayout={e => { slotY.current = e.nativeEvent.layout.y; }}>
           {ytId && !embedFailed ? (
-            <YoutubePlayer
-              height={VH}
-              width={SW}
-              videoId={ytId}
-              play={true}
-              forceAndroidAutoplay={true}
-              allowWebViewZoom={false}
-              allowFullscreen={false}
-              onReady={() => {
-                console.log('YT ready, playing:', ytId);
-                // Force play again after ready
-                setTimeout(() => {
-                  console.log('Force playing after timeout');
-                }, 500);
-              }}
-              onError={(e) => {
-                console.log('YT error:', e);
-                setEmbedFailed(true);
-              }}
-              webViewStyle={{ backgroundColor: '#000', opacity: 0.99 }}
-              webViewProps={{ 
-                androidLayerType: 'hardware',
-                allowsInlineMediaPlayback: true,
-                mediaPlaybackRequiresUserAction: false
-              }}
-              initialPlayerParams={{
-                autoplay: 1,
-                controls: 1,
-                modestbranding: 1,
-                rel: 0,
-                mute: 0,
-                showinfo: 0,
-                iv_load_policy: 3,
-                start: 0
-              }}
-            />
-          ) : embedFailed ? (
-            <TouchableOpacity
-              style={[StyleSheet.absoluteFill, S.thumbPh, { justifyContent: 'center', alignItems: 'center', gap: vs(8) }]}
-              onPress={() => Linking.openURL(`https://www.youtube.com/watch?v=${ytId}`)}
-              activeOpacity={0.85}
-            >
-              <Ionicons name="logo-youtube" size={s(48)} color="#FF0000" />
-              <Text style={{ color: '#fff', fontSize: sf(13), fontWeight: '700' }}>YouTube-ல் பார்க்க</Text>
-            </TouchableOpacity>
-          ) : rawUrl ? (
-            <WebView
-              source={{ html: buildIframeHtml(rawUrl) }}
-              style={{ flex: 1 }}
-              javaScriptEnabled
-              domStorageEnabled
-              allowsInlineMediaPlayback
-              mediaPlaybackRequiresUserAction={false}
-              allowsFullscreenVideo
-              mixedContentMode="always"
-              originWhitelist={['*']}
-              scrollEnabled={false}
-            />
-          ) : (
+            <View style={{ width: SW, height: VH }}>
+              <YoutubePlayer
+                ref={playerRef}
+                height={VH}
+                width={SW}
+                videoId={ytId}
+                play={playing}
+                forceAndroidAutoplay={true}
+                allowWebViewZoom={false}
+                allowFullscreen={false}
+                onReady={() => {
+                  console.log('YT ready → force play');
+                  setPlaying(true);
+                  // Unmute after a short delay once playing starts
+                  setTimeout(() => {
+                    setIsMuted(false);
+                  }, 1000);
+                }}
+                onChangeState={(state) => {
+                  console.log('YT state:', state);
+                  if (state === 'ended') setPlaying(false);
+                  if (state === 'playing') {
+                    setPlaying(true);
+                    // Unmute once actually playing
+                    setTimeout(() => setIsMuted(false), 800);
+                  }
+                  if (state === 'paused') setPlaying(false);
+                }}
+                onError={(e) => {
+                  console.log('YT error:', e);
+                  setEmbedFailed(true);
+                }}
+                webViewStyle={{ backgroundColor: '#000', opacity: 0.99 }}
+                webViewProps={{
+                  androidLayerType: 'hardware',
+                  allowsInlineMediaPlayback: true,
+                  mediaPlaybackRequiresUserAction: false,
+                  javaScriptEnabled: true,
+                  domStorageEnabled: true,
+                }}
+                initialPlayerParams={{
+                  autoplay: 1,
+                  mute: 1,          // ← MUST be muted initially to allow autoplay
+                  controls: 1,
+                  modestbranding: 1,
+                  rel: 0,
+                  iv_load_policy: 3,
+                  preventFullScreen: false,
+                  cc_load_policy: 0,
+                }}
+                volume={isMuted ? 0 : 100}
+              />
+
+              {/* Muted indicator with tap-to-unmute */}
+              {isMuted && (
+                <TouchableOpacity
+                  style={{
+                    position: 'absolute',
+                    bottom: vs(10),
+                    right: s(10),
+                    backgroundColor: 'rgba(0,0,0,0.7)',
+                    borderRadius: s(20),
+                    paddingHorizontal: s(10),
+                    paddingVertical: vs(5),
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: s(4),
+                  }}
+                  onPress={() => setIsMuted(false)}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="volume-mute" size={s(14)} color="#fff" />
+                  <Text style={{ color: '#fff', fontSize: sf(11), fontWeight: '600' }}>
+                    Tap to unmute
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>) : embedFailed ? (
+              <TouchableOpacity
+                style={[StyleSheet.absoluteFill, S.thumbPh, { justifyContent: 'center', alignItems: 'center', gap: vs(8) }]}
+                onPress={() => Linking.openURL(`https://www.youtube.com/watch?v=${ytId}`)}
+                activeOpacity={0.85}
+              >
+                <Ionicons name="logo-youtube" size={s(48)} color="#FF0000" />
+                <Text style={{ color: '#fff', fontSize: sf(13), fontWeight: '700' }}>YouTube-ல் பார்க்க</Text>
+              </TouchableOpacity>
+            ) : rawUrl ? (
+              <WebView
+                source={{ html: buildIframeHtml(rawUrl) }}
+                style={{ flex: 1 }}
+                javaScriptEnabled
+                domStorageEnabled
+                allowsInlineMediaPlayback
+                mediaPlaybackRequiresUserAction={false}
+                allowsFullscreenVideo
+                mixedContentMode="always"
+                originWhitelist={['*']}
+                scrollEnabled={false}
+              />
+            ) : (
             // Show loading indicator while video data is loading
             <View style={[StyleSheet.absoluteFill, S.thumbPh]}>
               {loading || (!video && !latestvideo) ? (
@@ -944,17 +1048,17 @@ const handleCatPillPress = useCallback((catTitle) => {
             </View>
           ) : null}
           <View style={[S.metaRow, { marginTop: vs(8) }]}>
-          <View style={S.metaLeft}>
-  {!!video?.ctitle && (
-    <TouchableOpacity
-      style={S.catPill}
-      onPress={() => handleCatPillPress(video.ctitle)}
-      activeOpacity={0.75}
-    >
-      <Text style={[S.catTxt, { fontSize: sf(10) }]}>{video.ctitle}</Text>
-    </TouchableOpacity>
-  )}
-</View>
+            <View style={S.metaLeft}>
+              {!!video?.ctitle && (
+                <TouchableOpacity
+                  style={S.catPill}
+                  onPress={() => handleCatPillPress(video.ctitle)}
+                  activeOpacity={0.75}
+                >
+                  <Text style={[S.catTxt, { fontSize: sf(10) }]}>{video.ctitle}</Text>
+                </TouchableOpacity>
+              )}
+            </View>
             <View style={S.metaRight}>
               {/* {commentCount > 0 && ( */}
               <TouchableOpacity style={S.metaBtn} onPress={() => setIsCommentsOpen(true)} activeOpacity={0.8}>
@@ -1042,7 +1146,7 @@ const handleCatPillPress = useCallback((catTitle) => {
         {relatedReels.length > 0 && (
           <View style={S.section}>
             <SectionHeader title="ஷார்ட்ஸ்" sf={sf} />
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-around',  paddingVertical: vs(12), marginBottom: vs(20) }}>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-around', paddingVertical: vs(12), marginBottom: vs(20) }}>
               {relatedReels.map((item, i) => (
                 <ShortsGridCard key={`rr-${i}-${item?.id || ''}`} item={item} sf={sf} onPress={handleReelPress} />
               ))}
@@ -1095,7 +1199,7 @@ const handleCatPillPress = useCallback((catTitle) => {
           style={[S.floatFull, pip ? S.floatPip : null, { left: aLeft, top: aTop, transform: [{ translateX: aDX }, { translateY: aDY }] }]}
           {...(pip ? pan.panHandlers : {})}>
           {activeYtId ? (
-            <YoutubePlayer height={VH} width={SW} videoId={activeYtId} play={true}forceAndroidAutoplay={true}
+            <YoutubePlayer height={VH} width={SW} videoId={activeYtId} play={true} forceAndroidAutoplay={true}
               onReady={() => { }} onChangeState={() => { }}
               webViewStyle={{ backgroundColor: '#000', opacity: 0.99 }}
               webViewProps={{ androidLayerType: 'hardware' }}
@@ -1134,7 +1238,7 @@ const S = StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: vs(12) },
   retryBtn: { marginTop: vs(16), backgroundColor: PALETTE.primary, borderRadius: s(8), paddingHorizontal: s(20), paddingVertical: vs(10) },
 
-  slot: { width: '100%', height: VH, backgroundColor: '#000', overflow: 'hidden',justifyContent:"center",alignItems:"center",},
+  slot: { width: '100%', height: VH, backgroundColor: '#000', overflow: 'hidden', justifyContent: "center", alignItems: "center", },
   grad: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,.28)' },
   thumbPh: { flex: 1, backgroundColor: '#2A2A2A', justifyContent: 'center', alignItems: 'center' },
   centerPlay: { position: 'absolute', top: '50%', left: '50%', transform: [{ translateX: -s(31) }, { translateY: -s(31) }] },
@@ -1151,7 +1255,7 @@ const S = StyleSheet.create({
   pipBar: { position: 'absolute', bottom: 0, left: 0, right: 0, height: s(16), justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,.3)' },
   pipBarLine: { width: s(28), height: s(3), borderRadius: s(2), backgroundColor: 'rgba(255,255,255,.55)' },
 
-  articleBody: {  paddingTop: vs(12), paddingBottom: vs(4) },
+  articleBody: { paddingTop: vs(12), paddingBottom: vs(4) },
   articleTitle: { fontFamily: FONTS.muktaMalar.semibold, color: COLORS.text, marginBottom: vs(8) },
   metaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: vs(4) },
   metaLeft: { flexDirection: 'row', alignItems: 'center', gap: s(8), flex: 1 },
@@ -1271,7 +1375,7 @@ const S = StyleSheet.create({
   },
   shortsGridThumb: {
     width: '100%',
-    aspectRatio: 9/16,
+    aspectRatio: 9 / 16,
     backgroundColor: PALETTE.grey200,
     borderRadius: s(8),
     overflow: 'hidden'

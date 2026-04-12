@@ -1,5 +1,6 @@
 ﻿// HomeScreen.js
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { getDataCache, setDataCache } from '../utils/dataCache';
 import {
   View,
   Text,
@@ -3523,6 +3524,233 @@ export default function HomeScreen() {
     return rasiIconMap[rasiId] || `https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_default.jpg?im=Resize,width=100`;
   };
 
+  // --- Instant Cache Bootstrap -------------------------------------------------
+  // Call this once - reads cache and renders immediately
+  const bootstrapFromCache = useCallback(() => {
+    const cache = getDataCache();
+    if (!cache?.homeData) return false;
+
+    const d = cache.homeData;
+
+    // Set all state instantly from cache - zero network calls
+    setBreakingNews(d?.breaking_news || d?.breakingnews || d?.ticker || '');
+    setTrendingTags(
+      d?.trending?.data?.length > 0 ? d.trending.data :
+      d?.trending_tags?.length > 0  ? d.trending_tags  :
+      d?.subcatlist?.length > 0     ? d.subcatlist      : []
+    );
+
+    const banners = d?.mobile?.data || d?.mobile || d?.promobanners?.mobile?.data || [];
+    setPromoBanners(banners);
+
+    const notifItems = cache.notificationData?.newlist?.data || [];
+    setNotifCount(notifItems.length);
+
+    const commodityData = cache.varthagamData?.commodity || null;
+    if (commodityData) setCommodity(commodityData);
+
+    // Build sections from cached data - same logic as your loadAll
+    buildAndSetSections(d, cache);
+
+    setInitialLoad(false);
+    setShowSkeleton(false);
+    return true;
+  }, []);
+
+  // Extracted section builder - called from cache OR fresh fetch
+  const buildAndSetSections = useCallback((d, cache = {}) => {
+    if (!d) return;
+    const sections = [];
+
+    const commodityData = cache.varthagamData?.commodity || null;
+
+    // --- tharpothaiya ---
+    const tharpData = d?.tharpothaiya_seithigal?.[0]?.data?.slice(0, 14) || [];
+    if (tharpData.length > 0) {
+      sections.push({ title: d.tharpothaiya_seithigal[0].title || 'Current News', data: tharpData });
+    }
+
+    // --- editor choice ---
+    if (d?.editorchoice?.data?.length > 0) {
+      sections.push({ title: d.editorchoice.title || 'Editor Choice', data: d.editorchoice.data.slice(0, 1) });
+    }
+
+    // --- social media ---
+    if (d?.socialmedia?.data?.length > 0) {
+      sections.push({ title: d.socialmedia.title || 'Social Media', data: d.socialmedia.data.slice(0, 3), isSocialMedia: true });
+    }
+
+    // --- banner ---
+    if (d?.bannernews?.[0]?.data?.length > 0) {
+      sections.push({ title: d.bannernews[0].title || 'Banner News', data: d.bannernews[0].data.slice(0, 1), isBanner: true });
+    }
+
+    // --- cartoons ---
+    if (d?.catroons?.[0]?.data?.length > 0) {
+      sections.push({ title: d.catroons[0].title || 'Cartoons', data: d.catroons[0].data.slice(0, 3), isCartoons: true });
+    }
+
+    // --- premium ---
+    if (d?.premium_stories?.data?.length > 0) {
+      sections.push({ title: d.premium_stories.title || 'Premium Stories', data: d.premium_stories.data.slice(0, 3), isPremium: true, hideDescription: true });
+    }
+
+    // --- shorts ---
+    if (d?.reels?.data?.length > 0) {
+      sections.push({ title: 'Shorts', data: d.reels.data.slice(0, 4), type: 'shorts' });
+    }
+
+    // --- dinamalar TV ---
+    if (d?.dinamalartv?.length > 0) {
+      const liveItems = (d?.live || []).map(item => ({ ...item, maincat: 'live' }));
+      sections.push({ title: 'Dinamalar TV', data: [...liveItems, ...d.dinamalartv], type: 'video' });
+    }
+
+    // --- advertisement ---
+    sections.push({ type: 'advertisement_banner', data: [{ id: 'Mainhomepage_MTF_300x250_4' }] });
+
+    // --- subscription banner ---
+    sections.push({
+      type: 'subscription_banner',
+      data: [{ url: 'https://subscription.dinamalar.com/', image: 'https://cdn.jsdelivr.net/gh/dinamalardmr/files@main/images/Dinamalar-Subscription_300x90.gif' }]
+    });
+
+    // --- dinamdinam ---
+    if (d?.dinamdinam) {
+      const combined = d.dinamdinam.flatMap(sec => sec?.data || []);
+      if (combined.length > 0) sections.push({ title: 'Dinam Dinam', data: combined.slice(0, 2) });
+    }
+
+    // --- short news ---
+    if (d?.shortnews?.data?.length > 0) {
+      sections.push({ title: d.shortnews.title || 'Short News', data: d.shortnews.data.slice(0, 5), type: 'shortnews' });
+    }
+
+    // --- sports ---
+    if (d?.sports?.data?.length > 0) {
+      sections.push({ title: d.sports.title || 'Sports', data: d.sports.data.slice(0, 3) });
+    }
+
+    // --- district ---
+    if (d?.district?.data?.length > 0) {
+      sections.push({ title: d.district.title || 'Local News', data: d.district.data, type: 'district', districtTabData: d?.districttab?.data || [] });
+    }
+
+    // --- varthagam ---
+    if (d?.varthagam?.varthagam1?.data?.length > 0) {
+      const flat = d.varthagam.varthagam1.data.flatMap(a => Array.isArray(a) ? a : []);
+      if (flat.length > 0) {
+        sections.push({
+          title: d.varthagam.varthagam1.title || 'Business',
+          data: flat.slice(0, 3).map(item => ({ ...item, categorytitle: 'Business', maincategory: 'varthagam' }))
+        });
+      }
+    }
+
+    // --- commodity ---
+    if (commodityData) {
+      if (commodityData.gold?.length > 0 || commodityData.silver?.length > 0) {
+        sections.push({ title: 'Gold & Silver Price', data: [], isCommodity: true });
+      }
+      if (commodityData.fuel?.length > 0) {
+        sections.push({ title: 'Petrol Diesel Price', data: [], isFuel: true });
+      }
+      if (commodityData.sharemarket?.length > 0) {
+        sections.push({ title: 'Share Market', data: [], isShareMarket: true });
+      }
+    }
+
+    // --- joshiyam ---
+    if (d?.josiyam) {
+      sections.push({ title: 'Joshiyam', data: [], type: 'josiyam', josiyamRaw: d.josiyam });
+    }
+
+    // --- kovilgal ---
+    const kovilgalData = d?.kovilgal;
+    if (Array.isArray(kovilgalData) && kovilgalData.length > 1) {
+      const templeItems = [];
+      const kovilSection = kovilgalData[1];
+      if (kovilSection?.kovil) {
+        kovilSection.kovil.slice(0, 3).forEach(item => {
+          if (item?.newstitle && item?.images) {
+            templeItems.push({ newsid: item.newsid, newstitle: item.newstitle, images: item.images, largeimages: item.images, maincat: '', ago: item.standarddate || '', external_link: item.link, newsdescription: item.newsdescription || '' });
+          }
+        });
+      }
+      if (templeItems.length > 0) sections.push({ title: 'Temples', data: templeItems });
+    }
+
+    sections.push({ title: '', data: [], isDivider: true });
+
+    // --- today events ---
+    const todayEventsSection = kovilgalData?.find(s => s.title === 'Today Events');
+    const districtData = kovilgalData?.find(s => Array.isArray(s) && s[0]?.TName);
+    if (todayEventsSection?.data?.[0]) {
+      sections.push({
+        title: 'Today Events',
+        data: [{ ...todayEventsSection.data[0], districts: districtData || [] }],
+        showDistrictDropdown: true
+      });
+    }
+
+    // --- aanmegam ---
+    if (d?.anmegam?.data?.length > 0) {
+      const allAnmegam = d.anmegam.data.flatMap(cat => cat?.data?.slice(0, 2) || []);
+      if (allAnmegam.length > 0) {
+        sections.push({ title: d.anmegam?.title || 'Spiritual', data: allAnmegam.slice(0, 5), hideDescription: true });
+      }
+    }
+
+    // --- ipaper ---
+    if (d?.ipaper?.data?.length > 0) {
+      const city = d.ipaper.data[0];
+      sections.push({
+        title: d.ipaper.title || 'I-Paper',
+        data: [{ newsid: city.data?.[0]?.id, newstitle: '', images: city.data?.[0]?.images, largeimages: city.data?.[0]?.images, external_link: city.data?.[0]?.link || '' }],
+        hideDescription: true
+      });
+    }
+
+    // --- cinema ---
+    const cinemaNews   = d?.cinema?.data?.slice(0, 2)  || [];
+    const cinemaVideos = d?.cinema?.video?.slice(0, 2) || [];
+    if (cinemaNews.length > 0 || cinemaVideos.length > 0) {
+      sections.push({ title: 'Cinema', data: [...cinemaNews, ...cinemaVideos], hideDescription: true });
+      const vimarsanam = d?.cinema?.vimarsanam?.[0];
+      if (vimarsanam) {
+        sections.push({
+          title: '',
+          data: [{ newsid: 'cinema-wrapper', newstitle: vimarsanam.title || 'Cinema', images: vimarsanam.largeimages || '', largeimages: vimarsanam.largeimages || '', vimarsanam: vimarsanam.vimarsanam || '', starrating: vimarsanam.starrating || '', external_link: vimarsanam.link || '', ago: vimarsanam.ago || '' }],
+          type: 'cinema_review_with_image', hideDescription: true
+        });
+      }
+    }
+
+    // --- varamalar ---
+    if (d?.varamalar?.data?.length > 0) {
+      sections.push({ title: d.varamalar.title || 'Varamalar', data: d.varamalar.data.slice(0, 1), hideDescription: true });
+      if (d.varamalar.wrapperimage) {
+        sections.push({ title: '', data: [{ newsid: 'varamalar-wrapper', newstitle: d.varamalar.title || 'Varamalar', images: d.varamalar.wrapperimage, largeimages: d.varamalar.wrapperimage, external_link: d.varamalar.link || '', ago: d.varamalar.standarddate || '' }], type: 'ipaper_image', hideDescription: true });
+      }
+    }
+
+    // --- kalvimalar ---
+    if (d?.kalvimalar?.newlist?.length > 0) {
+      const kalviItems = d.kalvimalar.newlist.flatMap(cat => cat?.data || []).slice(0, 1);
+      if (kalviItems.length > 0) {
+        sections.push({ title: 'Education Flower', data: kalviItems.map(item => ({ ...item, maincat: 'Education Flower' })), hideDescription: true });
+      }
+    }
+
+    // --- special ---
+    if (d?.special?.data?.length > 0) {
+      const allSpecial = d.special.data.flatMap(cat => cat?.data || []);
+      if (allSpecial.length > 0) sections.push({ title: d.special.title || 'Special', data: allSpecial.slice(0, 1) });
+    }
+
+    setAllNewsSections(sections);
+  }, []);
+
   // --- Load Data -------------------------------------------------------------
   const loadAll = useCallback(async (useCache = true) => {
     try {
@@ -4668,8 +4896,22 @@ export default function HomeScreen() {
     }
   }, [setNotifCount]);
 
+  // --- Single useEffect - reads cache first, fetches only if stale ---
   useEffect(() => {
-    loadAll();
+    const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+    const cache = getDataCache();
+    const cacheAge = cache?.timestamp ? Date.now() - cache.timestamp : Infinity;
+
+    if (cache?.homeData && cacheAge < CACHE_TTL) {
+      // Cache is fresh - render instantly, zero network calls
+      console.log('HomeScreen: instant render from cache');
+      bootstrapFromCache();
+      return;
+    }
+
+    // Cache is stale or missing - fetch fresh
+    console.log('HomeScreen: cache stale, fetching fresh');
+    loadAll(false);
 
     // Cleanup skeleton timer on unmount
     return () => {
