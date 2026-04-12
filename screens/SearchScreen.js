@@ -1,19 +1,9 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  ScrollView,
-  FlatList,
-  ActivityIndicator,
-  StyleSheet,
-  StatusBar,
-  Platform,
-  Image,
-  Keyboard,
+  View, Text, TextInput, TouchableOpacity, ScrollView,
+  FlatList, ActivityIndicator, StyleSheet, StatusBar,
+  Platform, Image, Keyboard,
 } from 'react-native';
-import { SpeakerIcon } from '../assets/svg/Icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { s, vs } from '../utils/scaling';
 import { ms } from 'react-native-size-matters';
@@ -22,111 +12,205 @@ import { COLORS, NewsCard as NewsCardStyles } from '../utils/constants';
 import { useFontSize } from '../context/FontSizeContext';
 import UniversalHeaderComponent from '../components/UniversalHeaderComponent';
 import AppHeaderComponent from '../components/AppHeaderComponent';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { Ionicons } from '@expo/vector-icons';
+import VoiceSearchModal from '../components/VoiceSearchModal';
+import { SpeakerIcon } from '../assets/svg/Icons';
 
-const SEARCH_API_BASE = 'https://api-st.dinamalar.com/searchfilter?search=';
+const SEARCH_API   = 'https://api-st.dinamalar.com/searchfilter?search=';
+const INITIAL_API  = 'https://api-st.dinamalar.com/search';
+const RECENT_KEY   = 'dm_recent_searches';
+const MAX_RECENT   = 8;
+const DEBOUNCE_MS  = 200;
+const CACHE_TTL    = 5 * 60 * 1000;
 
-// Cache for search results to avoid repeated API calls
 const searchCache = new Map();
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+function getFromCache(key) {
+  const hit = searchCache.get(key);
+  if (hit && Date.now() - hit.ts < CACHE_TTL) return hit.data;
+  return null;
+}
+function setToCache(key, data) {
+  searchCache.set(key, { data, ts: Date.now() });
+}
 
-const PALETTE = {
-  primary: '#096dd2',
-  grey100: '#F9FAFB',
-  grey200: '#F4F6F8',
-  grey300: '#DFE3E8',
-  grey400: '#C4CDD5',
-  grey500: '#919EAB',
-  grey600: '#637381',
-  grey700: '#637381',
-  grey800: '#212B36',
-  white: '#FFFFFF',
-};
-// News Card (same as CommonSectionScreen)
-// ─────────────────────────────────────────────────────────────────────────────
-function NewsCard({ item, onPress, sectionTitle = '' }) {
+// ─── NewsCard ─────────────────────────────────────────────────────────────────
+function NewsCard({ item, onPress, onCategoryPress }) {
   const { sf } = useFontSize();
-
   const imageUri =
-    item.largeimages || item.images || item.image || item.thumbnail || item.thumb ||
+    item.largeimages || item.images || item.image ||
     'https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_default.jpg?im=Resize,width=400';
-
-  const title = item.newstitle || item.title || item.videotitle || item.name || '';
-  const category = item.maincat || item.categrorytitle || item.ctitle || item.maincategory || sectionTitle || '';
-  const ago = item.ago || item.time_ago || item.standarddate || item.date || '';
-  const newscomment = item.newscomment || item.commentcount || item.nmcomment || item.comments?.total || '';
-  const hasAudio = item.audio === 1 || item.audio === '1' || item.audio === true ||
-    (typeof item.audio === 'string' && item.audio.length > 1 && item.audio !== '0');
+  const title      = item.newstitle || item.title || '';
+  const category   = item.maincat   || item.categrorytitle || '';
+  const ago        = item.ago       || item.standarddate   || '';
+  const comments   = item.newscomment || 0;
+  const hasAudio   = item.audio === 1 || item.audio === '1';
+  const isVideo    = item.video === 1 || item.video === '1';
 
   return (
-    <View style={[NewsCardStyles.wrap,]}>
+    <View style={NewsCardStyles.wrap}>
       <TouchableOpacity onPress={() => onPress?.(item)} activeOpacity={0.88}>
-        <View style={[NewsCardStyles.imageWrap, { marginHorizontal: ms(0), height: (item.type === 'video' || item.video === '1' || item.video === 1) ? vs(120) : vs(140) }]}>
-          <Image
-            source={{ uri: imageUri }}
-            style={[NewsCardStyles.image, { height: (item.type === 'video' || item.video === '1' || item.video === 1) ? vs(120) : vs(140) }]}
-            resizeMode="contain"
-          />
-        </View>
-
-        <View style={[NewsCardStyles.contentContainer, { paddingHorizontal: ms(0) }]}>
+        <Image
+          source={{ uri: imageUri }}
+          style={[NewsCardStyles.image, { height: isVideo ? vs(160) : vs(200) }]}
+          resizeMode="cover"
+        />
+        <View style={NewsCardStyles.contentContainer}>
           {!!title && (
-            <Text style={[NewsCardStyles.title, { fontSize: sf(13), lineHeight: sf(22) }]} numberOfLines={3}>{title}</Text>
+            <Text style={[NewsCardStyles.title, { fontSize: sf(13), lineHeight: sf(22) }]} numberOfLines={3}>
+              {title}
+            </Text>
           )}
-
           {!!category && (
-            <View style={NewsCardStyles.catPill}>
+            <TouchableOpacity 
+              style={NewsCardStyles.catPill} 
+              onPress={() => onCategoryPress?.(category, item)}
+              activeOpacity={0.7}
+            >
               <Text style={[NewsCardStyles.catText, { fontSize: sf(12) }]}>{category}</Text>
-            </View>
+            </TouchableOpacity>
           )}
-
           <View style={NewsCardStyles.metaRow}>
-            <Text style={[NewsCardStyles.timeText, { fontSize: sf(13) }]}>{ago}</Text>
+            <Text style={[NewsCardStyles.timeText, { fontSize: sf(12) }]}>{ago}</Text>
             <View style={NewsCardStyles.metaRight}>
-              {hasAudio && (
-                <View style={NewsCardStyles.audioIcon}>
-                  <SpeakerIcon size={s(14)} color={COLORS.text} />
-                </View>
-              )}
-
-              {!!newscomment && newscomment !== '0' && (
+              {hasAudio && <SpeakerIcon size={s(14)} color={COLORS.text} />}
+              {!!comments && comments !== '0' && comments !== 0 && (
                 <View style={NewsCardStyles.commentRow}>
-                  <Ionicons name="chatbox" size={s(16)} color={COLORS.subtext} />
-                  <Text style={[NewsCardStyles.commentText, { fontSize: sf(14) }]}> {newscomment}</Text>
+                  <Ionicons name="chatbox" size={s(14)} color={COLORS.subtext} />
+                  <Text style={[NewsCardStyles.commentText, { fontSize: sf(12) }]}> {comments}</Text>
                 </View>
               )}
             </View>
           </View>
         </View>
       </TouchableOpacity>
-
       <View style={NewsCardStyles.divider} />
     </View>
   );
 }
 
-// Section Title (same as CommonSectionScreen)
-// ─────────────────────────────────────────────────────────────────────────────
-function SectionTitle({ title }) {
-  const { sf } = useFontSize();
+// ─── SearchResultItem ─────────────────────────────────────────────────────────
+const SearchResultItem = React.memo(({ item, onPress }) => {
+  const title      = item.newstitle || item.title || '';
+  const imageUrl   = item.images    || item.largeimages || '';
+  const pubDate    = item.ago       || item.standarddate || '';
+  const catLabel   = item.maincat   || '';
+  const comments   = parseInt(item.newscomment || 0);
+  const isVideo    = item.type === 'video' || item.type === 'reels' || item.video == 1;
+  const isPhoto    = item.type === 'photo';
+  const hasAudio   = item.audio === '1' || item.audio === 1;
+
+  const imageSource = imageUrl
+    ? { uri: imageUrl }
+    : require('../assets/images/videoPlaceHolder.png');
 
   return (
-    <View style={styles.sectionHeader}>
-      <Text style={[styles.sectionTitle, { fontSize: sf(16) }]}>{title || ''}</Text>
-      <View style={styles.sectionUnderline} />
+    <TouchableOpacity style={styles.resultCard} onPress={() => onPress?.(item)} activeOpacity={0.88}>
+      <View style={[styles.resultImageWrap, isPhoto && styles.resultImageWrapPhoto]}>
+        <Image source={imageSource} style={styles.resultImage} resizeMode="cover" />
+        {isVideo && (
+          <View style={styles.playOverlay}>
+            <View style={styles.playCircle}>
+              <Ionicons name="play" size={ms(16)} color="#fff" />
+            </View>
+          </View>
+        )}
+        {isPhoto && (
+          <View style={styles.imageOverlay}>
+            <Ionicons name="image" size={ms(18)} color="#fff" />
+          </View>
+        )}
+      </View>
+      <View style={styles.resultBody}>
+        <Text style={[NewsCardStyles.title, { fontSize: ms(13) }]} numberOfLines={3}>{title}</Text>
+        {!!catLabel && (
+          <View style={NewsCardStyles.catPill}>
+            <Text style={NewsCardStyles.catText}>{catLabel}</Text>
+          </View>
+        )}
+        <View style={NewsCardStyles.metaRow}>
+          <Text style={[NewsCardStyles.timeText, { fontSize: ms(12) }]}>{pubDate}</Text>
+          <View style={NewsCardStyles.metaRight}>
+            {hasAudio && <SpeakerIcon size={ms(14)} color="#555" />}
+            {comments > 0 && (
+              <View style={styles.commentWrap}>
+                <Ionicons name="chatbox" size={ms(14)} color="#555" />
+                <Text style={styles.commentCount}> {comments}</Text>
+              </View>
+            )}
+          </View>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+});
+
+// ─── TrendingChip ─────────────────────────────────────────────────────────────
+function TrendingChip({ topic, rank, onPress }) {
+  const isTop3 = rank <= 3;
+  return (
+    <TouchableOpacity style={styles.trendChip} onPress={() => onPress(topic.key)} activeOpacity={0.75}>
+      
+      <Text style={styles.trendChipText}>{topic.key}</Text>
+    </TouchableOpacity>
+  );
+}
+
+// ─── RecentChip ───────────────────────────────────────────────────────────────
+function RecentChip({ query, onPress, onRemove }) {
+  return (
+    <View style={styles.recentChip}>
+      <TouchableOpacity style={styles.recentChipBody} onPress={() => onPress(query)} activeOpacity={0.75}>
+        <Ionicons name="time-outline" size={ms(13)} color="#888" />
+        <Text style={styles.recentChipText}>{query}</Text>
+      </TouchableOpacity>
+      <TouchableOpacity onPress={() => onRemove(query)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+        <Ionicons name="close" size={ms(13)} color="#aaa" />
+      </TouchableOpacity>
     </View>
   );
 }
 
-// ─── Short Card (Dinamalar mobile website style - landscape like video cards) ──
+// Top10Item Component for most viewed articles using NewsCard
+const Top10Item = ({ item, index, onPress, onCategoryPress }) => {
+  return (
+    <View style={styles.top10Item}>
+      
+      <View style={styles.top10CardWrap}>
+        <NewsCard item={item} onPress={onPress} onCategoryPress={onCategoryPress} />
+      </View>
+    </View>
+  );
+};
+
+// ─── SectionHeader ────────────────────────────────────────────────────────────
+function SectionHeader({ title, onSeeMore }) {
+  const { sf } = useFontSize();
+
+  return (
+    <TouchableOpacity
+      style={styles.sectionHeader}
+      onPress={onSeeMore}
+      activeOpacity={0.8}
+      disabled={!onSeeMore}
+    >
+      <Text style={[styles.sectionTitle, { fontSize: sf(17) }]}>{title}</Text>
+      <View style={styles.sectionUnderline} />
+      <View style={styles.greyLine} />
+    </TouchableOpacity>
+  );
+}
+
+// ShortCard Component for Shorts UI
 const ShortCard = ({ video, onPress }) => {
-  const title = video.newstitle || video.title || video.videotitle || '';
+  const title    = video.newstitle || video.title || video.videotitle || '';
   const imageUri = video.images || video.largeimages || video.image || '';
   const duration = video.duration || '';
   const catLabel = video.maincat || video.CatName || '';
-  const pubDate = video.ago || video.standarddate || '';
+  const pubDate  = video.ago || video.standarddate || '';
 
   return (
     <TouchableOpacity
@@ -166,23 +250,11 @@ const ShortCard = ({ video, onPress }) => {
           </View>
         )}
       </View>
-
-      {/* Text below image - only show category and date */}
-      {/* <View style={styles.shortCardBody}>
-        {!!catLabel && (
-          <View style={styles.shortCardPill}>
-            <Text style={styles.shortCardPillText}>{catLabel}</Text>
-          </View>
-        )}
-        {!!pubDate && (
-          <Text style={styles.shortCardDate}>{pubDate}</Text>
-        )}
-      </View> */}
     </TouchableOpacity>
   );
 };
 
-// ─── Shorts Section Row (horizontal scroll strip) ───────────────────────
+// Shorts Section Row (horizontal scroll strip)
 const ShortsSectionRow = ({ items, onPress }) => {
   if (!items || items.length === 0) return null;
 
@@ -190,7 +262,7 @@ const ShortsSectionRow = ({ items, onPress }) => {
     <View style={styles.shortsSectionContainer}>
       <View style={styles.shortsSectionHeader}>
         <View style={styles.shortsSectionTitleWrap}>
-          <Text style={styles.sectionTitle}>Shorts</Text>
+          <Text style={styles.shortsSectionTitle}>Shorts</Text>
           <View style={styles.shortsSectionUnderline} />
         </View>
       </View>
@@ -214,536 +286,569 @@ const ShortsSectionRow = ({ items, onPress }) => {
   );
 };
 
-// ─── Result Card (full-width image, title, category, meta) ───────────────────
-var SearchResultItem = function (props) {
-  var item = props.item;
-  var onPress = props.onPress;
-
-  var isReels = item.type === 'reels';
-  var isVideo = item.type === 'video' ||
-    item.type === 'reels' ||
-    item.video === '1' ||
-    item.video === 1;
-  var isPhoto = item.type === 'photo';
-  var hasAudio = item.audio === '1' || item.audio === 1;
-
-  // For reels, render as portrait short card
-  if (isReels) {
-    return (
-      <View style={styles.shortCardWrapper}>
-        <ShortCard video={item} onPress={onPress} />
-      </View>
-    );
-  }
-
-  var title = item.newstitle || item.Title || item.title || '';
-  var imageUrl = item.images || item.ImageUrl || item.imageurl || '';
-  var pubDate = item.ago || item.standarddate || item.newsdate || '';
-  var catLabel = item.maincat || item.CatName || item.catname || '';
-  var commentsCount = parseInt(item.newscomment || item.CommentCount || 0);
-
-  // Use placeholder if no image URL
-  var imageSource = imageUrl ? { uri: imageUrl } : require('../assets/images/videoPlaceHolder.png');
+function CategoryTabs({ tabs, active, onSelect }) {
+  // Filter out "all" tab and only show specific category tabs
+  const filteredTabs = tabs.filter(t => t.ename && t.name && t.ename !== 'all');
+  if (filteredTabs.length === 0) return null;
 
   return (
-    <TouchableOpacity
-      style={styles.resultCard}
-      onPress={function () { onPress && onPress(item); }}
-      activeOpacity={0.88}
-    >
-      {/* Full width image */}
-      <View style={[styles.resultImageWrap, isPhoto && styles.resultImageWrapPhoto]}>
-        <Image source={imageSource} style={styles.resultImage} resizeMode="contain" />
-        {(isVideo || isReels) && (
-          <View style={styles.playOverlay}>
-            <View style={styles.playCircle}>
-              <Ionicons name="play" size={ms(18)} color="#fff" />
-            </View>
-          </View>
-        )}
-        {isPhoto && (
-          <View style={styles.imageOverlay}>
-            <View style={styles.imageCircle}>
-              <Ionicons name="image" size={ms(18)} color="#fff" />
-            </View>
-          </View>
-        )}
-        {isReels && (
-          <View style={styles.reelsBadge}>
-            <Text style={styles.reelsBadgeText}>ஷார்ட்ஸ்</Text>
-          </View>
-        )}
-      </View>
-
-      {/* Text content */}
-      <View style={styles.resultBody}>
-        <Text style={NewsCardStyles.title}  >{title}</Text>
-
-        {catLabel ? (
-          <View style={NewsCardStyles.catPill}>
-            <Text style={NewsCardStyles.catPillText}>{catLabel}</Text>
-          </View>
-        ) : null}
-
-        {/* Meta row: date + audio + comments */}
-        <View style={NewsCardStyles.metaRow}>
-          <Text style={NewsCardStyles.metaDate}>{pubDate}</Text>
-          <View style={NewsCardStyles.metaIcons}>
-            {hasAudio ? (
-              <SpeakerIcon
-                size={ms(16)}
-                color="#555"
-                style={{ marginRight: s(10) }}
-              />
-            ) : null}
-            {commentsCount > 0 ? (
-              <View style={styles.commentWrap}>
-                <Ionicons name="chatbox" size={ms(18)} color="#555" />
-                <Text style={styles.commentCount}>{commentsCount}</Text>
-              </View>
-            ) : null}
-          </View>
-        </View>
-      </View>
-
-      {/* Divider */}
-      <View style={styles.resultDivider} />
-    </TouchableOpacity>
+    <View style={styles.tabsWrap}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.tabsContent}
+        bounces={false}
+      >
+        {filteredTabs.map(t => {
+          const isActive = active === t.ename;
+          return (
+            <TouchableOpacity
+              key={t.ename}
+              style={[styles.tab, isActive && styles.tabActive]}
+              onPress={() => onSelect(t.ename)}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.tabText, isActive && styles.tabTextActive]}>
+                {t.name}{t.count ? ` (${t.count})` : ''}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+    </View>
   );
-};
+}
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
-var SearchScreen = function () {
-  var navigation = useNavigation();
-  var route = useRoute();
+export default function SearchScreen() {
+  const navigation = useNavigation();
+  const route      = useRoute();
 
-  var sq = useState(''); var searchQuery = sq[0]; var setSearchQuery = sq[1];
-  var sr = useState([]); var searchResults = sr[0]; var setSearchResults = sr[1];
-  var il = useState(false); var isLoading = il[0]; var setIsLoading = il[1];
-  var lm = useState(false); var isLoadingMore = lm[0]; var setIsLoadingMore = lm[1];
-  var er = useState(null); var error = er[0]; var setError = er[1];
-  var hs = useState(false); var hasSearched = hs[0]; var setHasSearched = hs[1];
-  var ac = useState('all'); var activeCategory = ac[0]; var setActiveCategory = ac[1];
-  var cf = useState([]); var categoryFilter = cf[0]; var setCategoryFilter = cf[1];
-  var tk = useState([]); var trendingTopics = tk[0]; var setTrendingTopics = tk[1];
-  var mc = useState([]); var mostCommented = mc[0]; var setMostCommented = mc[1];
-  var ml = useState(false); var mostCommentedLoading = ml[0]; var setMostCommentedLoading = ml[1];
-  var cp = useState(1); var currentPage = cp[0]; var setCurrentPage = cp[1];
-  var lp = useState(1); var lastPage = lp[0]; var setLastPage = lp[1];
-  var cq = useRef('');           // track current query for load more
-  var fs = useState(false); var showScrollTop = fs[0]; var setShowScrollTop = fs[1];
-  var flatListRef = useRef(null);
+  const [query,           setQuery]           = useState('');
+  const [results,         setResults]         = useState([]);
+  const [categoryFilter,  setCategoryFilter]  = useState([]);
+  const [activeTab,       setActiveTab]       = useState('all');
+  const [trendingTopics,  setTrendingTopics]  = useState([]);
+  const [recentSearches,  setRecentSearches]  = useState([]);
+  const [top10Data,       setTop10Data]       = useState([]);
+  const [isLoading,       setIsLoading]       = useState(false);
+  const [isLoadingMore,   setIsLoadingMore]   = useState(false);
+  const [trendLoading,    setTrendLoading]    = useState(true);
+  const [error,           setError]           = useState(null);
+  const [hasSearched,     setHasSearched]     = useState(false);
+  const [currentPage,     setCurrentPage]     = useState(1);
+  const [lastPage,        setLastPage]        = useState(1);
+  const [showScrollTop,   setShowScrollTop]   = useState(false);
+  const [voiceModal,      setVoiceModal]      = useState(false);
+  const [isDrawerVisible,        setIsDrawerVisible]        = useState(false);
+  const [isLocationDrawerVisible, setIsLocationDrawerVisible] = useState(false);
+  const [selectedDistrict,        setSelectedDistrict]        = useState('உள்ளூர்');
 
-  var dv = useState(false); var isDrawerVisible = dv[0]; var setIsDrawerVisible = dv[1];
-  var lv = useState(false); var isLocationDrawerVisible = lv[0]; var setIsLocationDrawerVisible = lv[1];
-  var sd = useState('உள்ளூர்'); var selectedDistrict = sd[0]; var setSelectedDistrict = sd[1];
+  const debounceRef  = useRef(null);
+  const currentQuery = useRef('');
+  const flatListRef  = useRef(null);
+  const inputRef     = useRef(null);
 
-  var inputRef = useRef(null);
-
-  // Set initial search query from route params
-  useEffect(function () {
-    var initialSearchTerm = route.params?.searchTerm;
-    if (initialSearchTerm) {
-      setSearchQuery(initialSearchTerm);
-      cq.current = initialSearchTerm;
-      // Trigger search automatically
-      performSearch(initialSearchTerm);
-    }
-  }, [route.params?.searchTerm]);
-
-  // Fetch trending topics on mount
-  useEffect(function () {
-    axios.get(SEARCH_API_BASE + 'gold')
-      .then(function (response) {
-        var data = response && response.data;
-        if (data && Array.isArray(data.trendingkeywords) && data.trendingkeywords.length > 0) {
-          setTrendingTopics(data.trendingkeywords[0]?.data || []);
-        }
-      })
-      .catch(function () { });
-
-    // Fetch most commented data
-    setMostCommentedLoading(true);
-    axios.get('https://api-st.dinamalar.com/photodata')
-      .then(function (response) {
-        var data = response && response.data;
-        console.log('[SearchScreen] Most commented API response:', data);
-        if (data && data.mostcommented && Array.isArray(data.mostcommented.data)) {
-          console.log('[SearchScreen] Found most commented data:', data.mostcommented.data.length, 'items');
-          setMostCommented(data.mostcommented.data.slice(0, 10)); // Limit to 10 items
-        } else {
-          console.log('[SearchScreen] No most commented data found');
-        }
-      })
-      .catch(function (err) {
-        console.error('Most commented fetch error:', err);
-      })
-      .finally(function () {
-        setMostCommentedLoading(false);
-      });
+  // ── Load recent searches ──────────────────────────────────────────────────
+  useEffect(() => {
+    AsyncStorage.getItem(RECENT_KEY)
+      .then(v => { if (v) setRecentSearches(JSON.parse(v)); })
+      .catch(() => {});
   }, []);
 
-  var handleMenuPress = function (menuItem) { };
-  var goToSearch = function () { };
-  var goToNotifs = function () { navigation && navigation.navigate('NotificationScreen'); };
-  var handleSelectDistrict = function (district) {
-    setSelectedDistrict(district.title);
-    setIsLocationDrawerVisible(false);
-    if (district.id) {
-      navigation && navigation.navigate('DistrictNewsScreen', {
-        districtId: district.id, districtTitle: district.title,
-      });
+  // ── Fetch trending on mount ───────────────────────────────────────────────
+  useEffect(() => {
+    const cached = getFromCache('__initial__');
+    if (cached) {
+      setTrendingTopics(cached);
+      setTrendLoading(false);
+      return;
     }
-  };
+    axios.get(INITIAL_API, { timeout: 10000 })
+      .then(res => {
+        const data = res.data || {};
+        let topics = [];
+        // Correct key: trendingkeywords[0].data
+        if (Array.isArray(data.trendingkeywords) && data.trendingkeywords.length > 0) {
+          const first = data.trendingkeywords[0];
+          if (Array.isArray(first.data)) topics = first.data;
+        }
+        const top10 = topics.slice(0, 10);
+        setToCache('__initial__', top10);
+        setTrendingTopics(top10);
+        
+        // Extract top10 most viewed data
+        const top10Data = Array.isArray(data.top10?.data) ? data.top10.data : [];
+        console.log('Initial API top10 data:', top10Data.length);
+        setTop10Data(top10Data);
+      })
+      .catch(() => {})
+      .finally(() => setTrendLoading(false));
+  }, []);
 
-  // ─── Search ────────────────────────────────────────────────────────────────
-  var performSearch = useCallback(function (query) {
-    if (!query || query.trim().length === 0) return;
+  // ── Route param search ────────────────────────────────────────────────────
+  useEffect(() => {
+    const term = route.params?.searchTerm;
+    if (term) { setQuery(term); triggerSearch(term); }
+  }, [route.params?.searchTerm]);
 
-    var trimmedQuery = query.trim();
+  // ── Save / clear recent ───────────────────────────────────────────────────
+  const saveRecent = useCallback(async (q) => {
+    const trimmed = q.trim();
+    if (!trimmed) return;
+    setRecentSearches(prev => {
+      const updated = [trimmed, ...prev.filter(x => x !== trimmed)].slice(0, MAX_RECENT);
+      AsyncStorage.setItem(RECENT_KEY, JSON.stringify(updated)).catch(() => {});
+      return updated;
+    });
+  }, []);
 
-    // Check cache first
-    var cacheKey = trimmedQuery + '_page1';
-    var cached = searchCache.get(cacheKey);
-    if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-      console.log('🚀 Using cached search results for:', trimmedQuery);
-      setSearchResults(cached.results);
-      setCurrentPage(cached.currentPage || 1);
-      setLastPage(cached.lastPage || 1);
-      setCategoryFilter(cached.categoryFilter || []);
-      setTrendingTopics(cached.trendingTopics || []);
-      setIsLoading(false);
+  const removeRecent = useCallback(async (q) => {
+    setRecentSearches(prev => {
+      const updated = prev.filter(x => x !== q);
+      AsyncStorage.setItem(RECENT_KEY, JSON.stringify(updated)).catch(() => {});
+      return updated;
+    });
+  }, []);
+
+  const clearRecent = useCallback(async () => {
+    setRecentSearches([]);
+    AsyncStorage.removeItem(RECENT_KEY).catch(() => {});
+  }, []);
+
+  // ── Core search ───────────────────────────────────────────────────────────
+  const triggerSearch = useCallback((q) => {
+    const trimmed = (q || '').trim();
+    if (!trimmed) {
+      setHasSearched(false);
+      setResults([]);
+      return;
+    }
+
+    currentQuery.current = trimmed;
+    saveRecent(trimmed);
+
+    const cacheKey = trimmed + '_p1';
+    const cached   = getFromCache(cacheKey);
+    if (cached) {
+      setResults(cached.results);
+      setCategoryFilter(cached.tabs);
+      setCurrentPage(1);
+      setLastPage(cached.lastPage);
       setHasSearched(true);
-      setActiveCategory('all');
+      // Set first tab as active by default (excluding 'all' tab)
+      const firstTab = cached.tabs.find(t => t.ename && t.ename !== 'all');
+      setActiveTab(firstTab?.ename || '');
       return;
     }
 
     setIsLoading(true);
     setError(null);
     setHasSearched(true);
-    setActiveCategory('all');
+    setActiveTab('all');
     setCurrentPage(1);
-    cq.current = trimmedQuery;
 
-    var searchPromise = axios.get(SEARCH_API_BASE + encodeURIComponent(trimmedQuery) + '&page=1', {
-      timeout: 10000, // 10 second timeout for faster failure
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
-      }
-    });
+    axios.get(SEARCH_API + encodeURIComponent(trimmed) + '&page=1', {
+      timeout: 10000,
+      headers: { Accept: 'application/json' },
+    })
+      .then(res => {
+        const data = res.data?.original || res.data || {};
+        
+        const list = Array.isArray(data.detail) ? data.detail
+                   : Array.isArray(data)         ? data
+                   : [];
+        const tabs = Array.isArray(data.categoryfilter) ? data.categoryfilter : [];
+        const lp   = data.pagination?.last_page || 1;
+        const cp   = data.pagination?.current_page || 1;
+        const total = data.pagination?.total || 0;
+        const top10 = Array.isArray(data.top10?.data) ? data.top10.data : [];
 
-    searchPromise
-      .then(function (response) {
-        var data = response && response.data;
-        var results = [];
-
-        if (data && Array.isArray(data.detail)) {
-          results = data.detail;
-        } else if (Array.isArray(data)) {
-          results = data;
-        }
-
-        setSearchResults(results);
-
-        // Cache the results
-        searchCache.set(cacheKey, {
-          results: results,
-          currentPage: data?.pagination?.current_page || 1,
-          lastPage: data?.pagination?.last_page || 1,
-          categoryFilter: data?.categoryfilter || [],
-          trendingTopics: data?.trendingkeywords?.[0]?.data || [],
-          timestamp: Date.now()
-        });
-
-        // Save pagination info
-        if (data && data.pagination) {
-          setCurrentPage(data.pagination.current_page || 1);
-          setLastPage(data.pagination.last_page || 1);
-        }
-
-        // Use categoryfilter from API for tab counts
-        if (data && Array.isArray(data.categoryfilter)) {
-          setCategoryFilter(data.categoryfilter);
-        }
-
-        // Update trending topics
-        if (data && Array.isArray(data.trendingkeywords) && data.trendingkeywords.length > 0) {
-          setTrendingTopics(data.trendingkeywords[0]?.data || []);
-        }
+        setResults(list);
+        setCategoryFilter(tabs);
+        setTop10Data(top10);
+        setLastPage(lp);
+        setCurrentPage(cp);
+        // Set first tab as active by default (excluding 'all' tab)
+        const firstTab = tabs.find(t => t.ename && t.ename !== 'all');
+        setActiveTab(firstTab?.ename || '');
+        setToCache(cacheKey, { results: list, tabs, lastPage: lp });
       })
-      .catch(function (err) {
-        console.error('Search error:', err);
-        setError('தேடல் தோல்வியடைந்தது. மீண்டும் முயற்சிக்கவும.');
-        setSearchResults([]);
+      .catch(err => {
+        console.error('Search API Error:', err);
+        setError('Search failed. Please try again.');
       })
-      .finally(function () { setIsLoading(false); });
-  }, []);
+      .finally(() => setIsLoading(false));
+  }, [saveRecent]);
 
-  // ─── Load more (pagination) ────────────────────────────────────────────────
-  var loadMore = useCallback(function () {
-    if (isLoadingMore || isLoading || currentPage >= lastPage || !cq.current) return;
-
-    var nextPage = currentPage + 1;
-    setIsLoadingMore(true);
-
-    var typeParam = activeCategory !== 'all' ? '&type=' + activeCategory : '';
-    var cacheKey = cq.current + '_page' + nextPage + (typeParam || '_all');
-
-    // Check cache first for pagination
-    var cached = searchCache.get(cacheKey);
-    if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-      console.log('🚀 Using cached load more results for page:', nextPage);
-      setSearchResults(function (prev) { return prev.concat(cached.results); });
-      setCurrentPage(cached.currentPage || nextPage);
-      setLastPage(cached.lastPage || 1);
-      setIsLoadingMore(false);
-      return;
+  // -- Debounced input --
+  const onChangeText = useCallback((text) => {
+    setQuery(text);
+    clearTimeout(debounceRef.current);
+    if (!text.trim()) { 
+      setHasSearched(false); 
+      setResults([]); 
+      setCategoryFilter([]);
+      return; 
     }
+    debounceRef.current = setTimeout(() => triggerSearch(text), DEBOUNCE_MS);
+  }, [triggerSearch]);
 
-    var loadMorePromise = axios.get(SEARCH_API_BASE + encodeURIComponent(cq.current) + '&page=' + nextPage + typeParam, {
-      timeout: 8000, // 8 second timeout for pagination
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
-      }
-    });
-
-    loadMorePromise
-      .then(function (response) {
-        var data = response && response.data;
-        var results = [];
-
-        if (data && Array.isArray(data.detail)) {
-          results = data.detail;
-        } else if (Array.isArray(data)) {
-          results = data;
-        }
-
-        // Cache the pagination results
-        searchCache.set(cacheKey, {
-          results: results,
-          currentPage: data?.pagination?.current_page || nextPage,
-          lastPage: data?.pagination?.last_page || 1,
-          timestamp: Date.now()
-        });
-
-        // Append to existing results
-        setSearchResults(function (prev) { return prev.concat(results); });
-
-        if (data && data.pagination) {
-          setCurrentPage(data.pagination.current_page || nextPage);
-          setLastPage(data.pagination.last_page || 1);
-        }
-      })
-      .catch(function (err) {
-        console.error('Load more error:', err);
-      })
-      .finally(function () { setIsLoadingMore(false); });
-  }, [isLoadingMore, isLoading, currentPage, lastPage, activeCategory]);
-
-  // ─── Filter results by active tab ─────────────────────────────────────────
-  var filteredResults = React.useMemo(function () {
-    if (activeCategory === 'all') return searchResults;
-    return searchResults.filter(function (item) {
-      var itemType = (item.type || '').toLowerCase();
-      var itemMaincat = (item.maincat || '').toLowerCase();
-      var itemCatId = String(item.maincatid || '').toLowerCase();
-
-      if (activeCategory === 'news') {
-        return itemType === 'news' &&
-          itemMaincat !== 'ஷார்ட்ஸ்' &&
-          itemCatId !== 'shorts';
-      }
-      if (activeCategory === 'video') {
-        return itemType === 'video' || itemType === 'reels' ||
-          itemMaincat === 'ஷார்ட்ஸ்' || itemCatId === 'shorts';
-      }
-      if (activeCategory === 'photo') {
-        return itemType === 'photo' || itemMaincat.includes('photo') ||
-          itemCatId.includes('photo') || itemMaincat.includes('படம்') ||
-          itemMaincat.includes('புகைப்படம்');
-      }
-      if (activeCategory === 'kalvimalar') {
-        // Debug: log the maincat values to see what we're working with
-        console.log('🔍 Kalvimalar Filter - itemMaincat:', itemMaincat, 'itemType:', itemType);
-
-        // Check for education-related content using multiple indicators
-        var isEducationContent =
-          itemMaincat.includes('கல்வி') ||
-          itemCatId.includes('kalvi') ||
-          itemMaincat.includes('kalvi') ||
-          itemMaincat.includes('கல்விமலர்') ||
-          itemMaincat.includes('கல்வித்') ||
-          itemMaincat.includes('பள்ளி') ||
-          itemMaincat.includes('கல்லூரி') ||
-          itemMaincat.includes('பல்கலைக்கழகம்') ||
-          itemMaincat.includes('தேர்வு') ||
-          itemMaincat.includes('படிப்பியல்') ||
-          // Check title/content for education indicators
-          (item.newstitle && (
-            item.newstitle.toLowerCase().includes('education') ||
-            item.newstitle.toLowerCase().includes('school') ||
-            item.newstitle.toLowerCase().includes('college') ||
-            item.newstitle.toLowerCase().includes('exam') ||
-            item.newstitle.toLowerCase().includes('student') ||
-            item.newstitle.toLowerCase().includes('university')
-          )) ||
-          (item.newsdescription && (
-            item.newsdescription.toLowerCase().includes('education') ||
-            item.newsdescription.toLowerCase().includes('school') ||
-            item.newsdescription.toLowerCase().includes('college') ||
-            item.newsdescription.toLowerCase().includes('exam') ||
-            item.newsdescription.toLowerCase().includes('student') ||
-            item.newsdescription.toLowerCase().includes('university')
-          ));
-
-        return isEducationContent;
-      }
-      if (activeCategory === 'nri') {
-        // Debug: log the maincat values to see what we're working with
-        console.log('🔍 NRI Filter - itemMaincat:', itemMaincat, 'itemType:', itemType);
-
-        // Check for NRI-related content using multiple indicators
-        var isNRIContent =
-          itemMaincat.includes('உலக') ||
-          itemCatId.includes('nri') ||
-          itemMaincat.includes('nri') ||
-          itemMaincat.includes('உலகத்தமிலார்') ||
-          itemMaincat.includes('உலகத்') ||
-          itemMaincat.includes('தமிழர்') ||
-          // Check title/content for NRI indicators
-          (item.newstitle && item.newstitle.toLowerCase().includes('india')) ||
-          (item.newsdescription && item.newsdescription.toLowerCase().includes('india'));
-
-        return isNRIContent;
-      }
-      return itemType.indexOf(activeCategory) !== -1 ||
-        itemMaincat.indexOf(activeCategory) !== -1 ||
-        itemCatId.indexOf(activeCategory) !== -1;
-    });
-  }, [searchResults, activeCategory]);
-
-  var handleItemPress = function (item) {
-    var newsId = item.id || item.Id || item.NewsId || item.newsid;
-    var itemType = (item.type || '').toLowerCase();
+  // ── Load more ─────────────────────────────────────────────────────────────
+  const loadMore = useCallback(() => {
+    if (isLoadingMore || isLoading || currentPage >= lastPage || !currentQuery.current) return;
+    const next = currentPage + 1;
     
-    // Check if this is from the video category tab and should go to VideoDetailScreen
-    if (activeCategory === 'video' && (itemType === 'video' || item.video === '1' || item.video === 1)) {
-      console.log('VIDEO CATEGORY ITEM CLICKED - Navigating to VideoDetailScreen');
-      console.log('Clicking video item data:', { 
-        newsId: newsId, 
-        title: item.newstitle || item.title,
-        type: itemType,
-        path: item.path
-      });
-      
-      // Map to video format for VideoDetailScreen
-      var mappedVideo = {
-        videoid: newsId,
-        videotitle: item.newstitle || item.Title || item.title || '',
-        images: item.images || item.ImageUrl || item.imageurl || '',
-        videodescription: item.newsdescription || item.description || item.content || '',
-        videodate: item.newsdate || item.date || '',
-        standarddate: item.ago || item.standarddate || '',
-        maincat: item.maincat || item.CatName || item.catname || '',
-        ctitle: item.maincat || item.CatName || item.catname || '',
-        duration: item.duration || '',
-        nmcomment: item.newscomment || item.CommentCount || 0,
-        type: item.type || 'video',
-        slug: item.slug || '',
-        videopath: item.path || item.videopath || item.y_path || item.vidg_path || '',
-        video: item.video || item.path || item.videopath || '',
-        videourl: item.path || item.videopath || item.y_path || item.vidg_path || '',
-        y_path: item.path || item.videopath || item.y_path || item.vidg_path || '',
-        vidg_path: item.path || item.videopath || item.y_path || item.vidg_path || ''
-      };
-      navigation && navigation.navigate('VideoDetailScreen', { video: mappedVideo });
-    } else if (newsId) {
-      // Handle all other items (including news videos) to go to NewsDetailsScreen like HomeScreen
-      console.log('SEARCH RESULT ITEM CLICKED - Navigating to NewsDetailsScreen like HomeScreen');
-      console.log('Clicking item data:', { 
-        newsId: newsId, 
-        title: item.newstitle || item.title,
-        type: itemType,
-        isVideo: item.video === '1' || item.video === 1,
-        category: activeCategory
-      });
-      
-      // Navigate to NewsDetailsScreen with original item like HomeScreen goToArticle function
-      navigation && navigation.navigate('NewsDetailsScreen', {
-        newsId: item.id || item.newsid,
-        newsItem: item,
-        slug: item.slug || '',
-      });
-    } else {
-      console.log('NO NEWSID FOUND - Cannot navigate');
-    }
-  };
+    setIsLoadingMore(true);
+    axios.get(SEARCH_API + encodeURIComponent(currentQuery.current) + '&page=' + next, { timeout: 5000 })
+      .then(res => {
+        const data = res.data || {};
+        const list = Array.isArray(data.detail) ? data.detail : [];
+        const newPage = data.pagination?.current_page || next;
+        
+        setResults(prev => [...prev, ...list]);
+        setCurrentPage(newPage);
+      })
+      .catch(() => {})
+      .finally(() => setIsLoadingMore(false));
+  }, [isLoadingMore, isLoading, currentPage, lastPage]);
 
-  // When a category tab is clicked, fetch filtered results from API using type param
-  var handleCategoryPress = useCallback(function (ename) {
-    setActiveCategory(ename);
-    if (!cq.current) return;
-
-    if (ename === 'all') return;
+  // Handle tab selection with API calls for specific types
+  const handleTabSelect = useCallback((ename) => {
+    setActiveTab(ename);
+    if (!currentQuery.current) return;
+    if (ename === 'all' || ename === '') return; // already loaded
 
     setIsLoading(true);
-    setCurrentPage(1);
-
-    var url = SEARCH_API_BASE + encodeURIComponent(cq.current) + '&page=1&type=' + ename;
-    axios.get(url, {
-      timeout: 6000, // 8 second timeout for category filtering
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-      }
-    })
-      .then(function (response) {
-        var data = response && response.data;
-        var results = [];
-        if (data && Array.isArray(data.detail)) {
-          results = data.detail;
-        } else if (Array.isArray(data)) {
-          results = data;
-        }
-        setSearchResults(function (prev) {
-          return results;
-        });
-        if (data && data.pagination) {
-          setCurrentPage(data.pagination.current_page || 1);
-          setLastPage(data.pagination.last_page || 1);
-        }
+    const url = SEARCH_API + encodeURIComponent(currentQuery.current) + `&page=1&type=${ename}`;
+    axios.get(url, { timeout: 10000, headers: { Accept: 'application/json' } })
+      .then(res => {
+        const data = res.data || {};
+        const list = Array.isArray(data.detail) ? data.detail
+                   : Array.isArray(data)         ? data
+                   : [];
+        const lp = data.pagination?.last_page || 1;
+        setResults(list);
+        setLastPage(lp);
+        setCurrentPage(data.pagination?.current_page || 1);
       })
-      .catch(function () { })
-      .finally(function () { setIsLoading(false); });
+      .catch(() => {})
+      .finally(() => setIsLoading(false));
   }, []);
 
-  // Build category tabs from API categoryfilter
-  var categoryTabs = React.useMemo(function () {
-    if (categoryFilter.length === 0) return [];
-    return categoryFilter
-      .filter(function (cf) {
-        // Remove 'all' tab from results
-        return cf.ename && cf.ename !== 'all';
-      })
-      .map(function (cf) {
-        return { id: cf.ename, label: cf.name, count: cf.count };
-      });
-  }, [categoryFilter]);
-
-  // ─── Scroll to top handler ─────────────────────────────────────────────────────
-  var handleScroll = function (event) {
-    var offsetY = event.nativeEvent.contentOffset.y;
-    setShowScrollTop(offsetY > 300);
-  };
-
-  var scrollToTop = function () {
-    if (flatListRef.current) {
-      flatListRef.current.scrollToOffset({ offset: 0, animated: true });
+  // ── Filter by tab ─────────────────────────────────────────────────────────
+  const filteredResults = React.useMemo(() => {
+    // If no active tab or 'all', return all results
+    if (!activeTab || activeTab === 'all' || activeTab === '') {
+      return results;
     }
-  };
+    
+    const filtered = results.filter(item => {
+      const t = (item.type || '').toLowerCase();
+      const maincat = (item.maincat || '').toLowerCase();
+      const categoryTitle = (item.categrorytitle || '').toLowerCase();
+      const categoryName = (item.categoryname || '').toLowerCase();
+      const isVideo = item.video == 1 || item.video === '1';
+      
+      // Specific tab logic - optimized
+      if (activeTab === 'video') return t === 'video' || t === 'reels' || isVideo;
+      if (activeTab === 'photo') return t === 'photo';
+      if (activeTab === 'news') return t === 'news' || t === '' || !t;
+      if (activeTab === 'education' || activeTab === 'kalvi') {
+        return t === 'education' || t === 'kalvi' || 
+               maincat.includes('education') || maincat.includes('kalvi') ||
+               categoryTitle.includes('education') || categoryTitle.includes('kalvi') ||
+               categoryName.includes('education') || categoryName.includes('kalvi');
+      }
+      if (activeTab === 'inaippu' || activeTab === 'inaippumalar' || activeTab === 'weekly') {
+        return t === 'inaippu' || t === 'inaippumalar' || t === 'weekly' ||
+               maincat.includes('inaippu') || maincat.includes('inaippumalar') || maincat.includes('weekly') ||
+               categoryTitle.includes('inaippu') || categoryTitle.includes('inaippumalar') || categoryTitle.includes('weekly') ||
+               categoryName.includes('inaippu') || categoryName.includes('weekly');
+      }
+      if (activeTab === 'kavi' || activeTab === 'kavimalar' || activeTab === 'kalvimalar') {
+        return t === 'kavi' || t === 'kavimalar' || t === 'kalvimalar' ||
+               maincat.includes('kavi') || maincat.includes('kavimalar') || maincat.includes('kalvimalar') ||
+               categoryTitle.includes('kavi') || categoryTitle.includes('kavimalar') || categoryTitle.includes('kalvimalar') ||
+               categoryName.includes('kavi') || categoryName.includes('kavimalar') || categoryName.includes('kalvimalar');
+      }
+      if (activeTab === 'general') return t === 'general' || t === '' || !t;
+      
+      // Fallback: return item if any field matches activeTab
+      return t === activeTab || maincat === activeTab || categoryTitle === activeTab || categoryName === activeTab;
+    });
+    
+    return filtered;
+  }, [results, activeTab]);
 
+  // Navigation 
+  const handleItemPress = useCallback((item) => {
+    const id = item.id || item.newsid;
+    // ... (rest of the code remains the same)
+    const type = (item.type || '').toLowerCase();
+    const isNewsTab = activeTab === 'news' || activeTab === 'seithigal';
+    const isVideoTab = activeTab === 'video';
+    const isPhotoTab = activeTab === 'photo';
+  
+    // For videos tab, always go to VideoDetailScreen
+    if (isVideoTab) {
+      const normalizedVideo = {
+        ...item,
+        videoid: item.videoid || item.videoId || item.video_id || item.id || item.newsid,
+        videopath: item.videopath || item.path || item.y_path || item.videourl,
+        videotitle: item.videotitle || item.newstitle || item.title || '',
+        videodescription: item.videodescription || item.description || item.content || '',
+        videodate: item.videodate || item.date || item.created_at || '',
+        images: item.images || item.largeimages || item.image || item.thumbnail || '',
+        largeimages: item.largeimages || item.images || item.image || item.thumbnail || '',
+        video: item.video || 1,
+        type: 'video'
+      };
+      
+      navigation.navigate('VideoDetailScreen', { video: normalizedVideo });
+      return;
+    }
+    
+    // For photo tab, go to CommonSectionScreen with specific tab detection
+    if (isPhotoTab) {
+      let initialTabId = null;
+      let targetScreenTitle = 'Photos';
+      
+      // Check for specific photo categories
+      const maincatLower = (item.maincat || '').toLowerCase();
+      const categorynameLower = (item.categoryname || '').toLowerCase();
+      const categrorytitleLower = (item.categrorytitle || '').toLowerCase();
+      const catnameLower = (item.catname || '').toLowerCase();
+      const sectionLower = (item.section || '').toLowerCase();
+      const newstitleLower = (item.newstitle || '').toLowerCase();
+      
+      // Cards detection
+      if (maincatLower.includes('card') || maincatLower.includes('cards') ||
+          categorynameLower.includes('card') || categorynameLower.includes('cards') ||
+          categrorytitleLower.includes('card') || categrorytitleLower.includes('cards') ||
+          catnameLower.includes('card') || catnameLower.includes('cards') ||
+          sectionLower.includes('card') || sectionLower.includes('cards') ||
+          newstitleLower.includes('card') || newstitleLower.includes('cards') ||
+          item.maincatid === 'socialcards' || item.scatid === 'socialcards' || item.subcatid === 'socialcards') {
+        initialTabId = 'socialcards';
+      }
+      // Cartoons detection
+      else if (maincatLower.includes('cartoon') || maincatLower.includes('caricature') ||
+               categorynameLower.includes('cartoon') || categorynameLower.includes('caricature') ||
+               categrorytitleLower.includes('cartoon') || categrorytitleLower.includes('caricature') ||
+               catnameLower.includes('cartoon') || catnameLower.includes('caricature') ||
+               sectionLower.includes('cartoon') || sectionLower.includes('caricature') ||
+               newstitleLower.includes('cartoon') || newstitleLower.includes('caricature') ||
+               item.maincatid === '5002' || item.scatid === '5002' || item.subcatid === '5002') {
+        initialTabId = '5002';
+      }
+      // Today Photos detection
+      else if (maincatLower.includes('today') || maincatLower.includes('innrai') ||
+               categorynameLower.includes('today') || categorynameLower.includes('innrai') ||
+               categrorytitleLower.includes('today') || categrorytitleLower.includes('innrai') ||
+               catnameLower.includes('today') || catnameLower.includes('innrai') ||
+               sectionLower.includes('today') || sectionLower.includes('innrai') ||
+               newstitleLower.includes('today') || newstitleLower.includes('innrai') ||
+               item.maincatid === '81' || item.scatid === '81' || item.subcatid === '81') {
+        initialTabId = '81';
+      }
+      // Photo Album detection
+      else if (maincatLower.includes('album') || maincatLower.includes('pugai') ||
+               categorynameLower.includes('album') || categorynameLower.includes('pugai') ||
+               categrorytitleLower.includes('album') || categrorytitleLower.includes('pugai') ||
+               catnameLower.includes('album') || catnameLower.includes('pugai') ||
+               sectionLower.includes('album') || sectionLower.includes('pugai') ||
+               newstitleLower.includes('album') || newstitleLower.includes('pugai') ||
+               item.maincatid === '5001' || item.scatid === '5001' || item.subcatid === '5001') {
+        initialTabId = '5001';
+      }
+      // NRI Album detection
+      else if (maincatLower.includes('nri') ||
+               categorynameLower.includes('nri') ||
+               categrorytitleLower.includes('nri') ||
+               catnameLower.includes('nri') ||
+               sectionLower.includes('nri') ||
+               newstitleLower.includes('nri') ||
+               item.maincatid === '5003' || item.scatid === '5003' || item.subcatid === '5003') {
+        initialTabId = '5003';
+      }
+      // Web Stories detection
+      else if (maincatLower.includes('webstory') || maincatLower.includes('web story') ||
+               categorynameLower.includes('webstory') || categorynameLower.includes('web story') ||
+               categrorytitleLower.includes('webstory') || categrorytitleLower.includes('web story') ||
+               catnameLower.includes('webstory') || catnameLower.includes('web story') ||
+               sectionLower.includes('webstory') || sectionLower.includes('web story') ||
+               newstitleLower.includes('webstory') || newstitleLower.includes('web story') ||
+               item.maincatid === 'webstoriesupdate' || item.scatid === 'webstoriesupdate' || item.subcatid === 'webstoriesupdate') {
+        initialTabId = 'webstoriesupdate';
+        targetScreenTitle = 'Web Stories';
+      }
+      
+      const navigationParams = {
+        screenTitle: targetScreenTitle,
+        apiEndpoint: 'https://api-st.dinamalar.com/photodata',
+        allTabLink: 'https://api-st.dinamalar.com/photodata',
+        item: item
+      };
+      
+      // Add initialTabId only if detected
+      if (initialTabId) {
+        navigationParams.initialTabId = initialTabId;
+      }
+      
+      // Add selectedNewsId for exact news item targeting
+      const newsId = item.id || item.newsid;
+      if (newsId) {
+        navigationParams.selectedNewsId = String(newsId);
+        navigationParams.selectedNewsItem = item;
+      }
+      
+      navigation.navigate('CommonSectionScreen', navigationParams);
+      return;
+    }
+    
+    // For other tabs (except news), check video type for navigation
+    if (!isNewsTab && (type === 'video' || type === 'reels' || item.video == 1)) {
+      navigation.navigate('VideoDetailScreen', { video: item });
+    } else if (id) {
+      navigation.navigate('NewsDetailsScreen', { newsId: id, newsItem: item, slug: item.slug || '' });
+    }
+  }, [navigation, activeTab]);
+
+  const handleClear = useCallback(() => {
+    setQuery('');
+    setHasSearched(false);
+    setResults([]);
+    setError(null);
+    setActiveTab('all');
+    currentQuery.current = '';
+    clearTimeout(debounceRef.current);
+  }, []);
+
+  const handleTrendingPress = useCallback((key) => {
+    setQuery(key);
+    triggerSearch(key);
+  }, [triggerSearch]);
+
+  const handleRecentPress = useCallback((key) => {
+    setQuery(key);
+    triggerSearch(key);
+  }, [triggerSearch]);
+
+  const handleScroll = (e) => setShowScrollTop(e.nativeEvent.contentOffset.y > 300);
+
+  const scrollToTop = () => flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+
+  // Category navigation handler
+  const handleCategoryPress = useCallback((category, item) => {
+    const categoryLower = category.toLowerCase().trim();
+    
+    // Map categories to screen names and tabs (including Tamil variations)
+    const categoryMappings = {
+      // English variations
+      'india': { screen: 'TharpothaiyaSeithigalScreen', tabId: 'india', initialTabTitle: 'India' },
+      'tamil nadu': { screen: 'TharpothaiyaSeithigalScreen', tabId: 'tamilagam', initialTabTitle: 'Tamil Nadu' },
+      'tamilnadu': { screen: 'TharpothaiyaSeithigalScreen', tabId: 'tamilagam', initialTabTitle: 'Tamil Nadu' },
+      'tamilagam': { screen: 'TharpothaiyaSeithigalScreen', tabId: 'tamilagam', initialTabTitle: 'Tamil Nadu' },
+      'world': { screen: 'TharpothaiyaSeithigalScreen', tabId: 'world', initialTabTitle: 'World' },
+      'cinema': { screen: 'TharpothaiyaSeithigalScreen', tabId: 'cinema', initialTabTitle: 'Cinema' },
+      'sports': { screen: 'TharpothaiyaSeithigalScreen', tabId: 'sports', initialTabTitle: 'Sports' },
+      'business': { screen: 'TharpothaiyaSeithigalScreen', tabId: 'business', initialTabTitle: 'Business' },
+      'varthagam': { screen: 'TharpothaiyaSeithigalScreen', tabId: 'business', initialTabTitle: 'Business' },
+      'politics': { screen: 'TharpothaiyaSeithigalScreen', tabId: 'politics', initialTabTitle: 'Politics' },
+      'education': { screen: 'TharpothaiyaSeithigalScreen', tabId: 'education', initialTabTitle: 'Education' },
+      'premium': { screen: 'TharpothaiyaSeithigalScreen', tabId: 'premium', initialTabTitle: 'Premium' },
+      
+      // Tamil variations
+      'இந்தியா': { screen: 'TharpothaiyaSeithigalScreen', tabId: 'india', initialTabTitle: 'இந்தியா' },
+      'தமிழ்நாடு': { screen: 'TharpothaiyaSeithigalScreen', tabId: 'tamilagam', initialTabTitle: 'தமிழ்நாடு' },
+      'உலகம்': { screen: 'TharpothaiyaSeithigalScreen', tabId: 'world', initialTabTitle: 'உலகம்' },
+      'சினிமா': { screen: 'TharpothaiyaSeithigalScreen', tabId: 'cinema', initialTabTitle: 'சினிமா' },
+      'விளையாட்டு': { screen: 'TharpothaiyaSeithigalScreen', tabId: 'sports', initialTabTitle: 'விளையாட்டு' },
+      'வணிகம்': { screen: 'TharpothaiyaSeithigalScreen', tabId: 'business', initialTabTitle: 'வணிகம்' },
+      'அரசியல்': { screen: 'TharpothaiyaSeithigalScreen', tabId: 'politics', initialTabTitle: 'அரசியல்' },
+      'கல்வி': { screen: 'TharpothaiyaSeithigalScreen', tabId: 'education', initialTabTitle: 'கல்வி' },
+      'பிரீமியம்': { screen: 'TharpothaiyaSeithigalScreen', tabId: 'premium', initialTabTitle: 'பிரீமியம்' },
+    };
+
+    const mapping = categoryMappings[categoryLower];
+    
+    if (mapping) {
+      navigation.navigate(mapping.screen, { 
+        tabId: mapping.tabId,
+        initialTabTitle: mapping.initialTabTitle 
+      });
+    } else {
+      // For unmapped categories, navigate to CommonSectionScreen
+      navigation.navigate('CommonSectionScreen', {
+        screenTitle: category,
+        apiEndpoint: 'https://api-st.dinamalar.com/photodata',
+        allTabLink: 'https://api-st.dinamalar.com/photodata',
+        categoryFilter: category 
+      });
+    }
+  }, [navigation]);
+
+  // ── Pre-search view ───────────────────────────────────────────────────────
+  const renderPreSearch = () => (
+    <ScrollView style={styles.preWrap} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+
+      {/* Trending Topics */}
+      <SectionHeader title="TRENDING TOPICS" />
+      {trendLoading ? (
+        <ActivityIndicator size="small" color="#1565C0" style={{ marginVertical: vs(16) }} />
+      ) : trendingTopics.length === 0 ? (
+        <Text style={styles.emptyHint}>No trending topics</Text>
+      ) : (
+        <View style={styles.chipRow}>
+          {trendingTopics.map((t, i) => (
+            <TrendingChip key={i} topic={t} rank={i + 1} onPress={handleTrendingPress} />
+          ))}
+          </View>
+        )}
+
+        <View style={styles.sectionDivider} />
+
+        {/* Recent Searches */}
+        {recentSearches.length > 0 && (
+          <>
+            <View style={styles.sectionHeaderWithClear}>
+              <Text style={[styles.sectionTitle, { fontSize: ms(17) }]}>RECENT SEARCHES</Text>
+              <TouchableOpacity onPress={clearRecent} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <Text style={styles.clearAllText}>Clear All</Text>
+              </TouchableOpacity>
+            </View>
+            {/* <View style={styles.sectionUnderline} /> */}
+            {/* <View style={styles.greyLine} /> */}
+            <View style={styles.chipRow}>
+              {recentSearches.map((q, i) => (
+                <RecentChip key={i} query={q} onPress={handleRecentPress} onRemove={removeRecent} />
+              ))}
+            </View>
+          </>
+        )}
+
+        <View style={styles.sectionDivider} />
+
+        {/* Top10 Most Viewed */}
+        <View>
+          <SectionHeader title="அதிகம் பார்த்தவைகள்" />
+          <View style={styles.top10Container}>
+            {top10Data.slice(0, 5).map((item, index) => (
+              <Top10Item 
+                key={item.id || item.newsid || index} 
+                item={item} 
+                index={index} 
+                onPress={handleItemPress} 
+                onCategoryPress={handleCategoryPress}
+              />
+            ))}
+          </View>
+        </View>
+    </ScrollView>
+  );
+
+  // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
@@ -751,172 +856,88 @@ var SearchScreen = function () {
       <UniversalHeaderComponent
         statusBarStyle="light-content"
         statusBarBackgroundColor={COLORS.primary}
-        onMenuPress={handleMenuPress}
-        onNotification={goToNotifs}
+        onMenuPress={() => {}}
+        onNotification={() => navigation.navigate('NotificationScreen')}
         notifCount={0}
         isDrawerVisible={isDrawerVisible}
         setIsDrawerVisible={setIsDrawerVisible}
         navigation={navigation}
         isLocationDrawerVisible={isLocationDrawerVisible}
         setIsLocationDrawerVisible={setIsLocationDrawerVisible}
-        onSelectDistrict={handleSelectDistrict}
+        onSelectDistrict={(d) => {
+          setSelectedDistrict(d.title);
+          setIsLocationDrawerVisible(false);
+          if (d.id) navigation.navigate('DistrictNewsScreen', { districtId: d.id, districtTitle: d.title });
+        }}
         selectedDistrict={selectedDistrict}
       >
         <AppHeaderComponent
-          onSearch={goToSearch}
-          onMenu={function () { setIsDrawerVisible(true); }}
-          onLocation={function () { setIsLocationDrawerVisible(true); }}
-          selectedDistrict="உள்ளூர்"
+          onMenu={() => setIsDrawerVisible(true)}
+          onLocation={() => setIsLocationDrawerVisible(true)}
+          selectedDistrict={selectedDistrict}
         />
       </UniversalHeaderComponent>
 
-      {/* ══ SEARCH BAR ══ */}
-      <View style={styles.searchBarWrap}>
+      {/* ── Search Bar ── */}
+      <View style={styles.searchBar}>
         <View style={styles.inputWrap}>
           <TextInput
             ref={inputRef}
             style={styles.input}
-            placeholder="Search..."
+            placeholder="தேடுக..."
             placeholderTextColor="#999"
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            onSubmitEditing={function () { performSearch(searchQuery); }}
+            value={query}
+            onChangeText={onChangeText}
+            onSubmitEditing={() => { clearTimeout(debounceRef.current); triggerSearch(query); }}
             returnKeyType="search"
             autoCorrect={false}
           />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity
-              onPress={function () {
-                setSearchQuery('');
-                setSearchResults([]);
-                setHasSearched(false);
-                setActiveCategory('all');
-                setCategoryFilter([]);
-                setError(null);
-                setIsLoading(false);
-                cq.current = '';
-              }}
-              style={styles.clearBtn}
-            >
-              <Ionicons name="close-outline" size={ms(18)} color="#696969" />
+          <TouchableOpacity onPress={() => setVoiceModal(true)} style={styles.micBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+            <Ionicons name="mic-outline" size={ms(20)} color="#1565C0" />
+          </TouchableOpacity>
+          {query.length > 0 && (
+            <TouchableOpacity onPress={handleClear} style={styles.clearBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <Ionicons name="close-circle" size={ms(18)} color="#aaa" />
             </TouchableOpacity>
           )}
         </View>
-        <TouchableOpacity
-          style={styles.searchBtn}
-          onPress={function () { performSearch(searchQuery); }}
-          activeOpacity={0.85}
-        >
+        <TouchableOpacity style={styles.searchBtn} onPress={() => { clearTimeout(debounceRef.current); triggerSearch(query); }} activeOpacity={0.85}>
           <Text style={styles.searchBtnText}>Search</Text>
         </TouchableOpacity>
       </View>
 
-      {/* ══ PRE-SEARCH: English hint + Trending Topics ══ */}
-      {!hasSearched ? (
-        <ScrollView style={styles.preSearchWrap} showsVerticalScrollIndicator={false}>
-          {/* English hint */}
-          {/* <View style={styles.englishHint}>
-            <Text style={styles.englishHintText}>
-              To <Text style={styles.boldText}>type / voice search</Text> in English{' '}
-            </Text>
-            <TouchableOpacity style={styles.clickHereBtn} activeOpacity={0.8}>
-              <Text style={styles.clickHereText}>Click Here</Text>
-            </TouchableOpacity>
-          </View> */}
+      {/* ── Voice Modal ── */}
+      <VoiceSearchModal
+        visible={voiceModal}
+        onClose={() => setVoiceModal(false)}
+        onResult={(text) => { setQuery(text); triggerSearch(text); }}
+      />
 
-          {/* Trending topics */}
-          {trendingTopics.length > 0 && (
-            <View style={styles.trendingSection}>
-              <View style={styles.trendingTitleRow}>
-                <Ionicons name="trending-up" size={ms(15)} color="#222" />
-                <Text style={styles.trendingTitle}> TRENDING TOPICS</Text>
-              </View>
-              <View style={styles.trendingChips}>
-                {trendingTopics.map(function (topic, idx) {
-                  return (
-                    <TouchableOpacity
-                      key={idx}
-                      style={styles.trendingChip}
-                      onPress={function () {
-                        setSearchQuery(topic.key);
-                        performSearch(topic.key);
-                      }}
-                      activeOpacity={0.75}
-                    >
-                      <Text style={styles.trendingChipText}>{topic.key}</Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            </View>
-          )}
+      {/* ── Pre-search ── */}
+      {!hasSearched && renderPreSearch()}
 
-          {/* Most Commented */}
-          {mostCommented.length > 0 && (
-            <SectionTitle title="அதிகம் விமர்ச்சிக்கப்பட்டவை" />
-          )}
-          {mostCommented.length > 0 && (
-            <View style={styles.mostCommentedList}>
-              {mostCommented.map(function (item, idx) {
-                return (
-                  <NewsCard
-                    key={`most-commented-${idx}`}
-                    item={item}
-                    onPress={handleItemPress}
-                    sectionTitle="Most Commented"
-                  />
-                );
-              })}
-            </View>
-          )}
-        </ScrollView>
-      ) : null}
+      {/* Category Tabs */}
+      {hasSearched && categoryFilter.length > 0 && (
+        <CategoryTabs tabs={categoryFilter} active={activeTab} onSelect={handleTabSelect} />
+      )}
 
-      {/* ══ CATEGORY TABS — shown after search ══ */}
-      {hasSearched && categoryTabs.length > 0 ? (
-        <View style={styles.categoryWrap}>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.categoryScroll}
-          >
-            {categoryTabs.map(function (tab) {
-              var isActive = activeCategory === tab.id;
-              return (
-                <TouchableOpacity
-                  key={tab.id}
-                  style={[styles.catTab, isActive && styles.catTabActive]}
-                  onPress={function () { handleCategoryPress(tab.id); }}
-                  activeOpacity={0.75}
-                >
-                  <Text style={[styles.catTabText, isActive && styles.catTabTextActive]}>
-                    {tab.label}{tab.count !== undefined ? ' (' + tab.count + ')' : ''}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-        </View>
-      ) : null}
-
-      {/* ══ RESULTS ══ */}
-      {hasSearched ? (
+      {/* ── Results ── */}
+      {hasSearched && (
         isLoading ? (
-          <View style={styles.centerState}>
+          <View style={styles.center}>
             <ActivityIndicator size="large" color="#1565C0" />
+            <Text style={styles.loadingText}>தேடுகிறோம்...</Text>
           </View>
         ) : error ? (
-          <View style={styles.centerState}>
+          <View style={styles.center}>
+            <Ionicons name="alert-circle-outline" size={ms(40)} color="#e53935" />
             <Text style={styles.errorText}>{error}</Text>
-            <TouchableOpacity
-              style={styles.retryBtn}
-              onPress={function () { performSearch(searchQuery); }}
-            >
+            <TouchableOpacity style={styles.retryBtn} onPress={() => triggerSearch(query)}>
               <Text style={styles.retryBtnText}>மீண்டும் முயற்சி</Text>
             </TouchableOpacity>
           </View>
         ) : filteredResults.length === 0 ? (
-          <View style={styles.centerState}>
+          <View style={styles.center}>
             <Ionicons name="search-outline" size={ms(48)} color="#ccc" />
             <Text style={styles.emptyText}>முடிவுகள் எதுவும் இல்லை</Text>
           </View>
@@ -924,12 +945,8 @@ var SearchScreen = function () {
           <FlatList
             ref={flatListRef}
             data={filteredResults}
-            keyExtractor={function (item, index) {
-              return String(item.id || item.Id || item.NewsId || item.newsid || '') + '_' + index;
-            }}
-            renderItem={function (info) {
-              return <SearchResultItem item={info.item} onPress={handleItemPress} />;
-            }}
+            keyExtractor={(item, i) => String(item.id || item.newsid || i)}
+            renderItem={({ item }) => <SearchResultItem item={item} onPress={handleItemPress} />}
             contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
@@ -937,50 +954,45 @@ var SearchScreen = function () {
             scrollEventThrottle={16}
             onEndReached={loadMore}
             onEndReachedThreshold={0.5}
-            ListFooterComponent={function () {
-              if (!isLoadingMore) return null;
-              return (
+            ListFooterComponent={() =>
+              isLoadingMore ? (
                 <View style={styles.loadMoreFooter}>
                   <ActivityIndicator size="small" color="#1565C0" />
                 </View>
-              );
-            }}
+              ) : null
+            }
           />
         )
-      ) : null}
+      )}
 
-      {/* Scroll to top button */}
+      {/* ── Scroll to top ── */}
       {showScrollTop && (
-        <TouchableOpacity
-          style={styles.scrollTopBtn}
-          onPress={scrollToTop}
-          activeOpacity={0.85}
-        >
+        <TouchableOpacity style={styles.scrollTopBtn} onPress={scrollToTop} activeOpacity={0.85}>
           <Ionicons name="arrow-up" size={s(20)} color="#fff" />
         </TouchableOpacity>
       )}
     </View>
   );
-};
+}
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
-var styles = StyleSheet.create({
+const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
-    paddingTop: Platform.OS === 'android' ? vs(0) : 20,
+    paddingTop: Platform.OS === 'android' ? 0 : 20,
   },
 
-  // ── Search bar ──────────────────────────────────────────────────────────────
-  searchBarWrap: {
+  // Search bar
+  searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
     paddingHorizontal: s(12),
     paddingVertical: vs(10),
-    borderBottomWidth: 1,
+    borderBottomWidth: 0.5,
     borderBottomColor: '#e5e5e5',
     gap: s(8),
+    backgroundColor: '#fff',
   },
   inputWrap: {
     flex: 1,
@@ -989,321 +1001,229 @@ var styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: '#ccc',
     borderRadius: ms(6),
+    paddingHorizontal: s(10),
+    height: vs(38),
     backgroundColor: '#fff',
-    paddingHorizontal: s(12),
-    height: vs(30),
   },
   input: {
     flex: 1,
-    fontSize: ms(15),
+    fontSize: ms(14),
     color: '#111',
     paddingVertical: 0,
     fontFamily: getFontFamily(400),
   },
-  clearBtn: {
-    paddingLeft: s(6),
-  },
+  micBtn:   { paddingHorizontal: s(4) },
+  clearBtn: { paddingLeft: s(4) },
   searchBtn: {
     backgroundColor: '#1565C0',
-    paddingHorizontal: s(20),
+    paddingHorizontal: s(18),
+    height: vs(38),
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: ms(6),
-    height: vs(30)
   },
   searchBtnText: {
     color: '#fff',
     fontWeight: '700',
-    fontSize: ms(14),
-    fontFamily: 'MuktaMalar',
+    fontSize: ms(13),
+    fontFamily: getFontFamily(700),
   },
 
-  // ── Pre-search ──────────────────────────────────────────────────────────────
-  preSearchWrap: {
+  // Pre-search
+  preWrap: {
     flex: 1,
     backgroundColor: '#fff',
     paddingHorizontal: s(14),
   },
-  englishHint: {
-    paddingVertical: vs(15),
-    justifyContent: "center",
-    alignItems: "center"
+
+  // Section
+  sectionHeader: {
+    paddingVertical: vs(12),
   },
-  englishHintText: {
-    fontSize: ms(13),
-    color: '#333',
-    fontFamily: 'MuktaMalar',
-  },
-  boldText: {
-    fontWeight: '700',
-    color: '#111',
-    fontFamily: 'MuktaMalar',
-  },
-  clickHereBtn: {
-    backgroundColor: '#1565C0',
-    paddingHorizontal: s(14),
-    paddingVertical: vs(5),
-    borderRadius: ms(4),
-    marginLeft: s(6),
-  },
-  clickHereText: {
-    color: '#fff',
-    fontWeight: '700',
-    fontSize: ms(13),
-    fontFamily: 'MuktaMalar',
-  },
-  trendingSection: {
-    paddingTop: vs(4),
-  },
-  trendingTitleRow: {
+  sectionHeaderWithClear: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: vs(14),
-  },
-  trendingTitle: {
-    fontSize: ms(13),
-    fontWeight: '700',
-    color: '#222',
-    letterSpacing: 0.5,
-    fontFamily: 'MuktaMalar',
-  },
-  trendingChips: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: s(10),
-  },
-  trendingChip: {
-    borderWidth: 1,
-    borderColor: '#bbb',
-    borderRadius: ms(20),
-    paddingHorizontal: s(14),
-    paddingVertical: vs(5),
-    backgroundColor: '#fff',
-  },
-  trendingChipText: {
-    fontSize: ms(13),
-    color: '#333',
-    fontFamily: FONTS.muktaMalar.regular
-  },
-
-  // ── Section Title (same as CommonSectionScreen) ───────────────────────────────
-  sectionHeader: {
-    backgroundColor: PALETTE.white,
-    // paddingHorizontal: s(12),
-    paddingTop: vs(14),
-    paddingBottom: vs(10),
-  },
-  titleContainer: {
-    flexDirection: 'column',
-    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    paddingVertical: vs(12),
   },
   sectionTitle: {
-    fontFamily: FONTS.muktaMalar.bold,
-    color: PALETTE.grey800,
+    fontSize: ms(17),
+    fontWeight: '700',
+    color: '#111',
+    fontFamily: getFontFamily(700),
+  },
+  clearAllText: {
+    fontSize: ms(13),
+    color: '#1565C0',
+    fontFamily: getFontFamily(400),
   },
   sectionUnderline: {
-    height: vs(3),
-    width: '30%',
+    height: 3,
     backgroundColor: '#1565C0',
+    width: s(40),
+    marginTop: vs(4),
+    borderRadius: s(2),
+  },
+  greyLine: {
+    height: 1,
+    backgroundColor: '#e0e0e0',
+    marginTop: vs(8),
+  },
+  sectionDivider: {
+    height: 0.5,
+    backgroundColor: '#eee',
+    marginVertical: vs(6),
   },
 
-  // ── Most Commented ───────────────────────────────────────────────────────────
-  mostCommentedList: {
-    backgroundColor: '#f2f2f2',
+  // Chips
+  chipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: s(8),
+    paddingBottom: vs(10),
   },
 
-  // ── Category tabs ────────────────────────────────────────────────────────────
-  categoryWrap: {
+  // Trending chip
+  trendChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 0.5,
+    borderColor: '#ccc',
+    borderRadius: ms(20),
+    paddingHorizontal: s(10),
+    paddingVertical: vs(5),
     backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    gap: s(6),
   },
-  categoryScroll: {
-    paddingHorizontal: s(8),
+  trendChipText: {
+    fontSize: ms(13),
+    color: '#333',
+    fontFamily: getFontFamily(400),
+  },
+  rankBadge: {
+    width: s(18),
+    height: s(18),
+    borderRadius: s(9),
+    backgroundColor: '#e8eaf6',
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  catTab: {
-    paddingHorizontal: s(10),
-    paddingVertical: vs(10),
-    borderBottomWidth: 2.5,
-    borderBottomColor: 'transparent',
-    marginRight: s(2),
-  },
-  catTabActive: {
-    borderBottomColor: '#1565C0',
-  },
-  catTabText: {
-    fontSize: ms(13),
-    color: '#555',
-    fontWeight: '400',
-    fontFamily: 'MuktaMalar',
-  },
-  catTabTextActive: {
-    color: '#1565C0',
+  rankBadgeTop: { backgroundColor: '#1565C0' },
+  rankText: {
+    fontSize: ms(10),
     fontWeight: '700',
-    fontFamily: 'MuktaMalar',
+    color: '#3949ab',
+  },
+  rankTextTop: { color: '#fff' },
+
+  // Recent chip
+  recentChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 0.5,
+    borderColor: '#ddd',
+    borderRadius: ms(20),
+    paddingHorizontal: s(12),
+    paddingVertical: vs(5),
+    backgroundColor: '#fafafa',
+    gap: s(4),
+  },
+  recentChipBody: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: s(5),
+  },
+  recentChipText: {
+    fontSize: ms(13),
+    color: '#444',
+    fontFamily: getFontFamily(400),
   },
 
-  // ── Result card ──────────────────────────────────────────────────────────────
-  listContent: {
-    paddingBottom: vs(30),
-    backgroundColor: '#f2f2f2',
-    paddingTop: vs(8),
-  },
+// Category tabs — update these existing keys in styles
+tabsWrap: {
+  backgroundColor: '#fff',
+  borderBottomWidth: 1,
+  borderBottomColor: '#e0e0e0',
+  height: vs(44),           // ← add this
+},
+tabsContent: {
+  paddingHorizontal: s(8),
+  alignItems: 'center',
+  flexDirection: 'row',
+  height: vs(44),           // ← add this
+},
+tab: {
+  paddingHorizontal: s(14),
+  height: vs(44),           // ← change from paddingVertical to height
+  justifyContent: 'center',
+  alignItems: 'center',
+  borderBottomWidth: 2.5,
+  borderBottomColor: 'transparent',
+  marginRight: s(2),
+},
+tabActive:     { borderBottomColor: '#1565C0' },
+tabText:       { fontSize: ms(13), color: '#666', fontFamily: getFontFamily(400) },
+tabTextActive: { color: '#1565C0', fontWeight: '700', fontFamily: getFontFamily(700) },
+
+  // Result card
   resultCard: {
-    // backgroundColor: '#fff',
+    backgroundColor: '#fff',
     marginHorizontal: s(12),
     marginBottom: vs(10),
-    // justifyContent: "center",
-    // alignItems: "center"
-  },
-
-  // ── FIX: use aspectRatio instead of fixed height so image never gets cut ──
-  resultImageWrap: {
-    width: '100%',
-    aspectRatio: 13 / 9,
-    // backgroundColor: '#e8e8e8',
-    position: 'relative',
+    // borderRadius: ms(6),
     overflow: 'hidden',
   },
-  resultImageWrapPhoto: {
-    aspectRatio: 3 / 3, // Larger aspect ratio for photos
-  },
-  resultImage: {
+  resultImageWrap: {
     width: '100%',
-    height: '100%',
+    aspectRatio: 16 / 9,
+    position: 'relative',
+    overflow: 'hidden',
+    backgroundColor: '#f0f0f0',
   },
-
-  // ── FIX: play button at bottom-left matching screenshot ──
+  resultImageWrapPhoto: { aspectRatio: 1 },
+  resultImage:   { width: '100%', height: '100%' },
   playOverlay: {
     position: 'absolute',
     bottom: vs(8),
     left: s(8),
   },
   playCircle: {
-    width: s(34),
-    height: s(34),
-    borderRadius: s(18),
-    backgroundColor: 'rgba(9, 109, 210, 0.7)', // Semi-transparent blue
+    width: s(32),
+    height: s(32),
+    borderRadius: s(16),
+    backgroundColor: 'rgba(9,109,210,0.8)',
     justifyContent: 'center',
     alignItems: 'center',
     paddingLeft: s(2),
-
   },
   imageOverlay: {
     position: 'absolute',
-    bottom: vs(5),
-    left: s(5),
+    bottom: vs(6),
+    left: s(6),
+    backgroundColor: 'rgba(9,109,210,0.8)',
+    borderRadius: s(4),
+    padding: s(4),
   },
-  reelsBadge: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    paddingVertical: vs(4),
-    alignItems: 'center',
-  },
-  reelsBadgeText: {
-    color: '#fff',
-    fontSize: ms(11),
-    fontWeight: '700',
-    fontFamily: getFontFamily(700),
-  },
-  resultBody: {
-    paddingHorizontal: s(0),
-    paddingTop: vs(10),
-    paddingBottom: vs(12),
-  },
-  resultTitle: {
-    fontSize: ms(15),
-    fontWeight: '700',
-    color: '#111',
-    lineHeight: ms(22),
-    marginBottom: vs(8),
-    fontFamily: getFontFamily(700),
-  },
-  catPill: {
-    alignSelf: 'flex-start',
-    borderWidth: 1,
-    borderColor: '#bbb',
-    paddingHorizontal: s(10),
-    paddingVertical: vs(2),
-    marginBottom: vs(8),
-  },
-  catPillText: {
-    fontSize: ms(12),
-    color: '#444',
-    fontWeight: '500',
-    fontFamily: getFontFamily(500),
-  },
-  metaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  metaDate: {
-    fontSize: ms(12),
-    color: '#666',
-    fontFamily: getFontFamily(400),
-  },
-  metaIcons: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  commentWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: s(3),
-  },
-  commentCount: {
-    fontSize: ms(12),
-    color: '#555',
-    fontFamily: getFontFamily(400),
-  },
-  resultDivider: {
-    height: 0,
-  },
+  resultBody:  { padding: vs(10) },
+  commentWrap: { flexDirection: 'row', alignItems: 'center' },
+  commentCount:{ fontSize: ms(12), color: '#555', fontFamily: getFontFamily(400) },
 
-  // ── States ───────────────────────────────────────────────────────────────────
-  loadMoreFooter: {
-    paddingVertical: vs(16),
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  centerState: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: s(24),
-    gap: vs(12),
-  },
-  errorText: {
-    fontSize: ms(14),
-    color: '#c62828',
-    textAlign: 'center',
-    fontFamily: getFontFamily(400),
-  },
+  // States
+  listContent: { paddingBottom: vs(30), backgroundColor: '#f2f2f2', paddingTop: vs(8) },
+  center:      { flex: 1, justifyContent: 'center', alignItems: 'center', gap: vs(10), padding: s(24) },
+  loadingText: { fontSize: ms(13), color: '#666', fontFamily: getFontFamily(400) },
+  errorText:   { fontSize: ms(14), color: '#c62828', textAlign: 'center', fontFamily: getFontFamily(400) },
+  emptyText:   { fontSize: ms(14), color: '#999', fontFamily: getFontFamily(400) },
+  emptyHint:   { fontSize: ms(13), color: '#bbb', paddingVertical: vs(8), fontFamily: getFontFamily(400) },
   retryBtn: {
     backgroundColor: '#1565C0',
-    paddingHorizontal: s(20),
+    paddingHorizontal: s(24),
     paddingVertical: vs(8),
     borderRadius: ms(20),
+    marginTop: vs(4),
   },
-  retryBtnText: {
-    color: '#fff',
-    fontWeight: '700',
-    fontSize: ms(13),
-    fontFamily: getFontFamily(700),
-  },
-  emptyText: {
-    fontSize: ms(14),
-    color: '#999',
-    marginTop: vs(8),
-    fontFamily: getFontFamily(400),
-  },
-
-  // ── Scroll to top button ───────────────────────────────────────────────────────
+  retryBtnText: { color: '#fff', fontWeight: '700', fontSize: ms(13), fontFamily: getFontFamily(700) },
+  loadMoreFooter: { paddingVertical: vs(16), alignItems: 'center' },
   scrollTopBtn: {
     position: 'absolute',
     bottom: vs(50),
@@ -1321,116 +1241,31 @@ var styles = StyleSheet.create({
     shadowRadius: s(4),
   },
 
-  // ── Short Card Styles (Dinamalar mobile website style) ─────────────────────
-  shortCardWrapper: {
-    marginHorizontal: s(12),
-    marginBottom: vs(10),
+  // Top10 Most Viewed Styles
+  top10Container: {
+    paddingBottom: vs(8),
   },
-  shortCard: {
-    borderRadius: ms(20),
-    overflow: 'hidden',
-    backgroundColor: '#111',
-  },
-  shortCardThumb: {
-    width: '100%',
-    aspectRatio: 9 / 16,
-    position: 'relative',
-    backgroundColor: '#1a1a1a',
-    overflow: 'hidden',
-  },
-  shortCardImage: {
-    width: '100%',
-    height: '100%',
-  },
-  shortCardGradient: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: '50%',
-    backgroundColor: 'rgba(0,0,0,0)',
-    // simulated gradient with a dark bottom overlay
-  },
-  shortCardPlayWrap: {
-    ...StyleSheet.absoluteFillObject,
+  top10Item: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+   },
+  top10Rank: {
+    width: s(24),
+    height: s(24),
+    borderRadius: s(12),
+    backgroundColor: '#1565C0',
     justifyContent: 'center',
     alignItems: 'center',
+    marginRight: s(10),
+    marginTop: vs(8),
   },
-  shortCardPlayBtn: {
-    width: s(52),
-    height: s(52),
-    borderRadius: s(26),
-    backgroundColor: 'rgba(9,109,210,0.85)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingLeft: s(3),
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.5)',
-  },
-  shortCardDuration: {
-    position: 'absolute',
-    top: vs(8),
-    right: s(8),
-    backgroundColor: 'rgba(0,0,0,0.65)',
-    paddingHorizontal: s(6),
-    paddingVertical: vs(2),
-    borderRadius: ms(3),
-  },
-  shortCardDurationText: {
-    color: '#fff',
-    fontSize: ms(11),
-    fontWeight: '600',
-    fontFamily: getFontFamily(600),
-  },
-  shortCardTitleWrap: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: 'rgba(0,0,0,0.72)',
-    paddingHorizontal: s(12),
-    paddingVertical: vs(10),
-  },
-  shortCardTitle: {
-    color: '#fff',
-    fontSize: ms(13),
+  top10RankText: {
+    fontSize: ms(12),
     fontWeight: '700',
-    lineHeight: ms(19),
+    color: '#fff',
     fontFamily: getFontFamily(700),
   },
-  shortCardTitleOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: 'rgba(0,0,0,0.72)',
-    paddingHorizontal: s(12),
-    paddingVertical: vs(10),
-  },
-  shortCardBody: {
-    paddingHorizontal: s(12),
-    paddingVertical: vs(8),
-    backgroundColor: '#fff',
-  },
-  shortCardPill: {
-    alignSelf: 'flex-start',
-    borderWidth: 1,
-    borderColor: '#bbb',
-    paddingHorizontal: s(8),
-    paddingVertical: vs(2),
-    marginBottom: vs(4),
-  },
-  shortCardPillText: {
-    fontSize: ms(11),
-    color: '#444',
-    fontWeight: '500',
-    fontFamily: getFontFamily(500),
-  },
-  shortCardDate: {
-    fontSize: ms(11),
-    color: '#666',
-    fontFamily: getFontFamily(400),
+  top10CardWrap: {
+    flex: 1,
   },
 });
-
-export default SearchScreen;

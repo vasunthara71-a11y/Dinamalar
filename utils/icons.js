@@ -1,5 +1,5 @@
 import React from 'react';
-import Svg, { Path } from 'react-native-svg';
+import Svg, { Circle, Path } from 'react-native-svg';
 
 export const FacebookIcon = (props) => (
   <Svg 
@@ -77,6 +77,24 @@ export const ShareIcon = (props) => (
   </Svg>
 );
 
+export const LiveIcon = (props) => (
+  <Svg 
+    stroke="currentColor" 
+    fill="currentColor" 
+    strokeWidth="0" 
+    viewBox="0 0 24 24" 
+    height={props.size || "1em"} 
+    width={props.size || "1em"} 
+    xmlns="http://www.w3.org/2000/svg" 
+    style={{ fontSize: '14px' }}
+    {...props}
+  >
+    <Path fill="none" d="M24 24H0V0h24v24z" />
+    <Circle cx="9" cy="12" r="8" fill={props.redColor ||  "#0000FF"} />
+    <Path d="M17 4.26v2.09a5.99 5.99 0 010 11.3v2.09c3.45-.89 6-4.01 6-7.74s-2.55-6.85-6-7.74z" fill={props.blueColor || "#FF0000"} />
+  </Svg>
+);
+
 // Export all icons as a single object
 export const SocialIcons = {
   Facebook: FacebookIcon,
@@ -84,6 +102,7 @@ export const SocialIcons = {
   WhatsApp: WhatsAppIcon,
   Telegram: TelegramIcon,
   Share: ShareIcon,
+  Live: LiveIcon,
 };
 
 // Default export

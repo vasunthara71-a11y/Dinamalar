@@ -42,6 +42,7 @@ import TodayEventsCard from '../components/TodayEventsCard';
 import FlashNews from '../components/FlashNews';
 import { titles } from '../utils/textStyles';
 import { Ionicons } from '@expo/vector-icons';
+import { SocialIcons } from '../utils/icons';
 import AdvertisementBanner from '../components/AdvertisementBanner';
 import PromoBanners from '../components/PromoBanners';
 import {
@@ -2006,7 +2007,7 @@ function DinaMalarTVCard({ item, onVideoPress, navigation }) {
 
 // --- Dinamalar TV Section (with Live / Sports / Cinema tabs) -----------------
 const TV_TABS = [
-  { key: 'live', label: 'Live', ta: 'Live', vCategory: '5050', catValue: '5050', slug: '/videos/live-and-recorded' },
+  { key: 'live', label: 'Live', ta: 'Live', vCategory: '5050', catValue: '5050', slug: '/videos/live-and-recorded', showLiveIcon: true },
 
   { key: 'விளையாட்டு', label: 'விளையாட்டு', ta: 'விளையாட்டு', vCategory: '464', catValue: '464', slug: '/videos/sports-tamil-videos' },
 
@@ -2081,26 +2082,21 @@ function DinaMalarTVSection({ data, onVideoPress }) {
           <View style={tvSecSt.titleUnderline} />
         </View>
 
-        <View style={tvStyles.container}>
-          {/* YouTube Red Box */}
-          <View style={tvStyles.youtubeBox}>
-
-            {/* Play Icon */}
-            <View style={tvStyles.playBox}>
-              <Ionicons name="play" size={s(16)} color="#FFFFFF" />
-            </View>
-
-            {/* YouTube Text */}
-            <Text style={tvStyles.youtubeText}>YouTube</Text>
-            {/* <View style={tvStyles.subscriberBox}> */}
-            <Text style={tvStyles.subscriberText}>3M</Text>
-            {/* </View> */}
-          </View>
-
-          {/* Subscribers Badge */}
-
-
-        </View>
+        <TouchableOpacity
+            onPress={() => {
+               Linking.openURL('https://www.youtube.com/channel/UChcR8SrIiSON4KxmtpwfMgw');
+            }}
+            activeOpacity={0.8}
+          >
+            <Image
+              source={{ uri: "https://images.dinamalar.com/2024/youtubefollowers.png" }}
+              style={{ 
+                width: s(112), 
+                height: vs(24),
+                resizeMode: 'contain'
+              }}
+            />
+          </TouchableOpacity>
       </TouchableOpacity>
 
       {/* Tabs — UI only, navigate to VideosScreen on press */}
@@ -2112,9 +2108,19 @@ function DinaMalarTVSection({ data, onVideoPress }) {
               onPress={() => navigation?.navigate('VideosScreen', { initialCategory: tab.catValue })}
               activeOpacity={0.7}
             >
-              <Text style={[tvSecSt.tabText, { fontSize: sf(13) }]}>
-                {tab.ta}
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                {tab.showLiveIcon && (
+                  <SocialIcons.Live 
+                    size={s(14)} 
+                    redColor={PALETTE.red} 
+                    blueColor={PALETTE.blue} 
+                    style={{ marginRight: s(4) }}
+                  />
+                )}
+                <Text style={[tvSecSt.tabText, { fontSize: sf(13) }]}>
+                  {tab.ta}
+                </Text>
+              </View>
             </TouchableOpacity>
             {/* Add vertical separator except for last tab */}
             {index < TV_TABS.length - 1 && (
@@ -2202,7 +2208,7 @@ const tvSecSt = StyleSheet.create({
     // borderColor: PALETTE.primary,
   },
   tabText: {
-    fontFamily: FONTS.muktaMalar.regular,
+    fontFamily: FONTS.muktaMalar.semibold,
     color: PALETTE.grey800,
   },
   tabTextActive: {
@@ -2361,29 +2367,21 @@ function SkeletonCard() {
 
 function SkeletonLoader() {
   return (
-    <>
-      <View style={{ height: vs(200), backgroundColor: PALETTE.grey200 }} />
-      <View style={{ backgroundColor: PALETTE.white, paddingVertical: vs(8) }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: s(10), marginBottom: vs(6) }}>
-          <View style={{ width: s(32), height: s(32), backgroundColor: PALETTE.grey200, marginRight: s(8), borderRadius: s(4) }} />
-          {[1, 2, 3, 4].map(i => (
-            <View key={i} style={{ height: vs(28), width: s(80), backgroundColor: PALETTE.grey200, borderRadius: s(14), marginRight: s(6) }} />
-          ))}
-        </View>
-        <View style={{ height: 1, backgroundColor: PALETTE.grey200, marginHorizontal: s(10), marginBottom: vs(6) }} />
-        <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: s(10) }}>
-          <View style={{ width: s(32), height: s(32), backgroundColor: PALETTE.grey200, marginRight: s(8), borderRadius: s(4) }} />
-          {[1, 2, 3, 4].map(i => (
-            <View key={i} style={{ height: vs(28), width: s(80), backgroundColor: PALETTE.grey200, borderRadius: s(14), marginRight: s(6) }} />
+    <Animated.View style={{ opacity: 1 }}>
+      <View style={{ height: vs(80), backgroundColor: PALETTE.grey100 }} />
+      <View style={{ backgroundColor: PALETTE.white, paddingVertical: vs(4) }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: s(8), marginBottom: vs(2) }}>
+          <View style={{ width: s(20), height: s(20), backgroundColor: PALETTE.grey150, marginRight: s(4), borderRadius: s(2) }} />
+          {[1, 2].map(i => (
+            <View key={i} style={{ height: vs(16), width: s(50), backgroundColor: PALETTE.grey150, borderRadius: s(8), marginRight: s(3) }} />
           ))}
         </View>
       </View>
-      <View style={{ backgroundColor: PALETTE.white, paddingHorizontal: s(12), paddingVertical: vs(14) }}>
-        <View style={{ width: s(140), height: vs(16), backgroundColor: PALETTE.grey200, borderRadius: s(4), marginBottom: vs(6) }} />
-        <View style={{ width: s(44), height: vs(2), backgroundColor: PALETTE.grey300 }} />
+      <View style={{ backgroundColor: PALETTE.white, paddingHorizontal: s(8), paddingVertical: vs(4) }}>
+        <View style={{ width: s(80), height: vs(10), backgroundColor: PALETTE.grey150, borderRadius: s(2), marginBottom: vs(2) }} />
       </View>
-      {[1, 2, 3].map((i) => <SkeletonCard key={i} />)}
-    </>
+      {[1].map((i) => <SkeletonCard key={i} />)}
+    </Animated.View>
   );
 }
 // Add this helper at the top of HomeScreen.js
@@ -2695,8 +2693,12 @@ export default function HomeScreen() {
   const [allNewsSections, setAllNewsSections] = useState([]);
   const [breakingNews, setBreakingNews] = useState('');
   const [taboolaAds, setTaboolaAds] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [initialLoad, setInitialLoad] = useState(true);
+  const [cachedData, setCachedData] = useState(null);
+  const [showSkeleton, setShowSkeleton] = useState(false);
+  const [skeletonTimer, setSkeletonTimer] = useState(null);
   const [isDrawerVisible, setIsDrawerVisible] = useState(false);
   const [isLocationDrawerVisible, setIsLocationDrawerVisible] = useState(false);
   const [selectedDistrict, setSelectedDistrict] = useState('உள்ளூர்');
@@ -2719,18 +2721,18 @@ export default function HomeScreen() {
 
   // Fetch podcast data
   useEffect(() => {
-    console.log('🎙️ PODCAST USE EFFECT - Running...');
+    // console.log('🎙️ PODCAST USE EFFECT - Running...');
     const fetchPodcastData = async () => {
       try {
-        console.log('🎙️ FETCHING PODCAST DATA...');
+        // console.log('🎙️ FETCHING PODCAST DATA...');
         const response = await api.getAudio();
-        console.log('🎙️ PODCAST API RESPONSE:', response);
-        console.log('🎙️ PODCAST API RESPONSE.DATA:', response?.data);
-        console.log('🎙️ PODCAST API RESPONSE.DATA.NEWLIST:', response?.data?.newlist);
+        // console.log('🎙️ PODCAST API RESPONSE:', response);
+        // console.log('🎙️ PODCAST API RESPONSE.DATA:', response?.data);
+        // console.log('🎙️ PODCAST API RESPONSE.DATA.NEWLIST:', response?.data?.newlist);
 
         if (response && response.data && response.data.newlist) {
           setPodcastData(response.data.newlist);
-          console.log('🎙️ PODCAST DATA SET:', response.data.newlist);
+          // console.log('🎙️ PODCAST DATA SET:', response.data.newlist);
         } else {
           console.log('🎙️ PODCAST DATA - Invalid response structure');
         }
@@ -3087,10 +3089,70 @@ export default function HomeScreen() {
   };
 
   // --- Load Data -------------------------------------------------------------
-  const loadAll = useCallback(async () => {
+  const loadAll = useCallback(async (useCache = true) => {
     try {
+      // Clear any existing skeleton timer
+      if (skeletonTimer) {
+        clearTimeout(skeletonTimer);
+        setSkeletonTimer(null);
+      }
+
+      // Check cache first for instant response
+      if (useCache && cachedData && !refreshing) {
+        console.log('📦 Using cached data - instant response');
+        setAllNewsSections(cachedData.sections);
+        setBreakingNews(cachedData.breakingNews);
+        setTrendingTags(cachedData.trendingTags);
+        setPodcastData(cachedData.podcastData);
+        setCommodity(cachedData.commodity);
+        setPromoBanners(cachedData.promoBanners);
+        setNotifCount(cachedData.notifCount);
+        setInitialLoad(false);
+        setShowSkeleton(false);
+        return;
+      }
+
+      // Show skeleton only for very brief period (200ms max)
+      if (initialLoad) {
+        setShowSkeleton(true);
+        const timer = setTimeout(() => {
+          setShowSkeleton(false);
+          setSkeletonTimer(null);
+        }, 200);
+        setSkeletonTimer(timer);
+      }
+      
+      // Prioritize critical APIs first
+      const criticalPromise = fetchHomeData();
+      const criticalResult = await criticalPromise;
+      
+      // Hide skeleton immediately when critical data loads
+      setShowSkeleton(false);
+      if (skeletonTimer) {
+        clearTimeout(skeletonTimer);
+        setSkeletonTimer(null);
+      }
+      
+      // Show content immediately after critical data loads
+      if (criticalResult?.data) {
+        const d = criticalResult.data;
+        setBreakingNews(d?.breaking_news || d?.breakingnews || d?.ticker_text || d?.ticker || '');
+        
+        // Build minimal sections for immediate display
+        const quickSections = [];
+        if (d?.tharpothaiya_seithigal?.[0]?.data?.length > 0) {
+          quickSections.push({
+            title: d.tharpothaiya_seithigal[0].title || 'தற்போதைய செய்திகள்',
+            data: d.tharpothaiya_seithigal[0].data.slice(0, 6)
+          });
+        }
+        setAllNewsSections(quickSections);
+        setLoading(false);
+        setInitialLoad(false);
+      }
+      
+      // Load remaining data in background
       const [
-        homeRes,        // fetchHomeData()
         shortRes,       // fetchShortNews()
         shortsRes,      // SHORTS
         varthagamRes,   // VARthagam
@@ -3098,13 +3160,11 @@ export default function HomeScreen() {
         joshiyamRes,    // JOSHIYAM
         districtRes,    // DISTRICT
         premiumRes,     // getPremium()
-        // cinemaRes,      // cinema api - REMOVED: returns HTML instead of JSON, use home API cinema data instead
         photosRes,      // /photos
         notifRes,       // /latestnotify
         kalvimalarRes,  // getKalvimalar()
         malargalRes,
       ] = await Promise.allSettled([
-        fetchHomeData(),
         fetchShortNews(),
         CDNApi.get(API_ENDPOINTS.SHORTS),
         CDNApi.get(API_ENDPOINTS.VARthagam),
@@ -3112,7 +3172,6 @@ export default function HomeScreen() {
         CDNApi.get(API_ENDPOINTS.JOSHIYAM),
         CDNApi.get(API_ENDPOINTS.DISTRICT),
         api.getPremium(),
-        // REMOVED: axios.get('https://cinema.dinamalar.com/') - returns HTML instead of JSON
         CDNApi.get('/photos'),
         CDNApi.get('/latestnotify'),
         api.getKalvimalar(),
@@ -3126,26 +3185,13 @@ export default function HomeScreen() {
       // Update state for render usage
       if (commodityData) setCommodity(commodityData);
 
-      // Initialize cinema variables
-      let cinemaNews = [];
-      let cinemaVideos = [];
-
-      if (homeRes?.status === 'fulfilled') {
-        const d = homeRes.value?.data;
-
-        // Debug logging for entire home data
-        console.log('🏠 HOME DATA DEBUG:', {
-          hasData: !!d,
-          dataKeys: d ? Object.keys(d) : [],
-          fullData: d,
-          // Raw stringified data for inspection
-          rawDataString: JSON.stringify(d, null, 2)
-        });
+      // Process full home data now
+      if (criticalResult?.data) {
+        const d = criticalResult.data;
 
         setBreakingNews(
           d?.breaking_news || d?.breakingnews || d?.ticker_text || d?.ticker || ''
         );
-        // ... (rest of the code remains the same)
         setTaboolaAds(d?.taboola_ads?.mobile || null);
         setTaboolaAdHtml(d?.taboola_ads?.mobile?.html || null);
         const sections = [];
@@ -4138,6 +4184,22 @@ export default function HomeScreen() {
         }
 
         setAllNewsSections(sections);
+        
+        // Cache the data after all sections are built
+        const newCacheData = {
+          sections,
+          breakingNews: d?.breaking_news || d?.breakingnews || d?.ticker_text || d?.ticker || '',
+          trendingTags: d?.trending?.data?.length > 0 ? d.trending.data :
+            d?.trending_tags?.length > 0 ? d.trending_tags :
+              d?.subcatlist?.length > 0 ? d.subcatlist :
+                d?.trending || [],
+          podcastData,
+          commodity: commodityData,
+          promoBanners,
+          notifCount
+        };
+        setCachedData(newCacheData);
+        
         setTrendingTags(
           d?.trending?.data?.length > 0 ? d.trending.data :
             d?.trending_tags?.length > 0 ? d.trending_tags :
@@ -4170,7 +4232,16 @@ export default function HomeScreen() {
     }
   }, [setNotifCount]);
 
-  useEffect(() => { loadAll(); }, []);
+  useEffect(() => { 
+    loadAll();
+    
+    // Cleanup skeleton timer on unmount
+    return () => {
+      if (skeletonTimer) {
+        clearTimeout(skeletonTimer);
+      }
+    };
+  }, []);
 
   // Notification polling effect
   useEffect(() => {
@@ -4198,7 +4269,11 @@ export default function HomeScreen() {
     return () => clearInterval(interval);
   }, []);
 
-  const onRefresh = useCallback(() => { setRefreshing(true); loadAll(); }, [loadAll]);
+  const onRefresh = useCallback(() => { 
+    setRefreshing(true); 
+    setShowSkeleton(false); // Don't show skeleton on refresh
+    loadAll(false); 
+  }, [loadAll]);
 
   // --- Navigation ------------------------------------------------------------
   const goToArticle = (item) => {
@@ -4377,7 +4452,7 @@ export default function HomeScreen() {
   // --- List Header -----------------------------------------------------------
   const ListHeader = (
     <>
-      {loading ? (
+      {showSkeleton ? (
         <SkeletonLoader />
       ) : (
         <>
@@ -4426,12 +4501,7 @@ export default function HomeScreen() {
             {promoBanners && promoBanners.length > 0 && (
               <PromoBanners banners={promoBanners} />
             )}
-            {(!promoBanners || promoBanners.length === 0) && (
-              <View style={{ padding: 10, backgroundColor: '#f0f0f0' }}>
-                <Text>No promo banners available</Text>
-                <Text>Length: {promoBanners?.length || 0}</Text>
-              </View>
-            )}
+            
           </View>
 
           {/* News sections */}
@@ -5375,15 +5445,19 @@ export default function HomeScreen() {
                                                     navigation?.navigate('CommonSectionScreen', {
                                                       screenTitle: 'வாரமலர்',
                                                       apiEndpoint: 'https://api-st.dinamalar.com/malargal',
-                                                      initialTabId: '6035'
+                                                      allTabLink: 'https://api-st.dinamalar.com/malargal',
+                                                      initialTabId: '6035',
+                                                      initialTabLink: 'https://api-st.dinamalar.com/malargal?cat=6035',
+                                                      initialTabTitle: 'வாரமலர்'
                                                     });
                                                   } : section.title && (section.title?.includes('இணைப்பு மலர்') || section.title?.includes('inaippu')) ?
                                                     () => {
-                                                      console.log('📰 INAIPPU MALAR SECTION HEADER CLICKED - Navigating to CommonSectionScreen with inaippu tab');
+                                                      console.log('📰 INAIPPU MALAR SECTION HEADER CLICKED - Navigating to CommonSectionScreen with malargal all tab');
                                                       navigation?.navigate('CommonSectionScreen', {
                                                         screenTitle: 'இணைப்பு மலர்',
                                                         apiEndpoint: 'https://api-st.dinamalar.com/malargal',
-                                                        initialTabId: '3'
+                                                        allTabLink: 'https://api-st.dinamalar.com/malargal',
+                                                        initialTabId: 'all'
                                                       });
                                                     } : section.title && (section.title?.includes('ஸ்பெஷல்') || section.title?.includes('special')) ?
                                                       () => {
