@@ -139,7 +139,7 @@ import UniversalHeaderComponent from '../components/UniversalHeaderComponent';
 import AppHeaderComponent from '../components/AppHeaderComponent';
 import { PhotoGallery } from '../assets/svg/Icons';
 import { Ionicons } from '@expo/vector-icons';
-
+ 
 // -----------------------------------------------------------------------------
 // Constants
 // -----------------------------------------------------------------------------
@@ -2336,7 +2336,13 @@ export default function CommonSectionScreen() {
         actualEndpoint = 'https://api-st.dinamalar.com/photodata';
       }
 
-      const res = await api.get(actualEndpoint);
+      // Add timeout to prevent hanging requests
+      const res = await Promise.race([
+        api.get(actualEndpoint),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Request timeout after 10 seconds')), 10000)
+        )
+      ]);
       const d = res?.data;
 
       if (typeof d === 'string' && d.includes('<html')) {
@@ -2519,34 +2525,47 @@ export default function CommonSectionScreen() {
           if (lastPage > 1) {
             console.log(`Will fetch ${lastPage - 1} more pages for ${sectionTitle} in background`);
             
-            // Background loading without blocking UI
+            // Background loading with batch requests to reduce API overload
             setTimeout(async () => {
               try {
                 const api = mainApi;
                 let allData = [...initialData];
-                const pagePromises = [];
                 
-                // Create parallel requests for remaining pages
-                for (let page = 2; page <= lastPage; page++) {
-                  pagePromises.push(
-                    api.get(`${apiEndpoint}?page=${page}`)
-                      .then(res => res.data?.[sectionKey]?.data || [])
-                      .catch(error => {
-                        console.error(`Error fetching page ${page} for ${sectionTitle}:`, error);
-                        return [];
-                      })
-                  );
-                }
-                
-                // Wait for all pages in parallel
-                const pageResults = await Promise.all(pagePromises);
-                
-                // Combine all data
-                pageResults.forEach(pageData => {
-                  if (Array.isArray(pageData) && pageData.length > 0) {
-                    allData = [...allData, ...pageData];
+                // Batch requests in chunks of 3 to avoid overwhelming API
+                const batchSize = 3;
+                for (let startPage = 2; startPage <= lastPage; startPage += batchSize) {
+                  const endPage = Math.min(startPage + batchSize - 1, lastPage);
+                  const batchPromises = [];
+                  
+                  // Create batch requests
+                  for (let page = startPage; page <= endPage; page++) {
+                    batchPromises.push(
+                      api.get(`${apiEndpoint}?page=${page}`)
+                        .then(res => res.data?.[sectionKey]?.data || [])
+                        .catch(error => {
+                          console.error(`Error fetching page ${page} for ${sectionTitle}:`, error);
+                          return [];
+                        })
+                    );
                   }
-                });
+                  
+                  // Wait for batch to complete before next batch
+                  const batchResults = await Promise.all(batchPromises);
+                  
+                  // Combine batch results
+                  batchResults.forEach(pageData => {
+                    if (Array.isArray(pageData) && pageData.length > 0) {
+                      allData = [...allData, ...pageData];
+                    }
+                  });
+                  
+                  // Update UI after each batch for progressive loading
+                  setAllSections(prev => prev.map(section => 
+                    section.id === sectionId 
+                      ? { ...section, data: allData }
+                      : section
+                  ));
+                }
                 
                 // Update the section with complete data
                 setAllSections(prev => prev.map(section => 
@@ -3923,6 +3942,47 @@ export default function CommonSectionScreen() {
       }
     }
 
+    // -- Aanemga Sindhanigal Navigation ----------------------------------------
+    // Debug logging to understand the data structure
+    console.log('?? DEBUG - Item clicked:', {
+      apiEndpoint,
+      maincat: item.maincat,
+      categrorytitle: item.categrorytitle,
+      categorytitle: item.categorytitle,
+      maincatid: item.maincatid,
+      id: item.id,
+      title: item.title,
+      newstitle: item.newstitle
+    });
+
+    // Check if item is from aanemga sindhanigal section and navigate to AanmegaSindhanaiScreen
+    const isAanemgaSindhanigal = 
+      apiEndpoint?.includes('anmegammain') ||
+      apiEndpoint?.includes('anmegammainlist') ||
+      item.maincat?.toLowerCase().includes(' Tamil') ||
+      item.maincat?.toLowerCase().includes('aanmega') ||
+      item.categrorytitle?.toLowerCase().includes(' Tamil') ||
+      item.categrorytitle?.toLowerCase().includes('aanmega') ||
+      item.categorytitle?.toLowerCase().includes(' Tamil') ||
+      item.categorytitle?.toLowerCase().includes('aanmega') ||
+      item.maincat?.toLowerCase().includes('spiritual') ||
+      item.categrorytitle?.toLowerCase().includes('spiritual') ||
+      item.title?.toLowerCase().includes(' Tamil') ||
+      item.title?.toLowerCase().includes('aanmega') ||
+      item.newstitle?.toLowerCase().includes(' Tamil') ||
+      item.newstitle?.toLowerCase().includes('aanmega');
+
+    console.log('?? DEBUG - isAanemgaSindhanigal:', isAanemgaSindhanigal);
+
+    if (isAanemgaSindhanigal) {
+      console.log('?? Aanemga Sindhanigal item clicked - navigating to AanmegaSindhanaiScreen');
+      navigation.navigate('AanmegaSindhanaiScreen', {
+        id: item.maincatid || item.id || 2, // Default to 2 if no ID found
+        title: item.categrorytitle || item.maincat || ' Tamil'
+      });
+      return;
+    }
+
     // -- 5. Default -------------------------------------------------------------
     // Check if item is a video and navigate to NewsDetailsScreen
     if (hasVideo) {
@@ -3940,6 +4000,7 @@ export default function CommonSectionScreen() {
       slug: item.slug || item.reacturl || '',
       disableComments: apiEndpoint?.includes('varavaram'),
     });
+
   };
 
   // -- Rasi card tap ? show inline detail ------------------------------------

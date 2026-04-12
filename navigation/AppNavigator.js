@@ -40,6 +40,7 @@ import FeedbackForm from '../screens/FeedbackForm';
 import LoginScreen from '../screens/Auth/LoginScreen';
 import ForgotPasswordScreen from '../screens/Auth/ForgotPasswordScreen';
 import PugarPettiScreen from '../screens/PugarPettiScreen';
+import AanmegaSindhanaiScreen from '../screens/AanmegaSindhanaiScreen';
 import GenericWebViewScreen from '../screens/GenericWebViewScreen';
 // import SignupScreen from '../screens/Auth/SignUpScreen';
    
@@ -106,6 +107,7 @@ const AppNavigator = () => {
         <Stack.Screen name='LoginScreen' component={LoginScreen}/>
         <Stack.Screen name='ForgotPasswordScreen' component={ForgotPasswordScreen}/>
         <Stack.Screen name='PugarPettiScreen' component={PugarPettiScreen}/>
+        <Stack.Screen name='AanmegaSindhanaiScreen' component={AanmegaSindhanaiScreen}/>
         <Stack.Screen name='GenericWebViewScreen' component={GenericWebViewScreen}/>
                 {/* <Stack.Screen name='SignupScreen' component={SignupScreen}/> */}
 

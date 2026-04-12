@@ -217,10 +217,8 @@ const fetchDistrictEvents = async (district) => {
         {/* ── Footer ── */}
         <TouchableOpacity
           style={st.footerBtn}
-          onPress={() => navigation?.navigate('CommonSectionScreen', {
-            screenTitle: 'கோயில்கள்',
-            apiEndpoint: '/kovilgal',
-            allTabLink: '/kovilgal',
+          onPress={() => navigation?.navigate('TempleWebViewScreen', {
+            url: 'https://temple.dinamalar.com'
           })}
           activeOpacity={0.8}
         >

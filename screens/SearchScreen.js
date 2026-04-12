@@ -612,7 +612,7 @@ export default function SearchScreen() {
     // For photo tab, go to CommonSectionScreen with specific tab detection
     if (isPhotoTab) {
       let initialTabId = null;
-      let targetScreenTitle = 'Photos';
+      let targetScreenTitle = 'போட்டோ';
       
       // Check for specific photo categories
       const maincatLower = (item.maincat || '').toLowerCase();
