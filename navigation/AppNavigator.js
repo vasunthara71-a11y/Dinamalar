@@ -42,6 +42,7 @@ import ForgotPasswordScreen from '../screens/Auth/ForgotPasswordScreen';
 import PugarPettiScreen from '../screens/PugarPettiScreen';
 import AanmegaSindhanaiScreen from '../screens/AanmegaSindhanaiScreen';
 import GenericWebViewScreen from '../screens/GenericWebViewScreen';
+import SplashScreen from '../screens/SplashScreen';
 // import SignupScreen from '../screens/Auth/SignUpScreen';
    
 const Stack = createNativeStackNavigator();
@@ -54,8 +55,9 @@ const AppNavigator = () => {
         screenOptions={{
           headerShown: false,
         }}
-        initialRouteName="MainTabs"
+        initialRouteName="SplashScreen"
       >
+        <Stack.Screen name="SplashScreen" component={SplashScreen} />
         <Stack.Screen name="MainTabs" component={TabNavigator} />
         <Stack.Screen name="HomeScreen" component={HomeScreen} />
         <Stack.Screen name="SearchScreen" component={SearchScreen} />

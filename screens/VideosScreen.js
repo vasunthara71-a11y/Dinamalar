@@ -549,6 +549,11 @@ const VideosScreen = ({ navigation, route }) => {
   const [filters, setFilters] = useState({ category: '', date: '', district: '', districtSlug: '' });
   const [initialLoad, setInitialLoad] = useState(true);
   const [cachedData, setCachedData] = useState(null);
+  // Add these after your existing useRef declarations
+const fetchControllerRef = useRef(null);   // AbortController for cancelling in-flight requests
+const debounceTimerRef = useRef(null);     // Debounce timer
+const isFetchingRef = useRef(false);       // Prevents duplicate concurrent calls
+const lastFetchParamsRef = useRef('');     // Prevents identical consecutive calls
 
   // ── Fetch: CDNApi + API_ENDPOINTS.VIDEO_MAIN (/videomain) ────────────────────
 // In fetchVideos, replace the entire params building logic with this simpler version:
@@ -556,347 +561,155 @@ const VideosScreen = ({ navigation, route }) => {
 // Add this inside VideosScreen, near your other handlers:
 const handleCategoryPillPress = useCallback((ctitle) => {
   if (!ctitle || categories.length === 0) return;
-
-  // Find matching category by comparing title (case-insensitive)
   const matched = categories.find(
-    (cat) => (cat.title || '').toLowerCase() === ctitle.toLowerCase()
+    c => (c.title || '').toLowerCase() === ctitle.toLowerCase()
   );
-
   if (!matched) return;
-
   const catValue = String(matched.value ?? '');
-
-  // Scroll to top
-  flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
-
-  // Update filters & fetch
   const updated = { ...filters, category: catValue };
   setFilters(updated);
-  fetchVideos({ cat: catValue, date: updated.date, district: updated.district });
-}, [categories, filters, fetchVideos]);
+  flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
+  debouncedFetch({ cat: catValue, date: updated.date, district: updated.district });
+}, [categories, filters, debouncedFetch]);
 
 
 
-const fetchVideos = useCallback(async ({ cat = '', date = '', district = '', districtSlug = '', page = 1, append = false } = {}) => {
-  // Check cache first for instant response
-  if (!append && cachedData && !loading && initialLoad) {
-    console.log('📦 Using cached video data - instant response');
-    setAllVideos(cachedData.videos);
-    setCategories(cachedData.categories);
-    setFilterOptions(cachedData.filterOptions);
-    setDistrictOptions(cachedData.districtOptions);
-    setInitialLoad(false);
+const fetchVideos = useCallback(async ({
+  cat = '',
+  date = '',
+  district = '',
+  districtSlug = '',
+  page = 1,
+  append = false,
+} = {}) => {
+
+  // ── Dedupe: skip if exact same params already in-flight ──────────────────
+  const paramsKey = JSON.stringify({ cat, date, district, page, append });
+  if (isFetchingRef.current && paramsKey === lastFetchParamsRef.current) {
+    console.log('[fetchVideos] Skipping duplicate call');
     return;
   }
 
+  // ── Cancel any previous in-flight request ────────────────────────────────
+  if (fetchControllerRef.current) {
+    fetchControllerRef.current.abort();
+  }
+  fetchControllerRef.current = new AbortController();
+  const signal = fetchControllerRef.current.signal;
+
+  isFetchingRef.current = true;
+  lastFetchParamsRef.current = paramsKey;
+
+  // ── State updates ─────────────────────────────────────────────────────────
   if (!append) {
     setLoading(true);
-    setInitialLoad(true);
+    setAllVideos([]);       // Clear stale data immediately — prevents old list flash
     setCurrentPage(1);
     setHasMore(true);
+    setError(null);
   } else {
     setLoadingMore(true);
   }
-  setError(null);
 
   try {
+    // ── Shorts path ───────────────────────────────────────────────────────
     if (cat === 'shorts') {
-      const response = await CDNApi.get(API_ENDPOINTS.SHORTS + (page > 1 ? `?page=${page}` : ''));
+      const endpoint = API_ENDPOINTS.SHORTS + (page > 1 ? `?page=${page}` : '');
+      const response = await CDNApi.get(endpoint, { signal });
       const data = response.data;
-      // console.log('[shorts] API response:', data);
-      // console.log('[shorts] requested page:', page, 'append:', append);
 
-      // The shorts API returns news articles, not videos
-      // We need to process them differently
-      let raw = [];
-      let pagination = {};
+      const raw = data?.newlist?.data ?? [];
+      const pagination = data?.newlist?.pagination ?? {};
 
-      if (data?.newlist?.data) {
-        raw = data.newlist.data;
-        pagination = data.newlist.pagination || {};
-      } else if (Array.isArray(data)) {
-        raw = data;
-      }
-
-      // console.log('[shorts] total items:', raw.length);
-      // console.log('[shorts] pagination:', pagination);
-
-      // Convert news items to video-like format for display
-      const processedItems = raw.map(item => ({
+      const processed = raw.map(item => ({
         ...item,
         videoid: item.newsid || item.id,
         title: item.newstitle || item.title,
         image: item.images || item.image,
-        video: item.video || 0,
-        type: 'reels', // Mark as shorts for display
+        type: 'reels',
         duration: null,
-        created_at: item.newsdate,
-        slug: item.slug || item.short_slug
       }));
 
       if (append) {
         setAllVideos(prev => {
-          const existingIds = new Set(prev.map(v => v.videoid).filter(Boolean));
-          return [...prev, ...processedItems.filter(v => !v.videoid || !existingIds.has(v.videoid))];
+          const ids = new Set(prev.map(v => v.videoid).filter(Boolean));
+          return [...prev, ...processed.filter(v => !v.videoid || !ids.has(v.videoid))];
         });
       } else {
-        setAllVideos(processedItems);
+        setAllVideos(processed);
       }
 
-      // Update pagination state
-      const apiCurrentPage = pagination.current_page ?? page;
-      const apiLastPage = pagination.last_page ?? 1;
-      const newHasMore = apiCurrentPage < apiLastPage;
-
-      console.log('[shorts] pagination update:', {
-        currentPage: apiCurrentPage,
-        lastPage: apiLastPage,
-        hasMore: newHasMore
-      });
-
-      setCurrentPage(apiCurrentPage);
-      setLastPage(apiLastPage);
-      setHasMore(newHasMore);
-
-      // Set categories/filters from first load cache
+      const cp = pagination.current_page ?? page;
+      const lp = pagination.last_page ?? 1;
+      setCurrentPage(cp);
+      setLastPage(lp);
+      setHasMore(cp < lp);
       return;
     }
 
-    // Build endpoint based on filters
-    let endpoint;
-    let response;
-    let data;
+    // ── Build endpoint ────────────────────────────────────────────────────
+    const params = new URLSearchParams();
+    if (cat)      params.append('cat', cat);
+    if (date)     params.append('date', date);
+    if (district) params.append('district', district);
+    if (page > 1) params.append('page', String(page));
 
-    if (district) {
-      // District filtering: use /videomain with correct parameters
-      const p = new URLSearchParams();
-      p.append('cat', cat || '1585'); // district news category
-      p.append('district', district);
-      p.append('sort', 'desc'); // website always uses sort=desc
-      if (date) p.append('date', date);
-      if (page > 1) p.append('page', String(page));
+    const query = params.toString();
+    const endpoint = query
+      ? `${API_ENDPOINTS.VIDEO_MAIN}?${query}`
+      : API_ENDPOINTS.VIDEO_MAIN;
 
-      // Use /videomain endpoint for district filtering
-      const baseParams = p.toString();
-      endpoint = baseParams ? `${API_ENDPOINTS.VIDEO_MAIN}?${baseParams}` : API_ENDPOINTS.VIDEO_MAIN;
+    console.log('[fetchVideos] →', endpoint);
 
-      console.log('[VideosScreen] fetching (district):', endpoint);
-      console.log('[VideosScreen] params → cat:', cat || '1585', '| district:', district, '| date:', date, '| sort: desc');
-    } else {
-      // Regular endpoint for non-district filters
-      const params = new URLSearchParams();
-      if (cat) params.append('cat', cat);
-      if (date) params.append('date', date);
-      if (page > 1) params.append('page', String(page));
+    const response = await CDNApi.get(endpoint, { signal });
 
-      const query = params.toString();
-      endpoint = query
-        ? `${API_ENDPOINTS.VIDEO_MAIN}?${query}`
-        : API_ENDPOINTS.VIDEO_MAIN;
+    // Guard: ignore if this request was aborted mid-flight
+    if (signal.aborted) return;
 
-      console.log('[VideosScreen] fetching (regular):', endpoint);
-      console.log('[VideosScreen] params → cat:', cat, '| date:', date);
-    }
+    const data = response.data;
 
-    response = await CDNApi.get(endpoint);
-    data = response.data;
+    // ── Extract videos ────────────────────────────────────────────────────
+    let raw = data?.videomix?.data ?? data?.districtnews ?? [];
+    const pagination = data?.videomix ?? {};
 
-    // Safe data processing to prevent property storage errors
-    const safeProcessData = (data) => {
-      try {
-        // Check if data is too large (rough estimate)
-        const dataSize = JSON.stringify(data).length;
-        if (dataSize > 300000) { // 300KB limit
-          console.warn('[VideosScreen] Response too large, limiting data processing');
-          return {
-            ...data,
-            videomix: data.videomix ? {
-              ...data.videomix,
-              data: (data.videomix.data || []).slice(0, 50) // Limit to 50 videos
-            } : undefined,
-            districtnews: data.districtnews ?
-              (Array.isArray(data.districtnews) ? data.districtnews.slice(0, 50) : []) : [],
-            category: (data.category || []).slice(0, 20), // Limit categories
-            filter: (data.filter || []).slice(0, 10), // Limit filters
-            districtlist: data.districtlist ? {
-              ...data.districtlist,
-              data: (data.districtlist.data || []).slice(0, 30) // Limit districts
-            } : undefined
-          };
-        }
-        return data;
-      } catch (sizeError) {
-        console.error('[VideosScreen] Error checking data size:', sizeError.message);
-        return data; // Return original data if size check fails
-      }
-    };
-
-    // Process the data safely
-    const safeData = safeProcessData(data);
-
-    console.log('[fetch] response keys:', Object.keys(safeData));
-    console.log('[fetch] filterOptions:', JSON.stringify(filterOptions));
-    console.log('[fetch] districtlist in response?', !!safeData?.districtlist);
-    console.log('[fetch] first video ctitle:', safeData?.videomix?.data?.[0]?.ctitle);
-    console.log('[fetch] first video district:', safeData?.videomix?.data?.[0]?.district);
-
-    // Log districtnews content details
-    console.log('[fetch] districtnews first 3:',
-      (safeData?.districtnews || safeData?.videomix?.data || [])
-        .slice(0, 3)
-        .map(v => ({ title: v.videotitle?.slice(0, 30), ctitle: v.ctitle, districtid: v.districtid }))
-    );
-
-    // Log selected district info
-    if (district) {
-      const selectedDistrict = districtOptions.find(d => String(d.id) === district);
-      console.log('[fetch] selected district ID:', district);
-      console.log('[fetch] selected district label:', selectedDistrict?.title);
-      console.log('[fetch] selected district full obj:', JSON.stringify(selectedDistrict));
-    }
-
-    // /videodata returns videos under videomix.data OR districtnews
-    let raw = safeData?.videomix?.data ?? safeData?.districtnews ?? [];
-    const pagination = safeData?.videomix || {};
-
-    // If district is selected, filter videos using strict web approach
+    // ── Client-side district filtering (strict match) ─────────────────────
     if (district && raw.length > 0) {
-      const selectedDistrict = districtOptions.find(d => String(d.id) === String(district));
-      const districtName = selectedDistrict?.title;
-
-      console.log('[fetch] filtering videos by district (strict web method):', districtName);
-      console.log('[fetch] selected district ID:', district);
-      console.log('[fetch] selected district object:', JSON.stringify(selectedDistrict));
-      console.log('[fetch] selected district districtname field:', selectedDistrict?.districtname);
-
-      if (districtName) {
-        const beforeFilter = raw.length;
-
-        // Log some sample video district tags to debug
-        console.log('[fetch] sample video district tags:',
-          raw.slice(0, 10).map(v => ({
-            title: v.title?.slice(0, 30),
-            districttag: v.districttag,
-            districtengtag: v.districtengtag,
-            district: v.district,
-            districtid: v.districtid
-          }))
-        );
-
-        // Strict web approach: Only show videos that explicitly belong to selected district
-        raw = raw.filter(video => {
-          // Method 1: Check if video has districtid that matches selected district
-          if (video.districtid && String(video.districtid) === String(district)) {
-            console.log('[filter] included by districtid:', video.districtid, 'for district:', districtName);
-            return true;
-          }
-
-          // Method 2: Check if video district tags exactly match selected district name
-          if (video.districttag === districtName) {
-            console.log('[filter] included by districttag:', video.districttag, 'for district:', districtName);
-            return true;
-          }
-
-          // Only check districtengtag if both are defined (not undefined)
-          if (video.districtengtag && selectedDistrict?.districtname &&
-              video.districtengtag === selectedDistrict.districtname) {
-            console.log('[filter] included by districtengtag:', video.districtengtag, 'for district:', districtName);
-            return true;
-          }
-
-          // Exclude videos that belong to other districts
-          if (video.districttag && video.districttag !== districtName) {
-            console.log('[filter] EXCLUDED by wrong districttag:', video.districttag, 'expected:', districtName);
-            return false;
-          }
-
-          // Only exclude by districtengtag if both are defined
-          if (video.districtengtag && selectedDistrict?.districtname &&
-              video.districtengtag !== selectedDistrict.districtname) {
-            console.log('[filter] EXCLUDED by wrong districtengtag:', video.districtengtag, 'expected:', selectedDistrict.districtname);
-            return false;
-          }
-
-          // If video has no district info at all, exclude it (can't verify it belongs to selected district)
-          if (!video.districtid && !video.districttag && !video.districtengtag) {
-            console.log('[filter] EXCLUDED - no district info');
-            return false;
-          }
-
-          console.log('[filter] EXCLUDED - default case for video:', video.title?.slice(0, 30));
+      const distObj = districtOptions.find(d => String(d.id) === String(district));
+      const distName = distObj?.title;
+      if (distName) {
+        raw = raw.filter(v => {
+          if (v.districtid && String(v.districtid) === String(district)) return true;
+          if (v.districttag === distName) return true;
+          if (v.districtengtag && distObj?.districtname &&
+              v.districtengtag === distObj.districtname) return true;
           return false;
         });
-
-        console.log('[fetch] district filter results (strict web method):', beforeFilter, '→', raw.length, 'videos');
-
-        // Log filtered results to verify
-        if (raw.length > 0) {
-          console.log('[fetch] filtered videos district tags:',
-            raw.slice(0, 5).map(v => ({
-              title: v.title?.slice(0, 30),
-              districttag: v.districttag,
-              districtengtag: v.districtengtag,
-              districtid: v.districtid
-            }))
-          );
-        } else {
-          console.log('[fetch] NO VIDEOS PASSED FILTER - showing empty state for:', districtName);
-        }
       }
     }
 
-    // Log full news card results
-    // console.log('[fetch] ===== FULL VIDEO RESULTS =====');
-    // console.log('[fetch] total videos found:', raw.length);
-    // console.log('[fetch] first 5 video cards with full details:');
-    raw.slice(0, 5).forEach((video, index) => {
-      console.log(`[fetch] Video ${index + 1}:`, {
-        videoid: video.videoid,
-        title: video.title || video.videotitle,
-        ctitle: video.ctitle,
-        district: video.district,
-        districtid: video.districtid,
-        category: video.category,
-        date: video.date,
-        type: video.type,
-        image: video.image,
-        duration: video.duration,
-        created_at: video.created_at,
-        published_at: video.published_at
-      });
-    });
-    // console.log('[fetch] ===== END VIDEO RESULTS =====');
-
+    // ── Update videos list ────────────────────────────────────────────────
     if (append) {
       setAllVideos(prev => {
-        const existingIds = new Set(prev.map(v => v.videoid).filter(Boolean));
-        return [...prev, ...raw.filter(v => !v.videoid || !existingIds.has(v.videoid))];
+        const ids = new Set(prev.map(v => v.videoid).filter(Boolean));
+        return [...prev, ...raw.filter(v => !v.videoid || !ids.has(v.videoid))];
       });
     } else {
       setAllVideos(raw);
     }
 
-    if (safeData?.taboola_ads?.mobile) setTaboolaAds(prev => prev ?? safeData.taboola_ads.mobile);
+    // ── Pagination ────────────────────────────────────────────────────────
+    const cp = pagination.current_page ?? page;
+    const lp = pagination.last_page ?? 1;
+    setCurrentPage(cp);
+    setLastPage(lp);
+    setHasMore(cp < lp);
 
-    // Debug pagination data
-    // console.log('[fetch] pagination data:', {
-    //   currentPage: pagination.current_page,
-    //   lastPage: pagination.last_page,
-    //   requestedPage: page,
-    //   hasMoreBefore: hasMore
-    // });
-
-    setCurrentPage(pagination.current_page || page);
-    setLastPage(pagination.last_page || 1);
-    setHasMore((pagination.current_page || page) < (pagination.last_page || 1));
-
-    // console.log('[fetch] hasMore set to:', (pagination.current_page || page) < (pagination.last_page || 1));
-
-    if (safeData?.category?.length) {
+    // ── One-time metadata (categories, filters, districts) ────────────────
+    if (data?.category?.length) {
       setCategories(prev => {
         if (prev.length > 0) return prev;
         const seen = new Set();
-        return safeData.category.filter(c => {
+        return data.category.filter(c => {
           const k = String(c.value ?? '');
           if (seen.has(k)) return false;
           seen.add(k);
@@ -904,38 +717,43 @@ const fetchVideos = useCallback(async ({ cat = '', date = '', district = '', dis
         });
       });
     }
-    if (safeData?.filter?.length) setFilterOptions(prev => prev.length > 0 ? prev : safeData.filter);
-    if (safeData?.districtlist?.data?.length) {
-      // console.log('[fetch] sample district obj:', JSON.stringify(safeData.districtlist.data[0]));
-      // console.log('[fetch] all district options:',
-      //   JSON.stringify(safeData.districtlist.data.map(d => ({ id: d.id, title: d.title })))
-      // );
-      setDistrictOptions(prev => prev.length > 0 ? prev : safeData.districtlist.data);
-    }
+    if (data?.filter?.length)
+      setFilterOptions(prev => prev.length > 0 ? prev : data.filter);
+    if (data?.districtlist?.data?.length)
+      setDistrictOptions(prev => prev.length > 0 ? prev : data.districtlist.data);
+    if (data?.taboola_ads?.mobile)
+      setTaboolaAds(prev => prev ?? data.taboola_ads.mobile);
 
   } catch (err) {
-    console.error('VideosScreen fetch error:', err?.message);
+    if (err?.name === 'AbortError' || err?.name === 'CanceledError') {
+      console.log('[fetchVideos] Request cancelled — new filter applied');
+      return; // Silent — expected when user switches filter quickly
+    }
+    console.error('[fetchVideos] Error:', err?.message);
     setError(err?.message || 'பிழை ஏற்பட்டது');
+    if (!append) setAllVideos([]);
   } finally {
-    if (append) setLoadingMore(false);
-    else {
+    isFetchingRef.current = false;
+    if (!append) {
       setLoading(false);
       setInitialLoad(false);
-
-      // Cache the data for next time
-      if (allVideos.length > 0) {
-        const newCacheData = {
-          videos: allVideos,
-          categories: categories,
-          filterOptions: filterOptions,
-          districtOptions: districtOptions
-        };
-        setCachedData(newCacheData);
-        console.log('📦 Cached video data for future use');
-      }
+    } else {
+      setLoadingMore(false);
     }
   }
-}, []);
+}, [districtOptions]); // only districtOptions needed — everything else via params
+
+
+// Debounced fetch — 300ms delay, cancels previous pending call
+const debouncedFetch = useCallback((params) => {
+  if (debounceTimerRef.current) {
+    clearTimeout(debounceTimerRef.current);
+  }
+  debounceTimerRef.current = setTimeout(() => {
+    fetchVideos(params);
+  }, 300);
+}, [fetchVideos]);
+
 
   const handleScroll = useCallback((e) => {
     setShowScrollTop(e.nativeEvent.contentOffset.y > 300);
@@ -955,6 +773,15 @@ useEffect(() => {
     fetchVideos({ cat: catValue });
   }
 }, [categories, initialTabKey]);
+
+// Add this useEffect near your other effects
+useEffect(() => {
+  return () => {
+    // Cancel in-flight requests and timers when screen unmounts
+    fetchControllerRef.current?.abort();
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+  };
+}, []);
 
 useEffect(() => {
   if (!initialCategory) {
@@ -1033,67 +860,55 @@ useEffect(() => {
     }
   }, [route?.params?.catId, route?.params?.timestamp]); // timestamp triggers re-run
 
-const handleCategoryPress = (value) => {
-  const updated = {
-    ...filters,
-    category: filters.category === value ? '' : value,
-  };
+const handleCategoryPress = useCallback((value) => {
+  const newCat = filters.category === value ? '' : value;
+  const updated = { ...filters, category: newCat };
   setFilters(updated);
-  fetchVideos({
-    cat: updated.category,
-    date: updated.date,        // <- keeps active date
-    district: updated.district, // <- keeps active district
-  });
-};
+  flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
+  debouncedFetch({ cat: newCat, date: updated.date, district: updated.district });
+}, [filters, debouncedFetch]);
 
 // ── Date filter press — keeps district and category selection ──────────────────
-const handleSelectFilter = (ename) => {
-  const updated = {
-    ...filters,
-    date: filters.date === ename ? '' : ename,
-  };
+const handleSelectFilter = useCallback((ename) => {
+  const newDate = filters.date === ename ? '' : ename;
+  const updated = { ...filters, date: newDate };
   setFilters(updated);
-  fetchVideos({
-    cat: updated.category,
-    date: updated.date,
-    district: updated.district,   // ← keeps active district
-    districtSlug: updated.districtSlug,
-  });
   setFilterVisible(false);
-};
+  flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
+  debouncedFetch({ cat: updated.category, date: newDate, district: updated.district });
+}, [filters, debouncedFetch]);
 
-const handleSelectDistrict = (id) => {
-  const districtObj = districtOptions.find(d => String(d.id) === id);
-  // console.log('[district] selected obj:', JSON.stringify(districtObj));
+const handleSelectDistrict = useCallback((id) => {
+  const newDistrict = filters.district === id ? '' : id;
+  const distObj = districtOptions.find(d => String(d.id) === id);
+  
+  // Find district news category (ID '1585' based on TimelineScreen)
+  const districtNewsCategory = categories.find(c => String(c.value) === '1585');
+  const districtCatValue = districtNewsCategory ? String(districtNewsCategory.value) : '';
   
   const updated = {
     ...filters,
-    district: filters.district === id ? '' : id,
-    districtSlug: filters.district === id ? '' : districtObj?.slug || '',
+    category: newDistrict ? districtCatValue : '', // Set district news category when district is selected, clear when deselected
+    district: newDistrict,
+    districtSlug: newDistrict ? distObj?.slug || '' : '',
   };
   setFilters(updated);
-  fetchVideos({
-    cat: updated.category,     // ← keeps active category
-    date: updated.date,        // ← keeps active date
-    district: updated.district,
-    districtSlug: updated.districtSlug,
-  });
   setFilterVisible(false);
-};
+  flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
+  debouncedFetch({ cat: updated.category, date: updated.date, district: newDistrict });
+}, [filters, districtOptions, categories, debouncedFetch]);
 
-const handleLocationSelectDistrict = (district) => {
+const handleLocationSelectDistrict = useCallback((district) => {
   setSelectedDistrictLabel(district.title);
   setIsLocDrawerOpen(false);
-  if (district.id) {
-    const updated = { ...filters, district: String(district.id) };
-    setFilters(updated);
-    fetchVideos({
-      cat: updated.category,
-      date: updated.date,
-      district: updated.district,
-    });
-  }
-};
+  if (!district.id) return;
+  const id = String(district.id);
+  const updated = { ...filters, district: id };
+  setFilters(updated);
+  flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
+  debouncedFetch({ cat: updated.category, date: updated.date, district: id });
+}, [filters, debouncedFetch]);
+
 
 // ── Nav ───────────────────────────────────────────────────────────────────────
 const handleMenuPress = (menuItem) => {
@@ -1229,7 +1044,7 @@ const ListHeader = () => {
     }});
   }
   if (filters.district) {
-    const label = districtOptions.find(d => String(d.id) === filters.district)?.title || filters.district;
+    const label = 'மாவட்ட செய்திகள்';
     activePills.push({ key: 'district', label, onRemove: () => {
       const updated = { ...filters, district: '' };
       setFilters(updated);
@@ -1334,10 +1149,8 @@ const ListHeader = () => {
 };
 
   // ── Load more handler ───────────────────────────────────────────────────────────
-const handleLoadMore = () => {
-  // Check if there are more pages available before loading
-  if (loadingMore || loading || !hasMore) return;
-  
+const handleLoadMore = useCallback(() => {
+  if (loadingMore || loading || !hasMore || isFetchingRef.current) return;
   fetchVideos({
     cat: filters.category,
     date: filters.date,
@@ -1346,18 +1159,16 @@ const handleLoadMore = () => {
     page: currentPage + 1,
     append: true,
   });
-};
+}, [loadingMore, loading, hasMore, filters, currentPage, fetchVideos]);
 
   // ── Footer component ───────────────────────────────────────────────────────────
-  const ListFooter = () => {
-    if (!loadingMore) return null;
-
-    return (
-      <View style={styles.loadingFooter}>
-        <ActivityIndicator size="small" color={PALETTE.primary} />
-      </View>
-    );
-  };
+// Replace your existing ListFooter
+const ListFooter = useCallback(() => (
+  <View style={{ height: vs(60), justifyContent: 'center', alignItems: 'center' }}>
+    {loadingMore && <ActivityIndicator size="small" color={PALETTE.primary} />}
+  </View>
+), [loadingMore]);
+// Always render a fixed-height footer → eliminates the jump
 
   // ── Empty state component ───────────────────────────────────────────────────────
 const ListEmpty = () => {
@@ -1397,12 +1208,14 @@ return (
         onLocation={() => setIsLocDrawerOpen(true)}
         selectedDistrict={selectedDistrictLabel}
       />
+      
 
       <FlatList
         ref={flatListRef}
         onScroll={handleScroll}
         scrollEventThrottle={16}
         data={loading ? [] : listData}
+        
         keyExtractor={(item, idx) => {
           if (item._type === 'shorts_strip') return item._key || `shorts_strip_${idx}`;
           if (item._type === 'taboola_ad') return item._key || `taboola_${idx}`;
