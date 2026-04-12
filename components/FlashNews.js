@@ -222,13 +222,7 @@ const FlashNews = ({ onPress }) => {
   const currentContent = combinedContent[currentIndex];
 
   if (loading) {
-    return (
-      <View style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>Loading flash news...</Text>
-        </View>
-      </View>
-    );
+    return null; // Don't show anything while loading
   }
 
   if (!combinedContent.length || !currentContent) {
@@ -240,7 +234,7 @@ const FlashNews = ({ onPress }) => {
             <Text style={styles.flashLabel}>FLASH</Text>
           </View>
           <Text style={styles.newsTitle}>
-            {loading ? 'Loading flash news...' : 'No flash news available'}
+            No flash news available
           </Text>
         </View>
       </View>
@@ -254,19 +248,19 @@ const FlashNews = ({ onPress }) => {
         <TouchableOpacity 
           style={styles.flashContainer}
           onPress={() => {
-            console.log('Flash News clicked - Item data:', currentNews);
-            console.log('Flash News clicked - Item ID:', currentNews.id || currentNews.newsid);
-            console.log('Flash News clicked - Item title:', currentNews.title || currentNews.newstitle);
-            console.log('Flash News clicked - Item link:', currentNews.link);
-            console.log('Flash News clicked - All keys:', Object.keys(currentNews));
-            console.log('Flash News clicked - target field:', currentNews.target);
+            // console.log('Flash News clicked - Item data:', currentNews);
+            // console.log('Flash News clicked - Item ID:', currentNews.id || currentNews.newsid);
+            // console.log('Flash News clicked - Item title:', currentNews.title || currentNews.newstitle);
+            // console.log('Flash News clicked - Item link:', currentNews.link);
+            // console.log('Flash News clicked - All keys:', Object.keys(currentNews));
+            // console.log('Flash News clicked - target field:', currentNews.target);
             // Try to construct a proper news link if link is generic
             const newsLink = currentNews.link;
             if (newsLink && newsLink.includes('latestmain')) {
-              console.log('Generic link detected, using ID to construct proper link');
+              // console.log('Generic link detected, using ID to construct proper link');
               // Construct a proper news article link using the ID
               const properLink = `https://www.dinamalar.com/news/${currentNews.id}`;
-              console.log('Constructed link:', properLink);
+              // console.log('Constructed link:', properLink);
               if (onPress) onPress({...currentNews, link: properLink});
             } else {
               if (onPress) onPress(currentNews);

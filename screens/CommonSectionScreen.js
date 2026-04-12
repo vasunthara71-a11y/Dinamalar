@@ -182,7 +182,7 @@ const PHOTO_SECTION_IDS = ['81', '5001', '5002', '5003', 'top10', 'mostcommented
 const TAMIL_MONTHS = {
   '01': 'ஜனவரி', '02': 'பிப்ரவரி', '03': 'மார்ச்', '04': 'சித்திர்',
   '05': 'வைகாசி', '06': 'ஆனி', '07': 'ஆடி', '08': 'ஆகஸ்ட்',
-  '09': 'பிரதிபை', '10': 'திசம்பர்', '11': '�ார்த்திகர்', '12': 'டிசம்பர்'
+  '09': 'பிரதிபை', '10': 'திசம்பர்', '11': ' ார்த்திகர்', '12': 'டிசம்பர்'
 };
 
 // Group news items by date for sticky date headers
@@ -1041,7 +1041,7 @@ function InlineVideoPlayer({ url, style }) {
   );
 }
 
-// --- Photo Card � full-width image + title below (matches dinamalar website) --
+// --- Photo Card   full-width image + title below (matches dinamalar website) --
 function PhotoCard({ item, onPress, sf, isAllTab, isSocialCard = false }) {
   const [imageError, setImageError] = useState(false);
   const [isCommentsModalVisible, setIsCommentsModalVisible] = useState(false);
@@ -1449,7 +1449,7 @@ const PlayIcon = ({ size = 52 }) => (
   </View>
 );
 
-function NewsCard({ item, onPress, sectionTitle = '' }) {
+function NewsCard({ item, onPress, sectionTitle = '', isHighlighted = false }) {
   const { sf } = useFontSize();
   const [imageError, setImageError] = useState(false);
 
@@ -1469,7 +1469,19 @@ function NewsCard({ item, onPress, sectionTitle = '' }) {
     item.video === true);
 
   return (
-    <View style={NewsCardStyles.wrap}>
+    <View style={[
+      NewsCardStyles.wrap,
+      isHighlighted && {
+        backgroundColor: '#e3f2fd',
+        borderLeftWidth: 4,
+        borderLeftColor: COLORS.primary,
+        shadowColor: COLORS.primary,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+        elevation: 3,
+      }
+    ]}>
       <TouchableOpacity onPress={onPress} activeOpacity={0.88}>
         <View style={NewsCardStyles.imageWrap}>
           {imageError ? (
@@ -1561,7 +1573,7 @@ function extractList(d) {
 }
 
 function extractLastPage(d) {
-  return d?.newlist?.last_page || d?.newslist?.last_page || d?.newdata?.last_page || d?.data?.last_page || d?.last_page || 1;
+  return d?.newlist?.pagination?.last_page || d?.newlist?.last_page || d?.newslist?.pagination?.last_page || d?.newslist?.last_page || d?.newdata?.pagination?.last_page || d?.newdata?.last_page || d?.data?.pagination?.last_page || d?.data?.last_page || d?.last_page || 1;
 }
 
 const tabIsAll = (tab) => !!tab?._isAllTab;
@@ -1672,7 +1684,7 @@ const WebstoriesDropdown = ({ subTabs, activeTab, isAllTab, allTabLink, handleTa
             </Text>
           </TouchableOpacity>
 
-          {/* Category options � skip All tab itself */}
+          {/* Category options   skip All tab itself */}
           {subTabs
             .filter(t => t.id !== 'webstories' && !t._isAllTab)
             .map((tab, index, arr) => {
@@ -2291,7 +2303,8 @@ export default function CommonSectionScreen() {
         list = Array.isArray(list) ? list.slice(0, 3) : list;
       }
 
-      const lp = extractLastPage(d) ||
+      const lp = d?.newlist?.pagination?.last_page ||
+        extractLastPage(d) ||
         d?.indraiyephoto?.last_page ||
         d?.pogaimadam?.last_page ||
         d?.cartoons?.last_page || 1;
@@ -2345,7 +2358,7 @@ export default function CommonSectionScreen() {
         const tabs = rawTabs.map(t => ({
           ...t,
           link: t.link?.startsWith('//') ? t.link.slice(1) : (t.link || ''),
-          // The "All" tab from API has no id � give it one
+          // The "All" tab from API has no id   give it one
           id: t.id || 'all',
           _isAllTab: !t.id, // tabs without id are the All tab
           _isEnglishVersion: t.link?.includes('lang=en') || false, // Detect English from link
@@ -2490,27 +2503,93 @@ export default function CommonSectionScreen() {
       if (apiEndpoint.includes('photodata') || d?.indraiyephoto || d?.pogaimadam || d?.cartoons) {
         const photoSections = [];
 
-        if (d?.indraiyephoto?.data?.length > 0)
-          photoSections.push({ title: 'இன்றைய புகைப்படம்', id: '81', data: d.indraiyephoto.data });
+        // FAST LOADING: Load first page immediately, fetch additional pages in background
+        const loadPhotoSectionFast = (sectionKey, sectionTitle, sectionId, initialData) => {
+          if (!initialData || initialData.length === 0) return;
+          
+          const lastPage = d?.[sectionKey]?.pagination?.last_page || 
+                          d?.[sectionKey]?.last_page || 1;
+          
+          console.log(`Fast loading ${sectionTitle}: showing page 1 of ${lastPage}`);
+          
+          // Add first page data immediately for fast response
+          photoSections.push({ title: sectionTitle, id: sectionId, data: initialData });
+          
+          // Fetch remaining pages in background if more than 1 page
+          if (lastPage > 1) {
+            console.log(`Will fetch ${lastPage - 1} more pages for ${sectionTitle} in background`);
+            
+            // Background loading without blocking UI
+            setTimeout(async () => {
+              try {
+                const api = mainApi;
+                let allData = [...initialData];
+                const pagePromises = [];
+                
+                // Create parallel requests for remaining pages
+                for (let page = 2; page <= lastPage; page++) {
+                  pagePromises.push(
+                    api.get(`${apiEndpoint}?page=${page}`)
+                      .then(res => res.data?.[sectionKey]?.data || [])
+                      .catch(error => {
+                        console.error(`Error fetching page ${page} for ${sectionTitle}:`, error);
+                        return [];
+                      })
+                  );
+                }
+                
+                // Wait for all pages in parallel
+                const pageResults = await Promise.all(pagePromises);
+                
+                // Combine all data
+                pageResults.forEach(pageData => {
+                  if (Array.isArray(pageData) && pageData.length > 0) {
+                    allData = [...allData, ...pageData];
+                  }
+                });
+                
+                // Update the section with complete data
+                setAllSections(prev => prev.map(section => 
+                  section.id === sectionId 
+                    ? { ...section, data: allData }
+                    : section
+                ));
+                
+                console.log(`Background loading complete for ${sectionTitle}: ${allData.length} total items from ${lastPage} pages`);
+              } catch (error) {
+                console.error(`Background loading failed for ${sectionTitle}:`, error);
+              }
+            }, 100); // Small delay to ensure UI renders first
+          }
+        };
 
-        if (d?.pogaimadam?.data?.length > 0)
-          photoSections.push({ title: 'பொகை மடம் புகைப்படம்', id: '5001', data: d.pogaimadam.data });
+        // Load sections with fast approach
+        if (d?.indraiyephoto?.data?.length > 0) {
+          loadPhotoSectionFast('indraiyephoto', 'Today Photo', '81', d.indraiyephoto.data);
+        }
 
-        if (d?.cartoons?.data?.length > 0)
-          photoSections.push({ title: 'கார்டூன்ஸ்', id: '5002', data: d.cartoons.data });
+        if (d?.pogaimadam?.data?.length > 0) {
+          loadPhotoSectionFast('pogaimadam', 'Photo Album', '5001', d.pogaimadam.data);
+        }
 
-        if (d?.nri?.data?.length > 0)
-          photoSections.push({ title: 'NRI புகைப்படம்', id: '5003', data: d.nri.data });
+        if (d?.cartoons?.data?.length > 0) {
+          loadPhotoSectionFast('cartoons', 'Cartoons', '5002', d.cartoons.data);
+        }
 
+        if (d?.nri?.data?.length > 0) {
+          loadPhotoSectionFast('nri', 'NRI Photos', '5003', d.nri.data);
+        }
+
+        // Handle sections that don't need pagination (top10, mostcommented)
         if (d?.top10?.data?.length > 0)
-          photoSections.push({ title: 'அதிகம் பார்வையிடப்பட்டவை', id: 'top10', data: d.top10.data });
+          photoSections.push({ title: 'Most Viewed', id: 'top10', data: d.top10.data });
 
         if (d?.mostcommented?.data?.length > 0)
-          photoSections.push({ title: 'அதிகம் கருத்துரைக்கப்பட்டவை', id: 'mostcommented', data: d.mostcommented.data });
+          photoSections.push({ title: 'Most Commented', id: 'mostcommented', data: d.mostcommented.data });
 
         // Handle new photo API structure where data is nested under photo.data
         if (d?.photo?.data && Array.isArray(d.photo.data)) {
-          d.photo.data.forEach(section => {
+          for (const section of d.photo.data) {
             if (section.data && Array.isArray(section.data) && section.data.length > 0) {
               // Extract ID from multiple possible sources
               const sectionId = section.maincatid || 
@@ -2519,14 +2598,74 @@ export default function CommonSectionScreen() {
                                section.id?.toString() ||
                                section.slug?.split('/').pop() || 
                                'unknown';
+              const sectionTitle = section.title || section.etitle || 'Photos';
+              
+              // Check if this section has pagination
+              const lastPage = section.pagination?.last_page || 1;
+              
+              console.log(`Fast loading ${sectionTitle}: showing page 1 of ${lastPage}`);
+              
+              // Add first page data immediately
               photoSections.push({
-                title: section.title || section.etitle || 'புகைப்படம்',
+                title: sectionTitle,
                 id: String(sectionId),
                 data: section.data
               });
-              console.log(`📸 Created photo section: ${section.title} with ID: ${sectionId}`);
+              
+              // Fetch remaining pages in background if more than 1 page
+              if (lastPage > 1) {
+                console.log(`Will fetch ${lastPage - 1} more pages for ${sectionTitle} in background`);
+                
+                setTimeout(async () => {
+                  try {
+                    const api = mainApi;
+                    let allData = [...section.data];
+                    const pagePromises = [];
+                    
+                    // Create parallel requests for remaining pages
+                    for (let page = 2; page <= lastPage; page++) {
+                      pagePromises.push(
+                        api.get(`${apiEndpoint}?catid=${sectionId}&page=${page}`)
+                          .then(res => {
+                            const pageData = res.data?.photo?.data?.find(s => 
+                              String(s.maincatid || s.id) === String(sectionId)
+                            )?.data || [];
+                            return pageData;
+                          })
+                          .catch(error => {
+                            console.error(`Error fetching page ${page} for ${sectionTitle}:`, error);
+                            return [];
+                          })
+                      );
+                    }
+                    
+                    // Wait for all pages in parallel
+                    const pageResults = await Promise.all(pagePromises);
+                    
+                    // Combine all data
+                    pageResults.forEach(pageData => {
+                      if (Array.isArray(pageData) && pageData.length > 0) {
+                        allData = [...allData, ...pageData];
+                      }
+                    });
+                    
+                    // Update the section with complete data
+                    setAllSections(prev => prev.map(section => 
+                      section.id === String(sectionId) 
+                        ? { ...section, data: allData }
+                        : section
+                    ));
+                    
+                    console.log(`Background loading complete for ${sectionTitle}: ${allData.length} total items from ${lastPage} pages`);
+                  } catch (error) {
+                    console.error(`Background loading failed for ${sectionTitle}:`, error);
+                  }
+                }, 100);
+              }
+              
+              console.log(`Created photo section: ${sectionTitle} with ID: ${sectionId}`);
             }
-          });
+          }
         }
 
         let tabs = d?.subcatlisting || [];
@@ -3226,7 +3365,7 @@ export default function CommonSectionScreen() {
     }
 
     // -- /anmegammainlist ? clicking "All" tab ? push /anmegammain screen
-    // ? MUST be before alreadyActive check � otherwise blocked when activeTab._isAllTab=true
+    // ? MUST be before alreadyActive check   otherwise blocked when activeTab._isAllTab=true
     if (
       apiEndpoint.includes('anmegammainlist') &&
       pressedIsAll &&
@@ -3364,57 +3503,108 @@ export default function CommonSectionScreen() {
     // Check if tab actually changed
     const changed = prev.title !== activeTab.title || String(prev.id) !== String(activeTab.id);
     if (changed && activeTab.title !== 'All') {
+      setTabLoading(true);
+      setTabNews([]); setTabPage(1); setTabLastPage(1);
       fetchTabNews(activeTab, 1, false);
     }
-    prevActiveTabRef.current = activeTab;
   }, [activeTab]);
 
-  // Handle auto-focus on selected item when navigating from TimelineScreen
   useEffect(() => {
-    if (!selectedNewsId || !tabNews.length || !flatListRef.current) return;
-    
+    if (!selectedNewsId || !flatListRef.current) return;
+
     console.log('CommonSectionScreen - Looking for selectedNewsId:', selectedNewsId);
-    console.log('CommonSectionScreen - Available news items:', tabNews.length);
-    
-    // Find the index of the selected item
-    const selectedIndex = tabNews.findIndex(item => 
-      String(item.newsid || item.id) === String(selectedNewsId)
-    );
-    
-    if (selectedIndex !== -1) {
-      console.log('CommonSectionScreen - Found selected item at index:', selectedIndex);
+    console.log('CommonSectionScreen - Available tabNews:', tabNews.length);
+    console.log('CommonSectionScreen - Available allSections:', allSections.length);
+    console.log('CommonSectionScreen - Active tab:', activeTab?.id);
+
+    // For photo tabs with specific tabId (not All tab), search in tabNews
+    if (selectedNewsId && tabNews.length > 0 && !tabIsAll(activeTab)) {
+      const selectedIndex = tabNews.findIndex(item => 
+        String(item.newsid || item.id) === String(selectedNewsId)
+      );
       
-      // Scroll to the selected item
-      setTimeout(() => {
-        flatListRef.current?.scrollToIndex({
-          index: selectedIndex,
-          animated: true,
-          viewPosition: 0.5 // Center the item
-        });
-      }, 500); // Small delay to ensure list is rendered
-    } else {
-      console.log('CommonSectionScreen - Selected item not found in current tab news');
-    }
-  }, [selectedNewsId, tabNews, activeTab]);
-
-  const handleRefresh = () => {
-    setRefreshing(true);
-    setRasiDetailItem(null);
-
-    // ? NRI subcat tab refresh � re-filter from cached articles
-    if (activeTab?._activeSubCat) {
-      const matchingTab = nriSubCatTabs.find(t => t.id === activeTab._activeSubCat);
-      if (matchingTab) {
-        setTabNews(matchingTab._subCatArticles || []);
-        setRefreshing(false);
+      if (selectedIndex !== -1) {
+        console.log('CommonSectionScreen - Found selected item in tabNews at index:', selectedIndex);
+        setTimeout(() => {
+          if (flatListRef.current) {
+            flatListRef.current.scrollToIndex({
+              index: selectedIndex,
+              animated: true,
+              viewPosition: 0.5
+            });
+            console.log('CommonSectionScreen - Scrolled to selected item in tabNews');
+          }
+        }, 500);
         return;
       }
     }
 
-    // ? Use tabIsAll(activeTab) directly instead of isAllTab variable
-    if (tabIsAll(activeTab)) fetchAll();
-    else fetchTabNews(activeTab, 1, false);
-  };
+    // Search in allSections too (for photo All tab view)
+    const searchInAllSections = () => {
+      for (const section of allSections) {
+        const idx = (section.data || []).findIndex(item =>
+          String(item.newsid || item.id || item.eventid) === String(selectedNewsId)
+        );
+        if (idx !== -1) return { section, item: section.data[idx], sectionIndex: allSections.indexOf(section) };
+      }
+      return null;
+    };
+
+    const found = searchInAllSections();
+    if (!found) {
+      console.log('CommonSectionScreen - Selected item not found in allSections');
+      console.log('CommonSectionScreen - Available section IDs:', allSections.slice(0, 3).map(s => ({
+        id: s.id,
+        title: s.title,
+        itemCount: s.data?.length || 0
+      })));
+      return;
+    }
+
+    console.log('CommonSectionScreen - Found selected item in allSections:', {
+      sectionTitle: found.section.title,
+      sectionIndex: found.sectionIndex,
+      itemTitle: found.item.newstitle || found.item.title
+    });
+
+    // Rebuild flatData with selected item first
+    const reorderSections = () => {
+      const reordered = allSections.map(section => {
+        const idx = (section.data || []).findIndex(item =>
+          String(item.newsid || item.id || item.eventid) === String(selectedNewsId)
+        );
+        if (idx === -1) return section;
+        // Move matched item to front of this section
+        const reorderedData = [
+          section.data[idx],
+          ...section.data.slice(0, idx),
+          ...section.data.slice(idx + 1),
+        ];
+        return { ...section, data: reorderedData };
+      });
+
+      // Move the section containing the item to front
+      const targetSectionIdx = reordered.findIndex(s =>
+        (s.data || []).some(item =>
+          String(item.newsid || item.id || item.eventid) === String(selectedNewsId)
+        )
+      );
+      if (targetSectionIdx > 0) {
+        const [targetSection] = reordered.splice(targetSectionIdx, 1);
+        reordered.unshift(targetSection);
+      }
+      return reordered;
+    };
+
+    setAllSections(reorderSections());
+
+    // Scroll to top after reorder (selected item is now first)
+    setTimeout(() => {
+      flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+      console.log('CommonSectionScreen - Scrolled to top after reordering');
+    }, 300);
+
+  }, [selectedNewsId, tabNews, allSections.length, activeTab]);
 
   const handleLoadMore = () => {
     // Allow load more for NRI region tabs even when _isAllTab is true
@@ -3422,6 +3612,15 @@ export default function CommonSectionScreen() {
     if (tabLoadMore || tabPage >= tabLastPage) return;
     setTabLoadMore(true);
     fetchTabNews(activeTab, tabPage + 1, true);
+  };
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    if (tabIsAll(activeTab)) {
+      fetchAll();
+    } else {
+      fetchTabNews(activeTab, 1, false);
+    }
   };
 
   const goToArticle = (item) => {
@@ -3496,7 +3695,7 @@ export default function CommonSectionScreen() {
       // ? For regular NRI items, pass the nriDetailLink
       const nriSlug = item.slug || item.reacturl || '';
 
-      // item.link is like "nridetail?cat=53&lang=en" � needs leading slash
+      // item.link is like "nridetail?cat=53&lang=en"   needs leading slash
       let nriDetailLink = item.link || '';
       if (nriDetailLink && !nriDetailLink.startsWith('/')) {
         nriDetailLink = `/${nriDetailLink}`;
@@ -3592,7 +3791,7 @@ export default function CommonSectionScreen() {
       allSections.some(s => PHOTO_SECTION_IDS.includes(String(s.id)));
 
     if (isPhotoEndpoint) {
-      // top10 / mostcommented items are news articles � send to NewsDetailsScreen
+      // top10 / mostcommented items are news articles   send to NewsDetailsScreen
       const isNewsItem =
         item.maincategory === 'seithigal' ||
         !!item.newstitle ||
@@ -3616,7 +3815,7 @@ export default function CommonSectionScreen() {
           (d.id && d.id === item.id)
         )
       );
-      // Sub-tab already active � use its link directly
+      // Sub-tab already active   use its link directly
       if (!isAllTab && activeTab?.link) {
         navigation.navigate('PhotoDetailsScreen', {
           screenTitle: activeTab?.title || 'புகைப்படங்கள்',
@@ -3627,7 +3826,7 @@ export default function CommonSectionScreen() {
         return;
       }
 
-      // All tab � check if this is a "today" section item, if so navigate to today tab instead
+      // All tab   check if this is a "today" section item, if so navigate to today tab instead
       if (isAllTab) {
         const todaySectionId = '81';
         const itemSectionId = matchedSection?.id || String(item.maincatid || item.category || '');
@@ -3637,7 +3836,7 @@ export default function CommonSectionScreen() {
         }
       }
 
-      // All tab � map section ID ? correct /photodetails endpoint
+      // All tab   map section ID ? correct /photodetails endpoint
       const photoEndpointMap = {
         '81': '/photodetails?cat=81',
         '5001': '/photodetails?cat=5001',
@@ -3677,7 +3876,7 @@ export default function CommonSectionScreen() {
         return;
       }
 
-      // Last resort � match sub-tab by section id
+      // Last resort   match sub-tab by section id
       const targetTab = subTabs.find(t => String(t.id) === String(sectionId));
       if (targetTab) { handleTabPress(targetTab); return; }
     }
@@ -3934,9 +4133,9 @@ export default function CommonSectionScreen() {
 
       if (activeTab._isNriSubTab) {
         console.log('?? NRI isTabActive - In NRI subTab view');
-        // ? Country sub-tabs showing � highlight the original parent tab (not All)
+        // ? Country sub-tabs showing   highlight the original parent tab (not All)
         if (activeTab._nriCountryTab) {
-          // A specific country is selected � highlight the original NRI sub-tab
+          // A specific country is selected   highlight the original NRI sub-tab
           // e.g. if we're in otherstatenews > செய்திகள், highlight otherstatenews tab
           if (tab._isAllTab || tab.link === '/nrimain') return false; // ? All tab NOT active
           return String(tab.id) === String(activeTab._nriTabId); // ? highlight the correct sub-tab
@@ -3945,7 +4144,7 @@ export default function CommonSectionScreen() {
         if (tab._isAllTab || tab.link === '/nrimain') return true;
         return false;
       }
-      // Main All tab active � match by link
+      // Main All tab active   match by link
       console.log('?? NRI isTabActive - Main All tab check');
       return tab.link === '/nrimain' || tab.link === allTabLink;
     }
@@ -4086,7 +4285,7 @@ if (row.type === 'rasi' || row.type === 'individualRasi')
     <RasiCard item={row.item} onPress={() => goToRasiDetails(row.item)} />
   );
 
-    // Compute isPhoto locally inside renderItem � has full access to state
+    // Compute isPhoto locally inside renderItem   has full access to state
     const isPhoto =
       isPhotoScreen(apiEndpoint) ||
       isPhotoScreen(activeTab?.link) ||
@@ -4190,7 +4389,7 @@ if (row.type === 'rasi' || row.type === 'individualRasi')
             </TouchableOpacity>
             {/* Carousel indicators */}
             <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, paddingVertical: vs(10), paddingHorizontal: s(8), backgroundColor: 'rgba(0,0,0,0.4)' }}>
-              {/* Carousel dots � rendered first so they appear above the bg but below no other element */}
+              {/* Carousel dots   rendered first so they appear above the bg but below no other element */}
 
               <Text style={{ fontFamily: FONTS.muktaMalar.semibold, fontSize: ms(14), color: '#FFFFFF', lineHeight: ms(22) }}>
                 {title}
@@ -4212,8 +4411,12 @@ if (row.type === 'rasi' || row.type === 'individualRasi')
       );
     }
 
-    if (row.type === 'news' && isPhoto)
-      return (
+  if (row.type === 'news' && isPhoto) {
+    const isHighlighted = selectedNewsId &&
+      String(row.item?.newsid || row.item?.id || row.item?.eventid) === String(selectedNewsId);
+
+    return (
+      <View style={isHighlighted ? styles.highlightedCard : null}>
         <PhotoCard
           item={row.item}
           onPress={() => goToArticle(row.item)}
@@ -4221,14 +4424,21 @@ if (row.type === 'rasi' || row.type === 'individualRasi')
           isAllTab={isAllTab}
           isSocialCard={activeTab?.link?.includes('getsocialmedia') || apiEndpoint?.includes('getsocialmedia')}
         />
-      );
+      </View>
+    );
+  }
 
-    return <NewsCard
+  const isHighlighted = selectedNewsId && String(row.item?.newsid || row.item?.id) === String(selectedNewsId);
+
+  return (
+    <NewsCard
       item={row.item}
       onPress={() => goToArticle(row.item)}
       sectionTitle={row.sectionTitle || ''}
-    />;
-  };
+      isHighlighted={isHighlighted}
+    />
+  );
+};
 
   // Helper function to convert Tamil subcategory IDs to English titles
   const getEnglishSubCatTitle = (subCatId) => {
@@ -4318,8 +4528,8 @@ if (row.type === 'rasi' || row.type === 'individualRasi')
             }
           </Text>
 
-          {/* -- English Version Button � only for NRI screen -- */}
-          {/* English Version button � show on nri tab (Tamil), subcategory tabs, country tabs, and "All" tab in region view */}
+          {/* -- English Version Button   only for NRI screen -- */}
+          {/* English Version button   show on nri tab (Tamil), subcategory tabs, country tabs, and "All" tab in region view */}
           {(() => {
             console.log('?? English Version Debug - apiEndpoint:', apiEndpoint);
             console.log('?? English Version Debug - activeTab:', activeTab);
@@ -4459,7 +4669,7 @@ if (row.type === 'rasi' || row.type === 'individualRasi')
               </>
             )}
 
-          {/* Tamil Version button � show on nrinews tab (English), English versions of regions, and English subcategory tabs */}
+          {/* Tamil Version button   show on nrinews tab (English), English versions of regions, and English subcategory tabs */}
           {apiEndpoint === '/nrimain' && (
             (activeTab?._isNriSubTab && activeTab?._nriTabId === 'nrinews' && !activeTab?._nriCountryTab) ||
             (activeTab?._isEnglishVersion && activeTab?._nriRegionTab) ||
@@ -4728,6 +4938,12 @@ const styles = StyleSheet.create({
     fontSize: ms(16),
     fontFamily: FONTS.muktaMalar.medium,
     color: COLORS.black,
+  },
+
+  highlightedCard: {
+    borderLeftWidth: s(4),
+    borderLeftColor: COLORS.primary,
+    backgroundColor: '#e8f4fd',
   },
 
   list: { flex: 1 },

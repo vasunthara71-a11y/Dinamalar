@@ -1,0 +1,603 @@
+﻿
+{
+    "status": "success",
+    "message": "API responses merged successfully",
+    "bannerimage": "",
+    "breadcrumb": [
+        {
+            "maincategory": "à®®à¯à®¤à®²à¯ à®ªà®à¯à®à®®à¯",
+            "maincategoryid": "Home Page",
+            "title": "à®¤à¯à®à®²à¯ à®®à¯à®à®¿à®µà¯à®à®³à¯",
+            "link": "",
+            "id": "search",
+            "slug": "\/search",
+            "searchvalue": "tamil"
+        }
+    ],
+    "date": "2026-04-12 13:12:36",
+    "detail": [
+        {
+            "id": 6496,
+            "newstitle": "à®¤à®¿à®©à®®à®²à®°à¯ à®¨à®¾à®³à®¿à®¤à®´à¯ à®à®£à¯à®¯à®¤à®³à®¤à¯à®¤à®¿à®²à¯ à®¤à¯à®¾à®à¯à®°à¯à®¨à¯à®¤à¯ à®à®´à¯à®¤à®¿ à®µà®°à¯à®®à¯ à®à®à¯à®²à®¾à®£à¯à®à®¾à®µà®¿à®©à¯ à®ªà®´à®®à¯à®ªà¯à®°à¯à®®à¯ à®²à®...",
+            "newsenglishtitle": "",
+            "newsdescription": "",
+            "newsdate": "2024-07-08 18:07:19",
+            "standarddate": "à®à¯à®²à¯ 08, 2024",
+            "date": "08-07-2024",
+            "time": "18:07",
+            "ago": "08-Jul-2024",
+            "images": "https:\/\/images.dinamalar.com\/data\/nri\/nritalimg_240708180719000000.jpg?im=Resize,width=300",
+            "newscomment": 0,
+            "maincat": "NRI à®à®²à¯à®ªà®®à¯",
+            "maincateng": "",
+            "maincatid": "5003",
+            "audio": "0",
+            "video": "0",
+            "path": null,
+            "slug": "\/photos\/world-tamilar-nri-album\/6496",
+            "reacturl": "\/photo\/5003\/6496",
+            "catslug": "\/photos\/world-tamilar-nri-album",
+            "type": "photo"
+        },
+        {
+            "id": 466950,
+            "newstitle": " ",
+            "newsenglishtitle": "",
+            "newsdescription": "",
+            "newsdate": "2023-06-14 12:19:45",
+            "standarddate": "à®à¯à®©à¯ 14, 2023",
+            "date": "14-06-2023",
+            "time": "12:19",
+            "ago": "14-Jun-2023",
+            "images": "https:\/\/images.dinamalar.com\/data\/event_photo\/ELARGE_20230614121945868982.jpeg?im=Resize,width=300",
+            "newscomment": 0,
+            "maincat": "à®à®©à¯à®±à¯à®¯ à®ªà¯à®à¯à®à¯",
+            "maincateng": "",
+            "maincatid": "81",
+            "audio": "0",
+            "video": "0",
+            "path": null,
+            "slug": "\/photos\/today-photos\/466950",
+            "reacturl": "\/photo\/81\/466950",
+            "catslug": "\/photos\/today-photos",
+            "type": "photo"
+        },
+        {
+            "id": 466872,
+            "newstitle": "",
+            "newsenglishtitle": "",
+            "newsdescription": "",
+            "newsdate": "2023-06-12 13:39:21",
+            "standarddate": "à®à¯à®©à¯ 12, 2023",
+            "date": "12-06-2023",
+            "time": "13:39",
+            "ago": "12-Jun-2023",
+            "images": "https:\/\/images.dinamalar.com\/data\/event_photo\/ELARGE_20230612133921730199.jpeg?im=Resize,width=300",
+            "newscomment": 0,
+            "maincat": "à®à®©à¯à®±à¯à®¯ à®ªà¯à®à¯à®à¯",
+            "maincateng": "",
+            "maincatid": "81",
+            "audio": "0",
+            "video": "0",
+            "path": null,
+            "slug": "\/photos\/today-photos\/466872",
+            "reacturl": "\/photo\/81\/466872",
+            "catslug": "\/photos\/today-photos",
+            "type": "photo"
+        },
+        {
+            "id": 464923,
+            "newstitle": "  ",
+            "newsenglishtitle": "",
+            "newsdescription": "",
+            "newsdate": "2023-04-23 09:58:41",
+            "standarddate": "à®à®ªà¯ 23, 2023",
+            "date": "23-04-2023",
+            "time": "09:58",
+            "ago": "23-Apr-2023",
+            "images": "https:\/\/images.dinamalar.com\/data\/event_photo\/ELARGE_20230423095841192284.jpeg?im=Resize,width=300",
+            "newscomment": 0,
+            "maincat": "à®à®©à¯à®±à¯à®¯ à®ªà¯à®à¯à®à¯",
+            "maincateng": "",
+            "maincatid": "81",
+            "audio": "0",
+            "video": "0",
+            "path": null,
+            "slug": "\/photos\/today-photos\/464923",
+            "reacturl": "\/photo\/81\/464923",
+            "catslug": "\/photos\/today-photos",
+            "type": "photo"
+        },
+        {
+            "id": 464329,
+            "newstitle": "",
+            "newsenglishtitle": "",
+            "newsdescription": "",
+            "newsdate": "2023-04-08 11:52:13",
+            "standarddate": "à®à®ªà¯ 08, 2023",
+            "date": "08-04-2023",
+            "time": "11:52",
+            "ago": "08-Apr-2023",
+            "images": "https:\/\/images.dinamalar.com\/data\/event_photo\/ELARGE_20230408115213409859.jpeg?im=Resize,width=300",
+            "newscomment": 0,
+            "maincat": "à®à®©à¯à®±à¯à®¯ à®ªà¯à®à¯à®à¯",
+            "maincateng": "",
+            "maincatid": "81",
+            "audio": "0",
+            "video": "0",
+            "path": null,
+            "slug": "\/photos\/today-photos\/464329",
+            "reacturl": "\/photo\/81\/464329",
+            "catslug": "\/photos\/today-photos",
+            "type": "photo"
+        },
+        {
+            "id": 464328,
+            "newstitle": " ",
+            "newsenglishtitle": "",
+            "newsdescription": "",
+            "newsdate": "2023-04-08 11:50:13",
+            "standarddate": "à®à®ªà¯ 08, 2023",
+            "date": "08-04-2023",
+            "time": "11:50",
+            "ago": "08-Apr-2023",
+            "images": "https:\/\/images.dinamalar.com\/data\/event_photo\/ELARGE_20230408115013320849.jpeg?im=Resize,width=300",
+            "newscomment": 0,
+            "maincat": "à®à®©à¯à®±à¯à®¯ à®ªà¯à®à¯à®à¯",
+            "maincateng": "",
+            "maincatid": "81",
+            "audio": "0",
+            "video": "0",
+            "path": null,
+            "slug": "\/photos\/today-photos\/464328",
+            "reacturl": "\/photo\/81\/464328",
+            "catslug": "\/photos\/today-photos",
+            "type": "photo"
+        },
+        {
+            "id": 463543,
+            "newstitle": "",
+            "newsenglishtitle": "",
+            "newsdescription": "",
+            "newsdate": "2023-03-20 11:59:35",
+            "standarddate": "à®®à®¾à®°à¯ 20, 2023",
+            "date": "20-03-2023",
+            "time": "11:59",
+            "ago": "20-Mar-2023",
+            "images": "https:\/\/images.dinamalar.com\/data\/event_photo\/ELARGE_20230320115935613065.jpeg?im=Resize,width=300",
+            "newscomment": 0,
+            "maincat": "à®à®©à¯à®±à¯à®¯ à®ªà¯à®à¯à®à¯",
+            "maincateng": "",
+            "maincatid": "81",
+            "audio": "0",
+            "video": "0",
+            "path": null,
+            "slug": "\/photos\/today-photos\/463543",
+            "reacturl": "\/photo\/81\/463543",
+            "catslug": "\/photos\/today-photos",
+            "type": "photo"
+        },
+        {
+            "id": 463035,
+            "newstitle": " ",
+            "newsenglishtitle": "",
+            "newsdescription": "",
+            "newsdate": "2023-03-07 18:58:40",
+            "standarddate": "à®®à®¾à®°à¯ 07, 2023",
+            "date": "07-03-2023",
+            "time": "18:58",
+            "ago": "07-Mar-2023",
+            "images": "https:\/\/images.dinamalar.com\/data\/event_photo\/ELARGE_20230307185819883569.jpeg?im=Resize,width=300",
+            "newscomment": 0,
+            "maincat": "à®ªà¯à®à¯à®ªà¯à®ªà® à®à®²à¯à®ªà®®à¯",
+            "maincateng": "",
+            "maincatid": "5001",
+            "audio": "0",
+            "video": "0",
+            "path": null,
+            "slug": "\/photos\/pugai-pada-album\/52228-463035",
+            "reacturl": "\/photo\/5001\/463035",
+            "catslug": "\/photos\/pugai-pada-album\/52228",
+            "type": "photo"
+        },
+        {
+            "id": 459150,
+            "newstitle": " ",
+            "newsenglishtitle": "",
+            "newsdescription": "",
+            "newsdate": "2022-12-05 19:05:49",
+            "standarddate": "à®à®¿à® 05, 2022",
+            "date": "05-12-2022",
+            "time": "19:05",
+            "ago": "05-Dec-2022",
+            "images": "https:\/\/images.dinamalar.com\/data\/event_photo\/ELARGE_20221205190547742788.jpeg?im=Resize,width=300",
+            "newscomment": 0,
+            "maincat": "à®ªà¯à®à¯à®ªà¯à®ªà® à®à®²à¯à®ªà®®à¯",
+            "maincateng": "",
+            "maincatid": "5001",
+            "audio": "0",
+            "video": "0",
+            "path": null,
+            "slug": "\/photos\/pugai-pada-album\/52228-459150",
+            "reacturl": "\/photo\/5001\/459150",
+            "catslug": "\/photos\/pugai-pada-album\/52228",
+            "type": "photo"
+        },
+        {
+            "id": 457796,
+            "newstitle": " à®à¯à®¾à®µà¯ ",
+            "newsenglishtitle": "",
+            "newsdescription": "",
+            "newsdate": "2022-11-03 12:20:23",
+            "standarddate": "à®¨à®µ 03, 2022",
+            "date": "03-11-2022",
+            "time": "12:20",
+            "ago": "03-Nov-2022",
+            "images": "https:\/\/images.dinamalar.com\/data\/event_photo\/ELARGE_20221103122020409583.jpeg?im=Resize,width=300",
+            "newscomment": 0,
+            "maincat": "à®à®©à¯à®±à¯à®¯ à®ªà¯à®à¯à®à¯",
+            "maincateng": "",
+            "maincatid": "81",
+            "audio": "0",
+            "video": "0",
+            "path": null,
+            "slug": "\/photos\/today-photos\/457796",
+            "reacturl": "\/photo\/81\/457796",
+            "catslug": "\/photos\/today-photos",
+            "type": "photo"
+        },
+        {
+            "id": 455603,
+            "newstitle": "",
+            "newsenglishtitle": "",
+            "newsdescription": "",
+            "newsdate": "2022-09-26 18:11:56",
+            "standarddate": "à®à¯à®ªà¯ 26, 2022",
+            "date": "26-09-2022",
+            "time": "18:11",
+            "ago": "26-Sep-2022",
+            "images": "https:\/\/images.dinamalar.com\/data\/event_photo\/ELARGE_20220926181155770545.jpeg?im=Resize,width=300",
+            "newscomment": 0,
+            "maincat": "à®ªà¯à®à¯à®ªà¯à®ªà® à®à®²à¯à®ªà®®à¯",
+            "maincateng": "",
+            "maincatid": "5001",
+            "audio": "0",
+            "video": "0",
+            "path": null,
+            "slug": "\/photos\/pugai-pada-album\/52228-455603",
+            "reacturl": "\/photo\/5001\/455603",
+            "catslug": "\/photos\/pugai-pada-album\/52228",
+            "type": "photo"
+        },
+        {
+            "id": 432067,
+            "newstitle": " ",
+            "newsenglishtitle": "",
+            "newsdescription": "",
+            "newsdate": "2021-02-01 12:16:07",
+            "standarddate": "à®ªà®¿à®ªà¯ 01, 2021",
+            "date": "01-02-2021",
+            "time": "12:16",
+            "ago": "01-Feb-2021",
+            "images": "https:\/\/images.dinamalar.com\/data\/event_photo\/ELARGE_20210201121606625617.jpeg?im=Resize,width=300",
+            "newscomment": 0,
+            "maincat": "à®ªà¯à®à¯à®ªà¯à®ªà® à®à®²à¯à®ªà®®à¯",
+            "maincateng": "",
+            "maincatid": "5001",
+            "audio": "0",
+            "video": "0",
+            "path": null,
+            "slug": "\/photos\/pugai-pada-album\/52228-432067",
+            "reacturl": "\/photo\/5001\/432067",
+            "catslug": "\/photos\/pugai-pada-album\/52228",
+            "type": "photo"
+        },
+        {
+            "id": 431182,
+            "newstitle": " ",
+            "newsenglishtitle": "",
+            "newsdescription": "",
+            "newsdate": "2021-01-02 15:07:35",
+            "standarddate": "à®à®© 02, 2021",
+            "date": "02-01-2021",
+            "time": "15:07",
+            "ago": "02-Jan-2021",
+            "images": "https:\/\/images.dinamalar.com\/data\/event_photo\/ELARGE_20210102150735234513.jpeg?im=Resize,width=300",
+            "newscomment": 0,
+            "maincat": "à®ªà¯à®à¯à®ªà¯à®ªà® à®à®²à¯à®ªà®®à¯",
+            "maincateng": "",
+            "maincatid": "5001",
+            "audio": "0",
+            "video": "0",
+            "path": null,
+            "slug": "\/photos\/pugai-pada-album\/52228-431182",
+            "reacturl": "\/photo\/5001\/431182",
+            "catslug": "\/photos\/pugai-pada-album\/52228",
+            "type": "photo"
+        }
+    ],
+    "trendingkeywords": [
+        {
+            "title": "TRENDING TOPICS",
+            "data": [
+                {
+                    "key": "à®à®¾à®¤à¯à®¤à®¾à®©à¯à®à¯à®³à®®à¯",
+                    "slug": "\/search"
+                },
+                {
+                    "key": "à®®à®°à®£ à®¤à®£à¯à®à®©à¯",
+                    "slug": "\/search"
+                },
+                {
+                    "key": "à®à®°à¯à®¤à¯à®¤à¯à®à¯à®à®£à®¿à®ªà¯à®ªà¯",
+                    "slug": "\/search"
+                },
+                {
+                    "key": "à®¤à®¿à®©à®®à®²à®°à¯",
+                    "slug": "\/search"
+                },
+                {
+                    "key": "à®ªà®¾à®",
+                    "slug": "\/search"
+                },
+                {
+                    "key": "à®à®¾à®à¯à®à®¿à®°à®¸à¯",
+                    "slug": "\/search"
+                },
+                {
+                    "key": "à®¤à®®à®¿à®´à® à®¤à¯à®°à¯à®¤à®²à¯",
+                    "slug": "\/search"
+                }
+            ]
+        }
+    ],
+    "pagination": {
+        "current_page": 1,
+        "per_page": 15,
+        "total": 13,
+        "last_page": 1
+    },
+    "filter": [
+        {
+            "name": "All",
+            "id": "1",
+            "ename": "all"
+        },
+        {
+            "name": "à®à®©à¯à®±à¯",
+            "id": "2",
+            "ename": "today"
+        },
+        {
+            "name": "à®à®à®¨à¯à®¤ à®µà®¾à®°à®®à¯",
+            "id": "3",
+            "ename": "weekly"
+        },
+        {
+            "name": "à®à®à®¨à¯à®¤ à®®à®¾à®¤à®®à¯",
+            "id": "4",
+            "ename": "monthly"
+        },
+        {
+            "name": "à®à®à®¨à¯à®¤ à®µà®°à¯à®à®®à¯",
+            "id": "5",
+            "ename": "yearly"
+        },
+        {
+            "name": "à®¤à¯à®¤à®¿ à®µà®°à®®à¯à®ªà¯à®¤à¯ à®¤à¯à®°à¯à®¨à¯à®¤à¯à®à¯à®à¯à®à®µà¯à®®à¯",
+            "id": "6",
+            "ename": "date search"
+        },
+        {
+            "name": "à®¤à¯à®¤à®¿à®¯à¯à®¤à¯ à®¤à¯à®°à¯à®¨à¯à®¤à¯à®à¯à®à¯à®à®µà¯à®®à¯",
+            "id": "7",
+            "ename": "date"
+        }
+    ],
+    "categoryfilter": [
+        {
+            "name": "all",
+            "id": "1",
+            "ename": "all",
+            "count": 512
+        },
+        {
+            "name": "à®à¯à®¯à¯à®¤à®¿à®à®³à¯",
+            "id": "2",
+            "ename": "news",
+            "count": 175
+        },
+        {
+            "name": "à®µà¯à®à®¿à®¯à¯",
+            "id": "4",
+            "ename": "video",
+            "count": 229
+        },
+        {
+            "name": "à®ªà¯à®à¯à®à¯",
+            "id": "3",
+            "ename": "photo",
+            "count": 13
+        },
+        {
+            "name": "à®à®²à® à®¤à®®à®¿à®´à®°à¯",
+            "id": "7",
+            "ename": "nri",
+            "count": 80
+        },
+        {
+            "name": "à®à®²à¯à®µà®¿à®®à®²à®°à¯",
+            "id": "8",
+            "ename": "kalvimalar",
+            "count": 15
+        }
+    ],
+    "metadetails": {
+        "metatitle": "à®à®®à¯à®ªà®¤à¯à®¤à®¿à®¯ à®¤à¯à®à®²à¯| Read Latest search on about tamil",
+        "metadescription": "à®à¯à®¯à¯à®¤à®¿ à®à®¾à®°à¯à®¨à¯à®¤ à®à®à¯à®à®³à¯ à®¤à¯à®à®²à¯ à®®à¯à®à®¿à®à®³à¯ à®à®à¯à®à¯ à®à®¾à®£à®²à®¾à®®à¯",
+        "metakey": "News Search, à®¤à¯à®à®²à¯ à®®à¯à®à®¿à®µà¯à®à®³à¯, à®à¯à®¯à¯à®¤à®¿à®à®³à¯, à®à®à¯à®à¯à®°à¯à®à®³à¯, à®ªà¯à®à¯à®ªà¯à®ªà®à®à¯à®à®³à¯, à®µà¯à®à®¿à®¯à¯ à®¨à®¿à®¯à¯à®¸à¯, à®¤à¯à®à®°à¯à®ªà¯à®à¯à®¯ à®à¯à®¯à¯à®¤à®¿à®à®³à¯, à®à®à¯à®à®³à¯ à®µà®¿à®°à¯à®ªà¯à®ª à®à¯à®¯à¯à®¤à®¿à®à®³à¯, Search results, news, articles, photos, video news, related news, your favorite news",
+        "heading": "à®à®®à¯à®ªà®¤à¯à®¤à®¿à®¯ à®¤à¯à®à®²à¯| Read Latest search on about tamil",
+        "metahttpequiv": "text\/html; charset=utf-8",
+        "viewport": "width=device-width, minimum-scale=1, initial-scale=1.0, maximum-scale=5.0",
+        "newstitle": "à®à®®à¯à®ªà®¤à¯à®¤à®¿à®¯ à®¤à¯à®à®²à¯| Read Latest search on about  tamil",
+        "newskeywords": "News Search, à®¤à¯à®à®²à¯ à®®à¯à®à®¿à®µà¯à®à®³à¯, à®à¯à®¯à¯à®¤à®¿à®à®³à¯, à®à®à¯à®à¯à®°à¯à®à®³à¯, à®ªà¯à®à¯à®ªà¯à®ªà®à®à¯à®à®³à¯, à®µà¯à®à®¿à®¯à¯ à®¨à®¿à®¯à¯à®¸à¯, à®¤à¯à®à®°à¯à®ªà¯à®à¯à®¯ à®à¯à®¯à¯à®¤à®¿à®à®³à¯, à®à®à¯à®à®³à¯ à®µà®¿à®°à¯à®ªà¯à®ª à®à¯à®¯à¯à®¤à®¿à®à®³à¯, Search results, news, articles, photos, video news, related news, your favorite news",
+        "robots": "INDEX, FOLLOW",
+        "robots1": "max-image-preview:large",
+        "language": "ta",
+        "author": "à®¤à®¿à®©à®®à®²à®°à¯",
+        "copyright": "Dinamalar",
+        "link": "\/search\/tamil",
+        "title": "à®à®®à¯à®ªà®¤à¯à®¤à®¿à®¯ à®¤à¯à®à®²à¯| Read Latest search on about  tamil",
+        "description": "à®à¯à®¯à¯à®¤à®¿ à®à®¾à®°à¯à®¨à¯à®¤ à®à®à¯à®à®³à¯ à®¤à¯à®à®²à¯ à®®à¯à®à®¿à®à®³à¯ à®à®à¯à®à¯ à®à®¾à®£à®²à®¾à®®à¯",
+        "sitename": "https:\/\/www.dinamalar.com",
+        "type": "article",
+        "twittercard": "summary_large_image",
+        "twittersite": "@dinamalarweb",
+        "twittertitle": "à®à®®à¯à®ªà®¤à¯à®¤à®¿à®¯ à®¤à¯à®à®²à¯| Read Latest search on about  tamil",
+        "twitterurl": "summary_large_image",
+        "twitterdescription": "à®à¯à®¯à¯à®¤à®¿ à®à®¾à®°à¯à®¨à¯à®¤ à®à®à¯à®à®³à¯ à®¤à¯à®à®²à¯ à®®à¯à®à®¿à®à®³à¯ à®à®à¯à®à¯ à®à®¾à®£à®²à®¾à®®à¯",
+        "twittercreator": "dinamalar",
+        "twitterdomain": "https:\/\/www.dinamalar.com"
+    },
+    "mostcommentedlink": "\/mostcommented",
+    "taboola_ads": {
+        "desktop": {
+            "midmain": {
+                "mode": "thumbnails-k",
+                "container": "taboola-mid-main-column-thumbnails",
+                "placement": "Mid Main Column Thumbnails",
+                "target_type": "mix"
+            },
+            "rightrail": {
+                "mode": "thumbnails-rr2",
+                "container": "taboola-right-rail-thumbnails-1",
+                "placement": "Right Rail Thumbnails 1",
+                "target_type": "mix"
+            },
+            "belowpage": {
+                "mode": "thumbnails-h",
+                "container": "taboola-below-page-thumbnails---general",
+                "placement": "Below Page Thumbnails - General",
+                "target_type": "mix"
+            }
+        },
+        "mobile": {
+            "midmain": {
+                "mode": "thumbnails-e-amp",
+                "container": "taboola-mobile-mid-main-columns",
+                "placement": "Mobile Mid Main Columns",
+                "target_type": "mix"
+            }
+        }
+    },
+    "googleads": {
+        "desktopads": {
+            "midRight1": {
+                "slotId": "home_right_pos2",
+                "ad_unit": "Demo_Roadblock_Desktop_BTF_300x250",
+                "ad_size": 300,
+                "ad_size1": 250,
+                "viewport": 1280,
+                "viewport1": 800
+            },
+            "midRight2": {
+                "slotId": "home_right_pos4",
+                "ad_unit": "Demo_Roadblock_Desktop_BTF_300x250",
+                "ad_size": 300,
+                "ad_size1": 250,
+                "viewport": 1280,
+                "viewport1": 800
+            },
+            "belowRight": {
+                "slotId": "home_right_pos6",
+                "ad_unit": "Demo_Roadblock_Desktop_BTF_300x600_3",
+                "ad_size": 300,
+                "ad_size1": 600,
+                "viewport": 1280,
+                "viewport1": 800
+            },
+            "midhome": {
+                "slotId": "home_middle_pos1",
+                "ad_unit": "Demo_2_Roadblock_Desktop_728x90_2",
+                "ad_size": 728,
+                "ad_size1": 90,
+                "viewport": 1280,
+                "viewport1": 800
+            },
+            "midhome2": {
+                "slotId": "home_middle_pos2",
+                "ad_unit": "Demo_2_Roadblock_Desktop_728x90_3",
+                "ad_size": 728,
+                "ad_size1": 90,
+                "viewport": 1280,
+                "viewport1": 800
+            },
+            "top970x90": {
+                "slotId": "ROS_ATF_970x90",
+                "ad_unit": "Dinamalar_Desktop_ROS_ATF_970x90",
+                "ad_size": 970,
+                "ad_size1": 90,
+                "viewport": 1280,
+                "viewport1": 800
+            },
+            "overlay": {
+                "slotId": "ROS_Overlay-1x1",
+                "ad_unit": "Dinamalar_Desktop_ROS_Overlay-1x1",
+                "ad_size": 1,
+                "ad_size1": 1,
+                "viewport": 1280,
+                "viewport1": 800
+            },
+            "outstream": {
+                "slotId": "ROS_MTF_Outstream-1x1",
+                "ad_unit": "Dinamalar_Desktop_ROS_MTF_Outstream",
+                "ad_size": 1,
+                "ad_size1": 1,
+                "viewport": 1280,
+                "viewport1": 800
+            },
+            "top300X600": {
+                "slotId": "ROS_ATF_300x600",
+                "ad_unit": "Dinamalar_Desktop_ROS_ATF_300x600",
+                "ad_size": 300,
+                "ad_size1": 600,
+                "viewport": 1280,
+                "viewport1": 800
+            },
+            "btf728X90": {
+                "slotId": "ROS_BTF_728x90",
+                "ad_unit": "Dinamalar_Desktop_ROS_BTF_728x90",
+                "ad_size": 728,
+                "ad_size1": 90,
+                "viewport": 1280,
+                "viewport1": 800
+            }
+        },
+        "mobileads": {
+            "top_300X250": {
+                "slotId": "ROS_ATF_300x250",
+                "ad_unit": "Dinamalar_MobileSite_Non_AMP_ROS_ATF_300x250",
+                "ad_size": 300,
+                "ad_size1": 250,
+                "viewport": 0,
+                "viewport1": 0
+            },
+            "mid_300x250": {
+                "slotId": "ROS_MTF_300x250",
+                "ad_unit": "Dinamalar_MobileSite_Non_AMP_ROS_MTF_300x250",
+                "ad_size": 300,
+                "ad_size1": 250,
+                "viewport": 0,
+                "viewport1": 0
+            },
+            "bottom_300x250": {
+                "slotId": "ROS_BTF_300x250",
+                "ad_unit": "Dinamalar_MobileSite_Non_AMP_ROS_BTF_300x250",
+                "ad_size": 300,
+                "ad_size1": 250,
+                "viewport": 0,
+                "viewport1": 0
+            }
+        }
+    }
+}

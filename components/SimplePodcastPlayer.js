@@ -36,11 +36,11 @@ export default function SimplePodcastPlayer({ data, onMorePress, onPlayingChange
 
   // Use actual podcast data or fallback to test data
   const podcastData = data && data.length > 0 ? data : [testPodcast];
-  
+
   // Extract the first podcast from the data array (handle nested structure)
   let currentPodcast = null;
   let audioUrl = testPodcast.audio; // fallback to test audio
-  
+
   if (podcastData && podcastData.length > 0) {
     // Handle different data structures
     if (podcastData[0]?.audio) {
@@ -53,7 +53,7 @@ export default function SimplePodcastPlayer({ data, onMorePress, onPlayingChange
       audioUrl = podcastData[0].data[0].audio;
     }
   }
-  
+
   // console.log('🎙️ SimplePodcastPlayer - audioUrl:', audioUrl);
   // console.log('🎙️ SimplePodcastPlayer - data prop:', data);
   // console.log('🎙️ SimplePodcastPlayer - podcastData:', podcastData);
@@ -76,45 +76,45 @@ export default function SimplePodcastPlayer({ data, onMorePress, onPlayingChange
       .catch(() => setIsReady(true));
   }, []);
 
-const handlePlayPause = () => {
-  console.log('🎙️ handlePlayPause called');
-  console.log('🎙️ isPlaying:', isPlaying);
-  console.log('🎙️ player exists:', !!player);
-  console.log('🎙️ isReady:', isReady);
-  console.log('🎙️ audioUrl:', audioUrl);
-  console.log('🎙️ status:', status);
-  
-  if (!player || !isReady || !audioUrl) {
-    console.log('🎙️ Cannot play: missing player, isReady, or audioUrl');
-    return;
-  }
-  
-  if (isPlaying) {
-    console.log('🎙️ Pausing player');
-    player.pause();
-    setIsPlaying(false);
-  } else {
-    console.log('🎙️ Playing player');
-    console.log('🎙️ player methods:', Object.getOwnPropertyNames(player));
-    if (status?.didJustFinish) player.seekTo(0);
-    try {
-      player.play();
-      setIsPlaying(true);
-      console.log('🎙️ player.play() called successfully');
-    } catch (error) {
-      console.log('🎙️ Error playing audio:', error);
-    }
-  }
-};
+  const handlePlayPause = () => {
+    console.log('🎙️ handlePlayPause called');
+    console.log('🎙️ isPlaying:', isPlaying);
+    console.log('🎙️ player exists:', !!player);
+    console.log('🎙️ isReady:', isReady);
+    console.log('🎙️ audioUrl:', audioUrl);
+    console.log('🎙️ status:', status);
 
-// Sync with real status to handle external stops/errors:
-useEffect(() => {
-  setIsPlaying(status?.playing ?? false);
-  // Notify parent of playing state change
-  if (onPlayingChange && status?.playing !== undefined) {
-    onPlayingChange(status.playing, currentPodcast);
-  }
-}, [status?.playing]);
+    if (!player || !isReady || !audioUrl) {
+      console.log('🎙️ Cannot play: missing player, isReady, or audioUrl');
+      return;
+    }
+
+    if (isPlaying) {
+      console.log('🎙️ Pausing player');
+      player.pause();
+      setIsPlaying(false);
+    } else {
+      console.log('🎙️ Playing player');
+      console.log('🎙️ player methods:', Object.getOwnPropertyNames(player));
+      if (status?.didJustFinish) player.seekTo(0);
+      try {
+        player.play();
+        setIsPlaying(true);
+        console.log('🎙️ player.play() called successfully');
+      } catch (error) {
+        console.log('🎙️ Error playing audio:', error);
+      }
+    }
+  };
+
+  // Sync with real status to handle external stops/errors:
+  useEffect(() => {
+    setIsPlaying(status?.playing ?? false);
+    // Notify parent of playing state change
+    if (onPlayingChange && status?.playing !== undefined) {
+      onPlayingChange(status.playing, currentPodcast);
+    }
+  }, [status?.playing]);
 
   const handleStop = () => {
     if (player) {
@@ -142,9 +142,9 @@ useEffect(() => {
     return `${m}:${sec.toString().padStart(2, '0')}`;
   };
 
-  const progress = (status?.duration ?? 0) > 0 
-  ? (status?.currentTime ?? 0) / status.duration 
-  : 0;
+  const progress = (status?.duration ?? 0) > 0
+    ? (status?.currentTime ?? 0) / status.duration
+    : 0;
 
   // Don't render if no data available
   if (!podcastData || podcastData.length === 0) {
@@ -203,15 +203,13 @@ useEffect(() => {
             disabled={!isReady}
             activeOpacity={0.8}
           >
-            {status.isBuffering ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <Ionicons
-                name={isPlaying ? 'pause' : 'play'}
-                size={s(20)}
-                color="#fff"
-              />
-            )}
+
+            <Ionicons
+              name={isPlaying ? 'pause' : 'play'}
+              size={s(20)}
+              color="#fff"
+            />
+
           </TouchableOpacity>
 
           {/* மேலும் >> */}
@@ -345,7 +343,7 @@ const styles = StyleSheet.create({
   miniPlayerContainer: {
     position: 'absolute',
     right: s(0),
-    top: '39%',
+    top: '36%',
     // marginTop: vs(-80),   // Center vertically by moving up half the container height
     backgroundColor: 'rgba(99, 115, 131, 0.95)',
     borderTopLeftRadius: s(10),
@@ -366,7 +364,7 @@ const styles = StyleSheet.create({
   },
   dismissBtn: {
     alignSelf: 'flex-start',
-    marginLeft: -s(20),
+    marginLeft: -s(25),
     width: s(35),
     height: s(35),
     borderRadius: s(18),
@@ -378,7 +376,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.18,
     shadowRadius: s(8),
-    marginTop: -s(10),
+    marginTop: -s(18),
   },
   dismissText: {
     fontSize: s(16),

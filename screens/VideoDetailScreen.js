@@ -148,6 +148,71 @@ function getYouTubeId(url) {
   return null;
 }
 
+function buildYouTubeHtml(videoId) {
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    html, body { width:100%; height:100%; background:#000; overflow:hidden; }
+    #player { width:100%; height:100%; }
+  </style>
+</head>
+<body>
+  <div id="player"></div>
+  <script src="https://www.youtube.com/iframe_api"></script>
+  <script>
+    var player;
+    var isReady = false;
+    function onYouTubeIframeAPIReady() {
+      player = new YT.Player('player', {
+        videoId: '${videoId}',
+        playerVars: {
+          autoplay: 1,
+          controls: 1,
+          modestbranding: 1,
+          rel: 0,
+          playsinline: 1,
+          iv_load_policy: 3,
+        },
+        events: {
+          onReady: function(e) {
+            isReady = true;
+            e.target.playVideo();
+          },
+          onStateChange: function(e) {
+            window.ReactNativeWebView.postMessage(JSON.stringify({
+              type: 'stateChange',
+              state: e.data
+            }));
+          }
+        }
+      });
+    }
+    // Receive commands from React Native
+    window.addEventListener('message', function(e) {
+      try {
+        var cmd = JSON.parse(e.data);
+        if (!player || !isReady) return;
+        if (cmd.action === 'play') player.playVideo();
+        if (cmd.action === 'pause') player.pauseVideo();
+        if (cmd.action === 'seek') player.seekTo(cmd.time, true);
+      } catch(err) {}
+    });
+    document.addEventListener('message', function(e) {
+      try {
+        var cmd = JSON.parse(e.data);
+        if (!player || !isReady) return;
+        if (cmd.action === 'play') player.playVideo();
+        if (cmd.action === 'pause') player.pauseVideo();
+      } catch(err) {}
+    });
+  </script>
+</body>
+</html>`;
+}
+
 function buildIframeHtml(url = '') {
   if (/\.(mp4|webm|ogg|m3u8)(\?|$)/i.test(url))
     return `<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>*{margin:0;padding:0;box-sizing:border-box}html,body{width:100%;height:100%;background:#000;overflow:hidden}video{width:100%;height:100%;object-fit:contain}</style></head><body><video src="${url}" autoplay controls playsinline preload="auto"></video></body></html>`;

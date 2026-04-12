@@ -1,0 +1,788 @@
+imp});
+
+// CategoryTabs Component
+function CategoryTabs({ tabs, active, onSelect }) {
+  // Filter out "all" tab and only show specific category tabs
+  const filteredTabs = tabs.filter(t => t.ename && t.name && t.ename !== 'all');
+  if (filteredTabs.length === 0) return null;
+
+  return (
+    <View style={styles.tabsWrap}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.tabsContent}
+        bounces={false}
+      >
+        {filteredTabs.map(t => {
+          const isActive = active === t.ename;
+          return (
+            <TouchableOpacity
+              key={t.ename}
+              style={[styles.tab, isActive && styles.tabActive]}
+              onPress={() => onSelect(t.ename)}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.tabText, isActive && styles.tabTextActive]}>
+                {t.name}{t.count ? ` (${t.count})` : ''}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+    </View>
+  );
+}
+
+// Main Screen Component
+export default function SearchScreen() {
+  const navigation = useNavigation();
+  const route = useRoute();
+
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState([]);
+  const [categoryFilter, setCategoryFilter] = useState([]);
+  const [activeTab, setActiveTab] = useState('all');
+  const [trendingTopics, setTrendingTopics] = useState([]);
+  const [recentSearches, setRecentSearches] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [trendLoading, setTrendLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [hasSearched, setHasSearched] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [lastPage, setLastPage] = useState(1);
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  const [voiceModal, setVoiceModal] = useState(false);
+  const [isDrawerVisible, setIsDrawerVisible] = useState(false);
+  const [isLocationDrawerVisible, setIsLocationDrawerVisible] = useState(false);
+  const [selectedDistrict, setSelectedDistrict] = useState('local');
+
+  const debounceRef = useRef(null);
+  const currentQuery = useRef('');
+  const flatListRef = useRef(null);
+  const inputRef = useRef(null);
+
+  // Load recent searches
+  useEffect(() => {
+    AsyncStorage.getItem(RECENT_KEY)
+      .then(v => { if (v) setRecentSearches(JSON.parse(v)); })
+      .catch(() => {});
+  }, []);
+
+  // Fetch trending on mount
+  useEffect(() => {
+    const cached = getFromCache('__initial__');
+    if (cached) {
+      setTrendingTopics(cached);
+      setTrendLoading(false);
+      return;
+    }
+    axios.get(INITIAL_API, { timeout: 10000 })
+      .then(res => {
+        const data = res.data?.original || res.data || {};
+        let topics = [];
+        if (Array.isArray(data.trendingkeywords) && data.trendingkeywords.length > 0) {
+          const first = data.trendingkeywords[0];
+          if (Array.isArray(first.data)) topics = first.data;
+        }
+        const top10 = topics.slice(0, 10);
+        setToCache('__initial__', top10);
+        setTrendingTopics(top10);
+      })
+      .catch(() => {})
+      .finally(() => setTrendLoading(false));
+  }, []);
+
+  // Route param search
+  useEffect(() => {
+    const term = route.params?.searchTerm;
+    if (term) { setQuery(term); triggerSearch(term); }
+  }, [route.params?.searchTerm]);
+
+  // Save / clear recent searches
+  const saveRecent = useCallback(async (q) => {
+    const trimmed = q.trim();
+    if (!trimmed) return;
+    setRecentSearches(prev => {
+      const updated = [trimmed, ...prev.filter(x => x !== trimmed)].slice(0, MAX_RECENT);
+      AsyncStorage.setItem(RECENT_KEY, JSON.stringify(updated)).catch(() => {});
+      return updated;
+    });
+  }, []);
+
+  const removeRecent = useCallback(async (q) => {
+    setRecentSearches(prev => {
+      const updated = prev.filter(x => x !== q);
+      AsyncStorage.setItem(RECENT_KEY, JSON.stringify(updated)).catch(() => {});
+      return updated;
+    });
+  }, []);
+
+  const clearRecent = useCallback(async () => {
+    setRecentSearches([]);
+    AsyncStorage.removeItem(RECENT_KEY).catch(() => {});
+  }, []);
+
+  // Core search functionality
+  const triggerSearch = useCallback((q) => {
+    const trimmed = (q || '').trim();
+    if (!trimmed) {
+      setHasSearched(false);
+      setResults([]);
+      return;
+    }
+
+    currentQuery.current = trimmed;
+    saveRecent(trimmed);
+
+    const cacheKey = trimmed + '_p1';
+    const cached = getFromCache(cacheKey);
+    if (cached) {
+      setResults(cached.results);
+      setCategoryFilter(cached.tabs);
+      setCurrentPage(1);
+      setLastPage(cached.lastPage);
+      setHasSearched(true);
+      const firstTab = cached.tabs.find(t => t.ename && t.ename !== 'all');
+      setActiveTab(firstTab?.ename || '');
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+    setHasSearched(true);
+    setActiveTab('all');
+    setCurrentPage(1);
+
+    axios.get(SEARCH_API + encodeURIComponent(trimmed) + '&page=1', {
+      timeout: 10000,
+      headers: { Accept: 'application/json' },
+    })
+      .then(res => {
+        const data = res.data?.original || res.data || {};
+        const list = Array.isArray(data.detail) ? data.detail
+                   : Array.isArray(data)         ? data
+                   : [];
+        const tabs = Array.isArray(data.categoryfilter) ? data.categoryfilter : [];
+        const lp = data.pagination?.last_page || 1;
+        const cp = data.pagination?.current_page || 1;
+
+        setResults(list);
+        setCategoryFilter(tabs);
+        setLastPage(lp);
+        setCurrentPage(cp);
+        const firstTab = tabs.find(t => t.ename && t.ename !== 'all');
+        setActiveTab(firstTab?.ename || '');
+        setToCache(cacheKey, { results: list, tabs, lastPage: lp });
+      })
+      .catch(() => setError('Search failed. Please try again.'))
+      .finally(() => setIsLoading(false));
+  }, [saveRecent]);
+
+  // Debounced input
+  const onChangeText = useCallback((text) => {
+    setQuery(text);
+    clearTimeout(debounceRef.current);
+    if (!text.trim()) { 
+      setHasSearched(false); 
+      setResults([]); 
+      return; 
+    }
+    debounceRef.current = setTimeout(() => triggerSearch(text), DEBOUNCE_MS);
+  }, [triggerSearch]);
+
+  // Load more functionality
+  const loadMore = useCallback(() => {
+    if (isLoadingMore || isLoading || currentPage >= lastPage || !currentQuery.current) return;
+    const next = currentPage + 1;
+    
+    setIsLoadingMore(true);
+    axios.get(SEARCH_API + encodeURIComponent(currentQuery.current) + '&page=' + next, { timeout: 5000 })
+      .then(res => {
+        const data = res.data?.original || res.data || {};
+        const list = Array.isArray(data.detail) ? data.detail : [];
+        const newPage = data.pagination?.current_page || next;
+        
+        setResults(prev => [...prev, ...list]);
+        setCurrentPage(newPage);
+      })
+      .catch(() => {})
+      .finally(() => setIsLoadingMore(false));
+  }, [isLoadingMore, isLoading, currentPage, lastPage]);
+
+  // Handle tab selection
+  const handleTabSelect = useCallback((ename) => {
+    setActiveTab(ename);
+    if (!currentQuery.current) return;
+    if (ename === 'all' || ename === '') return;
+
+    setIsLoading(true);
+    const url = SEARCH_API + encodeURIComponent(currentQuery.current) + `&page=1&type=${ename}`;
+    axios.get(url, { timeout: 10000, headers: { Accept: 'application/json' } })
+      .then(res => {
+        const data = res.data?.original || res.data || {};
+        const list = Array.isArray(data.detail) ? data.detail
+                   : Array.isArray(data)         ? data
+                   : [];
+        const lp = data.pagination?.last_page || 1;
+        setResults(list);
+        setLastPage(lp);
+        setCurrentPage(data.pagination?.current_page || 1);
+      })
+      .catch(() => {})
+      .finally(() => setIsLoading(false));
+  }, []);
+
+  // Filter by tab
+  const filteredResults = React.useMemo(() => {
+    if (!activeTab || activeTab === 'all') return results;
+    
+    const filtered = results.filter(item => {
+      const type = (item.type || '').toLowerCase();
+      const maincateng = (item.maincateng || '').toLowerCase();
+      const isVideo = item.video == 1 || item.video === '1';
+      
+      if (activeTab === 'video') {
+        return type === 'video' || type === 'reels' || isVideo;
+      }
+      if (activeTab === 'photo') {
+        return type === 'photo';
+      }
+      if (activeTab === 'news') {
+        return type === 'news' || type === '' || !type;
+      }
+      if (activeTab === 'nri') {
+        return type === 'nri' || maincateng === 'nri';
+      }
+      if (activeTab === 'kalvimalar') {
+        return type === 'kalvimalar' || 
+               type === 'kavi' || 
+               type === 'literature' || 
+               type === 'poetry' ||
+               maincateng === 'kalvimalar';
+      }
+      
+      return type === activeTab;
+    });
+    
+    return filtered;
+  }, [results, activeTab]);
+
+  // Separate video items for Shorts UI
+  const videoItems = React.useMemo(() => {
+    if (activeTab !== 'video') return [];
+    
+    const videos = results.filter(item => {
+      const type = (item.type || '').toLowerCase();
+      const isVideo = item.video == 1 || item.video === '1';
+      return type === 'video' || type === 'reels' || isVideo;
+    });
+    
+    return videos;
+  }, [results, activeTab]);
+
+  // Navigation handlers
+  const handleItemPress = useCallback((item) => {
+    const id = item.id || item.newsid;
+    const type = (item.type || '').toLowerCase();
+    const isVideoTab = activeTab === 'video';
+    
+    if (isVideoTab) {
+      const normalizedVideo = {
+        ...item,
+        videoid: item.videoid || item.videoId || item.video_id || item.id || item.newsid,
+        videopath: item.videopath || item.path || item.y_path || item.videourl,
+        videotitle: item.videotitle || item.newstitle || item.title || '',
+        videodescription: item.videodescription || item.description || item.content || '',
+        videodate: item.videodate || item.date || item.created_at || '',
+        images: item.images || item.largeimages || item.image || item.thumbnail || '',
+        largeimages: item.largeimages || item.images || item.image || item.thumbnail || '',
+        video: item.video || 1,
+        type: 'video'
+      };
+      
+      navigation.navigate('VideoDetailScreen', { video: normalizedVideo });
+      return;
+    }
+    
+    if (id) {
+      navigation.navigate('NewsDetailsScreen', { newsId: id, newsItem: item, slug: item.slug || '' });
+    }
+  }, [navigation, activeTab]);
+
+  const handleClear = useCallback(() => {
+    setQuery('');
+    setHasSearched(false);
+    setResults([]);
+    setError(null);
+    setActiveTab('all');
+    currentQuery.current = '';
+    clearTimeout(debounceRef.current);
+  }, []);
+
+  const handleTrendingPress = useCallback((key) => {
+    setQuery(key);
+    triggerSearch(key);
+  }, [triggerSearch]);
+
+  const handleRecentPress = useCallback((key) => {
+    setQuery(key);
+    triggerSearch(key);
+  }, [triggerSearch]);
+
+  const handleScroll = (e) => setShowScrollTop(e.nativeEvent.contentOffset.y > 300);
+  const scrollToTop = () => flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+
+  // Pre-search view
+  const renderPreSearch = () => (
+    <ScrollView style={styles.preWrap} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+      <SectionHeader icon="trending-up" title="TRENDING TOPICS" />
+      {trendLoading ? (
+        <ActivityIndicator size="small" color="#1565C0" style={{ marginVertical: vs(16) }} />
+      ) : trendingTopics.length === 0 ? (
+        <Text style={styles.emptyHint}>No trending topics</Text>
+      ) : (
+        <View style={styles.chipRow}>
+          {trendingTopics.map((t, i) => (
+            <TrendingChip key={i} topic={t} rank={i + 1} onPress={handleTrendingPress} />
+          ))}
+        </View>
+      )}
+
+      <View style={styles.sectionDivider} />
+
+      {recentSearches.length > 0 && (
+        <>
+          <SectionHeader
+            icon="time-outline"
+            title="RECENT SEARCHES"
+            rightLabel="Clear All"
+            onRightPress={clearRecent}
+          />
+          <View style={styles.chipRow}>
+            {recentSearches.map((q, i) => (
+              <RecentChip key={i} query={q} onPress={handleRecentPress} onRemove={removeRecent} />
+            ))}
+          </View>
+        </>
+      )}
+    </ScrollView>
+  );
+
+  return (
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
+
+      <UniversalHeaderComponent
+        statusBarStyle="light-content"
+        statusBarBackgroundColor={COLORS.primary}
+        onMenuPress={() => {}}
+        onNotification={() => navigation.navigate('NotificationScreen')}
+        notifCount={0}
+        isDrawerVisible={isDrawerVisible}
+        setIsDrawerVisible={setIsDrawerVisible}
+        navigation={navigation}
+        isLocationDrawerVisible={isLocationDrawerVisible}
+        setIsLocationDrawerVisible={setIsLocationDrawerVisible}
+        onSelectDistrict={(d) => {
+          setSelectedDistrict(d.title);
+          setIsLocationDrawerVisible(false);
+          if (d.id) navigation.navigate('DistrictNewsScreen', { districtId: d.id, districtTitle: d.title });
+        }}
+        selectedDistrict={selectedDistrict}
+      >
+        <AppHeaderComponent
+          onMenu={() => setIsDrawerVisible(true)}
+          onLocation={() => setIsLocationDrawerVisible(true)}
+          selectedDistrict={selectedDistrict}
+        />
+      </UniversalHeaderComponent>
+
+      {/* Search Bar */}
+      <View style={styles.searchBar}>
+        <View style={styles.inputWrap}>
+          <TextInput
+            ref={inputRef}
+            style={styles.input}
+            placeholder="Search..."
+            placeholderTextColor="#999"
+            value={query}
+            onChangeText={onChangeText}
+            onSubmitEditing={() => { clearTimeout(debounceRef.current); triggerSearch(query); }}
+            returnKeyType="search"
+            autoCorrect={false}
+          />
+          <TouchableOpacity onPress={() => setVoiceModal(true)} style={styles.micBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+            <Ionicons name="mic-outline" size={ms(20)} color="#1565C0" />
+          </TouchableOpacity>
+          {query.length > 0 && (
+            <TouchableOpacity onPress={handleClear} style={styles.clearBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <Ionicons name="close-circle" size={ms(18)} color="#aaa" />
+            </TouchableOpacity>
+          )}
+        </View>
+        <TouchableOpacity style={styles.searchBtn} onPress={() => { clearTimeout(debounceRef.current); triggerSearch(query); }} activeOpacity={0.85}>
+          <Text style={styles.searchBtnText}>Search</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Voice Modal */}
+      <VoiceSearchModal
+        visible={voiceModal}
+        onClose={() => setVoiceModal(false)}
+        onResult={(text) => { setQuery(text); triggerSearch(text); }}
+      />
+
+      {/* Pre-search */}
+      {!hasSearched && renderPreSearch()}
+
+      {/* Category Tabs */}
+      {hasSearched && categoryFilter.length > 0 && (
+        <CategoryTabs tabs={categoryFilter} active={activeTab} onSelect={handleTabSelect} />
+      )}
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#ccc',
+    borderRadius: ms(6),
+    paddingHorizontal: s(10),
+    height: vs(38),
+    backgroundColor: '#fff',
+  },
+  input: {
+    flex: 1,
+    fontSize: ms(14),
+    color: '#111',
+    paddingVertical: 0,
+    fontFamily: getFontFamily(400),
+  },
+  micBtn:   { paddingHorizontal: s(4) },
+  clearBtn: { paddingLeft: s(4) },
+  searchBtn: {
+    backgroundColor: '#1565C0',
+    paddingHorizontal: s(18),
+    height: vs(38),
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: ms(6),
+  },
+  searchBtnText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: ms(13),
+    fontFamily: getFontFamily(700),
+  },
+
+  // Pre-search
+  preWrap: {
+    flex: 1,
+    backgroundColor: '#fff',
+    paddingHorizontal: s(14),
+  },
+
+  // Section
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: vs(16),
+    paddingBottom: vs(10),
+  },
+  sectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: s(6),
+  },
+  sectionTitle: {
+    fontSize: ms(12),
+    fontWeight: '700',
+    color: '#333',
+    letterSpacing: 0.6,
+    fontFamily: getFontFamily(700),
+  },
+  sectionRight: {
+    fontSize: ms(12),
+    color: '#1565C0',
+    fontFamily: getFontFamily(400),
+  },
+  sectionDivider: {
+    height: 0.5,
+    backgroundColor: '#eee',
+    marginVertical: vs(6),
+  },
+
+  // Chips
+  chipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: s(8),
+    paddingBottom: vs(10),
+  },
+
+  // Trending chip
+  trendChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 0.5,
+    borderColor: '#ccc',
+    borderRadius: ms(20),
+    paddingHorizontal: s(10),
+    paddingVertical: vs(5),
+    backgroundColor: '#fff',
+    gap: s(6),
+  },
+  trendChipText: {
+    fontSize: ms(13),
+    color: '#333',
+    fontFamily: getFontFamily(400),
+  },
+  rankBadge: {
+    width: s(18),
+    height: s(18),
+    borderRadius: s(9),
+    backgroundColor: '#e8eaf6',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  rankBadgeTop: { backgroundColor: '#1565C0' },
+  rankText: {
+    fontSize: ms(10),
+    fontWeight: '700',
+    color: '#3949ab',
+  },
+  rankTextTop: { color: '#fff' },
+
+  // Recent chip
+  recentChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 0.5,
+    borderColor: '#ddd',
+    borderRadius: ms(20),
+    paddingHorizontal: s(12),
+    paddingVertical: vs(5),
+    backgroundColor: '#fafafa',
+    gap: s(4),
+  },
+  recentChipBody: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: s(5),
+  },
+  recentChipText: {
+    fontSize: ms(13),
+    color: '#444',
+    fontFamily: getFontFamily(400),
+  },
+
+// Category tabs — update these existing keys in styles
+tabsWrap: {
+  backgroundColor: '#fff',
+  borderBottomWidth: 1,
+  borderBottomColor: '#e0e0e0',
+  height: vs(44),           // ← add this
+},
+tabsContent: {
+  paddingHorizontal: s(8),
+  alignItems: 'center',
+  flexDirection: 'row',
+  height: vs(44),           // ← add this
+},
+tab: {
+  paddingHorizontal: s(14),
+  height: vs(44),           // ← change from paddingVertical to height
+  justifyContent: 'center',
+  alignItems: 'center',
+  borderBottomWidth: 2.5,
+  borderBottomColor: 'transparent',
+  marginRight: s(2),
+},
+tabActive:     { borderBottomColor: '#1565C0' },
+tabText:       { fontSize: ms(13), color: '#666', fontFamily: getFontFamily(400) },
+tabTextActive: { color: '#1565C0', fontWeight: '700', fontFamily: getFontFamily(700) },
+
+  // Result card
+  resultCard: {
+    backgroundColor: '#fff',
+    marginHorizontal: s(12),
+    marginBottom: vs(10),
+    // borderRadius: ms(6),
+    overflow: 'hidden',
+  },
+  resultImageWrap: {
+    width: '100%',
+    aspectRatio: 16 / 9,
+    position: 'relative',
+    overflow: 'hidden',
+    backgroundColor: '#f0f0f0',
+  },
+  resultImageWrapPhoto: { aspectRatio: 1 },
+  resultImage:   { width: '100%', height: '100%' },
+  playOverlay: {
+    position: 'absolute',
+    bottom: vs(8),
+    left: s(8),
+  },
+  playCircle: {
+    width: s(32),
+    height: s(32),
+    borderRadius: s(16),
+    backgroundColor: 'rgba(9,109,210,0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingLeft: s(2),
+  },
+  imageOverlay: {
+    position: 'absolute',
+    bottom: vs(6),
+    left: s(6),
+    backgroundColor: 'rgba(9,109,210,0.8)',
+    borderRadius: s(4),
+    padding: s(4),
+  },
+  resultBody:  { padding: vs(10) },
+  commentWrap: { flexDirection: 'row', alignItems: 'center' },
+  commentCount:{ fontSize: ms(12), color: '#555', fontFamily: getFontFamily(400) },
+
+  // Vertical Shorts styles
+  verticalShortCard: {
+    width: '100%',
+    height: vs(400),
+    marginBottom: vs(2),
+  },
+  verticalShortCardThumb: {
+    width: '100%',
+    height: '100%',
+    position: 'relative',
+    backgroundColor: '#000',
+  },
+  verticalShortCardImage: {
+    width: '100%',
+    height: '100%',
+  },
+  verticalShortCardPlayWrap: {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    transform: [{ translateX: -s(30) }, { translateY: -s(30) }],
+  },
+  verticalShortCardPlayBtn: {
+    width: s(60),
+    height: s(60),
+    borderRadius: s(30),
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingLeft: s(5),
+  },
+  verticalShortCardDuration: {
+    position: 'absolute',
+    top: vs(12),
+    right: s(12),
+    backgroundColor: 'rgba(0,0,0,0.8)',
+    paddingHorizontal: s(8),
+    paddingVertical: vs(4),
+    borderRadius: ms(6),
+  },
+  verticalShortCardDurationText: {
+    color: '#fff',
+    fontSize: ms(12),
+    fontFamily: getFontFamily(400),
+    fontWeight: '600',
+  },
+  verticalShortCardInfoOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    padding: s(12),
+  },
+  verticalShortCardTitle: {
+    color: '#fff',
+    fontSize: ms(14),
+    fontFamily: getFontFamily(600),
+    lineHeight: ms(18),
+    marginBottom: vs(4),
+  },
+  verticalShortCardMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  verticalShortCardCategory: {
+    color: '#fff',
+    fontSize: ms(12),
+    fontFamily: getFontFamily(400),
+    opacity: 0.9,
+  },
+  verticalShortCardDate: {
+    color: '#fff',
+    fontSize: ms(12),
+    fontFamily: getFontFamily(400),
+    opacity: 0.8,
+  },
+  verticalShortsSectionContainer: {
+    flex: 1,
+    backgroundColor: '#000',
+  },
+  verticalShortsSectionHeader: {
+    paddingHorizontal: s(12),
+    paddingVertical: vs(12),
+    backgroundColor: '#000',
+  },
+  verticalShortsSectionTitleWrap: {
+    flexDirection: 'column',
+  },
+  verticalShortsSectionTitle: {
+    fontSize: ms(18),
+    fontWeight: '700',
+    color: '#fff',
+    fontFamily: getFontFamily(700),
+  },
+  verticalShortsSectionUnderline: {
+    width: s(40),
+    height: vs(3),
+    backgroundColor: '#1565C0',
+    marginTop: vs(6),
+    borderRadius: vs(2),
+  },
+  verticalShortsListContent: {
+    backgroundColor: '#000',
+  },
+
+  // States
+  listContent: { paddingBottom: vs(30), backgroundColor: '#f2f2f2', paddingTop: vs(8) },
+  center:      { flex: 1, justifyContent: 'center', alignItems: 'center', gap: vs(10), padding: s(24) },
+  loadingText: { fontSize: ms(13), color: '#666', fontFamily: getFontFamily(400) },
+  errorText:   { fontSize: ms(14), color: '#c62828', textAlign: 'center', fontFamily: getFontFamily(400) },
+  emptyText:   { fontSize: ms(14), color: '#999', fontFamily: getFontFamily(400) },
+  emptyHint:   { fontSize: ms(13), color: '#bbb', paddingVertical: vs(8), fontFamily: getFontFamily(400) },
+  retryBtn: {
+    backgroundColor: '#1565C0',
+    paddingHorizontal: s(24),
+    paddingVertical: vs(8),
+    borderRadius: ms(20),
+    marginTop: vs(4),
+  },
+  retryBtnText: { color: '#fff', fontWeight: '700', fontSize: ms(13), fontFamily: getFontFamily(700) },
+  loadMoreFooter: { paddingVertical: vs(16), alignItems: 'center' },
+  scrollTopBtn: {
+    position: 'absolute',
+    bottom: vs(50),
+    right: s(16),
+    width: s(42),
+    height: s(42),
+    borderRadius: s(21),
+    backgroundColor: '#096dd2',
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: vs(2) },
+    shadowOpacity: 0.22,
+    shadowRadius: s(4),
+  },
+});

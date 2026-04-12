@@ -530,7 +530,7 @@ const VideosScreen = ({ navigation, route }) => {
   const [taboolaAds, setTaboolaAds] = useState(null);
 
   // ── UI state ──────────────────────────────────────────────────────────────────
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   // const [activeCategory, setActiveCategory] = useState('');
   const [filterVisible, setFilterVisible] = useState(false);
@@ -547,6 +547,9 @@ const VideosScreen = ({ navigation, route }) => {
   const [webViewVisible, setWebViewVisible] = useState(false);
   const [webViewUrl, setWebViewUrl] = useState('');
   const [filters, setFilters] = useState({ category: '', date: '', district: '', districtSlug: '' });
+  const [initialLoad, setInitialLoad] = useState(true);
+  const [cachedData, setCachedData] = useState(null);
+
   // ── Fetch: CDNApi + API_ENDPOINTS.VIDEO_MAIN (/videomain) ────────────────────
 // In fetchVideos, replace the entire params building logic with this simpler version:
 
@@ -575,8 +578,20 @@ const handleCategoryPillPress = useCallback((ctitle) => {
 
 
 const fetchVideos = useCallback(async ({ cat = '', date = '', district = '', districtSlug = '', page = 1, append = false } = {}) => {
+  // Check cache first for instant response
+  if (!append && cachedData && !loading && initialLoad) {
+    console.log('📦 Using cached video data - instant response');
+    setAllVideos(cachedData.videos);
+    setCategories(cachedData.categories);
+    setFilterOptions(cachedData.filterOptions);
+    setDistrictOptions(cachedData.districtOptions);
+    setInitialLoad(false);
+    return;
+  }
+
   if (!append) {
     setLoading(true);
+    setInitialLoad(true);
     setCurrentPage(1);
     setHasMore(true);
   } else {
@@ -590,22 +605,22 @@ const fetchVideos = useCallback(async ({ cat = '', date = '', district = '', dis
       const data = response.data;
       // console.log('[shorts] API response:', data);
       // console.log('[shorts] requested page:', page, 'append:', append);
-      
+
       // The shorts API returns news articles, not videos
       // We need to process them differently
       let raw = [];
       let pagination = {};
-      
+
       if (data?.newlist?.data) {
         raw = data.newlist.data;
         pagination = data.newlist.pagination || {};
       } else if (Array.isArray(data)) {
         raw = data;
       }
-      
+
       // console.log('[shorts] total items:', raw.length);
       // console.log('[shorts] pagination:', pagination);
-      
+
       // Convert news items to video-like format for display
       const processedItems = raw.map(item => ({
         ...item,
@@ -618,7 +633,7 @@ const fetchVideos = useCallback(async ({ cat = '', date = '', district = '', dis
         created_at: item.newsdate,
         slug: item.slug || item.short_slug
       }));
-      
+
       if (append) {
         setAllVideos(prev => {
           const existingIds = new Set(prev.map(v => v.videoid).filter(Boolean));
@@ -627,22 +642,22 @@ const fetchVideos = useCallback(async ({ cat = '', date = '', district = '', dis
       } else {
         setAllVideos(processedItems);
       }
-      
+
       // Update pagination state
       const apiCurrentPage = pagination.current_page ?? page;
       const apiLastPage = pagination.last_page ?? 1;
       const newHasMore = apiCurrentPage < apiLastPage;
-      
-      console.log('[shorts] pagination update:', { 
-        currentPage: apiCurrentPage, 
-        lastPage: apiLastPage, 
-        hasMore: newHasMore 
+
+      console.log('[shorts] pagination update:', {
+        currentPage: apiCurrentPage,
+        lastPage: apiLastPage,
+        hasMore: newHasMore
       });
-      
+
       setCurrentPage(apiCurrentPage);
       setLastPage(apiLastPage);
       setHasMore(newHasMore);
-      
+
       // Set categories/filters from first load cache
       return;
     }
@@ -651,7 +666,7 @@ const fetchVideos = useCallback(async ({ cat = '', date = '', district = '', dis
     let endpoint;
     let response;
     let data;
-    
+
     if (district) {
       // District filtering: use /videomain with correct parameters
       const p = new URLSearchParams();
@@ -660,11 +675,11 @@ const fetchVideos = useCallback(async ({ cat = '', date = '', district = '', dis
       p.append('sort', 'desc'); // website always uses sort=desc
       if (date) p.append('date', date);
       if (page > 1) p.append('page', String(page));
-      
+
       // Use /videomain endpoint for district filtering
       const baseParams = p.toString();
       endpoint = baseParams ? `${API_ENDPOINTS.VIDEO_MAIN}?${baseParams}` : API_ENDPOINTS.VIDEO_MAIN;
-      
+
       console.log('[VideosScreen] fetching (district):', endpoint);
       console.log('[VideosScreen] params → cat:', cat || '1585', '| district:', district, '| date:', date, '| sort: desc');
     } else {
@@ -678,14 +693,14 @@ const fetchVideos = useCallback(async ({ cat = '', date = '', district = '', dis
       endpoint = query
         ? `${API_ENDPOINTS.VIDEO_MAIN}?${query}`
         : API_ENDPOINTS.VIDEO_MAIN;
-      
+
       console.log('[VideosScreen] fetching (regular):', endpoint);
       console.log('[VideosScreen] params → cat:', cat, '| date:', date);
     }
-    
+
     response = await CDNApi.get(endpoint);
     data = response.data;
-    
+
     // Safe data processing to prevent property storage errors
     const safeProcessData = (data) => {
       try {
@@ -699,7 +714,7 @@ const fetchVideos = useCallback(async ({ cat = '', date = '', district = '', dis
               ...data.videomix,
               data: (data.videomix.data || []).slice(0, 50) // Limit to 50 videos
             } : undefined,
-            districtnews: data.districtnews ? 
+            districtnews: data.districtnews ?
               (Array.isArray(data.districtnews) ? data.districtnews.slice(0, 50) : []) : [],
             category: (data.category || []).slice(0, 20), // Limit categories
             filter: (data.filter || []).slice(0, 10), // Limit filters
@@ -718,20 +733,20 @@ const fetchVideos = useCallback(async ({ cat = '', date = '', district = '', dis
 
     // Process the data safely
     const safeData = safeProcessData(data);
-    
+
     console.log('[fetch] response keys:', Object.keys(safeData));
     console.log('[fetch] filterOptions:', JSON.stringify(filterOptions));
     console.log('[fetch] districtlist in response?', !!safeData?.districtlist);
     console.log('[fetch] first video ctitle:', safeData?.videomix?.data?.[0]?.ctitle);
     console.log('[fetch] first video district:', safeData?.videomix?.data?.[0]?.district);
-    
+
     // Log districtnews content details
-    console.log('[fetch] districtnews first 3:', 
+    console.log('[fetch] districtnews first 3:',
       (safeData?.districtnews || safeData?.videomix?.data || [])
         .slice(0, 3)
         .map(v => ({ title: v.videotitle?.slice(0, 30), ctitle: v.ctitle, districtid: v.districtid }))
     );
-    
+
     // Log selected district info
     if (district) {
       const selectedDistrict = districtOptions.find(d => String(d.id) === district);
@@ -748,17 +763,17 @@ const fetchVideos = useCallback(async ({ cat = '', date = '', district = '', dis
     if (district && raw.length > 0) {
       const selectedDistrict = districtOptions.find(d => String(d.id) === String(district));
       const districtName = selectedDistrict?.title;
-      
+
       console.log('[fetch] filtering videos by district (strict web method):', districtName);
       console.log('[fetch] selected district ID:', district);
       console.log('[fetch] selected district object:', JSON.stringify(selectedDistrict));
       console.log('[fetch] selected district districtname field:', selectedDistrict?.districtname);
-      
+
       if (districtName) {
         const beforeFilter = raw.length;
-        
+
         // Log some sample video district tags to debug
-        console.log('[fetch] sample video district tags:', 
+        console.log('[fetch] sample video district tags:',
           raw.slice(0, 10).map(v => ({
             title: v.title?.slice(0, 30),
             districttag: v.districttag,
@@ -767,7 +782,7 @@ const fetchVideos = useCallback(async ({ cat = '', date = '', district = '', dis
             districtid: v.districtid
           }))
         );
-        
+
         // Strict web approach: Only show videos that explicitly belong to selected district
         raw = raw.filter(video => {
           // Method 1: Check if video has districtid that matches selected district
@@ -775,48 +790,48 @@ const fetchVideos = useCallback(async ({ cat = '', date = '', district = '', dis
             console.log('[filter] included by districtid:', video.districtid, 'for district:', districtName);
             return true;
           }
-          
+
           // Method 2: Check if video district tags exactly match selected district name
           if (video.districttag === districtName) {
             console.log('[filter] included by districttag:', video.districttag, 'for district:', districtName);
             return true;
           }
-          
+
           // Only check districtengtag if both are defined (not undefined)
-          if (video.districtengtag && selectedDistrict?.districtname && 
+          if (video.districtengtag && selectedDistrict?.districtname &&
               video.districtengtag === selectedDistrict.districtname) {
             console.log('[filter] included by districtengtag:', video.districtengtag, 'for district:', districtName);
             return true;
           }
-          
+
           // Exclude videos that belong to other districts
           if (video.districttag && video.districttag !== districtName) {
             console.log('[filter] EXCLUDED by wrong districttag:', video.districttag, 'expected:', districtName);
             return false;
           }
-          
+
           // Only exclude by districtengtag if both are defined
-          if (video.districtengtag && selectedDistrict?.districtname && 
+          if (video.districtengtag && selectedDistrict?.districtname &&
               video.districtengtag !== selectedDistrict.districtname) {
             console.log('[filter] EXCLUDED by wrong districtengtag:', video.districtengtag, 'expected:', selectedDistrict.districtname);
             return false;
           }
-          
+
           // If video has no district info at all, exclude it (can't verify it belongs to selected district)
           if (!video.districtid && !video.districttag && !video.districtengtag) {
             console.log('[filter] EXCLUDED - no district info');
             return false;
           }
-          
+
           console.log('[filter] EXCLUDED - default case for video:', video.title?.slice(0, 30));
           return false;
         });
-        
+
         console.log('[fetch] district filter results (strict web method):', beforeFilter, '→', raw.length, 'videos');
-        
+
         // Log filtered results to verify
         if (raw.length > 0) {
-          console.log('[fetch] filtered videos district tags:', 
+          console.log('[fetch] filtered videos district tags:',
             raw.slice(0, 5).map(v => ({
               title: v.title?.slice(0, 30),
               districttag: v.districttag,
@@ -862,7 +877,7 @@ const fetchVideos = useCallback(async ({ cat = '', date = '', district = '', dis
     }
 
     if (safeData?.taboola_ads?.mobile) setTaboolaAds(prev => prev ?? safeData.taboola_ads.mobile);
-    
+
     // Debug pagination data
     // console.log('[fetch] pagination data:', {
     //   currentPage: pagination.current_page,
@@ -870,11 +885,11 @@ const fetchVideos = useCallback(async ({ cat = '', date = '', district = '', dis
     //   requestedPage: page,
     //   hasMoreBefore: hasMore
     // });
-    
+
     setCurrentPage(pagination.current_page || page);
     setLastPage(pagination.last_page || 1);
     setHasMore((pagination.current_page || page) < (pagination.last_page || 1));
-    
+
     // console.log('[fetch] hasMore set to:', (pagination.current_page || page) < (pagination.last_page || 1));
 
     if (safeData?.category?.length) {
@@ -892,7 +907,7 @@ const fetchVideos = useCallback(async ({ cat = '', date = '', district = '', dis
     if (safeData?.filter?.length) setFilterOptions(prev => prev.length > 0 ? prev : safeData.filter);
     if (safeData?.districtlist?.data?.length) {
       // console.log('[fetch] sample district obj:', JSON.stringify(safeData.districtlist.data[0]));
-      // console.log('[fetch] all district options:', 
+      // console.log('[fetch] all district options:',
       //   JSON.stringify(safeData.districtlist.data.map(d => ({ id: d.id, title: d.title })))
       // );
       setDistrictOptions(prev => prev.length > 0 ? prev : safeData.districtlist.data);
@@ -903,7 +918,22 @@ const fetchVideos = useCallback(async ({ cat = '', date = '', district = '', dis
     setError(err?.message || 'பிழை ஏற்பட்டது');
   } finally {
     if (append) setLoadingMore(false);
-    else setLoading(false);
+    else {
+      setLoading(false);
+      setInitialLoad(false);
+
+      // Cache the data for next time
+      if (allVideos.length > 0) {
+        const newCacheData = {
+          videos: allVideos,
+          categories: categories,
+          filterOptions: filterOptions,
+          districtOptions: districtOptions
+        };
+        setCachedData(newCacheData);
+        console.log('📦 Cached video data for future use');
+      }
+    }
   }
 }, []);
 
@@ -991,7 +1021,7 @@ useEffect(() => {
     const timestamp = route?.params?.timestamp;
     
     if (catId !== undefined && catId !== '') {
-      console.log('[VideosScreen] Setting category from navigation params:', { catId, catTitle, timestamp });
+      // console.log('[VideosScreen] Setting category from navigation params:', { catId, catTitle, timestamp });
       
       // Set the active category to match the passed catId
       const updated = { ...filters, category: String(catId) };
