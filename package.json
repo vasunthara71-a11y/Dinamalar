@@ -7,7 +7,7 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
-    "postinstall": "node patches/postinstall.js"
+    "postinstall": "node patches/postinstall.js && node patches/fix-dependencies.js"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.1.1",
