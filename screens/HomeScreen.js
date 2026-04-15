@@ -46,6 +46,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { SocialIcons } from '../utils/icons';
 import AdvertisementBanner from '../components/AdvertisementBanner';
 import PromoBanners from '../components/PromoBanners';
+import KuralAmutham from '../components/KuralAmutham';
 import {
   pollFlashNotifications,
   getStoredFlashItems,
@@ -6127,8 +6128,8 @@ export default function HomeScreen() {
                                                 Linking.openURL(link).catch(() => console.log('Failed to open cinema link'));
                                               } : section.title && section.title?.includes('வாராவாரம்') || section.title?.includes('varavaram') ?
                                                 () => {
-                                                  console.log('📰 VARAVARAM SECTION HEADER CLICKED - Navigating to CommonSectionScreen with varavaram data');
-                                                  navigation?.navigate('CommonSectionScreen', {
+                                                  console.log('VARAVARAM SECTION HEADER CLICKED - Navigating to VaravaramScreen with varavaram data');
+                                                  navigation?.navigate('VaravaramScreen', {
                                                     screenTitle: 'வாராவாரம்',
                                                     apiEndpoint: 'https://api-st.dinamalar.com/varavaram',
                                                     allTabLink: 'https://api-st.dinamalar.com/varavaram'
@@ -6287,7 +6288,7 @@ export default function HomeScreen() {
                                       initialTabTitle: 'all'
                                     });
                                   } else if (normalizedCategory === 'varavaram') {
-                                    navigation?.navigate('CommonSectionScreen', {
+                                    navigation?.navigate('VaravaramScreen', {
                                       screenTitle: 'varavaram',
                                       apiEndpoint: 'https://api-st.dinamalar.com/varavaram',
                                       allTabLink: 'https://api-st.dinamalar.com/varavaram',
@@ -6557,6 +6558,20 @@ export default function HomeScreen() {
                       />
                     );
                   })}
+                  
+                  {/* Add KuralAmutham after India section */}
+                  {section.title && (section.title?.includes('இந்தியா') || section.title?.includes('india')) && (
+                    <KuralAmutham 
+                      title={'குறள் அமுதம்'}
+                      onSeeMore={() => {
+                        console.log('📰 KURAL AMUTHAM HEADER CLICKED - Opening Thirukural webpage');
+                        navigation?.navigate('GenericWebViewScreen', {
+                          url: 'https://www.dinamalar.com/thirukural',
+                          title: 'திருக்குறள்'
+                        });
+                      }}
+                    />
+                  )}
                 </View>
               )
           ))}
@@ -6588,11 +6603,6 @@ export default function HomeScreen() {
         onLocation={() => setIsLocationDrawerVisible(true)}
         selectedDistrict={selectedDistrict}
       />
-
-
-
-
-
       <DrawerMenu
         isVisible={isDrawerVisible}
         onClose={() => setIsDrawerVisible(false)}

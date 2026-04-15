@@ -614,7 +614,8 @@ const fetchVideos = useCallback(async ({
   try {
     // ── Shorts path ───────────────────────────────────────────────────────
     if (cat === 'shorts') {
-      const endpoint = API_ENDPOINTS.SHORTS + (page > 1 ? `?page=${page}` : '');
+      // Use smaller page size for shorts too - 8 items per page for faster loading
+      const endpoint = API_ENDPOINTS.SHORTS + (page > 1 ? `?page=${page}&limit=8` : '?limit=8');
       const response = await CDNApi.get(endpoint, { signal });
       const data = response.data;
 
@@ -647,17 +648,20 @@ const fetchVideos = useCallback(async ({
       return;
     }
 
-    // ── Build endpoint ────────────────────────────────────────────────────
+    // ── Build endpoint with smaller page size for faster loading ─────────────────
     const params = new URLSearchParams();
     if (cat)      params.append('cat', cat);
     if (date)     params.append('date', date);
     if (district) params.append('district', district);
     if (page > 1) params.append('page', String(page));
-
+    
+    // Load smaller chunks for faster response - 4 sets of ~8 videos each
+    params.append('limit', '8');  // Load 8 videos per page instead of default
+    
     const query = params.toString();
     const endpoint = query
       ? `${API_ENDPOINTS.VIDEO_MAIN}?${query}`
-      : API_ENDPOINTS.VIDEO_MAIN;
+      : `${API_ENDPOINTS.VIDEO_MAIN}?limit=8`;  // Default limit for first page
 
     console.log('[fetchVideos] →', endpoint);
 
@@ -794,8 +798,8 @@ useEffect(() => {
   initialTabApplied.current = true;
   setFilters(prev => ({ ...prev, category: initialCategory }));
 
-  // Fetch filtered videos AND base data (for categories/tabs) in parallel
-  Promise.all([
+  // Fetch filtered videos AND base data (for categories/tabs) in parallel with timeout
+  const parallelRequests = [
     fetchVideos({ cat: initialCategory }),  // filtered videos
     // Also fetch base to populate category tabs
     CDNApi.get(API_ENDPOINTS.VIDEO_MAIN).then(res => {
@@ -815,31 +819,33 @@ useEffect(() => {
       if (data?.filter?.length) setFilterOptions(prev => prev.length > 0 ? prev : data.filter);
       if (data?.districtlist?.data?.length) setDistrictOptions(prev => prev.length > 0 ? prev : data.districtlist.data);
     }).catch(() => {})  // silent fail - categories are non-critical
-  ]);
+  ];
 
+  // Add timeout to prevent hanging
+  Promise.race([
+    Promise.allSettled(parallelRequests),
+    new Promise(resolve => setTimeout(() => resolve([{ status: 'timeout' }]), 5000))
+  ]).then(results => {
+    if (results[0]?.status === 'timeout') {
+      console.warn('[VideosScreen] Initial data fetch timeout - proceeding with available data');
+    }
+  });
 }, [fetchVideos, initialCategory, initialTabKey]);
 
-  // Auto-scroll category tabs so active tab is always fully visible (using SportsScreen pattern)
-  useEffect(() => {
-    // console.log('[TabScroll] Category changed to:', filters.category);
-    // console.log('[TabScroll] Available tab layouts:', Object.keys(tabLayoutsRef.current));
-    
-    if (!filters.category || !categoryScrollRef.current) return;
-    const layout = tabLayoutsRef.current[filters.category];
-    // console.log('[TabScroll] Layout for active tab:', layout);
-    
-    if (!layout) return;
+useEffect(() => {
+  if (!filters.category || !categoryScrollRef.current) return;
+  const layout = tabLayoutsRef.current[filters.category];
+  if (!layout) return;
 
-    // Use requestAnimationFrame to prevent conflicts
-    requestAnimationFrame(() => {
-      if (categoryScrollRef.current) {
-        // Centre the active tab: scroll so tab sits in middle of scroll view
-        const scrollX = Math.max(0, layout.x - layout.width);
-        // console.log('[TabScroll] Scrolling to X:', scrollX);
-        categoryScrollRef.current.scrollTo({ x: scrollX, animated: true });
-      }
-    });
-  }, [filters.category]);
+  // Use requestAnimationFrame to prevent conflicts
+  requestAnimationFrame(() => {
+    if (categoryScrollRef.current) {
+      // Centre the active tab: scroll so tab sits in middle of scroll view
+      const scrollX = Math.max(0, layout.x - layout.width);
+      categoryScrollRef.current.scrollTo({ x: scrollX, animated: true });
+    }
+  });
+}, [filters.category]);
 
   // Add this useEffect to respond to navigation params from VideoDetailScreen
   useEffect(() => {
@@ -1031,7 +1037,8 @@ const handleMenuPress = (menuItem) => {
 
   // ── List header ───────────────────────────────────────────────────────────────
 const ListHeader = () => {
-  if (loading) return <VideoSkeletonLoader />;
+  // Only show skeleton when no data exists AND we're loading
+  if (loading && allVideos.length === 0) return <VideoSkeletonLoader />;
 
   // Build active pills
   const activePills = [];
@@ -1214,7 +1221,7 @@ return (
         ref={flatListRef}
         onScroll={handleScroll}
         scrollEventThrottle={16}
-        data={loading ? [] : listData}
+        data={listData}
         
         keyExtractor={(item, idx) => {
           if (item._type === 'shorts_strip') return item._key || `shorts_strip_${idx}`;

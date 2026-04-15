@@ -499,10 +499,10 @@ const DrawerMenu = ({ isVisible, onClose, onMenuPress, navigation }) => {
       // Immediately hide email by clearing state
       setUserEmail(null);
       setIsLoggedIn(false);
-      
+
       // Clear all user data from AsyncStorage
       await AsyncStorage.multiRemove(['userEmail', 'savedEmail', 'savedPassword', 'rememberMe']);
-      
+
       // Close drawer
       onClose();
     } catch (error) {
@@ -544,27 +544,22 @@ const DrawerMenu = ({ isVisible, onClose, onMenuPress, navigation }) => {
 
     const parentId = String(parentItem?.id || '');
 
- if (
-  title === 'முந்தய பதிப்புகள்' ||
-  title === 'முந்தய பதிப்புகள்' ||
-  title.toLowerCase().includes('mundhaiya') ||
-  title.toLowerCase().includes('pathippu')
-) {
-  const url = 'https://www.dinamalar.com/archive';
+    if (
+      title === 'முந்தய பதிப்புகள்' ||
+      title === 'முந்தய பதிப்புகள்' ||
+      title.toLowerCase().includes('mundhaiya') ||
+      title.toLowerCase().includes('pathippu')
+    ) {
+      const url = 'https://www.dinamalar.com/archive';
 
-  Linking.canOpenURL(url)
-    .then((supported) => {
-      if (supported) {
-        return Linking.openURL(url);
-      } else {
-        console.log("Can't open URL:", url);
-      }
-    })
-    .catch((err) => console.error('Error opening URL:', err));
+      navigation?.navigate('GenericWebViewScreen', {
+        url: url,
+        title: 'முந்தய பதிப்புகள்'
+      });
 
-  onClose();
-  return;
-}
+      onClose();
+      return;
+    }
 
     const catFromLink = (link.match(/cat=(\w+)/i) || [])[1] || '';
 
@@ -600,6 +595,7 @@ const DrawerMenu = ({ isVisible, onClose, onMenuPress, navigation }) => {
 
         else if (entry.tabTitle === null) navigation?.navigate('TharpothaiyaSeithigalScreen');
 
+
         else navigation?.navigate('TharpothaiyaSeithigalScreen', { initialTabTitle: entry.tabTitle });
 
         onClose(); return;
@@ -630,9 +626,27 @@ const DrawerMenu = ({ isVisible, onClose, onMenuPress, navigation }) => {
 
     const reacturl = item.reacturl || item.slug || '';
 
+    if (
+  title === 'டீ கடை பெஞ்ச்' ||
+  title === 'Tea Kadai Bench' ||
+  id === '91' ||
+  link === '/newsdata?cat=39&scat=91'
+) {
+  navigation?.navigate('CommonSectionScreen', {
+    screenTitle: 'டீ கடை பெஞ்ச்',
+    apiEndpoint: '/dinamdinam',
+    allTabLink: '/dinamdinam',
+    initialTabId: '91',
+    initialTabLink: '/newsdata?cat=39&scat=91',
+    initialTabTitle: 'டீ கடை பெஞ்ச்',
+  });
+  onClose();
+  return;
+}
+
     const isDinamDinamSub = parentTitle === 'தினம் தினம்' && (reacturl.startsWith('/dinamdinam/') || reacturl === '/pugarpetti' || link === '/pugarpetti');
 
-    if (isDinamDinamSub) { 
+    if (isDinamDinamSub) {
       // Check if this is the PugarPetti item - navigate to PugarPettiScreen directly
       if (title === 'புகார் பெட்டி' || link === '/pugarpetti') {
         navigation?.navigate('PugarPettiScreen', {
@@ -642,64 +656,78 @@ const DrawerMenu = ({ isVisible, onClose, onMenuPress, navigation }) => {
         onClose();
         return;
       }
-      navigation?.navigate('CommonSectionScreen', { 
-        screenTitle: 'தினம் தினம்', 
-        apiEndpoint: '/dinamdinam', 
-        allTabLink: '/dinamdinam', 
-        initialTabId: item.id != null ? item.id : null, 
-        initialTabLink: link || '', 
-        initialTabTitle: title || '' 
-      }); 
-      onClose(); 
+      navigation?.navigate('CommonSectionScreen', {
+        screenTitle: 'தினம் தினம்',
+        apiEndpoint: '/dinamdinam',
+        allTabLink: '/dinamdinam',
+        initialTabId: item.id != null ? item.id : null,
+        initialTabLink: link || '',
+        initialTabTitle: title || ''
+      });
+      onClose();
       return;
     }
-  
+
     if (title === 'விளையாட்டு' || link.includes('sports')) { navigation?.navigate('SportsScreen'); onClose(); return; }
 
     if (dinamDinamSubcats && dinamDinamSubcats.length > 0) {
 
       const matchedSubcat = dinamDinamSubcats.find(sc => sc.link === link || (sc.id && item.id && String(sc.id) === String(item.id)));
 
-      if (matchedSubcat) { 
-      // Handle dinam-dinam subcategories in WebView
-      navigation?.navigate('TempleWebViewScreen', {
-        url: `https://www.dinamalar.com${matchedSubcat.link || link}`
-      });
+      if (matchedSubcat) {
+        // Handle dinam-dinam subcategories in WebView
+        navigation?.navigate('TempleWebViewScreen', {
+          url: `https://www.dinamalar.com${matchedSubcat.link || link}`
+        });
+        onClose();
+        return;
+      }
+
+    }
+
+    if (title === 'வாராவாரம்' || id === 'varavaram' || link === '/varavaram' || link.includes('varavaram')) { 
+      navigation?.navigate('CommonSectionScreen', { 
+        screenTitle: 'வாராவாரம்', 
+        apiEndpoint: 'https://api-st.dinamalar.com/varavaram', 
+        allTabLink: 'https://api-st.dinamalar.com/varavaram', 
+        initialTabId: 'all' 
+      }); 
       onClose(); 
       return; 
     }
-
-    }
-
-    if (title === 'வாராவாரம்' || id === 'varavaram' || link === '/varavaram' || link.includes('varavaram')) { navigation?.navigate('CommonSectionScreen', { screenTitle: 'வாராவாரம்', apiEndpoint: 'https://api-st.dinamalar.com/varavaram', allTabLink: 'https://api-st.dinamalar.com/varavaram', initialTabId: 'all' }); onClose(); return; }
 
     const isVaravaramParent = parentTitle === 'வாராவாரம்' || parentId === 'varavaram' || parentLink === '/varavaram';
 
-    if (isVaravaramParent) { 
-      navigation?.navigate('TempleWebViewScreen', {
-        url: 'https://www.dinamalar.com/varavaram'
+    if (isVaravaramParent) {
+      navigation?.navigate('CommonSectionScreen', { 
+        screenTitle: 'வாராவாரம்', 
+        apiEndpoint: 'https://api-st.dinamalar.com/varavaram', 
+        allTabLink: 'https://api-st.dinamalar.com/varavaram',
+        initialTabId: id || '', 
+        initialTabLink: link || '', 
+        initialTabTitle: title || '' 
       });
-      onClose(); 
-      return; 
+      onClose();
+      return;
     }
 
-    if (title === 'ஜோசியம்' || id === 'astrology' || link === '/joshiyam' || link === 'joshiyam') { 
+    if (title === 'ஜோசியம்' || id === 'astrology' || link === '/joshiyam' || link === 'joshiyam') {
       navigation?.navigate('TempleWebViewScreen', {
         url: 'https://or-staging-kalvimalar.dinamalar.com/astrology'
       });
-      onClose(); 
+      onClose();
       return;
     }
 
     const isJoshiyamParent = isJoshiyamItem(parentTitle, parentLink, parentId);
 
-    if (isJoshiyamParent || isJoshiyamItem('', link, id)) { 
+    if (isJoshiyamParent || isJoshiyamItem('', link, id)) {
       // Navigate to specific joshiyam link instead of always going to main page
       let joshiyamUrl;
-      
+
       // Use reacturl if available, otherwise fall back to link
       const targetUrl = item.reacturl || item.slug || link;
-      
+
       if (targetUrl.startsWith('/astrology/')) {
         joshiyamUrl = `https://or-staging-kalvimalar.dinamalar.com${targetUrl}`;
       } else if (targetUrl.startsWith('/')) {
@@ -710,8 +738,8 @@ const DrawerMenu = ({ isVisible, onClose, onMenuPress, navigation }) => {
       navigation?.navigate('TempleWebViewScreen', {
         url: joshiyamUrl
       });
-      onClose(); 
-      return; 
+      onClose();
+      return;
     }
 
     if (title === 'உலக தமிழர்' || id === 'nrimain' || link === '/nrimain' || link.includes('nrimain')) { navigation?.navigate('CommonSectionScreen', { screenTitle: 'உலக தமிழர்', apiEndpoint: '/nrimain', allTabLink: '/nrimain' }); onClose(); return; }
@@ -734,51 +762,51 @@ const DrawerMenu = ({ isVisible, onClose, onMenuPress, navigation }) => {
 
     } const isAnmegamParent = parentTitle === 'ஆன்மீகம்' || parentId === 'anmegam' || parentLink === '/anmegam';
 
-    if (isAnmegamParent) { 
+    if (isAnmegamParent) {
       // Handle 360 degree virtual tours
       if (title === '360 deg' || title === '360°' || title.toLowerCase().includes('360') || link.includes('360') || title.toLowerCase().includes('virtual') || title.toLowerCase().includes('tour')) {
-        Linking.openURL('https://www.dinamalar.com/anmegam-spirituality/temple-360-degree-virtual-tours').catch(() => 
+        Linking.openURL('https://www.dinamalar.com/anmegam-spirituality/temple-360-degree-virtual-tours').catch(() =>
           console.log('Failed to open 360 degree virtual tours page')
         );
-        onClose(); 
-        return; 
+        onClose();
+        return;
       }
-      
-      navigation?.navigate('CommonSectionScreen', { screenTitle: 'ஆன்மீகம்', apiEndpoint: '/anmegam', allTabLink: '/anmegam', initialTabId: id || '', initialTabLink: link || '', initialTabTitle: title || '' }); onClose(); return; 
+
+      navigation?.navigate('CommonSectionScreen', { screenTitle: 'ஆன்மீகம்', apiEndpoint: '/anmegam', allTabLink: '/anmegam', initialTabId: id || '', initialTabLink: link || '', initialTabTitle: title || '' }); onClose(); return;
     }
 
-    if (title === 'காலண்டர்' || id === 'calendar' || link === '/calendar' || link.includes('calendar')) { 
-      Linking.openURL('https://play.google.com/store/apps/details?id=com.daily.dinamalar&pcampaignid=web_share').catch(() => 
+    if (title === 'காலண்டர்' || id === 'calendar' || link === '/calendar' || link.includes('calendar')) {
+      Linking.openURL('https://play.google.com/store/apps/details?id=com.daily.dinamalar&pcampaignid=web_share').catch(() =>
         console.log('Failed to open Google Play Store link')
       );
-      onClose(); 
-      return; 
+      onClose();
+      return;
     }
 
     const isCalendarParent = parentTitle === 'காலண்டர்' || parentId === 'calendar' || parentLink === '/calendar';
 
-    if (isCalendarParent) { 
-      Linking.openURL('https://play.google.com/store/apps/details?id=com.daily.dinamalar&pcampaignid=web_share').catch(() => 
+    if (isCalendarParent) {
+      Linking.openURL('https://play.google.com/store/apps/details?id=com.daily.dinamalar&pcampaignid=web_share').catch(() =>
         console.log('Failed to open Google Play Store link')
       );
-      onClose(); 
-      return; 
+      onClose();
+      return;
     }
 
     if (title === 'கோவில்கள்' || title === 'கோவில்' || id === 'temple' || link === '/temple' || link.includes('temple') || link.includes('kovil') || title.includes('கோவில்')) {
       navigation?.navigate('TempleWebViewScreen', {
         url: 'https://temple.dinamalar.com/'
       });
-      onClose(); 
-      return; 
+      onClose();
+      return;
     }
 
     if (title === 'சினிமா' || id === 'cinema' || link === '/cinema' || link.includes('cinema')) {
       navigation?.navigate('TempleWebViewScreen', {
         url: 'https://cinema.dinamalar.com/'
       });
-      onClose(); 
-      return; 
+      onClose();
+      return;
     }
 
     if (title === 'மலர்கள்' || id === 'malargal' || link === '/malargal' || link.includes('malargal')) { navigation?.navigate('CommonSectionScreen', { screenTitle: 'மலர்கள்', apiEndpoint: '/malargal', allTabLink: '/malargal' }); onClose(); return; }
@@ -805,39 +833,56 @@ const DrawerMenu = ({ isVisible, onClose, onMenuPress, navigation }) => {
 
     if (resolved) {
       if (resolved.screen === '__external__') Linking.openURL(link);
-      else navigation?.navigate(resolved.screen, { catName: title, ...(resolved.params || {})});
+      else navigation?.navigate(resolved.screen, { catName: title, ...(resolved.params || {}) });
       onClose(); return;
     }
 
     // Handle rasi categories - open in WebView
-    if (link.includes('todayrasidata') || link.includes('weeklyrasiupdate') || link.includes('monthlyrasi') || 
-        link.includes('gurupeyerchi') || link.includes('sanipeyerchi') || 
-        link.includes('rahukethupeyarchi') || link.includes('tamilnewyear') || 
-        link.includes('englishnewyear') || link.includes('/subam') || 
-        link.includes('graha-oorai') || link.includes('gowri-panjangam') || 
-        link.includes('importantviratham')) {
+    if (link.includes('todayrasidata') || link.includes('weeklyrasiupdate') || link.includes('monthlyrasi') ||
+      link.includes('gurupeyerchi') || link.includes('sanipeyerchi') ||
+      link.includes('rahukethupeyarchi') || link.includes('tamilnewyear') ||
+      link.includes('englishnewyear') || link.includes('/subam') ||
+      link.includes('graha-oorai') || link.includes('gowri-panjangam') ||
+      link.includes('importantviratham')) {
       navigation?.navigate('TempleWebViewScreen', {
         url: `https://or-staging-kalvimalar.dinamalar.com${link.startsWith('/') ? link : `/${link}`}`
       });
-      onClose(); 
-      return; 
+      onClose();
+      return;
+    }
+
+    // Handle Tea Kadai Bench specifically - navigate to DinamDinam data in CommonSectionScreen
+    console.log('[DEBUG] Tea Kadai Bench check - title:', title, 'link:', link, 'item:', item);
+    if (title === 'Tea Kadai Bench' || title.toLowerCase().includes('tea kadai')) {
+      console.log('[DEBUG] Tea Kadai Bench handler triggered - navigating to CommonSectionScreen');
+      navigation?.navigate('CommonSectionScreen', {
+        screenTitle: 'Tea Kadai Bench',
+        apiEndpoint: '/dinamdinam',
+        allTabLink: '/dinamdinam',
+        initialTabId: item.id != null ? item.id : null,
+        initialTabLink: link || '',
+        initialTabTitle: title || ''
+      });
+      onClose();
+      return;
     }
 
     // Only use CommonSectionScreen for other categories that don't need WebView
-    if (link && link.startsWith('/') && title && 
-        !link.includes('todayrasidata') && !link.includes('weeklyrasiupdate') && 
-        !link.includes('monthlyrasi') && !link.includes('gurupeyerchi') && 
-        !link.includes('sanipeyerchi') && !link.includes('rahukethupeyarchi') && 
-        !link.includes('tamilnewyear') && !link.includes('englishnewyear') && 
-        !link.includes('/subam') && !link.includes('graha-oorai') && 
-        !link.includes('gowri-panjangam') && !link.includes('importantviratham')) {
-      navigation?.navigate('CommonSectionScreen', { screenTitle: title, apiEndpoint: link, allTabLink: link }); onClose(); return; 
+    if (link && link.startsWith('/') && title &&
+      !link.includes('todayrasidata') && !link.includes('weeklyrasiupdate') &&
+      !link.includes('monthlyrasi') && !link.includes('gurupeyerchi') &&
+      !link.includes('sanipeyerchi') && !link.includes('rahukethupeyarchi') &&
+      !link.includes('tamilnewyear') && !link.includes('englishnewyear') &&
+      !link.includes('/subam') && !link.includes('graha-oorai') &&
+      !link.includes('gowri-panjangam') && !link.includes('importantviratham')) {
+      console.log('[DEBUG] Fallback CommonSectionScreen navigation - title:', title, 'link:', link);
+      navigation?.navigate('CommonSectionScreen', { screenTitle: title, apiEndpoint: link, allTabLink: link }); onClose(); return;
     }
 
     onClose();
   };
 
-// ...
+  // ...
 
   // ─── Filtered data ────────────────────────────────────────────────────────
 
@@ -892,7 +937,7 @@ const DrawerMenu = ({ isVisible, onClose, onMenuPress, navigation }) => {
                 style={ds.logo}
                 resizeMode="contain"
               />
-             
+
             </View>
 
             {/* X close button */}
@@ -998,15 +1043,15 @@ const DrawerMenu = ({ isVisible, onClose, onMenuPress, navigation }) => {
 
                   >
 
-                  <RightArrow color={hoveredMenuItem === `m1-${index}` ? P.primary : P.primary} size={16} style={{ marginRight: s(8) }} />
+                    <RightArrow color={hoveredMenuItem === `m1-${index}` ? P.primary : P.primary} size={16} style={{ marginRight: s(8) }} />
 
-                  <Text style={{ fontFamily: FONTS.muktaMalar.semibold, fontSize: ms(17), color: hoveredMenuItem === `m1-${index}` ? P.primary : "#454F5B", flex: 1 }} numberOfLines={1}>
+                    <Text style={{ fontFamily: FONTS.muktaMalar.semibold, fontSize: ms(17), color: hoveredMenuItem === `m1-${index}` ? P.primary : "#454F5B", flex: 1 }} numberOfLines={1}>
 
-                    {item.Title || item.title || item.name || ''}
+                      {item.Title || item.title || item.name || ''}
 
-                  </Text>
+                    </Text>
 
-                </TouchableOpacity>
+                  </TouchableOpacity>
 
                 ))}
 
@@ -1554,7 +1599,7 @@ const ds = StyleSheet.create({
 
   // ── Sign Up ─────────────────────────────────────────────────────────────
 
-  signUpWrap: { paddingHorizontal: s(14), paddingVertical: vs(8),flexDirection:"row",alignItems:"center",justifyContent:"space-between" },
+  signUpWrap: { paddingHorizontal: s(14), paddingVertical: vs(8), flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
 
   signUpBtn: {
 
@@ -1577,7 +1622,7 @@ const ds = StyleSheet.create({
     paddingVertical: vs(6),
 
     justifyContent: "space-around",
-    gap:ms(5)
+    gap: ms(5)
 
   },
 
@@ -1713,60 +1758,60 @@ const ds = StyleSheet.create({
 
     justifyContent: 'center',
 
-},
+  },
 
-followItem: {
+  followItem: {
 
-width: s(32), height: s(32),
+    width: s(32), height: s(32),
 
-borderRadius: s(16),
+    borderRadius: s(16),
 
-backgroundColor: P.grey100,
+    backgroundColor: P.grey100,
 
-borderWidth: 1,
+    borderWidth: 1,
 
-borderColor: P.grey300,
+    borderColor: P.grey300,
 
-alignItems: 'center',
+    alignItems: 'center',
 
-justifyContent: 'center',
+    justifyContent: 'center',
 
-overflow: 'hidden',
+    overflow: 'hidden',
 
-},
+  },
 
-// ── Hover styles ─────────────────────────────────────────────────────
+  // ── Hover styles ─────────────────────────────────────────────────────
 
-homeRowHover: {
+  homeRowHover: {
 
-backgroundColor: P.primary + '10',
+    backgroundColor: P.primary + '10',
 
-},
+  },
 
-menuRowHover: {
+  menuRowHover: {
 
-backgroundColor: P.primary + '10',
+    backgroundColor: P.primary + '10',
 
-},
+  },
 
-menu2RowHover: {
+  menu2RowHover: {
 
-backgroundColor: P.primary + '10',
+    backgroundColor: P.primary + '10',
 
-},
+  },
 
-subRowHover: {
+  subRowHover: {
 
-backgroundColor: P.primary + '08',
+    backgroundColor: P.primary + '08',
 
-},
+  },
 
-followItemHover: {
+  followItemHover: {
 
-backgroundColor: P.primary + '15',
+    backgroundColor: P.primary + '15',
 
-borderColor: P.primary,
+    borderColor: P.primary,
 
-},
+  },
 
 });
