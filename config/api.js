@@ -330,10 +330,10 @@ export const u38Api = axios.create({
   timeout: 12000,
   headers: { 'Content-Type': 'application/json' },
 });
-
+ 
 export const CDNApi = axios.create({
   baseURL: API_BASE_URLS.CDN,
-  timeout: 15000, // Reduced to 15s for faster failure detection
+  timeout: 8000, // Reduced to 8s for faster failure detection
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
@@ -341,7 +341,7 @@ export const CDNApi = axios.create({
     'Connection': 'keep-alive' // Connection pooling
   },
 });
-
+ 
 // Add request interceptor with caching
 CDNApi.interceptors.request.use(
   (config) => {
@@ -689,3 +689,6 @@ export const testNetworkConnectivity = async () => {
 
 // ─── Default Export ───────────────────────────────────────────────────────
 export default api;
+
+// ─── Export Caching Functions ───────────────────────────────────────────────
+export { getCachedData, setCachedData };

@@ -139,7 +139,8 @@ import UniversalHeaderComponent from '../components/UniversalHeaderComponent';
 import AppHeaderComponent from '../components/AppHeaderComponent';
 import { PhotoGallery } from '../assets/svg/Icons';
 import { Ionicons } from '@expo/vector-icons';
- 
+import CustomCalendarModal from '../components/Customcalendarmodal';
+
 // -----------------------------------------------------------------------------
 // Constants
 // -----------------------------------------------------------------------------
@@ -189,15 +190,18 @@ const TAMIL_MONTHS = {
 function groupNewsByDate(items) {
   const groups = [];
   let currentDate = null;
+  let isFirstDate = true; // Track if this is the first (latest) date
 
   items.forEach(item => {
-    const rawDate = item.standarddate || item.date || item.time_date || '';
+    // Use same priority as calendar functions: ago field first, then date
+    const rawDate = item.ago || item.date || item.time_date || '';
     // Normalize date to a comparable key
     const dateKey = rawDate.split(' ')[0] || rawDate; // Take just the date part
 
     if (dateKey && dateKey !== currentDate) {
       currentDate = dateKey;
-      groups.push({ type: 'dateHeader', date: rawDate, dateKey });
+      groups.push({ type: 'dateHeader', date: rawDate, dateKey, isClickable: isFirstDate });
+      isFirstDate = false; // Only the first date is clickable
     }
     groups.push({ type: 'news', item });
   });
@@ -344,33 +348,33 @@ const RasiCard = ({ item, onPress }) => {
   );
 };
 const rc = StyleSheet.create({
-  wrap: { 
-    flexDirection: 'row', 
-    backgroundColor: '#fff', 
+  wrap: {
+    flexDirection: 'row',
+    backgroundColor: '#fff',
     alignItems: 'center',
     // borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
     paddingVertical: vs(4),
   },
-  imageWrap: { 
+  imageWrap: {
     width: s(200),        // fixed width like image 2
-    height: vs(90), 
-    position: 'relative', 
+    height: vs(90),
+    position: 'relative',
     overflow: 'hidden',
     marginLeft: s(8),
   },
   image: { width: '100%', height: '100%', resizeMode: 'contain' },
-  imagePlaceholder: { 
-    width: '100%', height: '100%', 
-    backgroundColor: '#f8f8f8', 
-    justifyContent: 'center', alignItems: 'center' 
+  imagePlaceholder: {
+    width: '100%', height: '100%',
+    backgroundColor: '#f8f8f8',
+    justifyContent: 'center', alignItems: 'center'
   },
   content: { flex: 1, paddingHorizontal: s(12) },
-  title: { 
-    fontSize: ms(15), 
-    fontFamily: FONTS.muktaMalar.bold, 
-    color: '#1a1a1a', 
-    fontWeight: '700' 
+  title: {
+    fontSize: ms(15),
+    fontFamily: FONTS.muktaMalar.bold,
+    color: '#1a1a1a',
+    fontWeight: '700'
   },
 });
 
@@ -595,11 +599,11 @@ function RasiDetailView({ tabId, tabTitle, initialJcat, initialItem, onBack, sub
   };
 
   // ? Arrows navigate between TABS
- // REPLACE with:
-const prevDisabled = currentIdx <= 0;
-const nextDisabled = currentIdx >= RASI_LIST.length - 1;
-const goToPrev = () => { if (!prevDisabled) goToRasi(RASI_LIST[currentIdx - 1].etitle); };
-const goToNext = () => { if (!nextDisabled) goToRasi(RASI_LIST[currentIdx + 1].etitle); };
+  // REPLACE with:
+  const prevDisabled = currentIdx <= 0;
+  const nextDisabled = currentIdx >= RASI_LIST.length - 1;
+  const goToPrev = () => { if (!prevDisabled) goToRasi(RASI_LIST[currentIdx - 1].etitle); };
+  const goToNext = () => { if (!nextDisabled) goToRasi(RASI_LIST[currentIdx + 1].etitle); };
   const pageTitle = `${tabTitle} : ${currentRasi.title}`;
   const date = detail?.standarddate || detail?.date || detail?.created_date || '';
   const prevDate = detail?.previousdate || detail?.prevdate || detail?.previous_date ||
@@ -620,25 +624,25 @@ const goToNext = () => { if (!nextDisabled) goToRasi(RASI_LIST[currentIdx + 1].e
   }
 
   // ? Image URI with reliable CDN fallback
-const imageUri = (() => {
-  // For todayrasi, use the CDN rasi zodiac image
-  if (tabId === 'todayrasi') {
-    return RASI_DINAMALAR_IMAGES[activeJcat] ||
+  const imageUri = (() => {
+    // For todayrasi, use the CDN rasi zodiac image
+    if (tabId === 'todayrasi') {
+      return RASI_DINAMALAR_IMAGES[activeJcat] ||
+        detail?.videothumbnail ||
+        detail?.largeimages ||
+        detail?.images ||
+        initialItem?.largeimages ||
+        'https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_default.jpg';
+    }
+    // For all other tabs (maatha rasi, guru peyarchi, sani peyarchi, etc.)
+    // use the actual article's largeimages from API
+    return detail?.largeimages ||
       detail?.videothumbnail ||
-      detail?.largeimages ||
       detail?.images ||
       initialItem?.largeimages ||
+      RASI_DINAMALAR_IMAGES[activeJcat] ||
       'https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_default.jpg';
-  }
-  // For all other tabs (maatha rasi, guru peyarchi, sani peyarchi, etc.)
-  // use the actual article's largeimages from API
-  return detail?.largeimages ||
-    detail?.videothumbnail ||
-    detail?.images ||
-    initialItem?.largeimages ||
-    RASI_DINAMALAR_IMAGES[activeJcat] ||
-    'https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_default.jpg';
-})();
+  })();
 
   // ? Share URL
   const shareUrl = detail?.slug
@@ -996,6 +1000,7 @@ const dh = StyleSheet.create({
     gap: s(6),
     paddingHorizontal: ms(12)
   },
+  
   icon: {
     marginRight: s(3),
     color: '#6c757d'
@@ -1595,6 +1600,169 @@ const normalizePhotoEndpoint = (link = '') => {
     .replace('/photoitem ', '/photodetails ');
 };
 
+// --- Varavaram Dropdown Calendar -----------------
+const VaravaramDropdownCalendar = ({ selectedYear, selectedMonth, availableYears, availableDates, onYearChange, onDateChange, showYearDropdown, showDateDropdown, setShowYearDropdown, setShowDateDropdown, apiDropdownData }) => {
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+  // Use API dropdown data for dates, fallback to manual generation if not available
+  const getDatesForMonth = () => {
+    if (apiDropdownData && apiDropdownData.length > 0) {
+      // Extract unique dates from API dropdown data for the selected year and month
+      const monthDates = apiDropdownData
+        .filter(d => {
+          const date = new Date(d.date);
+          return selectedYear !== null && selectedMonth !== null && 
+                 date.getFullYear() === selectedYear && date.getMonth() === selectedMonth;
+        })
+        .map(d => new Date(d.date).getDate())
+        .sort((a, b) => a - b);
+      
+      return monthDates.length > 0 ? monthDates : [];
+    }
+    
+    // Fallback to manual generation
+    if (selectedYear === null || selectedMonth === null) {
+      return [];
+    }
+    const dates = [];
+    const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
+    for (let i = 1; i <= daysInMonth; i++) {
+      dates.push(i);
+    }
+    return dates;
+  };
+
+  const datesInMonth = getDatesForMonth();
+
+  return (
+    <View style={{ backgroundColor: '#fff', paddingHorizontal: s(12), paddingVertical: vs(8), borderBottomWidth: 1, borderBottomColor: '#eee' }}>
+      <View style={{ flexDirection: 'row', gap: s(12) }}>
+        {/* Year Dropdown */}
+        <View style={{ flex: 1 }}>
+          <TouchableOpacity
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              borderWidth: 1,
+              borderColor: '#ddd',
+              paddingHorizontal: s(12),
+              paddingVertical: vs(8),
+              backgroundColor: '#fff',
+              justifyContent: 'space-between'
+            }}
+            onPress={() => setShowYearDropdown(!showYearDropdown)}
+            activeOpacity={0.8}
+          >
+            <Text style={{ fontSize: ms(14), fontFamily: FONTS.muktaMalar.medium, color: '#111' }}>
+              {selectedYear || 'Select Year'}
+            </Text>
+            <Ionicons name={showYearDropdown ? 'chevron-up' : 'chevron-down'} size={s(16)} color="#555" />
+          </TouchableOpacity>
+
+          {showYearDropdown && (
+            <View style={{
+              position: 'absolute',
+              top: vs(40),
+              left: 0,
+              right: 0,
+              backgroundColor: '#fff',
+              borderWidth: 1,
+              borderColor: '#ddd',
+              zIndex: 1000,
+              elevation: 10,
+              maxHeight: vs(200)
+            }}>
+              <ScrollView showsVerticalScrollIndicator={false}>
+                {availableYears.map((year) => (
+                  <TouchableOpacity
+                    key={year}
+                    style={{
+                      paddingHorizontal: s(12),
+                      paddingVertical: vs(10),
+                      borderBottomWidth: 1,
+                      borderBottomColor: '#f0f0f0',
+                      backgroundColor: year === selectedYear ? '#f0f6ff' : '#fff'
+                    }}
+                    onPress={() => {
+                      onYearChange(year);
+                      setShowYearDropdown(false);
+                    }}
+                  >
+                    <Text style={{ fontSize: ms(14), fontFamily: FONTS.muktaMalar.medium, color: year === selectedYear ? COLORS.primary : '#111' }}>
+                      {year}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          )}
+        </View>
+
+        {/* Date Dropdown */}
+        <View style={{ flex: 1 }}>
+          <TouchableOpacity
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              borderWidth: 1,
+              borderColor: '#ddd',
+              paddingHorizontal: s(12),
+              paddingVertical: vs(8),
+              backgroundColor: '#fff',
+              justifyContent: 'space-between'
+            }}
+            onPress={() => setShowDateDropdown(!showDateDropdown)}
+            activeOpacity={0.8}
+          >
+            <Text style={{ fontSize: ms(14), fontFamily: FONTS.muktaMalar.medium, color: '#111' }}>
+              {selectedMonth !== null && selectedYear !== null ? `${selectedMonth + 1}-${selectedYear}` : 'Select Month'}
+            </Text>
+            <Ionicons name={showDateDropdown ? 'chevron-up' : 'chevron-down'} size={s(16)} color="#555" />
+          </TouchableOpacity>
+
+          {showDateDropdown && (
+            <View style={{
+              position: 'absolute',
+              top: vs(40),
+              left: 0,
+              right: 0,
+              backgroundColor: '#fff',
+              borderWidth: 1,
+              borderColor: '#ddd',
+              zIndex: 1000,
+              elevation: 10,
+              maxHeight: vs(200)
+            }}>
+              <ScrollView showsVerticalScrollIndicator={false}>
+                {datesInMonth.map((date) => (
+                  <TouchableOpacity
+                    key={date}
+                    style={{
+                      paddingHorizontal: s(12),
+                      paddingVertical: vs(10),
+                      borderBottomWidth: 1,
+                      borderBottomColor: '#f0f0f0',
+                      backgroundColor: selectedMonth !== null && date === selectedMonth + 1 ? '#f0f6ff' : '#fff'
+                    }}
+                    onPress={() => {
+                      onDateChange(date - 1);
+                      setShowDateDropdown(false);
+                    }}
+                  >
+                    <Text style={{ fontSize: ms(14), fontFamily: FONTS.muktaMalar.medium, color: selectedMonth !== null && date === selectedMonth + 1 ? COLORS.primary : '#111' }}>
+                      {date}-{selectedMonth !== null ? months[selectedMonth] : 'Month'}-{selectedYear || 'Year'}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          )}
+        </View>
+      </View>
+    </View>
+  );
+};
+
 // --- Webstories Dropdown -----------------
 const WebstoriesDropdown = ({ subTabs, activeTab, isAllTab, allTabLink, handleTabPress }) => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -1776,6 +1944,43 @@ export default function CommonSectionScreen() {
   const [nriCondition, setNriCondition] = useState([]);
   const [nriSubCatTabs, setNriSubCatTabs] = useState([]);
 
+  // Calendar state for dinamdinam date filtering
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [showCalendar, setShowCalendar] = useState(false);
+  const [allTabNews, setAllTabNews] = useState([]); // keep original unfiltered list
+
+  // Function to get initial latest date (will be updated when API data is available)
+  const getInitialDate = () => {
+    const now = new Date();
+    const initialDate = {
+      year: now.getFullYear(),
+      month: now.getMonth(),
+      date: now.getDate()
+    };
+    console.log('[Varavaram] Initial date set to current date:', initialDate);
+    return initialDate;
+  };
+
+  // Varavaram dropdown state
+  const [showVaravaramYearDropdown, setShowVaravaramYearDropdown] = useState(false);
+  const [showVaravaramDateDropdown, setShowVaravaramDateDropdown] = useState(false);
+  const [selectedVaravaramYear, setSelectedVaravaramYear] = useState(null);
+  const [selectedVaravaramDate, setSelectedVaravaramDate] = useState(null);
+  const [selectedVaravaramMonth, setSelectedVaravaramMonth] = useState(null);
+  const [hasSpecificDateSelection, setHasSpecificDateSelection] = useState(false); // Track if user selected specific date
+  const [originalVaravaramNews, setOriginalVaravaramNews] = useState([]); // Store original unfiltered news
+  const [varavaramDropdownData, setVaravaramDropdownData] = useState({}); // Store API dropdown data per tab
+  const [apiDropdownData, setApiDropdownData] = useState([]); // Store API dropdown data for filtering
+  const [isInitialSetupDone, setIsInitialSetupDone] = useState(false); // Track if initial setup is complete
+
+  // Varavaram dropdown calendar state
+  const [selectedYear, setSelectedYear] = useState(null);
+  const [selectedMonth, setSelectedMonth] = useState(null);
+  const [showYearDropdown, setShowYearDropdown] = useState(false);
+  const [showDateDropdown, setShowDateDropdown] = useState(false);
+  const [availableYears, setAvailableYears] = useState([]);
+  const [varavaramAvailableDates, setVaravaramAvailableDates] = useState([]);
+
   const handleScroll = useCallback((e) => {
     setShowScrollTop(e.nativeEvent.contentOffset.y > 300);
   }, []);
@@ -1784,13 +1989,838 @@ export default function CommonSectionScreen() {
   useEffect(() => { subTabsRef.current = subTabs; }, [subTabs]);
   useEffect(() => { activeTabRef.current = activeTab; }, [activeTab]);
 
+  // Helper function to get latest date from API dropdown data
+  const getLatestDateFromApiDropdown = useCallback(() => {
+    if (apiDropdownData && apiDropdownData.length > 0) {
+      try {
+        // Find the latest date by sorting the dates
+        const latestDateItem = apiDropdownData.reduce((latest, current) => {
+          const latestDate = new Date(latest.date);
+          const currentDate = new Date(current.date);
+          return currentDate > latestDate ? current : latest;
+        });
+        
+        const latestDate = new Date(latestDateItem.date);
+        console.log('[Varavaram] Latest date from API dropdown:', {
+          date: latestDateItem.date,
+          date1: latestDateItem.date1,
+          year: latestDate.getFullYear(),
+          month: latestDate.getMonth(),
+          day: latestDate.getDate()
+        });
+        
+        return {
+          year: latestDate.getFullYear(),
+          month: latestDate.getMonth(),
+          date: latestDate.getDate()
+        };
+      } catch (error) {
+        console.log('[Varavaram] Error getting latest date from API dropdown:', error);
+        // Fallback to current date
+        const now = new Date();
+        return {
+          year: now.getFullYear(),
+          month: now.getMonth(),
+          date: now.getDate()
+        };
+      }
+    }
+    
+    // Fallback to current date if no API dropdown data
+    const now = new Date();
+    return {
+      year: now.getFullYear(),
+      month: now.getMonth(),
+      date: now.getDate()
+    };
+  }, [apiDropdownData]);
+
+  // Helper function to get latest date of selected year from API dropdown data
+  const getLatestDateOfSelectedYear = useCallback((year) => {
+    console.log('[Varavaram] getLatestDateOfSelectedYear called for year:', year);
+    console.log('[Varavaram] apiDropdownData length:', apiDropdownData?.length || 0);
+    
+    if (apiDropdownData && apiDropdownData.length > 0) {
+      try {
+        // Filter dates for the selected year and sort them to find the latest one
+        const yearDates = apiDropdownData
+          .filter(dropdownItem => {
+            const apiDate = new Date(dropdownItem.date);
+            return apiDate.getFullYear() === year;
+          });
+        
+        console.log('[Varavaram] Filtered dates for year', year, ':', yearDates.length);
+        console.log('[Varavaram] All filtered dates:', yearDates.map(d => ({
+          date: d.date,
+          dateObj: new Date(d.date),
+          year: new Date(d.date).getFullYear(),
+          month: new Date(d.date).getMonth(),
+          day: new Date(d.date).getDate()
+        })));
+        
+        const sortedDates = yearDates
+          .map(dropdownItem => new Date(dropdownItem.date))
+          .sort((a, b) => b - a); // Sort DESCENDING to get the latest date
+        
+        console.log('[Varavaram] Sorted dates for year', year, ':', sortedDates.map(d => ({
+          date: d,
+          year: d.getFullYear(),
+          month: d.getMonth(),
+          day: d.getDate()
+        })));
+        
+        if (sortedDates.length > 0) {
+          const latestDate = sortedDates[0];
+          console.log('[Varavaram] Latest date of year', year, ':', {
+            date: latestDate,
+            year: latestDate.getFullYear(),
+            month: latestDate.getMonth(),
+            day: latestDate.getDate()
+          });
+          
+          return {
+            year: latestDate.getFullYear(),
+            month: latestDate.getMonth(),
+            date: latestDate.getDate()
+          };
+        }
+      } catch (error) {
+        console.log('[Varavaram] Error getting latest date of year:', year, error);
+      }
+    }
+    
+    // Fallback to current date if no data found
+    const now = new Date();
+    return {
+      year: now.getFullYear(),
+      month: now.getMonth(),
+      date: now.getDate()
+    };
+  }, [apiDropdownData]);
+
+  // Helper function to get first date of selected year from API dropdown data
+  const getFirstDateOfSelectedYear = useCallback((year) => {
+    console.log('[Varavaram] getFirstDateOfSelectedYear called for year:', year);
+    console.log('[Varavaram] apiDropdownData length:', apiDropdownData?.length || 0);
+    
+    if (apiDropdownData && apiDropdownData.length > 0) {
+      try {
+        // Filter dates for the selected year and sort them to find the first one
+        const yearDates = apiDropdownData
+          .filter(dropdownItem => {
+            const apiDate = new Date(dropdownItem.date);
+            return apiDate.getFullYear() === year;
+          });
+        
+        console.log('[Varavaram] Filtered dates for year', year, ':', yearDates.length);
+        console.log('[Varavaram] All filtered dates:', yearDates.map(d => ({
+          date: d.date,
+          dateObj: new Date(d.date),
+          year: new Date(d.date).getFullYear(),
+          month: new Date(d.date).getMonth(),
+          day: new Date(d.date).getDate()
+        })));
+        
+        const sortedDates = yearDates
+          .map(dropdownItem => new Date(dropdownItem.date))
+          .sort((a, b) => a - b); // Sort ascending to get the first date
+        
+        console.log('[Varavaram] Sorted dates for year', year, ':', sortedDates.map(d => ({
+          date: d,
+          year: d.getFullYear(),
+          month: d.getMonth(),
+          day: d.getDate()
+        })));
+        
+        if (sortedDates.length > 0) {
+          const firstDate = sortedDates[0];
+          console.log('[Varavaram] First date of year', year, ':', {
+            date: firstDate,
+            year: firstDate.getFullYear(),
+            month: firstDate.getMonth(),
+            day: firstDate.getDate()
+          });
+          
+          return {
+            year: firstDate.getFullYear(),
+            month: firstDate.getMonth(),
+            date: firstDate.getDate()
+          };
+        }
+      } catch (error) {
+        console.log('[Varavaram] Error getting first date of year:', year, error);
+      }
+    }
+    
+    // Fallback to current date if no data found
+    const now = new Date();
+    return {
+      year: now.getFullYear(),
+      month: now.getMonth(),
+      date: now.getDate()
+    };
+  }, [apiDropdownData]);
+
+  // Extract available years from API dropdown data for varavaram
+  const getAvailableVaravaramYears = useCallback(() => {
+    if (!apiEndpoint?.includes('varavaram')) {
+      console.log('[Varavaram] Not varavaram endpoint, no years extraction needed');
+      return [];
+    }
+
+    console.log('[Varavaram] Extracting years from API dropdown data');
+    console.log('[Varavaram] API dropdown data available:', apiDropdownData.length, 'dates');
+
+    // Use API dropdown data for years
+    if (apiDropdownData && apiDropdownData.length > 0) {
+      console.log('[Varavaram] Using API dropdown data for years extraction');
+      
+      const yearSet = new Set();
+
+      apiDropdownData.forEach((dropdownItem, index) => {
+        try {
+          const apiDate = new Date(dropdownItem.date);
+          const year = apiDate.getFullYear();
+          
+          console.log('[Varavaram] API dropdown year', index, ':', {
+            originalDate: dropdownItem.date,
+            parsedYear: year
+          });
+          
+          yearSet.add(year);
+        } catch (error) {
+          console.log('[Varavaram] Error parsing API dropdown year:', dropdownItem.date, error);
+        }
+      });
+
+      const availableYears = Array.from(yearSet).sort((a, b) => b - a);
+      console.log('[Varavaram] Final available years from API:', availableYears);
+      return availableYears;
+    }
+
+    // Fallback to client-side year extraction if no API dropdown data
+    console.log('[Varavaram] No API dropdown data, falling back to client-side year extraction');
+    if (originalVaravaramNews.length === 0) {
+      console.log('[Varavaram] No data available for years extraction, using fallback');
+      const currentYear = new Date().getFullYear();
+      return [currentYear, currentYear - 1, currentYear - 2];
+    }
+
+    console.log('[Varavaram] Extracting available years from', originalVaravaramNews.length, 'news items');
+
+    const yearSet = new Set();
+    const currentYear = new Date().getFullYear();
+
+    // Always add the current year and two previous years as fallback
+    for (let i = currentYear; i >= currentYear - 2; i--) {
+      yearSet.add(i);
+    }
+
+    originalVaravaramNews.forEach((item, index) => {
+      const rawDate = item.ago || item.date || item.time_date || '';
+      console.log('[Varavaram] Item', index, 'date fields:', {
+        ago: item.ago,
+        date: item.date,
+        time_date: item.time_date,
+        rawDate: rawDate
+      });
+
+      if (!rawDate) return;
+
+      try {
+        let parsedYear = null;
+
+        // Handle different date formats
+        if (rawDate.match(/^\d{2}-[A-Za-z]{3}-\d{4}/)) {
+          // Format: "05-Apr-2026"
+          const parts = rawDate.split('-');
+          parsedYear = parseInt(parts[2]);
+          console.log('[Varavaram] Parsed year from DD-MMM-YYYY:', parsedYear, 'from', rawDate);
+        } else if (rawDate.match(/^\d{4}-\d{2}-\d{2}/)) {
+          // Format: "2026-04-05"
+          const parts = rawDate.split('-');
+          parsedYear = parseInt(parts[0]);
+          console.log('[Varavaram] Parsed year from YYYY-MM-DD:', parsedYear, 'from', rawDate);
+        } else if (rawDate.match(/^\d{2}\/\d{2}\/\d{4}/)) {
+          // Format: "05/04/2026"
+          const parts = rawDate.split('/');
+          parsedYear = parseInt(parts[2]);
+          console.log('[Varavaram] Parsed year from DD/MM/YYYY:', parsedYear, 'from', rawDate);
+        } else {
+          console.log('[Varavaram] Unrecognized date format:', rawDate);
+        }
+
+        if (parsedYear && !isNaN(parsedYear)) {
+          yearSet.add(parsedYear);
+          console.log('[Varavaram] Added year:', parsedYear, 'from item', index);
+        } else {
+          console.log('[Varavaram] Failed to parse year from:', rawDate);
+        }
+      } catch (error) {
+        console.log('[Varavaram] Error parsing year for available years:', rawDate, error);
+      }
+    });
+
+    const availableYears = Array.from(yearSet).sort((a, b) => b - a);
+    console.log('[Varavaram] Final available years:', availableYears);
+    console.log('[Varavaram] Years set before sorting:', Array.from(yearSet));
+    return availableYears;
+  }, [apiEndpoint, apiDropdownData, originalVaravaramNews]);
+
+  // Update initial varavaram state with latest date from API dropdown data
+  useEffect(() => {
+    console.log('[Varavaram] useEffect triggered - checking conditions:', {
+      apiEndpoint: apiEndpoint,
+      isVaravaram: apiEndpoint?.includes('varavaram'),
+      apiDropdownDataLength: apiDropdownData?.length || 0,
+      hasApiDropdownData: apiDropdownData && apiDropdownData.length > 0,
+      isInitialSetupDone
+    });
+    
+    // Only run this effect if initial setup is not done yet and state values are null
+    if (apiEndpoint?.includes('varavaram') && apiDropdownData && apiDropdownData.length > 0 && !isInitialSetupDone) {
+      const latestDate = getLatestDateFromApiDropdown();
+      console.log('[Varavaram] Setting initial state to latest date:', latestDate);
+      console.log('[Varavaram] Current state before update:', {
+        selectedVaravaramYear,
+        selectedVaravaramMonth,
+        selectedVaravaramDate,
+        selectedYear,
+        selectedMonth
+      });
+      
+      // Only set initial state if values are null (first time setup)
+      if (selectedVaravaramYear === null && selectedVaravaramMonth === null && selectedVaravaramDate === null) {
+        setSelectedVaravaramYear(latestDate.year);
+        setSelectedVaravaramMonth(latestDate.month);
+        setSelectedVaravaramDate(latestDate.date);
+        setHasSpecificDateSelection(true); // Mark that we have a specific date selection
+        
+        // Also update the calendar state
+        setSelectedYear(latestDate.year);
+        setSelectedMonth(latestDate.month);
+        
+        // Mark initial setup as done
+        setIsInitialSetupDone(true);
+        
+        console.log('[Varavaram] State after update should be:', latestDate);
+        console.log('[Varavaram] Initial setup marked as complete');
+      } else {
+        console.log('[Varavaram] State already initialized - not overriding user selection');
+        setIsInitialSetupDone(true); // Mark as done to prevent repeated checks
+      }
+    } else {
+      if (isInitialSetupDone) {
+        console.log('[Varavaram] Initial setup already done - not overriding user selection');
+      } else {
+        console.log('[Varavaram] useEffect conditions not met - not updating state');
+      }
+    }
+  }, [apiEndpoint, apiDropdownData, isInitialSetupDone]);
+
+  // Debug: Log current state values for verification
+  useEffect(() => {
+    if (apiEndpoint?.includes('varavaram')) {
+      console.log('[Varavaram] Current state values:', {
+        selectedVaravaramYear,
+        selectedVaravaramMonth,
+        selectedVaravaramDate,
+        selectedYear,
+        selectedMonth,
+        hasSpecificDateSelection,
+        apiDropdownDataLength: apiDropdownData?.length || 0
+      });
+    }
+  }, [selectedVaravaramYear, selectedVaravaramMonth, selectedVaravaramDate, selectedYear, selectedMonth, hasSpecificDateSelection, apiDropdownData, apiEndpoint]);
+
+  // Populate available years for varavaram
+  useEffect(() => {
+    console.log('[Varavaram] useEffect triggered - checking conditions:', {
+      apiEndpoint: apiEndpoint,
+      isVaravaram: apiEndpoint?.includes('varavaram'),
+      originalVaravaramNewsLength: originalVaravaramNews.length
+    });
+    
+    const availableYears = getAvailableVaravaramYears();
+    console.log('[Varavaram] Available years:', availableYears);
+    setAvailableYears(availableYears);
+  }, [getAvailableVaravaramYears]);
+
+  // Store original varavaram news when it loads and fetch all pages for complete data
+  useEffect(() => {
+    if (apiEndpoint?.includes('varavaram') && tabNews.length > 0 && originalVaravaramNews.length === 0) {
+      console.log('[Varavaram] Storing original news data:', tabNews.length, 'items');
+      console.log('[Varavaram] Sample news item:', tabNews[0]);
+      setOriginalVaravaramNews([...tabNews]);
+
+      // For varavaram, data is now fetched directly from API with year/date parameters
+      // No need for client-side filtering - API handles the filtering
+      console.log('[Varavaram] Using API-fetched data directly - no client filtering needed');
+    } else if (apiEndpoint?.includes('varavaram')) {
+      console.log('[Varavaram] News state - tabNews:', tabNews.length, 'originalVaravaramNews:', originalVaravaramNews.length);
+    }
+  // }, [apiEndpoint, tabNews, originalVaravaramNews.length]);
+  }, [apiEndpoint, tabNews, originalVaravaramNews.length, tabLastPage]);
+
+  // Fetch all varavaram pages to get complete data for dropdown filtering
+  const fetchAllVaravaramPages = useCallback(async () => {
+    if (!apiEndpoint?.includes('varavaram') || !activeTab) return;
+
+    console.log('[Varavaram] Starting to fetch all pages for complete data');
+    let allNewsData = [...tabNews]; // Start with current page data
+
+    try {
+      for (let page = 2; page <= tabLastPage; page++) {
+        console.log('[Varavaram] Fetching page', page, 'of', tabLastPage);
+
+        const response = await mainApi.get(`${activeTab.link}?page=${page}`);
+        const pageData = response?.data?.newlist?.data || [];
+
+        if (pageData.length > 0) {
+          allNewsData = [...allNewsData, ...pageData];
+          console.log('[Varavaram] Fetched', pageData.length, 'items from page', page);
+        } else {
+          console.log('[Varavaram] No data found on page', page);
+          break; // Stop if no more data
+        }
+      }
+
+      console.log('[Varavaram] Total items fetched across all pages:', allNewsData.length);
+      setOriginalVaravaramNews(allNewsData);
+    } catch (error) {
+      console.error('[Varavaram] Error fetching all pages:', error);
+    }
+  }, [apiEndpoint, activeTab, tabLastPage, tabNews]);
+
+  // Extract available dates from varavaram news data
+  const getAvailableVaravaramDates = useCallback(() => {
+    if (!apiEndpoint?.includes('varavaram')) {
+      console.log('[Varavaram] Not varavaram endpoint, no dates extraction needed');
+      return [];
+    }
+
+    console.log('[Varavaram] Extracting dates from API dropdown data');
+    console.log('[Varavaram] Selected year:', selectedVaravaramYear, 'Selected month:', selectedVaravaramMonth);
+    console.log('[Varavaram] API dropdown data available:', apiDropdownData.length, 'dates');
+
+    // Use API dropdown data for dates
+    if (apiDropdownData && apiDropdownData.length > 0) {
+      console.log('[Varavaram] Using API dropdown data for dates extraction');
+      
+      const dateSet = new Set();
+      const allDatesFound = [];
+
+      apiDropdownData.forEach((dropdownItem, index) => {
+        try {
+          const apiDate = new Date(dropdownItem.date);
+          const year = apiDate.getFullYear();
+          const month = apiDate.getMonth();
+          const day = apiDate.getDate();
+
+          // Only include dates that match the selected year and month
+          if (selectedVaravaramYear !== null && selectedVaravaramMonth !== null && 
+              year === selectedVaravaramYear && month === selectedVaravaramMonth) {
+            dateSet.add(day);
+            allDatesFound.push(day);
+          }
+        } catch (error) {
+          console.log('[Varavaram] Error parsing API dropdown date:', dropdownItem.date, error);
+        }
+      });
+
+      const availableDates = Array.from(dateSet).sort((a, b) => a - b);
+      console.log('[Varavaram] Final available dates from API:', availableDates);
+      return availableDates;
+    }
+
+    // Fallback to client-side date extraction if no API dropdown data
+    console.log('[Varavaram] No API dropdown data, falling back to client-side date extraction');
+    if (originalVaravaramNews.length === 0) {
+      console.log('[Varavaram] No data available for dates extraction');
+      return [];
+    }
+
+    console.log('[Varavaram] Processing', originalVaravaramNews.length, 'news items for available dates');
+    console.log('[Varavaram] Selected year:', selectedVaravaramYear, 'Selected month:', selectedVaravaramMonth);
+
+    const dateSet = new Set();
+    const allDatesFound = [];
+
+    originalVaravaramNews.forEach((item, index) => {
+      const rawDate = item.ago || item.date || item.time_date || '';
+      if (!rawDate) {
+        console.log('[Varavaram] Item', index, 'has no date fields');
+        return;
+      }
+
+      console.log('[Varavaram] Item', index, 'raw date:', rawDate);
+
+      try {
+        let itemDate = new Date();
+        let parsedYear = null;
+        let parsedMonth = null;
+        let parsedDay = null;
+
+        // Handle different date formats including malformed ones
+        if (rawDate.match(/^\d{2}-[A-Za-z]{3,}-\d{4}/)) {
+          // Format: "05-Apr-2026" or malformed like "05-MMar-2026", "05-OOct-2025"
+          const parts = rawDate.split('-');
+          parsedDay = parseInt(parts[0]);
+          let monthStr = parts[1];
+
+          // Fix malformed month names by removing extra letters
+          const months = { Jan: 0, Feb: 1, Mar: 2, Apr: 3, May: 4, Jun: 5, Jul: 6, Aug: 7, Sep: 8, Oct: 9, Nov: 10, Dec: 11 };
+
+          // Handle malformed months like "MMar", "OOct", etc.
+          if (monthStr.length > 3) {
+            // Take first 3 letters and capitalize properly
+            monthStr = monthStr.substring(0, 3);
+            monthStr = monthStr.charAt(0).toUpperCase() + monthStr.substring(1).toLowerCase();
+          }
+
+          parsedMonth = months[monthStr] || 0;
+          parsedYear = parseInt(parts[2]);
+          itemDate = new Date(parsedYear, parsedMonth, parsedDay);
+        } else if (rawDate.match(/^\d{2}--?[A-Za-z]{3}-\d{4}/)) {
+          // Format with double dash: "05--Oct-2025" or "05-Oct-2025"
+          let cleanDate = rawDate.replace(/--/, '-'); // Fix double dash
+          const parts = cleanDate.split('-');
+          parsedDay = parseInt(parts[0]);
+          const months = { Jan: 0, Feb: 1, Mar: 2, Apr: 3, May: 4, Jun: 5, Jul: 6, Aug: 7, Sep: 8, Oct: 9, Nov: 10, Dec: 11 };
+          parsedMonth = months[parts[1]] || 0;
+          parsedYear = parseInt(parts[2]);
+          itemDate = new Date(parsedYear, parsedMonth, parsedDay);
+        } else if (rawDate.match(/^\d{4}-\d{2}-\d{2}/)) {
+          // Format: "2026-04-05"
+          const parts = rawDate.split('-');
+          parsedYear = parseInt(parts[0]);
+          parsedMonth = parseInt(parts[1]) - 1;
+          parsedDay = parseInt(parts[2]);
+          itemDate = new Date(parsedYear, parsedMonth, parsedDay);
+        } else if (rawDate.match(/^\d{2}\/\d{2}\/\d{4}/)) {
+          // Format: "05/04/2026"
+          const parts = rawDate.split('/');
+          parsedYear = parseInt(parts[2]);
+          parsedMonth = parseInt(parts[1]) - 1;
+          parsedDay = parseInt(parts[0]);
+          itemDate = new Date(parsedYear, parsedMonth, parsedDay);
+        }
+
+        console.log('[Varavaram] Parsed date:', parsedYear, parsedMonth + 1, parsedDay, 'from:', rawDate);
+
+        // Only include dates that match the selected year and month
+        if (itemDate.getFullYear() === selectedVaravaramYear &&
+          itemDate.getMonth() === selectedVaravaramMonth) {
+          dateSet.add(itemDate.getDate());
+          allDatesFound.push(itemDate.getDate());
+          console.log('[Varavaram] Added date:', itemDate.getDate(), 'for selected period');
+        } else {
+          console.log('[Varavaram] Date does not match selection:', itemDate.getFullYear(), itemDate.getMonth() + 1);
+        }
+      } catch (error) {
+        console.log('[Varavaram] Error parsing date for available dates:', rawDate, error);
+      }
+    });
+
+    const availableDates = Array.from(dateSet).sort((a, b) => a - b);
+    console.log('[Varavaram] All dates found for', selectedVaravaramYear, selectedVaravaramMonth + 1, ':', allDatesFound);
+    console.log('[Varavaram] Final available dates:', availableDates);
+    return availableDates;
+  }, [apiEndpoint, apiDropdownData, selectedVaravaramYear, selectedVaravaramMonth, originalVaravaramNews]);
+
+  // Helper function to apply varavaram filtering using API dropdown data
+  const applyVaravaramFilter = useCallback((dataToFilter) => {
+    if (!dataToFilter || dataToFilter.length === 0) return;
+    console.log('[Varavaram] Applying API-based filter with:', {
+      totalItems: dataToFilter.length,
+      selectedYear: selectedVaravaramYear,
+      selectedMonth: selectedVaravaramMonth,
+      selectedDate: selectedVaravaramDate,
+      apiDropdownDataLength: apiDropdownData.length,
+      hasSpecificDateSelection
+    });
+
+    // Use API dropdown data for filtering
+    if (apiDropdownData && apiDropdownData.length > 0) {
+      console.log('[Varavaram] Using API dropdown data for filtering');
+      
+      // Filter data based on API dropdown dates
+      const filteredData = dataToFilter.filter(item => {
+        const rawDate = item.ago || item.date || item.time_date || '';
+        if (!rawDate) return false;
+
+        try {
+          let itemYear = null;
+          let itemMonth = null;
+          let itemDay = null;
+
+          // Parse different date formats
+          if (rawDate.match(/^\d{2}-[A-Za-z]{3,}-\d{4}/)) {
+            const parts = rawDate.split('-');
+            itemDay = parseInt(parts[0]);
+            let monthStr = parts[1];
+            const months = { Jan: 0, Feb: 1, Mar: 2, Apr: 3, May: 4, Jun: 5, Jul: 6, Aug: 7, Sep: 8, Oct: 9, Nov: 10, Dec: 11 };
+            if (monthStr.length > 3) {
+              monthStr = monthStr.substring(0, 3);
+              monthStr = monthStr.charAt(0).toUpperCase() + monthStr.substring(1).toLowerCase();
+            }
+            itemMonth = months[monthStr] || 0;
+            itemYear = parseInt(parts[2]);
+          } else if (rawDate.match(/^\d{2}--?[A-Za-z]{3}-\d{4}/)) {
+            let cleanDate = rawDate.replace(/--/, '-');
+            const parts = cleanDate.split('-');
+            itemDay = parseInt(parts[0]);
+            const months = { Jan: 0, Feb: 1, Mar: 2, Apr: 3, May: 4, Jun: 5, Jul: 6, Aug: 7, Sep: 8, Oct: 9, Nov: 10, Dec: 11 };
+            itemMonth = months[parts[1]] || 0;
+            itemYear = parseInt(parts[2]);
+          } else if (rawDate.match(/^\d{4}-\d{2}-\d{2}/)) {
+            const parts = rawDate.split('-');
+            itemYear = parseInt(parts[0]);
+            itemMonth = parseInt(parts[1]) - 1;
+            itemDay = parseInt(parts[2]);
+          } else if (rawDate.match(/^\d{2}\/\d{2}\/\d{4}/)) {
+            const parts = rawDate.split('/');
+            itemYear = parseInt(parts[2]);
+            itemMonth = parseInt(parts[1]) - 1;
+            itemDay = parseInt(parts[0]);
+          }
+
+          if (itemYear === null || isNaN(itemYear)) return false;
+
+          // Filter by year first
+          if (itemYear !== selectedVaravaramYear) return false;
+
+          // If specific date is selected, check if this date exists in API dropdown data
+          if (hasSpecificDateSelection && selectedVaravaramDate) {
+            const dateExistsInAPI = apiDropdownData.some(d => {
+              const apiDate = new Date(d.date);
+              return apiDate.getFullYear() === selectedVaravaramYear &&
+                     apiDate.getMonth() === selectedVaravaramMonth &&
+                     apiDate.getDate() === selectedVaravaramDate;
+            });
+            
+            if (!dateExistsInAPI) return false;
+            
+            return itemDay === selectedVaravaramDate;
+          }
+
+          // If month is selected, check if this month has dates in API dropdown data
+          if (selectedVaravaramMonth !== null && selectedVaravaramMonth !== undefined) {
+            const monthExistsInAPI = apiDropdownData.some(d => {
+              const apiDate = new Date(d.date);
+              return apiDate.getFullYear() === selectedVaravaramYear &&
+                     apiDate.getMonth() === selectedVaravaramMonth;
+            });
+            
+            if (!monthExistsInAPI) return false;
+            
+            return itemMonth === selectedVaravaramMonth;
+          }
+
+          // If only year is selected, check if this year has dates in API dropdown data
+          const yearExistsInAPI = apiDropdownData.some(d => {
+            const apiDate = new Date(d.date);
+            return apiDate.getFullYear() === selectedVaravaramYear;
+          });
+          
+          return yearExistsInAPI;
+        } catch (error) {
+          console.log('[Varavaram] Error parsing date for API-based filtering:', rawDate, error);
+          return false;
+        }
+      });
+
+      console.log('[Varavaram] API-based filtered result:', {
+        originalCount: dataToFilter.length,
+        filteredCount: filteredData.length,
+        selectedYear: selectedVaravaramYear,
+        selectedMonth: selectedVaravaramMonth,
+        selectedDate: selectedVaravaramDate,
+        hasSpecificDateSelection
+      });
+
+      // Update the tab news with filtered data
+      setTabNews(filteredData);
+    } else {
+      console.log('[Varavaram] No API dropdown data available, using client-side filtering');
+      // Fallback to client-side filtering if no API dropdown data
+      const filteredData = dataToFilter.filter(item => {
+        const rawDate = item.ago || item.date || item.time_date || '';
+        if (!rawDate) return false;
+
+        try {
+          let itemYear = null;
+          let itemMonth = null;
+          let itemDay = null;
+
+          // Parse different date formats
+          if (rawDate.match(/^\d{2}-[A-Za-z]{3,}-\d{4}/)) {
+            const parts = rawDate.split('-');
+            itemDay = parseInt(parts[0]);
+            let monthStr = parts[1];
+            const months = { Jan: 0, Feb: 1, Mar: 2, Apr: 3, May: 4, Jun: 5, Jul: 6, Aug: 7, Sep: 8, Oct: 9, Nov: 10, Dec: 11 };
+            if (monthStr.length > 3) {
+              monthStr = monthStr.substring(0, 3);
+              monthStr = monthStr.charAt(0).toUpperCase() + monthStr.substring(1).toLowerCase();
+            }
+            itemMonth = months[monthStr] || 0;
+            itemYear = parseInt(parts[2]);
+          } else if (rawDate.match(/^\d{2}--?[A-Za-z]{3}-\d{4}/)) {
+            let cleanDate = rawDate.replace(/--/, '-');
+            const parts = cleanDate.split('-');
+            itemDay = parseInt(parts[0]);
+            const months = { Jan: 0, Feb: 1, Mar: 2, Apr: 3, May: 4, Jun: 5, Jul: 6, Aug: 7, Sep: 8, Oct: 9, Nov: 10, Dec: 11 };
+            itemMonth = months[parts[1]] || 0;
+            itemYear = parseInt(parts[2]);
+          } else if (rawDate.match(/^\d{4}-\d{2}-\d{2}/)) {
+            const parts = rawDate.split('-');
+            itemYear = parseInt(parts[0]);
+            itemMonth = parseInt(parts[1]) - 1;
+            itemDay = parseInt(parts[2]);
+          } else if (rawDate.match(/^\d{2}\/\d{2}\/\d{4}/)) {
+            const parts = rawDate.split('/');
+            itemYear = parseInt(parts[2]);
+            itemMonth = parseInt(parts[1]) - 1;
+            itemDay = parseInt(parts[0]);
+          }
+
+          if (itemYear === null || isNaN(itemYear)) return false;
+
+          // Filter by year first
+          if (itemYear !== selectedVaravaramYear) return false;
+
+          // If specific date is selected, filter by date
+          if (hasSpecificDateSelection && selectedVaravaramDate) {
+            return itemDay === selectedVaravaramDate;
+          }
+
+          // If month is selected, filter by month
+          if (selectedVaravaramMonth !== null && selectedVaravaramMonth !== undefined) {
+            return itemMonth === selectedVaravaramMonth;
+          }
+
+          // If only year is selected, include all items from that year
+          return true;
+        } catch (error) {
+          console.log('[Varavaram] Error parsing date for client-side filtering:', rawDate, error);
+          return false;
+        }
+      });
+
+      console.log('[Varavaram] Client-side filtered result:', {
+        originalCount: dataToFilter.length,
+        filteredCount: filteredData.length,
+        selectedYear: selectedVaravaramYear,
+        selectedMonth: selectedVaravaramMonth,
+        selectedDate: selectedVaravaramDate,
+        hasSpecificDateSelection
+      });
+
+      // Update the tab news with filtered data
+      setTabNews(filteredData);
+    }
+  }, [selectedVaravaramYear, selectedVaravaramMonth, selectedVaravaramDate, hasSpecificDateSelection, apiDropdownData]);
+
+  // Filter varavaram news based on API dropdown data
+  const filterVaravaramNews = useCallback(() => {
+    if (!apiEndpoint?.includes('varavaram') || originalVaravaramNews.length === 0) {
+      console.log('[Varavaram] No filtering - not varavaram or no data');
+      return;
+    }
+
+    console.log('[Varavaram] Filter trigger - checking data availability:', {
+      originalVaravaramNewsLength: originalVaravaramNews.length,
+      selectedYear: selectedVaravaramYear,
+      selectedMonth: selectedVaravaramMonth,
+      selectedDate: selectedVaravaramDate,
+      apiDropdownDataLength: apiDropdownData.length,
+      hasSpecificDateSelection
+    });
+
+    if (originalVaravaramNews.length === 0) {
+      console.log('[Varavaram] No original data to filter, using allSections as fallback');
+      // Try to use allSections data
+      if (allSections.length > 0) {
+        const allVaravaramData = [];
+        allSections.forEach(section => {
+          if (Array.isArray(section.data)) allVaravaramData.push(...section.data);
+        });
+        if (allVaravaramData.length > 0) {
+          applyVaravaramFilter(allVaravaramData);
+        } else {
+          setTabNews([]);
+        }
+      }
+    } else {
+      applyVaravaramFilter(originalVaravaramNews);
+    }
+  }, [apiEndpoint, originalVaravaramNews, allSections, applyVaravaramFilter]);
+
+  // Handle year change for varavaram
+  const handleVaravaramYearChange = (year) => {
+    console.log('[Varavaram] USER ACTION: Year changed to:', year);
+    setSelectedVaravaramYear(year);
+    setShowVaravaramYearDropdown(false);
+    
+    // Get the first date of the selected year for display purposes
+    const firstDateOfYear = getFirstDateOfSelectedYear(year);
+    console.log('[Varavaram] First date of year for display:', firstDateOfYear);
+    
+    // When user selects a year, show ALL data from that year (not a specific date)
+    // But display the first date from that year in the dropdown
+    setHasSpecificDateSelection(false); // Mark that we want year-level data, not specific date
+    setSelectedVaravaramMonth(firstDateOfYear.month); // Set to first month for display
+    setSelectedVaravaramDate(firstDateOfYear.date); // Set to first date for display
+    
+    // Also update the calendar state
+    setSelectedYear(year);
+    setSelectedMonth(firstDateOfYear.month); // Set to first month for display
+    
+    if (activeTab) {
+      setTabLoading(true);
+      setTabNews([]);
+      const filters = { 
+        year: year,
+        // NO date parameter - we want ALL data from this year
+        cat: activeTab.id
+      };
+      console.log('[Varavaram] Calling fetchTabNews with YEAR-ONLY filters:', filters);
+      console.log('[Varavaram] This will show ALL data from year:', year, 'without date filtering');
+      console.log('[Varavaram] Display will show first date:', firstDateOfYear.date + '-' + (firstDateOfYear.month + 1) + '-' + firstDateOfYear.year);
+      fetchTabNews(activeTab, 1, false, null, filters);  
+    }
+  };
+
+  const handleVaravaramDateChange = (dateItem) => {
+    console.log('[Varavaram] USER ACTION: Date changed to:', dateItem.date);
+    setSelectedVaravaramDate(dateItem.date);
+    setHasSpecificDateSelection(true);
+    setShowVaravaramDateDropdown(false);
+    if (activeTab) {
+      setTabLoading(true);
+      setTabNews([]);
+      fetchTabNews(activeTab, 1, false, null, {  // null for nriConditionOverride
+        year: selectedVaravaramYear,
+        date: dateItem.date,
+        cat: activeTab.id
+      });
+    }
+  };
+
+  // Update varavaram available dates when selection changes
+  useEffect(() => {
+    const availableDates = getAvailableVaravaramDates();
+    setVaravaramAvailableDates(availableDates);
+    // Remove filterVaravaramNews() - API fetch handles the data now
+  }, [getAvailableVaravaramDates]);
+
   // Auto-scroll tab bar so active tab is always fully visible
   useEffect(() => {
     if (!activeTab || !tabScrollRef.current) return;
     const key = activeTab.title === 'All' ? 'All' : String(activeTab.id);
     const layout = tabLayoutsRef.current[key];
     if (!layout) return;
-    
+
     // Use requestAnimationFrame to prevent conflicts
     requestAnimationFrame(() => {
       if (tabScrollRef.current) {
@@ -1801,7 +2831,26 @@ export default function CommonSectionScreen() {
     });
   }, [activeTab]);
 
-  const fetchTabNews = useCallback(async (tab, pg, append = false, nriConditionOverride = null) => {
+  const fetchTabNews = useCallback(async (tab, pg, append = false, nriConditionOverride = null, filters = {}) => {
+    let url = tab.link;
+
+    const sep = url.includes('?') ? '&' : '?';
+    if (filters.year) url += `${sep}year=${filters.year}`;
+    if (filters.date) url += `&date=${filters.date}`;
+    
+    // Add page parameter
+    const pageSep = url.includes('?') ? '&' : '?';
+    const fullUrl = `${url}${pageSep}page=${pg}`;
+    
+    console.log('[Varavaram] API CALL DEBUG:', {
+      originalUrl: tab.link,
+      filters: filters,
+      finalUrl: fullUrl,
+      yearParam: filters.year,
+      dateParam: filters.date
+    });
+    
+    const res = await mainApi.get(fullUrl);
     console.log('[DEBUG] fetchTabNews called with:', {
       tabId: tab.id,
       tabLink: tab.link,
@@ -1810,6 +2859,8 @@ export default function CommonSectionScreen() {
       isAllTab: tabIsAll(tab),
       apiEndpoint
     });
+
+    
 
     const isNriRegionTab = ((apiEndpoint === '/nri' || apiEndpoint === '/nrimain')
       && tab._isNriRegionFetch)
@@ -2278,19 +3329,82 @@ export default function CommonSectionScreen() {
           d?.cartoons?.data ||
           d?.nri?.data ||
           // Handle new photo API structure
-          (d?.photo?.data && Array.isArray(d.photo.data) 
+          (d?.photo?.data && Array.isArray(d.photo.data)
             ? d.photo.data.find(section => String(section.maincatid || section.id) === String(tab.id))?.data
             : null) ||
           extractList(d);
-        
+
         console.log('📸 Photo data found:', list?.length || 0, 'items');
       } else {
         list = extractList(d).filter(Boolean);
       }
 
-      // -- Handle varavaram tab data - limit to 3 items -----------------------
+      // -- Handle varavaram tab data - show all items without limiting -----------------------
       if (tab.link?.includes('varavaram') || apiEndpoint?.includes('varavaram')) {
-        list = Array.isArray(list) ? list.slice(0, 3) : list;
+        // For varavaram, show all items without limiting - pagination will handle this
+        console.log('[Varavaram] Showing all items for tab:', tab.title, 'count:', list?.length || 0);
+
+        // Store dropdown data for individual varavaram tabs
+        if (d?.dropdown && Array.isArray(d.dropdown)) {
+          console.log('[Varavaram Tab] Storing dropdown data for individual tab:', tab.title, d.dropdown.length, 'dates');
+          setVaravaramDropdownData(prev => ({
+            ...prev,
+            [tab.id || tab.title]: d.dropdown
+          }));
+          // Also update apiDropdownData for initial date selection
+          setApiDropdownData(d.dropdown);
+        }
+      }
+
+      // -- Handle newsdata API endpoints - fetch all pages instead of just page 1 -----
+      if (tab.link?.includes('newsdata') || (tab.link?.includes('cat=') && tab.link?.includes('scat='))) {
+        // For newsdata endpoints, we need to fetch all pages to get all data
+        console.log('[NewsData] Fetching all pages for newsdata endpoint:', tab.link);
+        
+        // Get the total number of pages from pagination
+        const totalPages = d?.newlist?.pagination?.last_page || 
+                          d?.newlist?.last_page || 
+                          d?.pagination?.last_page || 
+                          d?.last_page || 1;
+        
+        console.log('[NewsData] Total pages to fetch:', totalPages);
+        
+        if (totalPages > 1 && !append) {
+          // Fetch all additional pages in the background
+          const fetchAllNewsDataPages = async () => {
+            try {
+              let allNewsData = [...list]; // Start with current page data
+              
+              for (let page = 2; page <= totalPages; page++) {
+                console.log('[NewsData] Fetching page', page, 'of', totalPages);
+                
+                const pageUrl = `${tab.link}&page=${page}`;
+                const response = await mainApi.get(pageUrl);
+                const pageData = response?.data?.newlist?.data || response?.data?.data || [];
+                
+                if (pageData.length > 0) {
+                  allNewsData = [...allNewsData, ...pageData];
+                  console.log('[NewsData] Fetched', pageData.length, 'items from page', page);
+                } else {
+                  console.log('[NewsData] No data found on page', page);
+                  break;
+                }
+              }
+              
+              console.log('[NewsData] Total items fetched across all pages:', allNewsData.length);
+              
+              // Update the list with all fetched data
+              list = allNewsData;
+              setTabNews(allNewsData);
+              
+            } catch (error) {
+              console.error('[NewsData] Error fetching all pages:', error);
+            }
+          };
+          
+          // Start fetching additional pages
+          fetchAllNewsDataPages();
+        }
       }
 
       // -- Handle varamalar tab data - limit to 3 items -----------------------
@@ -2309,6 +3423,10 @@ export default function CommonSectionScreen() {
         d?.pogaimadam?.last_page ||
         d?.cartoons?.last_page || 1;
       setTabLastPage(lp);
+      // Store all news for dinamdinam calendar filtering
+      if (apiEndpoint?.includes('dinamdinam')) {
+        setAllTabNews(prev => append ? [...prev, ...list] : list);
+      }
       setTabNews(prev => append ? [...prev, ...list] : list);
       setTabPage(pg);
     } catch (e) {
@@ -2339,7 +3457,7 @@ export default function CommonSectionScreen() {
       // Add timeout to prevent hanging requests
       const res = await Promise.race([
         api.get(actualEndpoint),
-        new Promise((_, reject) => 
+        new Promise((_, reject) =>
           setTimeout(() => reject(new Error('Request timeout after 10 seconds')), 10000)
         )
       ]);
@@ -2512,31 +3630,31 @@ export default function CommonSectionScreen() {
         // FAST LOADING: Load first page immediately, fetch additional pages in background
         const loadPhotoSectionFast = (sectionKey, sectionTitle, sectionId, initialData) => {
           if (!initialData || initialData.length === 0) return;
-          
-          const lastPage = d?.[sectionKey]?.pagination?.last_page || 
-                          d?.[sectionKey]?.last_page || 1;
-          
+
+          const lastPage = d?.[sectionKey]?.pagination?.last_page ||
+            d?.[sectionKey]?.last_page || 1;
+
           console.log(`Fast loading ${sectionTitle}: showing page 1 of ${lastPage}`);
-          
+
           // Add first page data immediately for fast response
           photoSections.push({ title: sectionTitle, id: sectionId, data: initialData });
-          
+
           // Fetch remaining pages in background if more than 1 page
           if (lastPage > 1) {
             console.log(`Will fetch ${lastPage - 1} more pages for ${sectionTitle} in background`);
-            
+
             // Background loading with batch requests to reduce API overload
             setTimeout(async () => {
               try {
                 const api = mainApi;
                 let allData = [...initialData];
-                
+
                 // Batch requests in chunks of 3 to avoid overwhelming API
                 const batchSize = 3;
                 for (let startPage = 2; startPage <= lastPage; startPage += batchSize) {
                   const endPage = Math.min(startPage + batchSize - 1, lastPage);
                   const batchPromises = [];
-                  
+
                   // Create batch requests
                   for (let page = startPage; page <= endPage; page++) {
                     batchPromises.push(
@@ -2548,32 +3666,32 @@ export default function CommonSectionScreen() {
                         })
                     );
                   }
-                  
+
                   // Wait for batch to complete before next batch
                   const batchResults = await Promise.all(batchPromises);
-                  
+
                   // Combine batch results
                   batchResults.forEach(pageData => {
                     if (Array.isArray(pageData) && pageData.length > 0) {
                       allData = [...allData, ...pageData];
                     }
                   });
-                  
+
                   // Update UI after each batch for progressive loading
-                  setAllSections(prev => prev.map(section => 
-                    section.id === sectionId 
+                  setAllSections(prev => prev.map(section =>
+                    section.id === sectionId
                       ? { ...section, data: allData }
                       : section
                   ));
                 }
-                
+
                 // Update the section with complete data
-                setAllSections(prev => prev.map(section => 
-                  section.id === sectionId 
+                setAllSections(prev => prev.map(section =>
+                  section.id === sectionId
                     ? { ...section, data: allData }
                     : section
                 ));
-                
+
                 console.log(`Background loading complete for ${sectionTitle}: ${allData.length} total items from ${lastPage} pages`);
               } catch (error) {
                 console.error(`Background loading failed for ${sectionTitle}:`, error);
@@ -2584,19 +3702,19 @@ export default function CommonSectionScreen() {
 
         // Load sections with fast approach
         if (d?.indraiyephoto?.data?.length > 0) {
-          loadPhotoSectionFast('indraiyephoto', 'Today Photo', '81', d.indraiyephoto.data);
+          loadPhotoSectionFast('indraiyephoto', 'இன்றைய போட்டோ', '81', d.indraiyephoto.data);
         }
 
         if (d?.pogaimadam?.data?.length > 0) {
-          loadPhotoSectionFast('pogaimadam', 'Photo Album', '5001', d.pogaimadam.data);
+          loadPhotoSectionFast('pogaimadam', 'புகைப்பட ஆல்பம்', '5001', d.pogaimadam.data);
         }
 
         if (d?.cartoons?.data?.length > 0) {
-          loadPhotoSectionFast('cartoons', 'Cartoons', '5002', d.cartoons.data);
+          loadPhotoSectionFast('cartoons', 'கார்ட்டூன்கள்', '5002', d.cartoons.data);
         }
 
         if (d?.nri?.data?.length > 0) {
-          loadPhotoSectionFast('nri', 'NRI Photos', '5003', d.nri.data);
+          loadPhotoSectionFast('nri', 'NRI ஆல்பம்', '5003', d.nri.data);
         }
 
         // Handle sections that don't need pagination (top10, mostcommented)
@@ -2611,42 +3729,42 @@ export default function CommonSectionScreen() {
           for (const section of d.photo.data) {
             if (section.data && Array.isArray(section.data) && section.data.length > 0) {
               // Extract ID from multiple possible sources
-              const sectionId = section.maincatid || 
-                               section.id || 
-                               section.maincatid?.toString() || 
-                               section.id?.toString() ||
-                               section.slug?.split('/').pop() || 
-                               'unknown';
+              const sectionId = section.maincatid ||
+                section.id ||
+                section.maincatid?.toString() ||
+                section.id?.toString() ||
+                section.slug?.split('/').pop() ||
+                'unknown';
               const sectionTitle = section.title || section.etitle || 'Photos';
-              
+
               // Check if this section has pagination
               const lastPage = section.pagination?.last_page || 1;
-              
+
               console.log(`Fast loading ${sectionTitle}: showing page 1 of ${lastPage}`);
-              
+
               // Add first page data immediately
               photoSections.push({
                 title: sectionTitle,
                 id: String(sectionId),
                 data: section.data
               });
-              
+
               // Fetch remaining pages in background if more than 1 page
               if (lastPage > 1) {
                 console.log(`Will fetch ${lastPage - 1} more pages for ${sectionTitle} in background`);
-                
+
                 setTimeout(async () => {
                   try {
                     const api = mainApi;
                     let allData = [...section.data];
                     const pagePromises = [];
-                    
+
                     // Create parallel requests for remaining pages
                     for (let page = 2; page <= lastPage; page++) {
                       pagePromises.push(
                         api.get(`${apiEndpoint}?catid=${sectionId}&page=${page}`)
                           .then(res => {
-                            const pageData = res.data?.photo?.data?.find(s => 
+                            const pageData = res.data?.photo?.data?.find(s =>
                               String(s.maincatid || s.id) === String(sectionId)
                             )?.data || [];
                             return pageData;
@@ -2657,38 +3775,38 @@ export default function CommonSectionScreen() {
                           })
                       );
                     }
-                    
+
                     // Wait for all pages in parallel
                     const pageResults = await Promise.all(pagePromises);
-                    
+
                     // Combine all data
                     pageResults.forEach(pageData => {
                       if (Array.isArray(pageData) && pageData.length > 0) {
                         allData = [...allData, ...pageData];
                       }
                     });
-                    
+
                     // Update the section with complete data
-                    setAllSections(prev => prev.map(section => 
-                      section.id === String(sectionId) 
+                    setAllSections(prev => prev.map(section =>
+                      section.id === String(sectionId)
                         ? { ...section, data: allData }
                         : section
                     ));
-                    
+
                     console.log(`Background loading complete for ${sectionTitle}: ${allData.length} total items from ${lastPage} pages`);
                   } catch (error) {
                     console.error(`Background loading failed for ${sectionTitle}:`, error);
                   }
                 }, 100);
               }
-              
+
               console.log(`Created photo section: ${sectionTitle} with ID: ${sectionId}`);
             }
           }
         }
 
         let tabs = d?.subcatlisting || [];
-        
+
         // If no tabs from subcatlisting, create them from photoSections
         if (tabs.length === 0 && photoSections.length > 0) {
           tabs = photoSections.map(section => ({
@@ -2698,11 +3816,11 @@ export default function CommonSectionScreen() {
             _isPhotoTab: true
           }));
         }
-        
+
         console.log('📸 Photo sections:', photoSections);
         console.log('📸 Tabs:', tabs);
         console.log('📸 Initial tab ID:', initialTabId);
-        
+
         setSubTabs(tabs);
         setAllSections(photoSections);
         setTaboolaAds(d?.taboola_ads?.mobile || null);
@@ -2717,7 +3835,7 @@ export default function CommonSectionScreen() {
             fetchTabNews(preselected, 1, false);
             return;
           }
-          
+
           // If not found in tabs, look in photoSections
           const photoSection = photoSections.find(s => String(s.id) === String(initialTabId));
           if (photoSection) {
@@ -2903,72 +4021,51 @@ export default function CommonSectionScreen() {
         if (isArticle) finalSections = [{ title: '', id: 'all', data: rawSections }];
       }
 
-   if (apiEndpoint === '/joshiyam') {
-  const RASI_TITLES = ['மேஷம்', 'ரிஷபம்', 'மிதுனம்', 'கடகம்', 'சிம்மம்', 'கன்னி',
-    'துலாம்', 'விருச்சிகம்', 'தனுசு', 'மகரம்', 'கும்பம்', 'மீனம்'];
-  finalSections = finalSections.filter(sec => {
-    const t = (sec.title || '').toLowerCase().trim();
-    return !RASI_TITLES.some(r => t.includes(r.toLowerCase()));
-  });
-
-  // ✅ Auto-select todayrasi tab instead of showing All view
-  setSubTabs(tabs);
-  setAllSections(finalSections);
-  setTaboolaAds(d?.taboola_ads?.mobile || null);
-
-  // Check if there's an initialTabId to preselect
-  if (initialTabId && initialTabId !== 'all') {
-    const preselected = tabs.find(t => String(t.id) === String(initialTabId));
-    if (preselected) {
-      setActiveTab({ ...preselected, _isAllTab: false });
-      setTabLoading(true);
-      fetchTabNews(preselected, 1, false);
-      return;
-    }
-  }
-
-  // Default: auto-select todayrasi
-  const todayRasiTab = tabs.find(t => String(t.id) === 'todayrasi');
-  if (todayRasiTab) {
-    setActiveTab({ ...todayRasiTab, _isAllTab: false });
-    setTabLoading(true);
-    fetchTabNews(todayRasiTab, 1, false);
-    return; // ✅ MUST return to skip the generic tab logic below
-  }
-}
-
-      // -- Handle varavaram data - limit each category to 3 items -----------------
-      if (apiEndpoint?.includes('varavaram') || apiEndpoint?.includes('api-st.dinamalar.com/varavaram')) {
-        // console.log('[Varavaram] API Endpoint:', apiEndpoint);
-        // console.log('[Varavaram] Raw data structure:', Object.keys(d || {}));
-        // console.log('[Varavaram] Raw sections:', rawSections.length);
-        // console.log('[Varavaram] Raw sections data:', rawSections.map(s => ({ title: s.title, dataCount: Array.isArray(s.data) ? s.data.length : 'not array' })));
-        // console.log('[Varavaram] Final sections before limiting:', finalSections.length);
-
-        // Apply limiting to both rawSections and finalSections
-        const limitedRawSections = rawSections.map(section => ({
-          ...section,
-          data: Array.isArray(section.data) ? section.data.slice(0, 3) : section.data
-        }));
-
-        finalSections = finalSections.map(section => {
-          const limitedData = Array.isArray(section.data) ? section.data.slice(0, 3) : section.data;
-          // console.log(`[Varavaram] Section "${section.title}": ${Array.isArray(section.data) ? section.data.length : 0} -> ${Array.isArray(limitedData) ? limitedData.length : 0} items`);
-
-          return {
-            ...section,
-            data: limitedData,
-          };
+      if (apiEndpoint === '/joshiyam') {
+        const RASI_TITLES = ['மேஷம்', 'ரிஷபம்', 'மிதுனம்', 'கடகம்', 'சிம்மம்', 'கன்னி',
+          'துலாம்', 'விருச்சிகம்', 'தனுசு', 'மகரம்', 'கும்பம்', 'மீனம்'];
+        finalSections = finalSections.filter(sec => {
+          const t = (sec.title || '').toLowerCase().trim();
+          return !RASI_TITLES.some(r => t.includes(r.toLowerCase()));
         });
 
-        // If finalSections is empty, use limited rawSections
-        if (finalSections.length === 0 && limitedRawSections.length > 0) {
-          finalSections = limitedRawSections;
-          console.log('[Varavaram] Using limited raw sections instead');
+        // ✅ Auto-select todayrasi tab instead of showing All view
+        setSubTabs(tabs);
+        setAllSections(finalSections);
+        setTaboolaAds(d?.taboola_ads?.mobile || null);
+
+        // Check if there's an initialTabId to preselect
+        if (initialTabId && initialTabId !== 'all') {
+          const preselected = tabs.find(t => String(t.id) === String(initialTabId));
+          if (preselected) {
+            setActiveTab({ ...preselected, _isAllTab: false });
+            setTabLoading(true);
+            fetchTabNews(preselected, 1, false);
+            return;
+          }
         }
 
-        // console.log('[Varavaram] Final sections after limiting:', finalSections.length);
-        // console.log('[Varavaram] Final sections data:', finalSections.map(s => ({ title: s.title, dataCount: Array.isArray(s.data) ? s.data.length : 'not array' })));
+        // Default: auto-select todayrasi
+        const todayRasiTab = tabs.find(t => String(t.id) === 'todayrasi');
+        if (todayRasiTab) {
+          setActiveTab({ ...todayRasiTab, _isAllTab: false });
+          setTabLoading(true);
+          fetchTabNews(todayRasiTab, 1, false);
+          return; // ✅ MUST return to skip the generic tab logic below
+        }
+      }
+
+      // -- Handle varavaram data - show all pages without limiting -----------------
+      if (apiEndpoint?.includes('varavaram') || apiEndpoint?.includes('api-st.dinamalar.com/varavaram')) {
+        console.log('[Varavaram] API Endpoint:', apiEndpoint);
+        console.log('[Varavaram] Raw data structure:', Object.keys(d || {}));
+        console.log('[Varavaram] Raw sections:', rawSections.length);
+        console.log('[Varavaram] Raw sections data:', rawSections.map(s => ({ title: s.title, dataCount: Array.isArray(s.data) ? s.data.length : 'not array' })));
+        console.log('[Varavaram] Final sections:', finalSections.length);
+        console.log('[Varavaram] Final sections data:', finalSections.map(s => ({ title: s.title, dataCount: Array.isArray(s.data) ? s.data.length : 'not array' })));
+
+        // For varavaram, don't limit data - show all items from all pages
+        // The pagination will be handled by the individual tab loading
       }
 
       // -- Handle varamalar data - limit each category to 3 items -----------------
@@ -3045,6 +4142,33 @@ export default function CommonSectionScreen() {
         // console.log('[Varamalar] Final sections data:', finalSections.map(s => ({ title: s.title, dataCount: Array.isArray(s.data) ? s.data.length : 'not array' })));
       }
 
+      // -- Handle /specialcatlist?cat=XXXX (child level) -----------------------
+      if (apiEndpoint?.includes('specialcatlist')) {
+        const tabs = d?.subcatlist || [];
+        setSubTabs(tabs);
+
+        const sectionsWithData = (Array.isArray(d?.newlist) ? d.newlist : [])
+          .filter(sec => Array.isArray(sec?.data) && sec.data.length > 0)
+          .map(sec => ({ ...sec, data: sec.data.slice(0, 3) }));
+
+        setAllSections(sectionsWithData);
+        setTaboolaAds(d?.taboola_ads?.mobile || null);
+
+        if (initialTabId && initialTabId !== 'all') {
+          const preselected = tabs.find(t => String(t.id) === String(initialTabId));
+          if (preselected && !preselected._isAllTab) {
+            setActiveTab({ ...preselected, _isAllTab: false });
+            setTabLoading(true);
+            fetchTabNews(preselected, 1, false);
+            return;
+          }
+        }
+
+        const allTab = tabs.find(t => !t.id) || tabs[0];
+        setActiveTab({ ...allTab, _isAllTab: true });
+        return;
+      }
+
       // -- Handle special data - limit each category to 3 items -----------------
       if (apiEndpoint?.includes('special') || apiEndpoint?.includes('api-st.dinamalar.com/special')) {
         // console.log('[Special] API Endpoint:', apiEndpoint);
@@ -3117,6 +4241,17 @@ export default function CommonSectionScreen() {
       setAllSections(finalSections);
       setTaboolaAds(d?.taboola_ads?.mobile || null);
 
+      // Store dropdown data for varavaram if available
+      if (apiEndpoint?.includes('varavaram') && d?.dropdown && Array.isArray(d.dropdown)) {
+        console.log('[Varavaram] Storing dropdown data:', d.dropdown.length, 'dates');
+        setVaravaramDropdownData(prev => ({
+          ...prev,
+          [activeTab?.id || 'default']: d.dropdown
+        }));
+        // Also store the API dropdown data for the current tab
+        setApiDropdownData(d.dropdown);
+      }
+
       if (initialTabId || initialTabLink) {
         // console.log('?? DEBUG: Looking for initial tab - initialTabId:', initialTabId, 'initialTabLink:', initialTabLink);
         // console.log('?? DEBUG: Available tabs:', tabs.map(t => ({ id: t.id, title: t.title, link: t.link })));
@@ -3169,16 +4304,15 @@ export default function CommonSectionScreen() {
 
     setRasiDetailItem(null);
 
-  if (apiEndpoint === '/joshiyam' && (tab._isAllTab || tab.link === allTabLink)) {
-    const todayRasiTab = subTabs.find(t => String(t.id) === 'todayrasi');
-    if (todayRasiTab) {
-      setActiveTab({ ...todayRasiTab, _isAllTab: false });
-      setTabLoading(true);
-      setTabNews([]); setTabPage(1); setTabLastPage(1);
-      fetchTabNews(todayRasiTab, 1, false);
-      return;
+    if (apiEndpoint === '/joshiyam' && (tab._isAllTab || tab.link === allTabLink)) {
+      const todayRasiTab = subTabs.find(t => String(t.id) === 'todayrasi');
+      if (todayRasiTab) {
+        setActiveTab({ ...todayRasiTab, _isAllTab: false });
+        setTabLoading(true);
+        setTabNews([]); setTabPage(1); setTabLastPage(1);
+        fetchTabNews(todayRasiTab, 1, false);
+      }
     }
-  }
 
     const pressedIsAll = !!tab._isAllTab || tab.link === allTabLink || (tab.id === 'webstories' && (apiEndpoint?.includes('webstoriesupdate') || apiEndpoint?.includes('webstorieslisting')));
     // ? 1. NRI country sub-tab clicked ? filter articles for that country
@@ -3362,7 +4496,7 @@ export default function CommonSectionScreen() {
     // -- Webstories tab from photo section ? navigate to webstories screen --
     if (apiEndpoint.includes('photodata') && tab.id === 'webstories') {
       navigation.push('CommonSectionScreen', {
-        screenTitle: 'வெப்ஸ்டோரிகள்',
+        screenTitle: 'Webstories',
         apiEndpoint: '/webstoriesupdate',
         allTabLink: '/webstoriesupdate',
         useFullUrl: false,
@@ -3370,7 +4504,20 @@ export default function CommonSectionScreen() {
       return;
     }
 
- 
+    // -- Special parent tab clicked -> push child screen with subcatlist --
+    if (
+      (apiEndpoint === '/specialmain' || apiEndpoint?.includes('specialmain')) &&
+      !pressedIsAll &&
+      tab.link?.includes('specialcatlist')
+    ) {
+      navigation.push('CommonSectionScreen', {
+        screenTitle: tab.title,
+        apiEndpoint: tab.link,
+        allTabLink: tab.link,
+        useFullUrl: false,
+      });
+      return;
+    }
 
     // -- Webstories sub-tab ? pressing All goes back to webstoriesupdate --
     if (apiEndpoint.includes('webstorieslisting') && pressedIsAll) {
@@ -3423,6 +4570,32 @@ export default function CommonSectionScreen() {
 
     if (alreadyActive) return;
 
+    // -- Varavaram specific handling -----------------------------------------------
+    if (apiEndpoint?.includes('varavaram')) {
+      console.log('[Varavaram] Tab pressed:', tab.title, 'isAllTab:', pressedIsAll);
+      
+      // Reset varavaram filtering state when switching tabs
+      if (pressedIsAll) {
+        // Reset to show all data when switching to All tab
+        console.log('[Varavaram] Resetting to All tab - preserving user year selection');
+        setHasSpecificDateSelection(false);
+        // Preserve user's year selection instead of resetting to current date
+        // setSelectedVaravaramYear(new Date().getFullYear());
+        // setSelectedVaravaramMonth(new Date().getMonth());
+        // setSelectedVaravaramDate(new Date().getDate());
+        setApiDropdownData([]);
+      } else {
+        // Reset filtering when switching to specific sub-tab
+        console.log('[Varavaram] Switching to sub-tab:', tab.title, '- preserving user year selection');
+        setHasSpecificDateSelection(false);
+        // Preserve user's year selection instead of resetting to current date
+        // setSelectedVaravaramYear(new Date().getFullYear());
+        // setSelectedVaravaramMonth(new Date().getMonth());
+        // setSelectedVaravaramDate(new Date().getDate());
+        setApiDropdownData([]);
+      }
+    }
+
     const nextTab = { ...tab, _isAllTab: pressedIsAll };
     setActiveTab(nextTab);
     flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
@@ -3452,7 +4625,7 @@ export default function CommonSectionScreen() {
   //    dx < -50 px  AND velocity > 0.3  → left-swipe   (go next)
   //
   const SWIPE_THRESHOLD = 50;   // minimum horizontal distance (px)
-  const SWIPE_VELOCITY  = 0.3;  // minimum velocity
+  const SWIPE_VELOCITY = 0.3;  // minimum velocity
 
   const panResponder = useRef(
     PanResponder.create({
@@ -3464,21 +4637,21 @@ export default function CommonSectionScreen() {
         );
       },
       onPanResponderRelease: (_, gs) => {
-        const tabs     = subTabsRef.current;
-        const curTab   = activeTabRef.current;
+        const tabs = subTabsRef.current;
+        const curTab = activeTabRef.current;
         if (!tabs.length) return;
 
         // Find the index of the current tab
         const curIndex = curTab
           ? tabs.findIndex(t =>
-              curTab.title === 'All'
-                ? t.title === 'All'
-                : String(t.id) === String(curTab.id)
-            )
+            curTab.title === 'All'
+              ? t.title === 'All'
+              : String(t.id) === String(curTab.id)
+          )
           : 0;
 
         const isRightSwipe = gs.dx > SWIPE_THRESHOLD && Math.abs(gs.vx) > SWIPE_VELOCITY;
-        const isLeftSwipe  = gs.dx < -SWIPE_THRESHOLD && Math.abs(gs.vx) > SWIPE_VELOCITY;
+        const isLeftSwipe = gs.dx < -SWIPE_THRESHOLD && Math.abs(gs.vx) > SWIPE_VELOCITY;
 
         if (isRightSwipe && curIndex > 0) {
           // Go to previous tab
@@ -3524,7 +4697,18 @@ export default function CommonSectionScreen() {
     if (changed && activeTab.title !== 'All') {
       setTabLoading(true);
       setTabNews([]); setTabPage(1); setTabLastPage(1);
-      fetchTabNews(activeTab, 1, false);
+      
+      // For varavaram, preserve the year filter when switching tabs
+      if (apiEndpoint?.includes('varavaram') && selectedVaravaramYear) {
+        const filters = { 
+          year: selectedVaravaramYear,
+          cat: activeTab.id
+        };
+        console.log('[Varavaram] Tab change - preserving year filter:', filters);
+        fetchTabNews(activeTab, 1, false, null, filters);
+      } else {
+        fetchTabNews(activeTab, 1, false);
+      }
     }
   }, [activeTab]);
 
@@ -3538,10 +4722,10 @@ export default function CommonSectionScreen() {
 
     // For photo tabs with specific tabId (not All tab), search in tabNews
     if (selectedNewsId && tabNews.length > 0 && !tabIsAll(activeTab)) {
-      const selectedIndex = tabNews.findIndex(item => 
+      const selectedIndex = tabNews.findIndex(item =>
         String(item.newsid || item.id) === String(selectedNewsId)
       );
-      
+
       if (selectedIndex !== -1) {
         console.log('CommonSectionScreen - Found selected item in tabNews at index:', selectedIndex);
         setTimeout(() => {
@@ -3956,7 +5140,7 @@ export default function CommonSectionScreen() {
     });
 
     // Check if item is from aanemga sindhanigal section and navigate to AanmegaSindhanaiScreen
-    const isAanemgaSindhanigal = 
+    const isAanemgaSindhanigal =
       apiEndpoint?.includes('anmegammain') ||
       apiEndpoint?.includes('anmegammainlist') ||
       item.maincat?.toLowerCase().includes(' Tamil') ||
@@ -4012,20 +5196,122 @@ export default function CommonSectionScreen() {
   };
 
   const goToSearch = () => navigation.navigate('SearchScreen');
-
-  const handleSelectDistrict = (district) => {
+  const handleSelectDistrict = useCallback((district) => {
+    if (!district) return;
     setSelectedDistrict(district.title);
     setIsLocationDrawerVisible(false);
     if (district.id) {
       navigation?.navigate('DistrictNewsScreen', {
         districtId: district.id,
         districtTitle: district.title,
-        _isAnmegamSection: section._isAnmegamSection,
       });
-      return tabNews.map((item, i) => ({ type: 'rasi', item, _idx: i }));
     }
-    return tabNews.map((item, i) => ({ type: 'news', item, sectionTitle: activeTab?.title || '', _idx: i }));
+  }, []);
+
+  // -- Calendar functionality for dinamdinam --------------------------------
+  const handleDateSelect = (date) => {
+    setSelectedDate(date);
+    setShowCalendar(false);
+
+    if (!date) {
+      // Clear filter - restore full list
+      setTabNews(allTabNews);
+      return;
+    }
+
+    // Format selected date to match item.ago format: "05-Apr-2026"
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const d = date.getDate().toString().padStart(2, '0');
+    const m = months[date.getMonth()];
+    const y = date.getFullYear();
+    const formattedDate = `${d}-${m}-${y}`;
+
+    console.log('[DinamDinam] Filtering by date:', formattedDate);
+
+    const filtered = allTabNews.filter(item => {
+      const itemDate = item.ago || item.date || '';
+      return itemDate === formattedDate;
+    });
+
+    console.log('[DinamDinam] Filtered count:', filtered.length);
+    setTabNews(filtered);
   };
+
+  const handleDateHeaderPress = (dateStr) => {
+    // Parse the date string to set initial date for picker
+    let parsedDate = new Date();
+    if (dateStr) {
+      // Handle formats: "2025-08-06", "06-Aug-2025", "06/08/2025"
+      if (dateStr.match(/^\d{4}-\d{2}-\d{2}/)) {
+        const [year, month, day] = dateStr.split('T')[0].split('-');
+        parsedDate = new Date(year, month - 1, day);
+      } else if (dateStr.match(/^\d{2}-[A-Za-z]{3}-\d{4}/)) {
+        const parts = dateStr.split('-');
+        const day = parts[0];
+        const engMonths = {
+          Jan: '01', Feb: '02', Mar: '03', Apr: '04', May: '05', Jun: '06',
+          Jul: '07', Aug: '08', Sep: '09', Oct: '10', Nov: '11', Dec: '12',
+        };
+        const month = engMonths[parts[1]] || '01';
+        const year = parts[2];
+        parsedDate = new Date(year, month - 1, day);
+      } else if (dateStr.match(/^\d{2}\/\d{2}\/\d{4}/)) {
+        const [day, month, year] = dateStr.split('/');
+        parsedDate = new Date(year, month - 1, day);
+      }
+    }
+    setSelectedDate(parsedDate);
+    setShowCalendar(true);
+  };
+
+  // Extract available dates from current news list (matching DistrictNewsScreen approach)
+  const availableDates = React.useMemo(() => {
+    const dateSet = new Set();
+    console.log('[DinamDinam] Processing allTabNews for available dates:', allTabNews.length);
+    console.log('[DinamDinam] Sample allTabNews data:', allTabNews.slice(0, 3).map(item => ({
+      title: item.newstitle || item.title,
+      standarddate: item.standarddate,
+      date: item.date,
+      ago: item.ago
+    })));
+
+    allTabNews.forEach((item, index) => {
+      // Use same priority as DistrictNewsScreen: ago field first, then date
+      const rawDate = item.ago || item.date || '';
+      console.log(`[DinamDinam] Item ${index}: rawDate = "${rawDate}"`);
+      if (!rawDate) return;
+      let isoDate = null;
+
+      // Match DistrictNewsScreen format priority exactly
+      if (rawDate.match(/^\d{2}-[A-Za-z]{3}-\d{4}/)) {
+        const ENG = {
+          Jan: '01', Feb: '02', Mar: '03', Apr: '04', May: '05', Jun: '06',
+          Jul: '07', Aug: '08', Sep: '09', Oct: '10', Nov: '11', Dec: '12',
+        };
+        const [d, m, y] = rawDate.split('-');
+        isoDate = `${y}-${ENG[m] || '01'}-${d.padStart(2, '0')}`;
+        console.log(`[DinamDinam] Parsed DD-MMM-YYYY: ${rawDate} -> ${isoDate}`);
+      } else if (rawDate.match(/^\d{2}-\d{2}-\d{4}/)) {
+        const [d, m, y] = rawDate.split('-');
+        isoDate = `${y}-${m}-${d}`;
+        console.log(`[DinamDinam] Parsed DD-MM-YYYY: ${rawDate} -> ${isoDate}`);
+      } else if (rawDate.match(/^\d{4}-\d{2}-\d{2}/)) {
+        isoDate = rawDate.substring(0, 10);
+        console.log(`[DinamDinam] Parsed YYYY-MM-DD: ${rawDate} -> ${isoDate}`);
+      }
+
+      if (isoDate) {
+        dateSet.add(isoDate);
+        console.log(`[DinamDinam] Added available date: ${isoDate}`);
+      } else {
+        console.log(`[DinamDinam] Could not parse date: "${rawDate}"`);
+      }
+    });
+
+    const result = Array.from(dateSet).sort((a, b) => new Date(b) - new Date(a));
+    console.log('[DinamDinam] Final availableDates:', result);
+    return result;
+  }, [allTabNews]);
 
   // -- Build Flat Data for FlatList -------------------------------------------
   const buildFlatData = () => {
@@ -4039,12 +5325,14 @@ export default function CommonSectionScreen() {
     }
 
     if (isAllTab) {
+      
+      
       const flat = [];
       allSections.forEach(section => {
+        console.log('[DEBUG] Section title:', JSON.stringify(section.title), 'data:', section.data?.length);
         console.log('[DEBUG buildFlatData] Processing section:', section.title, 'data length:', Array.isArray(section.data) ? section.data.length : 0);
         // Only add section title if title exists and is not empty string AND we're in main All tab (not country view)
-        // Allow section headers for ulagatamilar content (varavaram) even in country views
-        const allowSectionHeaders = apiEndpoint?.includes('varavaram') || !activeTab?._nriCountryTab;
+        const allowSectionHeaders = !activeTab?._nriCountryTab;
         if (section.title && section.title.trim() !== '' && allowSectionHeaders) {
           console.log('[DEBUG buildFlatData] Adding section header:', section.title);
           flat.push({
@@ -4091,9 +5379,9 @@ export default function CommonSectionScreen() {
       return groupNewsByDate(tabNews);
     }
 
-    // ? NEW: For varavaram and varamalar tabs, group tabNews by date
-    const isVaravaramOrVaramalar = apiEndpoint?.includes('varavaram') || apiEndpoint?.includes('varamalar');
-    if (isVaravaramOrVaramalar && tabNews.length > 0) {
+    // ? NEW: For dinamdinam tabs, group tabNews by date
+    const isDinamDinam = apiEndpoint?.includes('dinamdinam');
+    if (isDinamDinam && tabNews.length > 0) {
       return groupNewsByDate(tabNews);
     }
 
@@ -4125,10 +5413,10 @@ export default function CommonSectionScreen() {
 
     if (!activeTab) return false;
 
-     if (apiEndpoint === '/joshiyam') {
-    if (tab._isAllTab || tab.link === allTabLink) return false;
-    return String(activeTab.id) === String(tab.id);
-  }
+    if (apiEndpoint === '/joshiyam') {
+      if (tab._isAllTab || tab.link === allTabLink) return false;
+      return String(activeTab.id) === String(tab.id);
+    }
 
     // -- Webstories --------------------------------------------------------
     if (apiEndpoint.includes('webstoriesupdate')) {
@@ -4300,10 +5588,77 @@ export default function CommonSectionScreen() {
     moreText: { fontSize: ms(14), fontFamily: FONTS.muktaMalar.medium, color: COLORS.primary, marginRight: s(2) },
   });
 
+  // --- Date Header Component (for sticky date filtering) --------------------
+  function DateHeader({ date, isClickable }) {
+    if (isClickable) {
+      return (
+        <TouchableOpacity
+          style={dh.dateHeaderWrap}
+          onPress={() => handleDateHeaderPress(date)}
+          activeOpacity={0.7}
+        >
+          <Text style={{ fontFamily: FONTS.muktaMalar.regular, fontSize: ms(16), color: COLORS.grey600 }}>முந்தைய {activeTab?.title || 'Dinamalar pavala vila'}</Text>
+          <View style={dh.dateHeaderInner}>
+
+            <Ionicons name="calendar-outline" size={s(15)} color="#555" style={dh.dateHeaderIcon} />
+            <Text style={dh.dateHeaderText}>{date}</Text>
+          </View>
+        </TouchableOpacity>
+      );
+    } else {
+      // Non-clickable date header - left aligned without TouchableOpacity
+      return (
+        <View style={dh.dateHeaderWrapLeft}>
+          <View style={[dh.dateHeaderInner, { borderRadius: ms(8) }]}>
+            <Ionicons name="calendar-outline" size={s(15)} color="#555" style={dh.dateHeaderIcon} />
+            <Text style={dh.dateHeaderText}>{date}</Text>
+          </View>
+        </View>
+      );
+    }
+  }
+
+  const dh = StyleSheet.create({
+    dateHeaderWrap: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginVertical: vs(2),
+      gap: s(6),
+      paddingHorizontal: ms(12),
+      justifyContent: "space-between"
+    },
+    dateHeaderWrapLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginVertical: vs(2),
+      gap: s(6),
+      paddingHorizontal: ms(12),
+      justifyContent: "flex-start"
+    },
+    dateHeaderInner: {
+      borderWidth: 1,
+      flexDirection: "row",
+      paddingVertical: ms(3),
+      paddingHorizontal: ms(8),
+      alignItems: "center",
+      borderColor: '#6c757d',
+    },
+    dateHeaderIcon: {
+      marginRight: s(3),
+      color: '#6c757d',
+    },
+    dateHeaderText: {
+      fontSize: ms(14),
+      fontFamily: FONTS.muktaMalar.medium,
+      color: '#6c757d',
+      fontWeight: '600',
+    },
+  });
+
   const renderItem = ({ item: row }) => {
     // ? ADD: Render sticky date header
     if (row.type === 'dateHeader') {
-      return <DateHeader date={row.date} />;
+      return <DateHeader date={row.date} isClickable={row.isClickable} />;
     }
 
     if (row.type === 'section') {
@@ -4341,10 +5696,10 @@ export default function CommonSectionScreen() {
           onPress={() => goToArticle(row.item)}
         />
       );
-if (row.type === 'rasi' || row.type === 'individualRasi')
-  return (
-    <RasiCard item={row.item} onPress={() => goToRasiDetails(row.item)} />
-  );
+    if (row.type === 'rasi' || row.type === 'individualRasi')
+      return (
+        <RasiCard item={row.item} onPress={() => goToRasiDetails(row.item)} />
+      );
 
     // Compute isPhoto locally inside renderItem   has full access to state
     const isPhoto =
@@ -4472,34 +5827,34 @@ if (row.type === 'rasi' || row.type === 'individualRasi')
       );
     }
 
-  if (row.type === 'news' && isPhoto) {
-    const isHighlighted = selectedNewsId &&
-      String(row.item?.newsid || row.item?.id || row.item?.eventid) === String(selectedNewsId);
+    if (row.type === 'news' && isPhoto) {
+      const isHighlighted = selectedNewsId &&
+        String(row.item?.newsid || row.item?.id || row.item?.eventid) === String(selectedNewsId);
+
+      return (
+        <View style={isHighlighted ? styles.highlightedCard : null}>
+          <PhotoCard
+            item={row.item}
+            onPress={() => goToArticle(row.item)}
+            sf={sf}
+            isAllTab={isAllTab}
+            isSocialCard={activeTab?.link?.includes('getsocialmedia') || apiEndpoint?.includes('getsocialmedia')}
+          />
+        </View>
+      );
+    }
+
+    const isHighlighted = selectedNewsId && String(row.item?.newsid || row.item?.id) === String(selectedNewsId);
 
     return (
-      <View style={isHighlighted ? styles.highlightedCard : null}>
-        <PhotoCard
-          item={row.item}
-          onPress={() => goToArticle(row.item)}
-          sf={sf}
-          isAllTab={isAllTab}
-          isSocialCard={activeTab?.link?.includes('getsocialmedia') || apiEndpoint?.includes('getsocialmedia')}
-        />
-      </View>
+      <NewsCard
+        item={row.item}
+        onPress={() => goToArticle(row.item)}
+        sectionTitle={row.sectionTitle || ''}
+        isHighlighted={isHighlighted}
+      />
     );
-  }
-
-  const isHighlighted = selectedNewsId && String(row.item?.newsid || row.item?.id) === String(selectedNewsId);
-
-  return (
-    <NewsCard
-      item={row.item}
-      onPress={() => goToArticle(row.item)}
-      sectionTitle={row.sectionTitle || ''}
-      isHighlighted={isHighlighted}
-    />
-  );
-};
+  };
 
   // Helper function to convert Tamil subcategory IDs to English titles
   const getEnglishSubCatTitle = (subCatId) => {
@@ -4805,6 +6160,7 @@ if (row.type === 'rasi' || row.type === 'individualRasi')
         </View>
       </View>
 
+
       {/* -- Tabs -- */}
       {subTabs.length > 0 && (
         (apiEndpoint?.includes('webstoriesupdate') || apiEndpoint?.includes('webstorieslisting')) ? (<WebstoriesDropdown
@@ -4848,6 +6204,376 @@ if (row.type === 'rasi' || row.type === 'individualRasi')
             <View style={styles.tabsBottomLine} />
           </View>
         )
+      )}
+
+      {/* -- Varavaram Year and Date Dropdown -- */}
+{apiEndpoint?.includes('varavaram') && 
+ activeTab?.title && 
+ !isAllTab && 
+ activeTab?.title !== 'All' && (  
+  
+  <View style={{
+          backgroundColor: '#fff',
+          paddingHorizontal: s(12),
+          paddingVertical: vs(8),
+          borderBottomWidth: 1,
+          borderBottomColor: '#eee',
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: s(8),
+          zIndex: 999,
+        }}>
+          {/* Sub-tab title label */}
+          <Text style={{
+            fontSize: ms(14),
+            fontFamily: FONTS.muktaMalar.medium,
+            color: '#333',
+            flex: 1,
+          }} numberOfLines={1}>
+            முந்தைய {activeTab?.title || ''}
+          </Text>
+
+          {/* Year Dropdown */}
+          <View style={{ position: 'relative' }}>
+            <TouchableOpacity
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                borderWidth: 1,
+                borderColor: '#aaa',
+                paddingHorizontal: s(10),
+                paddingVertical: vs(5),
+                backgroundColor: '#fff',
+                gap: s(4),
+                minWidth: s(75),
+                justifyContent: 'space-between',
+              }}
+              onPress={() => {
+                setShowVaravaramYearDropdown(!showVaravaramYearDropdown);
+                setShowVaravaramDateDropdown(false);
+              }}
+              activeOpacity={0.8}
+            >
+              <Text style={{ fontSize: ms(14), fontFamily: FONTS.muktaMalar.medium, color: '#111' }}>
+                {selectedVaravaramYear}
+              </Text>
+              <Ionicons name={showVaravaramYearDropdown ? 'chevron-up' : 'chevron-down'} size={s(14)} color="#555" />
+            </TouchableOpacity>
+
+            {showVaravaramYearDropdown && (
+              <View style={{
+                position: 'absolute',
+                top: vs(34),
+                left: 0,
+                backgroundColor: '#fff',
+                borderWidth: 1,
+                borderColor: '#ddd',
+                zIndex: 1001,
+                elevation: 12,
+                minWidth: s(80),
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: vs(2) },
+                shadowOpacity: 0.15,
+                shadowRadius: s(4),
+                maxHeight: vs(200),
+              }}>
+                <ScrollView showsVerticalScrollIndicator={false} nestedScrollEnabled>
+                  {(availableYears.length > 0 ? availableYears : [new Date().getFullYear(), new Date().getFullYear() - 1]).map((year) => (
+                    <TouchableOpacity
+                      key={year}
+                      style={{
+                        paddingHorizontal: s(12),
+                        paddingVertical: vs(10),
+                        borderBottomWidth: 1,
+                        borderBottomColor: '#f0f0f0',
+                        backgroundColor: year === selectedVaravaramYear ? '#f0f6ff' : '#fff',
+                      }}
+                      onPress={() => {
+                        handleVaravaramYearChange(year);
+                        setShowVaravaramYearDropdown(false);
+                      }}
+                    >
+                      <Text style={{
+                        fontSize: ms(14),
+                        fontFamily: FONTS.muktaMalar.medium,
+                        color: year === selectedVaravaramYear ? COLORS.primary : '#111',
+                      }}>
+                        {year}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+          </View>
+
+          {/* Month-Date Dropdown */}
+          <View style={{ position: 'relative' }}>
+            <TouchableOpacity
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                borderWidth: 1,
+                borderColor: '#aaa',
+                paddingHorizontal: s(10),
+                paddingVertical: vs(5),
+                backgroundColor: '#fff',
+                gap: s(4),
+                minWidth: s(90),
+                justifyContent: 'space-between',
+              }}
+              onPress={() => {
+                setShowVaravaramDateDropdown(!showVaravaramDateDropdown);
+                setShowVaravaramYearDropdown(false);
+              }}
+              activeOpacity={0.8}
+            >
+              <Text style={{ fontSize: ms(14), fontFamily: FONTS.muktaMalar.medium, color: '#111' }}>
+                {(() => {
+                  const months = ['ஜன', 'பிப்', 'மார்', 'ஏப்', 'மே', 'ஜூன்', 'ஜூலை', 'ஆக', 'செப்', 'அக்', 'நவ', 'டிச'];
+                  return `${months[selectedVaravaramMonth]} ${selectedVaravaramDate}`;
+                })()}
+              </Text>
+              <Ionicons name={showVaravaramDateDropdown ? 'chevron-up' : 'chevron-down'} size={s(14)} color="#555" />
+            </TouchableOpacity>
+
+            {showVaravaramDateDropdown && (
+              <View style={{
+                position: 'absolute',
+                top: vs(34),
+                right: 0,
+                backgroundColor: '#fff',
+                borderWidth: 1,
+                borderColor: '#ddd',
+                zIndex: 1001,
+                elevation: 12,
+                minWidth: s(150),
+                maxWidth: s(200),
+                 shadowColor: '#000',
+                shadowOffset: { width: 0, height: vs(2) },
+                shadowOpacity: 0.15,
+                shadowRadius: s(4),
+                height: vs(300), // FIXED height instead of maxHeight
+                overflow: 'hidden',
+              }}>
+                <ScrollView
+                  showsVerticalScrollIndicator={true}
+                  nestedScrollEnabled={true}
+                  keyboardShouldPersistTaps="handled"
+                  // style={{ height: vs(300) }}
+                  contentContainerStyle={{ paddingBottom: vs(10) }}
+                >
+                  {(() => {
+                    // Build list of all months for selected year, each with available dates
+                    const months = ['ஜனவரி', 'பிப்ரவரி', 'மார்ச்', 'ஏப்ரல்', 'மே', 'ஜூன்', 'ஜூலை', 'ஆகஸ்ட்', 'செப்டம்பர்', 'அக்டோபர்', 'நவம்பர்', 'டிசம்பர்'];
+                    const shortMonths = ['ஜன', 'பிப்', 'மார்', 'ஏப்', 'மே', 'ஜூன்', 'ஜூலை', 'ஆக', 'செப்', 'அக்', 'நவ', 'டிச'];
+
+                    // Use API dropdown data instead of extracting from news items
+                    const datesByMonth = {};
+
+                    // Use stored varavaram dropdown data for current tab
+                    const currentTabKey = activeTab?.id || activeTab?.title || 'main';
+                    const dataSource = varavaramDropdownData[currentTabKey] || [];
+                    console.log('[Varavaram Dropdown] Using stored dropdown data:', {
+                      dataSourceLength: dataSource.length,
+                      selectedYear: selectedVaravaramYear,
+                      isArray: Array.isArray(dataSource),
+                      currentTabKey: currentTabKey,
+                      activeTabId: activeTab?.id,
+                      activeTabTitle: activeTab?.title,
+                      allStoredKeys: Object.keys(varavaramDropdownData)
+                    });
+
+                    // Special debugging for 2024 data
+                    if (selectedVaravaramYear === 2024) {
+                      console.log('[Varavaram Dropdown] DEBUG 2024: Analyzing dropdown data for 2024');
+                      console.log('[Varavaram Dropdown] DEBUG 2024: Raw dropdown data:', dataSource);
+                      console.log('[Varavaram Dropdown] DEBUG 2024: Sample items:');
+                      dataSource.slice(0, 5).forEach((item, index) => {
+                        console.log('[Varavaram Dropdown] DEBUG 2024] Item', index, ':', item);
+                      });
+                    }
+
+                    // Process the API dropdown data
+                    if (Array.isArray(dataSource) && dataSource.length > 0) {
+                      console.log('[Varavaram Dropdown] Processing API dropdown data');
+                      dataSource.forEach((item, index) => {
+                        if (item.date && item.date1) {
+                          try {
+                            const date = new Date(item.date);
+                            const year = date.getFullYear();
+                            const month = date.getMonth();
+                            const day = date.getDate();
+
+                            console.log('[Varavaram Dropdown] Processing item', index, ':', {
+                              date: item.date,
+                              date1: item.date1,
+                              parsedYear: year,
+                              parsedMonth: month,
+                              parsedDay: day,
+                              isSelectedYear: year === selectedVaravaramYear,
+                              selectedYear: selectedVaravaramYear
+                            });
+
+                            if (year === selectedVaravaramYear) {
+                              if (!datesByMonth[month]) datesByMonth[month] = new Set();
+                              datesByMonth[month].add(day);
+                              console.log('[Varavaram Dropdown] Added date for 2024:', { month, day, date1: item.date1 });
+                            }
+                          } catch (e) {
+                            console.log('[Varavaram Dropdown] Error parsing API date:', item.date, e);
+                          }
+                        } else {
+                          console.log('[Varavaram Dropdown] Item missing date fields:', item);
+                        }
+                      });
+
+                      console.log('[Varavaram Dropdown] Final datesByMonth for 2024:', datesByMonth);
+                      console.log('[Varavaram Dropdown] DEBUG 2024: Should only show 2024 dates, but user sees 2026/2025');
+                      console.log('[Varavaram Dropdown] DEBUG 2024: Checking if fallback data is being used...');
+
+                      // Auto-select the first available date if current selection doesn't exist
+                      const availableDates = Object.values(datesByMonth).flatMap(dates => Array.from(dates));
+                      if (availableDates.length > 0) {
+                        const currentSelectionExists = availableDates.some(day =>
+                          day === selectedVaravaramDate &&
+                          datesByMonth[selectedVaravaramMonth]?.has(day)
+                        );
+
+                        if (!currentSelectionExists) {
+                          // Find the first available date and auto-select it
+                          const sortedMonths = Object.keys(datesByMonth).sort((a, b) => b - a);
+                          if (sortedMonths.length > 0) {
+                            const firstMonth = parseInt(sortedMonths[0]);
+                            const firstMonthDates = Array.from(datesByMonth[firstMonth]).sort((a, b) => b - a);
+                            if (firstMonthDates.length > 0) {
+                              const firstDate = firstMonthDates[0];
+                              console.log('[Varavaram Dropdown] Auto-selecting first available date:', {
+                                month: firstMonth,
+                                date: firstDate,
+                                year: selectedVaravaramYear
+                              });
+                              setSelectedVaravaramMonth(firstMonth);
+                              setSelectedVaravaramDate(firstDate);
+                            }
+                          }
+                        }
+                      }
+                    } else {
+                      // Fallback to extracting from news items if no dropdown data available
+                      console.log('[Varavaram Dropdown] No dropdown data, using news items fallback');
+                      const allVaravaramData = [];
+                      if (allSections.length > 0) {
+                        allSections.forEach(section => {
+                          if (Array.isArray(section.data)) {
+                            allVaravaramData.push(...section.data);
+                          }
+                        });
+                      }
+                      const fallbackData = allVaravaramData.length > 0 ? allVaravaramData : originalVaravaramNews;
+
+                      fallbackData.forEach((item, index) => {
+                        const rawDate = item.ago || item.date || item.time_date || '';
+                        if (!rawDate) return;
+
+                        try {
+                          let parsedYear, parsedMonth, parsedDay;
+
+                          if (rawDate.match(/^\d{2}-[A-Za-z]{3}-\d{4}/)) {
+                            const parts = rawDate.split('-');
+                            parsedDay = parseInt(parts[0]);
+                            const mMap = { Jan: 0, Feb: 1, Mar: 2, Apr: 3, May: 4, Jun: 5, Jul: 6, Aug: 7, Sep: 8, Oct: 9, Nov: 10, Dec: 11 };
+                            parsedMonth = mMap[parts[1]] ?? 0;
+                            parsedYear = parseInt(parts[2]);
+                          } else if (rawDate.match(/^\d{4}-\d{2}-\d{2}/)) {
+                            const parts = rawDate.split('-');
+                            parsedYear = parseInt(parts[0]);
+                            parsedMonth = parseInt(parts[1]) - 1;
+                            parsedDay = parseInt(parts[2]);
+                          } else if (rawDate.match(/^\d{2}\/\d{2}\/\d{4}/)) {
+                            const parts = rawDate.split('/');
+                            parsedYear = parseInt(parts[2]);
+                            parsedMonth = parseInt(parts[1]) - 1;
+                            parsedDay = parseInt(parts[0]);
+                          } else {
+                            return;
+                          }
+
+                          if (parsedYear === selectedVaravaramYear) {
+                            if (!datesByMonth[parsedMonth]) datesByMonth[parsedMonth] = new Set();
+                            datesByMonth[parsedMonth].add(parsedDay);
+                          }
+                        } catch (e) {
+                          // Skip invalid dates
+                        }
+                      });
+                    }
+
+                    console.log('[Varavaram Dropdown] Processed dates by month:', {
+                      selectedYear: selectedVaravaramYear,
+                      monthsFound: Object.keys(datesByMonth),
+                      totalDates: Object.values(datesByMonth).reduce((sum, dates) => sum + dates.size, 0)
+                    });
+
+                    const rows = [];
+                    Object.keys(datesByMonth).sort((a, b) => b - a).forEach(monthIdx => {
+                      const mIdx = parseInt(monthIdx);
+                      const dates = Array.from(datesByMonth[mIdx]).sort((a, b) => b - a);
+                      dates.forEach(day => {
+                        const isActive = selectedVaravaramMonth !== null && selectedVaravaramDate !== null && 
+                        mIdx === selectedVaravaramMonth && day === selectedVaravaramDate;
+                        rows.push(
+                          <TouchableOpacity
+                            key={`${mIdx}-${day}`}
+                            style={{
+                              paddingHorizontal: s(14),
+                              paddingVertical: vs(10),
+                              borderBottomWidth: 1,
+                              borderBottomColor: '#f0f0f0',
+                              backgroundColor: isActive ? '#f0f6ff' : '#fff',
+                            }}
+                            onPress={() => {
+                              console.log('[Varavaram Dropdown] Date selected:', { month: mIdx, day, year: selectedVaravaramYear });
+                              setSelectedVaravaramMonth(mIdx);
+                              setSelectedVaravaramDate(day);
+                              setHasSpecificDateSelection(true);
+                              setShowVaravaramDateDropdown(false);
+
+                              // Actually fetch from API with the selected date
+                              if (activeTab) {
+                                setTabLoading(true);
+                                setTabNews([]);
+                                fetchTabNews(activeTab, 1, false, null, {
+                                  year: selectedVaravaramYear,
+                                  date: day,
+                                  cat: activeTab.id
+                                });
+                              }
+                            }}
+                          >
+                            <Text style={{
+                              fontSize: ms(14),
+                              fontFamily: FONTS.muktaMalar.medium,
+                              color: isActive ? COLORS.primary : '#111',
+                            }}>
+                              {shortMonths[mIdx]} {day}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      });
+                    });
+
+                    return rows.length > 0 ? rows : (
+                      <View style={{ padding: s(16) }}>
+                        <Text style={{ fontSize: ms(13), color: '#999', textAlign: 'center' }}>No data available</Text>
+                      </View>
+                    );
+                  })()}
+                </ScrollView>
+              </View>
+            )}
+          </View>
+        </View>
       )}
 
       {/* -- Content -- */}
@@ -4974,11 +6700,21 @@ if (row.type === 'rasi' || row.type === 'individualRasi')
           <Ionicons name="arrow-up" size={s(20)} color="#fff" />
         </TouchableOpacity>
       )}
+
+      {/* -- Calendar Modal for dinamdinam -- */}
+      {apiEndpoint?.includes('dinamdinam') && (
+        <CustomCalendarModal
+          visible={showCalendar}
+          onClose={() => setShowCalendar(false)}
+          availableDates={availableDates}
+          onDateSelect={handleDateSelect}
+          selectedDate={selectedDate}
+        />
+      )}
     </View>
   );
 }
-
-// -----------------------------------------------------------------------------
+// ...
 // Styles
 // -----------------------------------------------------------------------------
 const styles = StyleSheet.create({

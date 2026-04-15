@@ -730,3 +730,82 @@ export const VideoPlayButton = ({ color = '#FFFFFF', size = 24, style = {} }) =>
     <Path d="M8 5v14l11-7z" />
   </Svg>
 );
+
+export const HomeIcon = ({ color = 'currentColor', size = 20, style = {} }) => (
+  <Svg 
+    stroke="currentColor" 
+    fill="currentColor" 
+    strokeWidth="0" 
+    viewBox="0 0 512 512" 
+    height={size} 
+    width={size} 
+    xmlns="http://www.w3.org/2000/svg" 
+    style={style}
+  >
+    <Path d="M416 174.74V48h-80v58.45L256 32 0 272h64v208h144V320h96v160h144V272h64l-96-97.26z" />
+  </Svg>
+);
+
+export const TimelineIcon = ({ color = 'currentColor', size = 20, style = {} }) => (
+  <Svg 
+    stroke="currentColor" 
+    fill="currentColor" 
+    strokeWidth="0" 
+    viewBox="0 0 512 512" 
+    height={size} 
+    width={size} 
+    xmlns="http://www.w3.org/2000/svg" 
+    style={style}
+  >
+    <Path fill="none" strokeLinejoin="round" strokeWidth="32" d="M368 415.86V72a24.07 24.07 0 00-24-24H72a24.07 24.07 0 00-24 24v352a40.12 40.12 0 0040 40h328" />
+    <Path fill="none" strokeLinejoin="round" strokeWidth="32" d="M416 464h0a48 48 0 01-48-48V128h72a24 24 0 0124 24v264a48 48 0 01-48 48z" />
+    <Path fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="32" d="M240 128h64m-64 64h64m-192 64h192m-192 64h192m-192 64h192" />
+    <Path d="M176 208h-64a16 16 0 01-16-16v-64a16 16 0 0116-16h64a16 16 0 0116 16v64a16 16 0 01-16 16z" />
+  </Svg>
+);
+
+export const PodcastIcon = ({ color = 'currentColor', size = 20, style = {} }) => (
+  <Svg 
+    stroke="currentColor" 
+    fill="currentColor" 
+    strokeWidth="0" 
+    viewBox="0 0 352 512" 
+    height={size} 
+    width={size} 
+    xmlns="http://www.w3.org/2000/svg" 
+    style={style}
+  >
+    <Path d="M336 192h-16c-8.84 0-16 7.16-16 16v48c0 74.8-64.49 134.82-140.79 127.38C96.71 376.89 48 317.11 48 250.3V208c0-8.84-7.16-16-16-16H16c-8.84 0-16 7.16-16 16v40.16c0 89.64 63.97 169.55 152 181.69V464H96c-8.84 0-16 7.16-16 16v16c0 8.84 7.16 16 16 16h160c8.84 0 16-7.16 16-16v-16c0-8.84-7.16-16-16-16h-56v-33.77C285.71 418.47 352 344.9 352 256v-48c0-8.84-7.16-16-16-16zM176 352c53.02 0 96-42.98 96-96h-85.33c-5.89 0-10.67-3.58-10.67-8v-16c0-4.42 4.78-8 10.67-8H272v-32h-85.33c-5.89 0-10.67-3.58-10.67-8v-16c0-4.42 4.78-8 10.67-8H272v-32h-85.33c-5.89 0-10.67-3.58-10.67-8v-16c0-4.42 4.78-8 10.67-8H272c0-53.02-42.98-96-96-96S80 42.98 80 96v160c0 53.02 42.98 96 96 96z" />
+  </Svg>
+);
+
+export const TVIcon = ({ color = 'currentColor', size = 20, style = {} }) => (
+  <Svg 
+    stroke="currentColor" 
+    fill="currentColor" 
+    strokeWidth="0" 
+    viewBox="0 0 24 24" 
+    height={size} 
+    width={size} 
+    xmlns="http://www.w3.org/2000/svg" 
+    style={style}
+  >
+    <Path fill="none" d="M0 0h24v24H0V0z" />
+    <Path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12zM12 5.5v9l6-4.5z" />
+  </Svg>
+);
+
+export const MoreIcon = ({ color = 'currentColor', size = 20, style = {} }) => (
+  <Svg 
+    stroke="currentColor" 
+    fill="none" 
+    strokeWidth="2" 
+    viewBox="0 0 24 24" 
+    height={size} 
+    width={size} 
+    xmlns="http://www.w3.org/2000/svg" 
+    style={style}
+  >
+    <Path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+  </Svg>
+);

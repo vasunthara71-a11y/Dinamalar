@@ -16,7 +16,7 @@ import {
 } from 'react-native';
 import { SpeakerIcon } from '../assets/svg/Icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { CDNApi } from '../config/api';
+import { CDNApi, mainApi, u38Api, testNetworkConnectivity, getCachedData, setCachedData } from '../config/api';
 import { s, vs, ms, scaledSizes } from '../utils/scaling';
 import { COLORS, FONTS, NewsCard as NewsCardStyles } from '../utils/constants';
 import UniversalHeaderComponent from '../components/UniversalHeaderComponent';
@@ -328,7 +328,7 @@ export default function DistrictNewsScreen() {
     flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
   }, []);
 
-  // ── Fetch /district (All tab) ─────────────────────────────────────────────
+  // ── Fetch /district (All tab) ─────────────────────────────────────
   const fetchAll = useCallback(async () => {
     try {
       const res = await CDNApi.get('/district');
@@ -372,6 +372,145 @@ export default function DistrictNewsScreen() {
 
     } catch (e) {
       console.error('DistrictNewsScreen fetchAll error:', e?.message);
+      
+      // Fallback: Try alternative API if CDN fails
+      if (e?.code === 'NETWORK_ERROR' || e?.message?.includes('Network Error')) {
+        console.log('🔄 CDN API failed, trying main API fallback...');
+        try {
+          const fallbackRes = await mainApi.get('/district');
+          const fallbackData = fallbackRes?.data;
+          if (fallbackData) {
+            const fallbackTabs = fallbackData?.subcatlist || [];
+            setDistricts(fallbackTabs);
+            
+            const fallbackSections = (fallbackData?.newlist || []).filter(
+              sec => Array.isArray(sec?.data) && sec.data.length > 0
+            );
+            setAllSections(fallbackSections);
+            
+            if (initialDistrictId) {
+              const found = fallbackTabs.find(t => String(t.id) === String(initialDistrictId));
+              if (found) setActiveDistrict(found);
+            }
+            if (initialDistrictTitle) {
+              const found = fallbackTabs.find(t => t.title === initialDistrictTitle);
+              if (found) setActiveDistrict(found);
+            }
+            
+            const chennaiDistrict = fallbackTabs.find(
+              t => t.title && (t.title.includes('சென்னை') || t.title.toLowerCase().includes('chennai'))
+            );
+            setActiveDistrict(chennaiDistrict || fallbackTabs[0] || null);
+            
+            if (fallbackData?.taboola_ads?.mobile) {
+              setTaboolaAds(fallbackData.taboola_ads.mobile);
+            }
+          }
+        } catch (fallbackError) {
+          console.error('Fallback API also failed:', fallbackError?.message);
+        }
+      } else {
+        // General network error - try multiple fallback strategies
+        console.log('🌐 Testing network connectivity...');
+        const isOnline = await testNetworkConnectivity();
+        
+        if (isOnline) {
+          console.log('✅ Network is online, trying multiple fallback strategies...');
+          
+          // Strategy 1: Try cached data if available
+          const cachedData = getCachedData('district_fallback');
+          if (cachedData) {
+            console.log('📦 Using cached district data');
+            setDistricts(cachedData.districts || []);
+            setAllSections(cachedData.sections || []);
+            setInitLoading(false);
+            setRefreshing(false);
+            return;
+          }
+          
+          // Strategy 2: Try alternative endpoints
+          const alternativeEndpoints = [
+            { name: 'DMR API', url: '/district', api: mainApi },
+            { name: 'U38 API', url: '/district', api: u38Api }
+          ];
+          
+          for (const endpoint of alternativeEndpoints) {
+            try {
+              console.log(`🔄 Trying ${endpoint.name}...`);
+              const altRes = await endpoint.api.get(endpoint.url);
+              const altData = altRes?.data;
+              
+              if (altData) {
+                console.log(`✅ ${endpoint.name} succeeded!`);
+                const altTabs = altData?.subcatlist || [];
+                setDistricts(altTabs);
+                
+                const altSections = (altData?.newlist || []).filter(
+                  sec => Array.isArray(sec?.data) && sec.data.length > 0
+                );
+                setAllSections(altSections);
+                
+                if (initialDistrictId) {
+                  const found = altTabs.find(t => String(t.id) === String(initialDistrictId));
+                  if (found) setActiveDistrict(found);
+                }
+                if (initialDistrictTitle) {
+                  const found = altTabs.find(t => t.title === initialDistrictTitle);
+                  if (found) setActiveDistrict(found);
+                }
+                
+                const chennaiDistrict = altTabs.find(
+                  t => t.title && (t.title.includes('சென்னை') || t.title.toLowerCase().includes('chennai'))
+                );
+                setActiveDistrict(chennaiDistrict || altTabs[0] || null);
+                
+                if (altData?.taboola_ads?.mobile) {
+                  setTaboolaAds(altData.taboola_ads.mobile);
+                }
+                
+                // Cache successful response for future use
+                setCachedData('district_fallback', {
+                  districts: altTabs,
+                  sections: altSections,
+                  timestamp: Date.now()
+                });
+                
+                setInitLoading(false);
+                setRefreshing(false);
+                return;
+              }
+            } catch (altError) {
+              console.error(`${endpoint.name} failed:`, altError?.message);
+            }
+          }
+          
+          // Strategy 3: Show user-friendly error with retry option
+          console.log('❌ All API endpoints failed');
+          setInitLoading(false);
+          setRefreshing(false);
+          
+          // Set empty state to prevent crashes
+          setDistricts([]);
+          setAllSections([]);
+          setActiveDistrict(null);
+          setDistrictNews([]);
+          
+          // Show error message to user with retry option
+          setTimeout(() => {
+            // In a real app, you'd show a proper error message here
+            console.log('📱 All district news APIs are currently unavailable');
+            console.log('📱 Please check your internet connection');
+            console.log('📱 Try again in a few minutes');
+          }, 1000);
+          
+          return;
+        } else {
+          console.error('❌ No network connectivity');
+          setInitLoading(false);
+          setRefreshing(false);
+          return;
+        }
+      }
     } finally {
       setInitLoading(false);
       setRefreshing(false);

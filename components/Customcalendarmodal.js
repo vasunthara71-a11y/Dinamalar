@@ -221,11 +221,12 @@ const cal = StyleSheet.create({
   // Week labels
   weekRow: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     backgroundColor: '#f0f4ff',
     paddingVertical: vs(6),
   },
   weekLabel: {
-    flex: 1,
+    width: s(40),
     textAlign: 'center',
     fontSize: ms(12),
     fontFamily: FONTS.muktaMalar.medium,
@@ -240,14 +241,15 @@ const cal = StyleSheet.create({
   },
   row: {
     flexDirection: 'row',
+    // justifyContent: 'space-between',
     marginBottom: vs(4),
   },
   cell: {
-    flex: 1,
-    aspectRatio: 1,
+    width: s(40),
+    height: s(40),
     justifyContent: 'center',
     alignItems: 'center',
-    margin: s(2),
+    margin: s(1),
     borderRadius: s(20),
   },
   cellAvailable: {

@@ -657,29 +657,33 @@ const VideoDetailScreen = ({ navigation, route }) => {
       setTaboolaAds(data?.taboola_ads?.mobile ?? null);
       setMobileAds(data?.googleads?.mobileads ?? null);
 
-      // ── Parallel fetch of related content ───────────────────────────────
-      const relatedEndpoint = data?.morerelated ?? `/relatedmost?videoid=${id}`;
+      // ── Parallel fetch of related content with timeout and smaller chunks ─────────────
+      const relatedEndpoint = data?.morerelated ?? `/relatedmost?videoid=${id}&limit=6`;
 
-      // Create array of parallel requests
+      // Create array of parallel requests with smaller page sizes
       const parallelRequests = [
-        // Related videos, reels, and news
+        // Related videos, reels, and news - limit to 6 items each for faster loading
         CDNApi.get(relatedEndpoint).catch(e => {
           console.warn('relatedmost fetch error', e);
           return { data: { videos: { data: data?.relatedvideos || [] }, reels: { data: data?.relatedreels || [] }, newlist: { data: [] } } };
         }),
       ];
 
-      // Add morerelated fetch if endpoint exists
+      // Add morerelated fetch if endpoint exists - also with limit
       if (data?.morerelated) {
         parallelRequests.push(
-          CDNApi.get(data.morerelated).catch(e => {
+          CDNApi.get(`${data.morerelated}&limit=6`).catch(e => {
             console.warn('morerelated fetch error', e);
             return { data: { data: [] } };
           })
         );
       }
 
-      Promise.allSettled(parallelRequests).then(results => {
+      // Add timeout protection
+      Promise.race([
+        Promise.allSettled(parallelRequests),
+        new Promise(resolve => setTimeout(() => resolve([{ status: 'timeout' }]), 3000))
+      ]).then(results => {
         // Process related content
         const relatedResult = results[0];
         if (relatedResult.status === 'fulfilled') {
