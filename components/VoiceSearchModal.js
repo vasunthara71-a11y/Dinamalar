@@ -128,12 +128,12 @@ export default function VoiceSearchModal({ visible, onClose, onResult }) {
   const bgOpacity = useRef(new Animated.Value(0)).current;
   const VoiceRef = useRef(null);
 
-  // Try to load Voice library
+  // Try to load Speech Recognition library
   useEffect(() => {
     try {
-      VoiceRef.current = require('@react-native-voice/voice').default;
+      VoiceRef.current = require('expo-speech-recognition');
     } catch (e) {
-      console.warn('[VoiceSearch] @react-native-voice/voice not found. Using simulation mode.');
+      console.warn('[VoiceSearch] expo-speech-recognition not found. Using simulation mode.');
     }
   }, []);
 
@@ -177,29 +177,30 @@ export default function VoiceSearchModal({ visible, onClose, onResult }) {
     const V = VoiceRef.current;
     if (!V) return;
 
-    V.onSpeechStart = () => setStatus('listening');
-    V.onSpeechEnd = () => setStatus('processing');
-    V.onSpeechPartialResults = (e) => {
-      if (e.value?.[0]) setTranscript(e.value[0]);
-    };
-    V.onSpeechResults = (e) => {
-      const text = e.value?.[0] || '';
-      setTranscript(text);
-      setStatus('idle');
-      if (text) {
-        setTimeout(() => {
-          onResult && onResult(text);
-          handleClose();
-        }, 700);
-      }
-    };
-    V.onSpeechError = (e) => {
-      console.log('Voice error:', e);
-      setStatus('error');
+    const setupListeners = () => {
+      V.addEventListener('start', () => setStatus('listening'));
+      V.addEventListener('end', () => setStatus('processing'));
+      V.addEventListener('result', (e) => {
+        const text = e.results?.[0]?.transcript || '';
+        setTranscript(text);
+        setStatus('idle');
+        if (text) {
+          setTimeout(() => {
+            onResult && onResult(text);
+            handleClose();
+          }, 700);
+        }
+      });
+      V.addEventListener('error', (e) => {
+        console.log('Voice error:', e);
+        setStatus('error');
+      });
     };
 
+    setupListeners();
+
     return () => {
-      V.destroy().catch(() => {});
+      V.stop?.().catch(() => {});
     };
   }, []);
 
@@ -234,11 +235,11 @@ export default function VoiceSearchModal({ visible, onClose, onResult }) {
 
     const V = VoiceRef.current;
     if (!V) {
-      // ── Simulation fallback (no library installed) ──
+      // Simulation fallback
       setTimeout(() => {
         setStatus('processing');
         setTimeout(() => {
-          const demoText = selectedLang === 'ta-IN' ? 'ஜனநாயகம்' : 'politics';
+          const demoText = selectedLang === 'ta-IN' ? 'politics' : 'politics';
           setTranscript(demoText);
           setStatus('idle');
           setTimeout(() => {
@@ -251,8 +252,21 @@ export default function VoiceSearchModal({ visible, onClose, onResult }) {
     }
 
     try {
-      await V.start(selectedLang);
+      // expo-speech-recognition uses different API
+      const isAvailable = await V.isAvailableAsync();
+      if (!isAvailable) {
+        setStatus('error');
+        return;
+      }
+      
+      await V.requestPermissionsAsync();
+      await V.startAsync({
+        lang: selectedLang,
+        interimResults: true,
+        maxResults: 1,
+      });
     } catch (e) {
+      console.log('Speech recognition error:', e);
       setStatus('error');
     }
   };
@@ -260,6 +274,7 @@ export default function VoiceSearchModal({ visible, onClose, onResult }) {
   const stopListening = async () => {
     const V = VoiceRef.current;
     if (V) {
+      try { await V.stopAsync(); } catch (_) {}
       try { await V.stop(); } catch (_) {}
     }
     if (status === 'listening') setStatus('idle');
