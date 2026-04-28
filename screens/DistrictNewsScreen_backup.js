@@ -234,9 +234,6 @@ export default function DistrictNewsScreen() {
   const [allDistrictNews, setAllDistrictNews] = useState([]);
   const [taboolaAds, setTaboolaAds] = useState(null);
 
-  // ── PugarPetti data from API ─────────────────────────────────────────────
-  const [pugarPettiLink, setPugarPettiLink] = useState(null);
-
   // ── Active sub-tab (sub-districts of selected district) ──────────────────
   const [subDistricts, setSubDistricts] = useState([]);   // sub-tabs fetched per district
   const [activeSubTab, setActiveSubTab] = useState(null); // null = "All"
@@ -469,41 +466,10 @@ export default function DistrictNewsScreen() {
         const subs = d?.subcatlist || d?.subcategories || [];
         console.log('[DistrictNews] Sub-districts from API:', JSON.stringify(subs));
         setSubDistricts(subs);
-        // Keep activeSubTab null - district itself is "active" by default
-        setActiveSubTab(null);
-        
-        // ← Key fix: handle both [] (array) and {data:[]} (object) cases
-        const districtField = d?.district;
-        console.log('🔍 RAW DISTRICT FIELD:', districtField);
-        console.log('🔍 DISTRICT FIELD TYPE:', typeof districtField, Array.isArray(districtField));
-        
-        const pugarData = Array.isArray(districtField)
-          ? []                           // district: [] → no pugarpetti
-          : (districtField?.data || []); // district: {data:[...]} → check data
-        
-        console.log('🔍 PUGAR DATA AFTER PROCESSING:', pugarData);
-        
-        const pugarEntry = pugarData.find(item => item.title === 'புகார் பெட்டி');
-        const finalLink = pugarEntry?.link || null;
-        
-        console.log('🔍 ABOUT TO SET STATE:', {
-          districtId: activeDistrict?.id,
-          pugarEntry: pugarEntry,
-          finalLink: finalLink,
-          willSetState: finalLink
-        });
-        
-        setPugarPettiLink(finalLink);
-        
-        console.log('[DistrictNews] PugarPetti:', pugarEntry ? '✅ found' : '❌ not found');
-        console.log('[DistrictNews] PugarPetti extraction:', {
-          districtId: activeDistrict?.id,
-          districtFieldType: Array.isArray(districtField) ? 'array' : 'object',
-          pugarDataLength: pugarData.length,
-          pugarEntry: pugarEntry?.title,
-          link: finalLink,
-          hasData: !!finalLink
-        });
+        // Set first tab as active by default (like PugarPetti)
+        if (subs.length > 0) {
+          setActiveSubTab(subs[0]);
+        }
       }
 
       const list = extractList(d);
@@ -526,42 +492,28 @@ export default function DistrictNewsScreen() {
   // ── Re-fetch on district change ───────────────────────────────────────────
   useEffect(() => {
     if (!activeDistrict || isAllDistrict(activeDistrict)) return;
-    console.log('[DistrictNews] District changed, resetting PugarPetti link for:', activeDistrict?.id, activeDistrict?.title);
-    
-    // IMMEDIATE RESET - clear all states before API call
     setDistrictNews([]);
     setSubDistricts([]);
     setActiveSubTab(null);
-    setPugarPettiLink(null); // reset immediately
     setPage(1);
     setLastPage(1);
     setTabLoading(true);
     setInitLoading(false);
-    
-    // Force a small delay to ensure state is reset before API call
-    setTimeout(() => {
-      fetchDistrictNews(activeDistrict, null, 1, false);
-    }, 10);
+    fetchDistrictNews(activeDistrict, null, 1, false);
   }, [activeDistrict?.id]);
 
   // ── Sub-tab press ─────────────────────────────────────────────────────────
   const handleSubTabPress = (sub) => {
-    // Treat tapping the district's own tab as reset to null
-    const isSelf = String(sub.id) === String(activeDistrict?.id);
-    const targetSubTab = isSelf ? null : sub;
-
-    const isSame = targetSubTab === null
-      ? activeSubTab === null
-      : String(sub.id) === String(activeSubTab?.id);
-    if (isSame) return;
-
+    const newId = sub.id || null;
+    if (newId === activeSubTab?.id) return;
+    
     flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
-    setActiveSubTab(targetSubTab);
+    setActiveSubTab(sub);
     setDistrictNews([]);
     setPage(1);
     setLastPage(1);
     setTabLoading(true);
-    fetchDistrictNews(activeDistrict, targetSubTab, 1, false);
+    fetchDistrictNews(activeDistrict, sub, 1, false);
   };
 
   // ── Date filter ───────────────────────────────────────────────────────────
@@ -661,7 +613,6 @@ export default function DistrictNewsScreen() {
   };
 
   const isAllTab = isAllDistrict(activeDistrict);
-  // Fix: Show active sub-tab name when sub-tab is selected, otherwise show district name
   const headerTitle = activeSubTab?.title || activeDistrict?.title || initialDistrictTitle || 'உள்ளூர்';
   const isLoading = initLoading || tabLoading;
 
@@ -747,54 +698,20 @@ export default function DistrictNewsScreen() {
       {/* ── Page Title Row: District name + புகார் பெட்டி ── */}
       <View style={styles.pageTitleRow}>
         <View style={styles.pageTitleLeft}>
-          <Text style={[styles.pageTitle, { fontSize: sf(16) }]}>{headerTitle}</Text>
-          {/* <View style={styles.pageTitleUnderline} /> */}
+          <Text style={[styles.pageTitle, { fontSize: sf(20) }]}>{headerTitle}</Text>
+          <View style={styles.pageTitleUnderline} />
         </View>
 
-        {/* புகார் பெட்டி — only show if API returned pugarpetti data */}
-        {(() => {
-          const condition = pugarPettiLink && !isAllTab;
-          console.log('🚨 ARIYALUR CRITICAL DEBUG:', {
-            districtTitle: activeDistrict?.title,
-            districtId: activeDistrict?.id,
-            pugarPettiLink: pugarPettiLink,
-            pugarPettiLinkType: typeof pugarPettiLink,
-            pugarPettiLinkValue: JSON.stringify(pugarPettiLink),
-            isAllTab: isAllTab,
-            condition: condition,
-            isAriyalur: activeDistrict?.title === 'அரியலூர்',
-            isAriyalurById: activeDistrict?.id === '297'
-          });
-          
-          // Force return false for Ariyalur regardless of state
-          if (activeDistrict?.title === 'அரியலூர்' || activeDistrict?.id === '297') {
-            console.log('🚨 FORCE HIDING FOR ARIYALUR');
-            return false;
-          }
-          
-          return condition;
-        })() && (
-          <TouchableOpacity
-            style={styles.pugarBtn}
-            onPress={() => {
-              console.log('[DistrictNews] DEBUG: Navigating to PugarPetti with districtId:', activeDistrict?.id, 'district:', activeDistrict);
-              console.log('[DistrictNews] District ID details:', {
-                districtId: activeDistrict?.id,
-                districtIdType: typeof activeDistrict?.id,
-                districtTitle: activeDistrict?.title,
-                fullDistrict: activeDistrict
-              });
-              navigation.navigate('PugarPettiScreen', {
-                initialDistrictId: String(activeDistrict?.id), // Ensure it's a string
-                districtTitle: activeDistrict?.title,
-                pugarPettiLink: pugarPettiLink,
-              });
-            }}
-            activeOpacity={0.8}
-          >
-            <Text style={[styles.pugarBtnText, { fontSize: sf(13) }]}>புகார் பெட்டி</Text>
-          </TouchableOpacity>
-        )}
+        {/* புகார் பெட்டி — always visible */}
+        <TouchableOpacity
+          style={styles.pugarBtn}
+          onPress={() => navigation.navigate('PugarPettiScreen', {
+            initialDistrictId: activeDistrict?.id,
+          })}
+          activeOpacity={0.8}
+        >
+          <Text style={[styles.pugarBtnText, { fontSize: sf(13) }]}>புகார் பெட்டி</Text>
+        </TouchableOpacity>
       </View>
 
       {/* ── Sub-district tabs ─────────────────────────────────────────────────
@@ -810,10 +727,9 @@ export default function DistrictNewsScreen() {
           >
             {/* Dynamic sub-tabs from API */}
             {subDistricts.map((tab, index) => {
-              // Key fix: highlight district tab when activeSubTab is null, sub-tab when explicitly selected
-              const isActive = activeSubTab
-                ? String(tab.id) === String(activeSubTab.id)      // sub-tab explicitly selected
-                : String(tab.id) === String(activeDistrict?.id);  // default: highlight the district tab
+              const isActive = activeSubTab == null
+                ? tab.id == null
+                : (tab.id && String(tab.id) === String(activeSubTab?.id));
               
               return (
                 <TouchableOpacity
@@ -934,8 +850,10 @@ const styles = StyleSheet.create({
   pageTitleLeft: {
     alignItems: 'flex-start',
   },
-   pageTitle: { fontSize: 18, fontFamily: FONTS.anek.bold, color: '#111', marginBottom: vs(4) },
-
+  pageTitle: {
+    fontFamily: FONTS.muktaMalar.bold,
+    color: '#1a1a1a',
+  },
   pageTitleUnderline: {
     height: vs(3),
     width: s(40),
@@ -1005,7 +923,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f2f2f2',
   },
   sectionTitle: {
-    fontFamily: FONTS.anek.bold,
+    fontFamily: FONTS.muktaMalar.bold,
     color: '#1a1a1a',
     marginBottom: vs(4),
   },

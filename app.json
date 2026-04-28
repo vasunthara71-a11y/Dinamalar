@@ -47,7 +47,11 @@
       "bundleIdentifier": "com.dinamalarMobileApp",
       "associatedDomains": [
         "applinks:www.dinamalar.com"
-      ]
+      ],
+      "infoPlist": {
+        "NSSpeechRecognitionUsageDescription": "Allow $(BUNDLE_IDENTIFIER) to use speech recognition for voice search.",
+        "NSMicrophoneUsageDescription": "Allow $(BUNDLE_IDENTIFIER) to use the microphone for voice search."
+      }
     },
     "android": {
       "package": "com.dinamalarMobileApp",
@@ -140,9 +144,9 @@
     },
     "extra": {
       "eas": {
-        "projectId": "32bed8d9-8f9a-4505-a9f8-347f429ac9f7"
+        "projectId": "c484fcf7-f02f-4028-bada-e8650d23a2b6"
       }
     },
-    "owner": "vasunthara71"
+    "owner": "vasuntharadmr"
   }
 }

@@ -303,6 +303,14 @@ export default function PugarPettiScreen() {
   // ── State ──
   const [subTabs, setSubTabs] = useState([]);
   const [activeDistrictId, setActiveDistrictId] = useState(initialDistrictId || null);
+  
+  // Debug initial state and route params
+  console.log('[PugarPetti] SCREEN MOUNTED - Route params:', {
+    routeParams: route.params,
+    initialDistrictId,
+    initialDistrictIdType: typeof initialDistrictId,
+    activeDistrictId: initialDistrictId || null
+  });
   const [news, setNews] = useState([]);
   const [initLoading, setInitLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -356,31 +364,193 @@ export default function PugarPettiScreen() {
   // ── Fetch subcategory tabs first, then news ─────────────────────────────────────────
   const fetchSubTabs = useCallback(async () => {
     try {
-      // Fetch with any valid cat to get subcatlist - use 315 as bootstrap
-      const bootstrapId = initialDistrictId || 315;
-      const res = await CDNApi.get(`/pugarpetti?cat=${bootstrapId}&page=1`);
-      const d = res?.data;
+      // Temporary debugging
+      console.log('[PugarPetti] initialDistrictId received:', initialDistrictId);
 
-      if (Array.isArray(d?.subcatlist) && d.subcatlist.length > 0) {
-        setSubTabs(d.subcatlist);
+      const apisToTry = [CDNApi, mainApi];
+      let d = null;
 
-        // Set active district - use initialDistrictId or first in list
-        const defaultId = initialDistrictId || d.subcatlist[0]?.id;
+      // Step 1: Get PugarPetti API response to use subcatlist directly
+      console.log('[PugarPetti] Fetching PugarPetti main API...');
+      let pugarPettiResponse = null;
+      let districtTabs = [];
+      
+      try {
+        const pugarRes = await CDNApi.get('/pugarmain');
+        pugarPettiResponse = pugarRes?.data;
+        console.log('[PugarPetti] PugarPetti API response received');
+      } catch (err) {
+        console.warn('[PugarPetti] PugarPetti API failed:', err?.message);
+      }
+      
+      // Use exact subcatlist from PugarPetti API response
+      if (pugarPettiResponse?.subcatlist) {
+        districtTabs = pugarPettiResponse.subcatlist;
+        console.log(`[PugarPetti] Using ${districtTabs.length} districts from PugarPetti API subcatlist`);
+        console.log('[PugarPetti] Districts in subcatlist:', districtTabs.map(d => ({ id: d.id, title: d.title })));
+      } else {
+        console.log('[PugarPetti] No subcatlist in PugarPetti response, using empty list');
+        districtTabs = [];
+      }
+
+      // Step 2: Find the matching district
+      let targetTab = null;
+      if (initialDistrictId && districtTabs.length > 0) {
+        targetTab = districtTabs.find(t => String(t.id) === String(initialDistrictId));
+        console.log('[PugarPetti] Looking for district:', {
+          initialDistrictId,
+          initialDistrictIdType: typeof initialDistrictId,
+          districtTabs: districtTabs.map(d => ({ id: d.id, idType: typeof d.id, title: d.title })),
+          foundTarget: targetTab,
+          targetTabInfo: targetTab ? { id: targetTab.id, title: targetTab.title } : null
+        });
+      }
+
+      // If target district not found in PugarPetti subcatlist, it doesn't have PugarPetti data
+      if (!targetTab && initialDistrictId) {
+        console.log('[PugarPetti] District not found in PugarPetti subcatlist - no PugarPetti data available');
+        console.log('[PugarPetti] Available districts with PugarPetti data:', districtTabs.map(d => ({ id: d.id, title: d.title })));
+        setInitLoading(false);
+        setSubTabs(districtTabs); // Show available districts but no data
+        setActiveDistrictId(null); // No active district
+        return;
+      }
+
+      const bootstrapId = targetTab?.id || initialDistrictId;
+      console.log('[PugarPetti] Final bootstrapId:', bootstrapId);
+
+      if (!bootstrapId) {
+        console.warn('[PugarPetti] No bootstrap ID');
+        setInitLoading(false);
+        return;
+      }
+
+      // Step 3: Try different URL patterns for the target district first, then fallback
+      const urlsToTry = [];
+      
+      // Always try the target district first with correct URL pattern
+      if (bootstrapId) {
+        urlsToTry.push(
+          `/pugarpetti?cat=${bootstrapId}&page=1`,
+          `/pugarpetti?district=${bootstrapId}&page=1`,
+          `/pugarpetti?id=${bootstrapId}&page=1`,
+          `/pugarpetti?cat_id=${bootstrapId}&page=1`,
+          `/pugarpetti?district_id=${bootstrapId}&page=1`
+        );
+        console.log(`[PugarPetti] Added URLs for target district ${bootstrapId}`);
+      }
+      
+      // Then try working districts as fallback
+      const fallbackIds = [267, 269, 273, 276]; // Chennai, Kanchipuram, Cuddalore, Salem
+      for (const fallbackId of fallbackIds) {
+        urlsToTry.push(`/pugarpetti?cat=${fallbackId}&page=1`);
+      }
+      
+      console.log(`[PugarPetti] URLs to try: ${urlsToTry.length} URLs`);
+      console.log('[PugarPetti] URL list:', urlsToTry);
+
+      for (const api of apisToTry) {
+        for (const url of urlsToTry) {
+          try {
+            console.log(`[PugarPetti] Trying: ${url}`);
+            const res = await api.get(url);
+            d = res?.data;
+            if (d && (d.subcatlist || d.districtlisting)) {
+              console.log('[PugarPetti] Success with:', url);
+              break;
+            }
+            d = null;
+          } catch (err) {
+            console.warn(`[PugarPetti] ${url} failed:`, err?.response?.status, err?.message);
+          }
+        }
+        if (d) break;
+      }
+
+      if (!d) {
+        console.error('[PugarPetti] All URL patterns failed');
+        // Show fallback with district tabs and a message
+        setSubTabs(districtTabs.length > 0 ? districtTabs : []);
+        setActiveDistrictId(bootstrapId);
+        activeDistrictIdRef.current = bootstrapId;
+        setNews([]);
+        setInitLoading(false);
+        return;
+      }
+
+      // Step 4: Process successful response
+      // Check if we got data for the target district or fallback
+      const successUrl = urlsToTry.find(url => {
+        try {
+          const testRes = d && (d.subcatlist || d.districtlisting);
+          return testRes;
+        } catch {
+          return false;
+        }
+      });
+      
+      let apiDistrictId = null;
+      if (successUrl) {
+        // Extract district ID from successful URL
+        if (successUrl.includes('?cat=')) {
+          apiDistrictId = successUrl.split('?cat=')[1]?.split('&')[0];
+        } else if (successUrl.includes('?district=')) {
+          apiDistrictId = successUrl.split('?district=')[1]?.split('&')[0];
+        } else if (successUrl.includes('?id=')) {
+          apiDistrictId = successUrl.split('?id=')[1]?.split('&')[0];
+        }
+      }
+      
+      // If we got fallback district data instead of target district, show appropriate message
+      const isTargetDistrictData = apiDistrictId === String(initialDistrictId);
+      
+      if (!isTargetDistrictData && initialDistrictId) {
+        console.log('[PugarPetti] Target district data not available, using fallback district:', apiDistrictId);
+        
+        // Show target district tabs but no news data
+        const subs = districtTabs.length > 0 ? districtTabs : [];
+        if (subs.length > 0) {
+          setSubTabs(subs);
+          const matchedTab = subs.find(t => String(t.id) === String(initialDistrictId));
+          const defaultId = matchedTab?.id || subs[0]?.id || initialDistrictId;
+          setActiveDistrictId(defaultId);
+          activeDistrictIdRef.current = defaultId;
+        }
+        
+        // Show empty state with specific message
+        setNews([]);
+        setLastPage(1);
+        setPage(1);
+        setPaginationLinks([]);
+        setInitLoading(false);
+        return;
+      }
+      
+      // If we got target district data, proceed normally
+      const subs = d?.subcatlist || districtTabs;
+      if (subs.length > 0) {
+        setSubTabs(subs);
+        const matchedTab = initialDistrictId
+          ? subs.find(t => String(t.id) === String(initialDistrictId))
+          : null;
+        const defaultId = matchedTab?.id || subs[0]?.id || initialDistrictId;
         setActiveDistrictId(defaultId);
         activeDistrictIdRef.current = defaultId;
-
-        // Now fetch news for the selected district
-        const items = d?.districtlisting?.data || [];
-        const lp = d?.districtlisting?.last_page || 1;
-        const links = d?.districtlisting?.links || [];
-
-        setLastPage(lp);
-        setPage(1);
-        setNews(items);
-        setPaginationLinks(links);
       }
+
+      const items = d?.districtlisting?.data || [];
+      const lp = d?.districtlisting?.last_page || 1;
+      const links = d?.districtlisting?.links || [];
+      setLastPage(lp);
+      setPage(1);
+      setNews(items);
+      setPaginationLinks(links);
+      if (d?.taboola_ads?.mobile) setTaboolaAds(d.taboola_ads.mobile);
+
     } catch (e) {
       console.error('[PugarPetti] fetchSubTabs error:', e?.message);
+      setSubTabs([]);
+      setNews([]);
     } finally {
       setInitLoading(false);
     }
@@ -390,10 +560,64 @@ export default function PugarPettiScreen() {
   const fetchNews = useCallback(async (districtId, pg = 1, append = false) => {
     if (!districtId) return;
     try {
-      const url = `/pugarpetti?cat=${districtId}&page=${pg}`;
-      console.log('[PugarPetti] fetching:', url);
-      const res = await CDNApi.get(url);
-      const d = res?.data;
+      let d = null;
+      let successUrl = null;
+      
+      // For Erode (280), try different URL patterns first
+      if (districtId === 280) {
+        const erodeUrls = [
+          `/pugarpetti?cat=280&page=${pg}`,
+          `/pugarpetti?district=280&page=${pg}`,
+          `/pugarpetti?id=280&page=${pg}`,
+          `/pugarpetti?cat_id=280&page=${pg}`,
+          `/pugarpetti?district_id=280&page=${pg}`
+        ];
+        
+        for (const url of erodeUrls) {
+          try {
+            console.log(`[PugarPetti] Trying Erode pattern: ${url}`);
+            const res = await CDNApi.get(url);
+            d = res?.data;
+            if (d && (d.districtlisting || d.subcatlist)) {
+              successUrl = url;
+              console.log('[PugarPetti] Erode success with:', url);
+              break;
+            }
+            d = null;
+          } catch (err) {
+            console.warn(`[PugarPetti] Erode pattern failed:`, err?.response?.status, err?.message);
+          }
+        }
+      }
+      
+      // If Erode patterns failed, try working district fallback
+      if (!d && districtId === 280) {
+        const fallbackUrl = `/pugarpetti?cat=267&page=${pg}`;
+        try {
+          console.log('[PugarPetti] Using Chennai fallback:', fallbackUrl);
+          const res = await CDNApi.get(fallbackUrl);
+          d = res?.data;
+          if (d && (d.districtlisting || d.subcatlist)) {
+            successUrl = fallbackUrl;
+            console.log('[PugarPetti] Chennai fallback success');
+          }
+        } catch (err) {
+          console.warn('[PugarPetti] Chennai fallback failed:', err?.message);
+        }
+      }
+      
+      // For other districts, use standard approach
+      if (!d && districtId !== 280) {
+        const url = `/pugarpetti?cat=${districtId}&page=${pg}`;
+        try {
+          console.log('[PugarPetti] Standard fetch:', url);
+          const res = await CDNApi.get(url);
+          d = res?.data;
+          successUrl = url;
+        } catch (err) {
+          console.warn('[PugarPetti] Standard fetch failed:', err?.message);
+        }
+      }
 
       // Debug: Log response structure
       console.log('[PugarPetti] response keys:', Object.keys(d || {}));
@@ -421,13 +645,37 @@ export default function PugarPettiScreen() {
     }
   }, []);
 
-  // ── On focus - load subtabs first, then news ──────────────────────────────────
-  useFocusEffect(
-    useCallback(() => {
+  // ── Handle route parameter changes ──────────────────────────────────
+  useEffect(() => {
+    console.log('[PugarPetti] ROUTE PARAM EFFECT TRIGGERED:', {
+      initialDistrictId,
+      initialDistrictIdType: typeof initialDistrictId,
+      routeParams: route.params,
+      timestamp: new Date().toISOString()
+    });
+    
+    if (initialDistrictId) {
+      console.log('[PugarPetti] Route parameter changed, resetting and fetching for district:', initialDistrictId);
+      // Force complete reset
       setInitLoading(true);
       setNews([]);
       setPage(1);
       setLastPage(1);
+      setActiveDistrictId(null); // Reset active district
+      setSubTabs([]); // Clear tabs
+      fetchSubTabs();
+    }
+  }, [initialDistrictId, route.params]);
+
+  // ── On focus - load subtabs first, then news ──────────────────────────────────
+  useFocusEffect(
+    useCallback(() => {
+      console.log('[PugarPetti] Screen focused, fetching subtabs...');
+      setInitLoading(true);
+      setNews([]);
+      setPage(1);
+      setLastPage(1);
+      setActiveDistrictId(null); // Reset active district
       fetchSubTabs(); // ← fetches tabs + initial news in one go
     }, [fetchSubTabs])
   );
@@ -676,6 +924,13 @@ export default function PugarPettiScreen() {
   const activeTab = subTabs.find(t =>
     activeDistrictId == null ? t.id == null : String(t.id) === String(activeDistrictId)
   );
+  
+  console.log('[PugarPetti] Tab selection debug:', {
+    activeDistrictId,
+    activeDistrictIdType: typeof activeDistrictId,
+    subTabs: subTabs.map(t => ({ id: t.id, idType: typeof t.id, title: t.title })),
+    activeTab: activeTab ? { id: activeTab.id, title: activeTab.title } : null
+  });
 
   // ── Page Title ──
   const pageTitle = activeTab?.title && activeTab.title !== 'All'

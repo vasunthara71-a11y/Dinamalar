@@ -39,7 +39,7 @@ const Shorts = ({ shortsData, onShortPress }) => {
     <View style={styles.container}>
       {/* Section Header */}
       <View style={styles.sectionHeader}>
-        <Text style={[styles.sectionTitle, { fontSize: sf(18) }]}>Shorts</Text>
+        <Text style={[styles.sectionTitle, { fontSize: sf(18) }]}>ஷார்ட்ஸ்</Text>
         <View style={styles.sectionUnderline} />
       </View>
       

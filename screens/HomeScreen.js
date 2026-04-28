@@ -2792,7 +2792,7 @@ const decodeHtml = (str) => {
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>');
 };
-function DistrictNewsSection({ districts, onPress, districtTabData }) {
+function DistrictNewsSection({ districts, onPress, districtTabData, navigation }) {
   const { sf } = useFontSize();
   if (!districts || districts.length === 0) return null;
 
@@ -2813,68 +2813,86 @@ function DistrictNewsSection({ districts, onPress, districtTabData }) {
         const newscomment = firstNews.newscomment || firstNews.commentcount || firstNews.nmcomment || firstNews.comments?.total || '';
 
         return (
-          <TouchableOpacity
-            key={`district-${idx}-${district.id}`}
-            style={districtSt.card}
-            onPress={() => onPress(district)}
-            activeOpacity={0.88}
-          >
-            {/* Header row: name + chevron (NO icon here) */}
-            <View style={districtSt.headerRow}>
-              {/* Empty space on left to offset for the overlapping icon */}
-              <View style={districtSt.iconPlaceholder} />
+          <View key={`district-${idx}-${district.id}`} style={districtSt.card}>
+            {/* Header row: name + chevron - Clickable for district navigation */}
+            <TouchableOpacity
+              style={districtSt.headerRow}
+              onPress={() => {
+                console.log('📍 DISTRICT HEADER CLICKED - Navigating to DistrictNewsScreen');
+                navigation?.navigate('DistrictNewsScreen', {
+                  districtId: district.id,
+                  districtTitle: district.title,
+                });
+              }}
+              activeOpacity={0.88}
+            >
+               <View style={districtSt.iconPlaceholder} />
               <Text style={[districtSt.districtName, { fontSize: sf(15) }]}>
                 {district.title}
               </Text>
               <Ionicons name="chevron-forward" size={s(18)} color={PALETTE.grey800} />
-            </View>
+            </TouchableOpacity>
 
-            {/* Image container — icon overlaps top-left of this */}
-            <View style={districtSt.imageContainer}>
-              <Image
-                source={{ uri: imageUri }}
-                style={districtSt.newsImage}
-                resizeMode="cover"
-              />
+            {/* Image + News content - Clickable for news details */}
+            <TouchableOpacity
+              onPress={() => {
+                // Navigate to NewsDetailsScreen for individual news items
+                console.log('📍 DISTRICT NEWS ITEM CLICKED - Navigating to NewsDetailsScreen');
+                navigation.navigate('NewsDetailsScreen', {
+                  newsId: firstNews.newsid || firstNews.id,
+                  newsItem: firstNews,
+                });
+              }}
+              activeOpacity={0.88}
+              style={{ flex: 1 }}
+            >
+              {/* Image container — icon overlaps top-left of this */}
+              <View style={districtSt.imageContainer}>
+                <Image
+                  source={{ uri: imageUri }}
+                  style={districtSt.newsImage}
+                  resizeMode="cover"
+                />
 
-              {/* Icon absolutely positioned — overlaps top-left corner of image */}
-              <View style={districtSt.iconOverlay}>
-                {district.icon ? (
-                  <Image
-                    source={{ uri: district.icon }}
-                    style={districtSt.iconCircle}
-                    resizeMode="cover"
-                  />
-                ) : (
-                  <View style={[districtSt.iconCircle, districtSt.iconFallback]}>
-                    <Text style={[districtSt.iconFallbackText, { fontSize: sf(16) }]}>
-                      {district.title?.charAt(0) || '?'}
-                    </Text>
-                  </View>
-                )}
-              </View>
-            </View>
-
-            {/* News title + time */}
-            <View style={districtSt.newsContent}>
-              {!!newsTitle && (
-                <Text style={[NewsCardStyles.title, { fontSize: sf(14), lineHeight: sf(22) }]} numberOfLines={2}>
-                  {newsTitle}
-                </Text>
-              )}
-              <View style={districtSt.metaRow}>
-                <Text style={[NewsCardStyles.timeText, { fontSize: sf(13) }]}>{ago}</Text>
-                <View style={NewsCardStyles.metaRight}>
-                  {!!newscomment && newscomment !== '0' && (
-                    <View style={NewsCardStyles.commentRow}>
-                      <Comment size={s(15)} color={PALETTE.grey700} style={{ marginRight: 2 }} />
-                      <Text style={[NewsCardStyles.commentText, { fontSize: sf(12) }]}> {newscomment}</Text>
+                {/* Icon absolutely positioned — overlaps top-left corner of image */}
+                <View style={districtSt.iconOverlay}>
+                  {district.icon ? (
+                    <Image
+                      source={{ uri: district.icon }}
+                      style={districtSt.iconCircle}
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    <View style={[districtSt.iconCircle, districtSt.iconFallback]}>
+                      <Text style={[districtSt.iconFallbackText, { fontSize: sf(16) }]}>
+                        {district.title?.charAt(0) || '?'}
+                      </Text>
                     </View>
                   )}
                 </View>
               </View>
-            </View>
-          </TouchableOpacity>
+
+              {/* News title + time */}
+              <View style={districtSt.newsContent}>
+                {!!newsTitle && (
+                  <Text style={[NewsCardStyles.title, { fontSize: sf(14), lineHeight: sf(22) }]} numberOfLines={2}>
+                    {newsTitle}
+                  </Text>
+                )}
+                <View style={districtSt.metaRow}>
+                  <Text style={[NewsCardStyles.timeText, { fontSize: sf(13) }]}>{ago}</Text>
+                  <View style={NewsCardStyles.metaRight}>
+                    {!!newscomment && newscomment !== '0' && (
+                      <View style={NewsCardStyles.commentRow}>
+                        <Comment size={s(15)} color={PALETTE.grey700} style={{ marginRight: 2 }} />
+                        <Text style={[NewsCardStyles.commentText, { fontSize: sf(12) }]}> {newscomment}</Text>
+                      </View>
+                    )}
+                  </View>
+                </View>
+              </View>
+            </TouchableOpacity>
+          </View>
         );
       })}
 
@@ -5635,6 +5653,7 @@ export default function HomeScreen() {
                     <DistrictNewsSection
                       districts={section.data}
                       districtTabData={section.districtTabData}
+                      navigation={navigation}
                       onPress={(district) => {
                         navigation?.navigate('DistrictNewsScreen', {
                           districtId: district.id,
