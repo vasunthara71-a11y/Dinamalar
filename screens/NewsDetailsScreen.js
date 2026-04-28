@@ -1,13 +1,4 @@
-// NewsDetailsScreen.js
-//
-// Taboola integration for Expo (WebView-based, no native SDK needed).
-//
-// Publisher IDs taken from your existing website TaboolaScript.js:
-//   Mobile  → mdinamalarcom   ← used here (React Native = always mobile)
-//   Desktop → dinamalarcom    ← ignored in this app
-//
-// Install (if not already):
-//   npx expo install react-native-webview
+
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
@@ -763,7 +754,14 @@ export default function NewsDetailsScreen() {
   };
   const goToSearch = () => navigation?.navigate('SearchScreen');
   const goToNotifs = () => navigation?.navigate('NotificationScreen');
-  const handleSelectDistrict = (district) => setSelectedDistrict(district.title);
+  const handleSelectDistrict = (district) => {
+    setSelectedDistrict(district.title);
+    // Navigate to DistrictNewsScreen with the selected district
+    navigation.navigate('DistrictNewsScreen', {
+      districtId: district.id,
+      districtTitle: district.title
+    });
+  };
 
   // Handle author navigation
   const handleAuthorPress = () => {

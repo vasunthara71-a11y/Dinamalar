@@ -215,7 +215,7 @@ function SectionHeader({ title, onSeeMore }) {
       activeOpacity={0.8}
       disabled={!onSeeMore}
     >
-      <Text style={[styles.sectionTitle, { fontSize: sf(17) }]}>{title}</Text>
+      <Text style={[styles.sectionTitle, { fontSize: sf(16) }]}>{title}</Text>
       <View style={styles.sectionUnderline} />
       <View style={styles.greyLine} />
     </TouchableOpacity>
@@ -1105,9 +1105,8 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: ms(17),
-    fontWeight: '700',
-    color: '#111',
-    fontFamily: getFontFamily(700),
+     color: '#111',
+    fontFamily: FONTS.muktaMalar.bold,
   },
   clearAllText: {
     fontSize: ms(13),

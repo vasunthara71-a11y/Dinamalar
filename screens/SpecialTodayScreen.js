@@ -748,12 +748,12 @@ const styles = StyleSheet.create({
     paddingTop: Platform.OS === 'android' ? vs(0) : 20,
   },  centered:   { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#ffffff' },
 
-  tabsWrapper:   { flexGrow: 0, borderBottomWidth: 1, borderBottomColor: '#e9ecef' },
-  tabsContent:   { paddingHorizontal: s(10),gap: s(8),  alignItems: 'center' },
-  tabBtn:        { paddingHorizontal: s(18), paddingVertical: vs(7), borderRadius: s(25), borderWidth: 1.5, borderColor: COLORS.primary, backgroundColor: '#ffffff' },
-  tabBtnActive:  { backgroundColor: COLORS.primary },
-  tabText:       { fontSize: ms(14), color: COLORS.primary,  fontFamily: FONTS.muktaMalar.semibold },
-  tabTextActive: { fontSize: ms(14), color: '#ffffff',        fontFamily: FONTS.muktaMalar.bold },
+  tabsWrapper:   { flexGrow: 0, borderBottomWidth: 1, borderBottomColor: '#e9ecef' , marginVertical:ms(10)},
+  tabsContent:   { paddingHorizontal: s(15),gap: s(8),  alignItems: 'center' ,},
+  tabBtn:        { paddingHorizontal: s(15),  borderRadius: s(25), borderWidth: 1.5, borderColor: COLORS.primary, backgroundColor: '#ffffff', },
+   tabText:       { fontSize: ms(13), color: COLORS.primary,  fontFamily: FONTS.muktaMalar.semibold },
+  tabTextActive: { fontSize: ms(13), color: '#ffffff',        fontFamily: FONTS.muktaMalar.semibold },
+  tabBtnActive:{backgroundColor: COLORS.primary},
 
   listContent: { paddingBottom: vs(30) },
 
