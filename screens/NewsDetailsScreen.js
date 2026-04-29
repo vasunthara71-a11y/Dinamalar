@@ -75,6 +75,21 @@ const sanitizeHtml = (html) => {
     .trim();
 };
 
+// Decode HTML entities function
+const decodeHtmlEntities = (str) => {
+  if (!str) return '';
+  return str
+    .replace(/&#39;/g, "'")
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&#x27;/g, "'")
+    .replace(/&#x2F;/g, '/')
+    .replace(/&nbsp;/g, ' ');
+};
+
 const buildTagsStyles = (fontSize, textColor = COLORS.text) => {
   const lh = Math.round(fontSize * LINE_HEIGHT_RATIO);
   return {
@@ -1096,7 +1111,7 @@ export default function NewsDetailsScreen() {
   const d = detail || {};
   const ni = currentNewsItem || {};
 
-  const title = d.newstitle || ni.newstitle || ni.title || '';
+  const title = decodeHtmlEntities(d.newstitle || ni.newstitle || ni.title || '');
   const image = d.largeimages || d.images || ni.largeimages || ni.images || '';
   const catKey = d.maincat || ni.maincat || '';
   const ago = d.ago || ni.ago || '';
@@ -1523,7 +1538,7 @@ export default function NewsDetailsScreen() {
                   const relId = rel.id || rel.newsid;
                   const relImage = rel.images || rel.largeimages || rel.image ||
                     'https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_default.jpg?im=Resize,width=400';
-                  const relTitle = rel.newstitle || rel.title || '';
+                  const relTitle = decodeHtmlEntities(rel.newstitle || rel.title || '');
                   const relDate = rel.standarddate || rel.ago || '';
                   const relCommentCount = parseInt(rel.nmcomment || rel.newscomment || rel.commentcount || 0, 10) || 0;
 

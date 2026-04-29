@@ -187,7 +187,7 @@ export const NewsCard = {
   },
   image: {
     width: '100%',
-    height: vs(200),
+    height: vs(220),
   },
   imageErrorContainer: {
     width: '100%',

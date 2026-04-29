@@ -874,6 +874,7 @@ const shortsSt = StyleSheet.create({
 // --- News Card ----------------------------------------------------------------
 function NewsCard({ item, onPress, isSocialMedia = false, isPremium = false, hideCategory = false, isCartoon = false, sectionTitle = '', is360Degree = false, hideImage = false, hideDescription = false, isIPaper = false, navigation }) {
   const { sf } = useFontSize();
+  const [isTitleHovered, setIsTitleHovered] = useState(false);
 
   console.log('NewsCard hideDescription:', hideDescription, 'Title:', item.newstitle || item.title);
 
@@ -1856,9 +1857,23 @@ function NewsCard({ item, onPress, isSocialMedia = false, isPremium = false, hid
 
           {/* Regular title for non-banner items */}
           {!!title && !isSocialMedia && !item.isBanner && (
-            <Text style={[NewsCardStyles.title, { fontSize: sf(13), lineHeight: sf(22) }]} numberOfLines={3}>
-              {title}
-            </Text>
+            <TouchableOpacity
+              onPress={() => {
+                setIsTitleHovered(false);
+                onPress();
+              }}
+              onPressIn={() => setIsTitleHovered(true)}
+              onPressOut={() => setTimeout(() => setIsTitleHovered(false), 100)}
+              activeOpacity={1}
+            >
+              <Text style={[NewsCardStyles.title, { 
+                fontSize: sf(13), 
+                lineHeight: sf(22),
+                color: isTitleHovered ? COLORS.primary : COLORS.grey800,
+              }]} numberOfLines={3}>
+                {title}
+              </Text>
+            </TouchableOpacity>
           )}
 
           {/* Show description for temple items and Dinam Dinam */}
@@ -2125,6 +2140,7 @@ const shortNewsSt = StyleSheet.create({
 // NewsCard-style layout with play button overlay   tapping opens VideoPlayerModal
 function DinaMalarTVCard({ item, onVideoPress, navigation }) {
   const { sf } = useFontSize();
+  const [isTitleHovered, setIsTitleHovered] = useState(false);
 
   const isLive = item.VCategory === '5050' || String(item.VCategory) === '5050' ||
     (item.maincat || '').toLowerCase() === 'live';
@@ -2336,12 +2352,26 @@ function DinaMalarTVCard({ item, onVideoPress, navigation }) {
         {/* Text content   identical structure to NewsCard */}
         <View style={NewsCardStyles.contentContainer}>
           {!!title && (
-            <Text
-              style={[NewsCardStyles.title, { fontSize: sf(15), lineHeight: sf(22) }]}
-              numberOfLines={3}
+            <TouchableOpacity
+              onPress={() => {
+                setIsTitleHovered(false);
+                onVideoPress(item);
+              }}
+              onPressIn={() => setIsTitleHovered(true)}
+              onPressOut={() => setTimeout(() => setIsTitleHovered(false), 100)}
+              activeOpacity={1}
             >
-              {title}
-            </Text>
+              <Text
+                style={[NewsCardStyles.title, { 
+                  fontSize: sf(13), 
+                  lineHeight: sf(22),
+                  color: isTitleHovered ? COLORS.primary : COLORS.grey800,
+                }]}
+                numberOfLines={3}
+              >
+                {title}
+              </Text>
+            </TouchableOpacity>
           )}
 
           {!!category && (
