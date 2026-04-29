@@ -350,7 +350,7 @@ const shStyles = StyleSheet.create({
     paddingBottom: vs(12),
   },
   title: {
-    fontFamily: FONTS.anek.bold,
+    fontFamily: FONTS.anek.semiBold,
     fontSize: ms(18),
     color: PALETTE.grey800,
     marginBottom: vs(2),
@@ -616,7 +616,7 @@ function NotificationCard({ item, onPress, navigation }) {
       {/* ── Text content (always tappable → article/video screen) ── */}
       <TouchableOpacity onPress={() => onPress(item)} activeOpacity={0.88}>
         <View style={ncStyles.contentContainer}>
-          <Text style={[ncStyles.title, { fontSize: sf(16), lineHeight: sf(26) }]}  >
+          <Text style={[ncStyles.title, { fontSize: sf(14), lineHeight: sf(26) }]}  >
             {String(item.newstitle || '')}
           </Text>
           {!!category && (
@@ -804,7 +804,7 @@ function TimelineItem({ item, isLast, onPress, navigation, resolvePhotoTab }) {
           <Text style={[
             tlStyles.title,
             {
-              fontSize: sf(16),
+              fontSize: sf(14),
               lineHeight: sf(22),
               color: titleHovered ? PALETTE.primary : PALETTE.grey800
             }

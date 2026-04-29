@@ -39,8 +39,7 @@
           "microphonePermission": "Allow $(BUNDLE_IDENTIFIER) to use the microphone for voice search.",
           "speechRecognitionPermission": "Allow $(BUNDLE_IDENTIFIER) to use speech recognition for voice search."
         }
-      ],
-      "@react-native-voice/voice"
+      ]
     ],
     "ios": {
       "supportsTablet": true,
@@ -59,7 +58,7 @@
       "gradle": {
         "properties": {
           "android.useAndroidX": "true",
-          "android.enableJetifier": "false",
+          "android.enableJetifier": "true",
           "android.enableR8.fullMode": "true",
           "org.gradle.jvmargs": "-Xmx6144m -XX:MaxMetaspaceSize=1024m",
           "org.gradle.parallel": "true",
