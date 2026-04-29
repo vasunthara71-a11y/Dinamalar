@@ -10,8 +10,7 @@ import TimelineScreen from '../screens/TimelineScreen';
 import NewsDetailsScreen from '../screens/NewsDetailsScreen';
 import TharpothaiyaSeithigalScreen from '../screens/TharpothaiyaSeithigalScreen';
 import CategoryNewsScreen from '../screens/CategoryNewsScreen';
-import IndiaScreen from '../screens/IndiaScreen';
-import TamilNaduScreen from '../screens/TamilNaduScreen';
+ import TamilNaduScreen from '../screens/TamilNaduScreen';
 import WorldScreen from '../screens/WorldScreen';
 import DinamalarTVScreen from '../screens/DinamalarTVScreen';
 import TabNavigator from './TabNavigator';
@@ -77,8 +76,7 @@ const AppNavigator = () => {
         <Stack.Screen name="KadalThamaraiScreen" component={KadalThamaraiScreen} />
         <Stack.Screen name="TimelineScreen" component={TimelineScreen} />
         <Stack.Screen name="TharpothaiyaSeithigalScreen" component={TharpothaiyaSeithigalScreen} />
-        <Stack.Screen name="IndiaScreen" component={IndiaScreen} />
-        <Stack.Screen name="TamilNaduScreen" component={TamilNaduScreen} />
+         <Stack.Screen name="TamilNaduScreen" component={TamilNaduScreen} />
         <Stack.Screen name="WorldScreen" component={WorldScreen} />
         <Stack.Screen name="DinamalarTVScreen" component={DinamalarTVScreen} />
         {/* <Stack.Screen name="CategoryNewsScreen" component={CategoryNewsScreen} /> */}

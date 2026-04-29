@@ -17,6 +17,7 @@ import { COLORS, FONTS, NewsCard } from '../utils/constants';
 import { s, vs, scaledSizes } from '../utils/scaling';
 import { ms } from 'react-native-size-matters';
 import UniversalHeaderComponent from '../components/UniversalHeaderComponent';
+import TopMenuStrip from '../components/TopMenuStrip';
 import { addBookmark, removeBookmark, isBookmarked } from '../utils/storage';
 import AppHeaderComponent from '../components/AppHeaderComponent';
 import CommentsModal from '../components/CommentsModal';
@@ -748,9 +749,57 @@ export default function NewsDetailsScreen() {
     ]).start();
   };
 
+  // ── Route Map for menu navigation (same as HomeScreen) ─────────────────────
+  const LINK_ROUTE_MAP = [
+    { match: ['dinamalartv', 'videodata'], screen: 'VideoScreen' },
+    { match: ['podcast'], screen: 'PodcastPlayer' },
+    { match: ['ipaper'], screen: 'IpaperScreen' },
+    { match: ['books'], screen: 'BooksScreen' },
+    { match: ['subscription'], screen: 'SubscriptionScreen' },
+    { match: ['thirukural'], screen: 'ThirukkuralScreen' },
+    { match: ['kadal'], screen: 'KadalThamaraiScreen' },
+    { match: ['latestmain', 'timeline', 'dinamdinam'], screen: 'TimelineScreen' },
+    { match: ['cinema'], screen: 'CategoryNewsScreen' },
+    { match: ['temple', 'kovilgal'], screen: 'CategoryNewsScreen' },
+  ];
+
+  const resolveScreenFromLink = (link = '') => {
+    if (!link) return null;
+    const lower = link.toLowerCase();
+    for (const { match, screen } of LINK_ROUTE_MAP) {
+      if (match.some((kw) => lower.includes(kw))) {
+        if (screen === 'CategoryNewsScreen') {
+          const m = lower.match(/cat=(\d+)/);
+          return { screen, params: m ? { catId: m[1] } : {} };
+        }
+        return { screen, params: null };
+      }
+    }
+    const m = lower.match(/cat=(\d+)/);
+    if (m) return { screen: 'HomeScreen', params: { catId: m[1] } };
+    if (link.startsWith('http') || link.startsWith('www.'))
+      return { screen: '__external__', params: null };
+    return null;
+  };
+
   const handleMenuPress = (menuItem) => {
     const link = menuItem?.Link || menuItem?.link || '';
-    if (link.startsWith('http') || link.startsWith('www.')) Linking.openURL(link);
+    const title = menuItem?.Title || menuItem?.title || '';
+    const resolved = resolveScreenFromLink(link);
+    
+    if (!resolved) { 
+      navigation?.navigate('TimelineScreen', { catName: title }); 
+      return; 
+    }
+    if (resolved.screen === '__external__') {
+      Linking.openURL(link);
+      return;
+    }
+    
+    navigation?.navigate(
+      resolved.screen,
+      resolved.params ? { catName: title, ...resolved.params } : { catName: title }
+    );
   };
   const goToSearch = () => navigation?.navigate('SearchScreen');
   const goToNotifs = () => navigation?.navigate('NotificationScreen');
@@ -1184,27 +1233,20 @@ export default function NewsDetailsScreen() {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
 
-      <UniversalHeaderComponent
-        // statusBarStyle="dark-content"
-        // statusBarBackgroundColor={COLORS.white}
+    
+      <TopMenuStrip
         onMenuPress={handleMenuPress}
         onNotification={goToNotifs}
         notifCount={0}
-        isDrawerVisible={isDrawerVisible}
-        setIsDrawerVisible={setIsDrawerVisible}
         navigation={navigation}
-        isLocationDrawerVisible={isLocationDrawerVisible}
-        setIsLocationDrawerVisible={setIsLocationDrawerVisible}
-        onSelectDistrict={handleSelectDistrict}
-        selectedDistrict={selectedDistrict}
-      >
-        <AppHeaderComponent
-          onSearch={goToSearch}
-          onMenu={() => setIsDrawerVisible(true)}
-          onLocation={() => setIsLocationDrawerVisible(true)}
-          selectedDistrict="உள்ளூர்"
-        />
-      </UniversalHeaderComponent>
+      />
+
+      <AppHeaderComponent
+        onSearch={goToSearch}
+        onMenu={() => setIsDrawerVisible(true)}
+        onLocation={() => setIsLocationDrawerVisible(true)}
+        selectedDistrict="உள்ளூர்"
+      />
 
       {loading && !isNavigating && (
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>

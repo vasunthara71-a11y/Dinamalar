@@ -26,6 +26,7 @@ import TEXT_STYLES from '../utils/textStyles';
 import { Ionicons } from '@expo/vector-icons';
 import CustomCalendarModal from '../components/Customcalendarmodal';
 import { TaboolaAdSection } from '../components/TaboolaComponent';
+import TopMenuStrip from '../components/TopMenuStrip';
 
 const PALETTE = {
   primary: '#096dd2',
@@ -636,6 +637,60 @@ export default function DistrictNewsScreen() {
 
   const goToSearch = () => navigation.navigate('SearchScreen');
 
+  const goToNotifs = async () => {
+    navigation?.navigate('NotificationScreen');
+  };
+
+  // ── Route Map for menu navigation (same as HomeScreen) ─────────────────────
+  const LINK_ROUTE_MAP = [
+    { match: ['dinamalartv', 'videodata'], screen: 'VideoScreen' },
+    { match: ['podcast'], screen: 'PodcastPlayer' },
+    { match: ['ipaper'], screen: 'IpaperScreen' },
+    { match: ['books'], screen: 'BooksScreen' },
+    { match: ['subscription'], screen: 'SubscriptionScreen' },
+    { match: ['thirukural'], screen: 'ThirukkuralScreen' },
+    { match: ['kadal'], screen: 'KadalThamaraiScreen' },
+    { match: ['latestmain', 'timeline', 'dinamdinam'], screen: 'TimelineScreen' },
+    { match: ['cinema'], screen: 'CategoryNewsScreen' },
+    { match: ['temple', 'kovilgal'], screen: 'CategoryNewsScreen' },
+  ];
+
+  const resolveScreenFromLink = (link = '') => {
+    if (!link) return null;
+    const lower = link.toLowerCase();
+    for (const { match, screen } of LINK_ROUTE_MAP) {
+      if (match.some((kw) => lower.includes(kw))) {
+        if (screen === 'CategoryNewsScreen') {
+          const m = lower.match(/cat=(\d+)/);
+          return { screen, params: m ? { catId: m[1] } : {} };
+        }
+        return { screen, params: null };
+      }
+    }
+    const m = lower.match(/cat=(\d+)/);
+    if (m) return { screen: 'HomeScreen', params: { catId: m[1] } };
+    if (link.startsWith('http') || link.startsWith('www.'))
+      return { screen: '__external__', params: null };
+    return null;
+  };
+
+  const handleMenuPress = (menuItem) => {
+    const link = menuItem?.Link || menuItem?.link || '';
+    const title = menuItem?.Title || menuItem?.title || '';
+    const resolved = resolveScreenFromLink(link);
+    
+    if (!resolved) { 
+      navigation?.navigate('TimelineScreen', { catName: title }); 
+      return; 
+    }
+    if (resolved.screen === '__external__') return;
+    
+    navigation?.navigate(
+      resolved.screen,
+      resolved.params ? { catName: title, ...resolved.params } : { catName: title }
+    );
+  };
+
   const handleSelectDistrict = (district) => {
     setIsLocationDrawerVisible(false);
     
@@ -723,26 +778,20 @@ export default function DistrictNewsScreen() {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
 
-      {/* ── App Header ── */}
-      <UniversalHeaderComponent
-        showMenu showSearch showNotifications showLocation
-        onSearch={goToSearch}
-        onLocation={() => setIsLocationDrawerVisible(true)}
-        selectedDistrict={headerTitle}
+      {/* ── Top Menu Strip ── */}
+      <TopMenuStrip
+        onMenuPress={handleMenuPress}
+        onNotification={goToNotifs}
+        notifCount={3}
         navigation={navigation}
-        isDrawerVisible={isDrawerVisible}
-        setIsDrawerVisible={setIsDrawerVisible}
-        isLocationDrawerVisible={isLocationDrawerVisible}
-        setIsLocationDrawerVisible={setIsLocationDrawerVisible}
-        onSelectDistrict={handleSelectDistrict}
-      >
-        <AppHeaderComponent
-          onSearch={goToSearch}
-          onMenu={() => setIsDrawerVisible(true)}
-          onLocation={() => setIsLocationDrawerVisible(true)}
-          selectedDistrict="உள்ளூர்"
-        />
-      </UniversalHeaderComponent>
+      />
+
+      <AppHeaderComponent
+        onSearch={goToSearch}
+        onMenu={() => setIsDrawerVisible(true)}
+        onLocation={() => setIsLocationDrawerVisible(true)}
+        selectedDistrict="உள்ளூர்"
+      />
 
       {/* ── Page Title Row: District name + புகார் பெட்டி ── */}
       <View style={styles.pageTitleRow}>

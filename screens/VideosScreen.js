@@ -28,7 +28,7 @@ import { COLORS, FONTS, NewsCard } from '../utils/constants';
 import { useFontSize } from '../context/FontSizeContext';
 import WebView from 'react-native-webview';
 import { Ionicons } from '@expo/vector-icons';
- 
+
 // ─── Palette ────────────────────────────────────────────────────────────────────
 const PALETTE = {
   grey100: '#F9FAFB',
@@ -192,8 +192,8 @@ function ImageWithFallback({ source, style, resizeMode = 'cover', iconSize = 40 
 
 
 // ─── Video Card ─────────────────────────────────────────────────────────────────
-const VideoCard = ({ video, onPress, districtLabel, index, onCategoryPress }) => { 
-   const { sf } = useFontSize();
+const VideoCard = ({ video, onPress, districtLabel, index, onCategoryPress }) => {
+  const { sf } = useFontSize();
 
   if (video.type === 'reels') return null;
   if (video.type === 'googlead') return null;
@@ -201,7 +201,7 @@ const VideoCard = ({ video, onPress, districtLabel, index, onCategoryPress }) =>
   const timeAgo = getTimeAgo(video.videodate);
   const pillLabel = districtLabel || video.ctitle || video.maincat || '';
   const shareUrl = encodeURIComponent(video.link || video.url || '');
- 
+
   return (
     <View style={NewsCard.wrap}>
       {index === 0 && (
@@ -225,26 +225,26 @@ const VideoCard = ({ video, onPress, districtLabel, index, onCategoryPress }) =>
           <TouchableOpacity
             style={shareStyles.shareBtn}
             onPress={() => {
-            // console.log('WhatsApp share URL:', shareUrl); // Debug log
-            // console.log('Share URL type:', typeof shareUrl); // Debug URL type
-            // console.log('Share URL length:', shareUrl?.length); // Debug URL length
-            
-            // Handle different URL types
-            let urlToShare = shareUrl;
-            if (typeof shareUrl !== 'string') {
-              urlToShare = String(shareUrl);
-            }
-            
-            const encodedUrl = encodeURIComponent(urlToShare);
-            const whatsappUrl = `https://wa.me/?text=${encodedUrl}`;
-            // console.log('Opening WhatsApp URL:', whatsappUrl); // Debug log
-            
-            // Linking.openURL(whatsappUrl).catch(err => {
-            //   console.log('WhatsApp error:', err);
-            //   console.log('Original URL:', shareUrl);
-            //   console.log('Encoded URL:', encodedUrl);
-            // });
-          }}
+              // console.log('WhatsApp share URL:', shareUrl); // Debug log
+              // console.log('Share URL type:', typeof shareUrl); // Debug URL type
+              // console.log('Share URL length:', shareUrl?.length); // Debug URL length
+
+              // Handle different URL types
+              let urlToShare = shareUrl;
+              if (typeof shareUrl !== 'string') {
+                urlToShare = String(shareUrl);
+              }
+
+              const encodedUrl = encodeURIComponent(urlToShare);
+              const whatsappUrl = `https://wa.me/?text=${encodedUrl}`;
+              // console.log('Opening WhatsApp URL:', whatsappUrl); // Debug log
+
+              // Linking.openURL(whatsappUrl).catch(err => {
+              //   console.log('WhatsApp error:', err);
+              //   console.log('Original URL:', shareUrl);
+              //   console.log('Encoded URL:', encodedUrl);
+              // });
+            }}
             activeOpacity={0.7}
           >
             <WhatsAppIcon size={ms(25)} color="#25D366" />
@@ -550,260 +550,165 @@ const VideosScreen = ({ navigation, route }) => {
   const [initialLoad, setInitialLoad] = useState(true);
   const [cachedData, setCachedData] = useState(null);
   // Add these after your existing useRef declarations
-const fetchControllerRef = useRef(null);   // AbortController for cancelling in-flight requests
-const debounceTimerRef = useRef(null);     // Debounce timer
-const isFetchingRef = useRef(false);       // Prevents duplicate concurrent calls
-const lastFetchParamsRef = useRef('');     // Prevents identical consecutive calls
+  const fetchControllerRef = useRef(null);   // AbortController for cancelling in-flight requests
+  const debounceTimerRef = useRef(null);     // Debounce timer
+  const isFetchingRef = useRef(false);       // Prevents duplicate concurrent calls
+  const lastFetchParamsRef = useRef('');     // Prevents identical consecutive calls
 
   // ── Fetch: CDNApi + API_ENDPOINTS.VIDEO_MAIN (/videomain) ────────────────────
-// In fetchVideos, replace the entire params building logic with this simpler version:
+  // In fetchVideos, replace the entire params building logic with this simpler version:
 
-// Add this inside VideosScreen, near your other handlers:
-const handleCategoryPillPress = useCallback((ctitle) => {
-  if (!ctitle || categories.length === 0) return;
-  const matched = categories.find(
-    c => (c.title || '').toLowerCase() === ctitle.toLowerCase()
-  );
-  if (!matched) return;
-  const catValue = String(matched.value ?? '');
-  const updated = { ...filters, category: catValue };
-  setFilters(updated);
-  flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
-  debouncedFetch({ cat: catValue, date: updated.date, district: updated.district });
-}, [categories, filters, debouncedFetch]);
+  // Add this inside VideosScreen, near your other handlers:
+  const handleCategoryPillPress = useCallback((ctitle) => {
+    if (!ctitle || categories.length === 0) return;
+    const matched = categories.find(
+      c => (c.title || '').toLowerCase() === ctitle.toLowerCase()
+    );
+    if (!matched) return;
+    const catValue = String(matched.value ?? '');
+    const updated = { ...filters, category: catValue };
+    setFilters(updated);
+    flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
+    debouncedFetch({ cat: catValue, date: updated.date, district: updated.district });
+  }, [categories, filters, debouncedFetch]);
 
 
 
-const fetchVideos = useCallback(async ({
-  cat = '',
-  date = '',
-  district = '',
-  districtSlug = '',
-  page = 1,
-  append = false,
-} = {}) => {
+  const fetchVideos = useCallback(async ({
+    cat = '',
+    date = '',
+    district = '',
+    districtSlug = '',
+    page = 1,
+    append = false,
+  } = {}) => {
 
-  // ── Dedupe: skip if exact same params already in-flight ──────────────────
-  const paramsKey = JSON.stringify({ cat, date, district, page, append });
-  if (isFetchingRef.current && paramsKey === lastFetchParamsRef.current) {
-    console.log('[fetchVideos] Skipping duplicate call');
-    return;
-  }
+    // ── Dedupe: skip if exact same params already in-flight ──────────────────
+    const paramsKey = JSON.stringify({ cat, date, district, page, append });
+    if (isFetchingRef.current && paramsKey === lastFetchParamsRef.current) {
+      console.log('[fetchVideos] Skipping duplicate call');
+      return;
+    }
 
-  // ── Cancel any previous in-flight request ────────────────────────────────
-  if (fetchControllerRef.current) {
-    fetchControllerRef.current.abort();
-  }
-  fetchControllerRef.current = new AbortController();
-  const signal = fetchControllerRef.current.signal;
+    // ── Cancel any previous in-flight request ────────────────────────────────
+    if (fetchControllerRef.current) {
+      fetchControllerRef.current.abort();
+    }
+    fetchControllerRef.current = new AbortController();
+    const signal = fetchControllerRef.current.signal;
 
-  isFetchingRef.current = true;
-  lastFetchParamsRef.current = paramsKey;
+    isFetchingRef.current = true;
+    lastFetchParamsRef.current = paramsKey;
 
-  // ── State updates ─────────────────────────────────────────────────────────
-  if (!append) {
-    setLoading(true);
-    setAllVideos([]);       // Clear stale data immediately — prevents old list flash
-    setCurrentPage(1);
-    setHasMore(true);
-    setError(null);
-  } else {
-    setLoadingMore(true);
-  }
+    // ── State updates ─────────────────────────────────────────────────────────
+    if (!append) {
+      setLoading(true);
+      setAllVideos([]);       // Clear stale data immediately — prevents old list flash
+      setCurrentPage(1);
+      setHasMore(true);
+      setError(null);
+    } else {
+      setLoadingMore(true);
+    }
 
-  try {
-    // ── Shorts path ───────────────────────────────────────────────────────
-    if (cat === 'shorts') {
-      // Use smaller page size for shorts too - 8 items per page for faster loading
-      const endpoint = API_ENDPOINTS.SHORTS + (page > 1 ? `?page=${page}&limit=8` : '?limit=8');
+    try {
+      // ── Shorts path ───────────────────────────────────────────────────────
+      if (cat === 'shorts') {
+        // Use smaller page size for shorts too - 8 items per page for faster loading
+        const endpoint = API_ENDPOINTS.SHORTS + (page > 1 ? `?page=${page}&limit=8` : '?limit=8');
+        const response = await CDNApi.get(endpoint, { signal });
+        const data = response.data;
+
+        const raw = data?.newlist?.data ?? [];
+        const pagination = data?.newlist?.pagination ?? {};
+
+        const processed = raw.map(item => ({
+          ...item,
+          videoid: item.newsid || item.id,
+          title: item.newstitle || item.title,
+          image: item.images || item.image,
+          type: 'reels',
+          duration: null,
+        }));
+
+        if (append) {
+          setAllVideos(prev => {
+            const ids = new Set(prev.map(v => v.videoid).filter(Boolean));
+            return [...prev, ...processed.filter(v => !v.videoid || !ids.has(v.videoid))];
+          });
+        } else {
+          setAllVideos(processed);
+        }
+
+        const cp = pagination.current_page ?? page;
+        const lp = pagination.last_page ?? 1;
+        setCurrentPage(cp);
+        setLastPage(lp);
+        setHasMore(cp < lp);
+        return;
+      }
+
+      // ── Build endpoint with smaller page size for faster loading ─────────────────
+      const params = new URLSearchParams();
+      if (cat) params.append('cat', cat);
+      if (date) params.append('date', date);
+      if (district) params.append('district', district);
+      if (page > 1) params.append('page', String(page));
+
+      // Load smaller chunks for faster response - 4 sets of ~8 videos each
+      params.append('limit', '8');  // Load 8 videos per page instead of default
+
+      const query = params.toString();
+      const endpoint = query
+        ? `${API_ENDPOINTS.VIDEO_MAIN}?${query}`
+        : `${API_ENDPOINTS.VIDEO_MAIN}?limit=8`;  // Default limit for first page
+
+      console.log('[fetchVideos] →', endpoint);
+
       const response = await CDNApi.get(endpoint, { signal });
+
+      // Guard: ignore if this request was aborted mid-flight
+      if (signal.aborted) return;
+
       const data = response.data;
 
-      const raw = data?.newlist?.data ?? [];
-      const pagination = data?.newlist?.pagination ?? {};
+      // ── Extract videos ────────────────────────────────────────────────────
+      let raw = data?.videomix?.data ?? data?.districtnews ?? [];
+      const pagination = data?.videomix ?? {};
 
-      const processed = raw.map(item => ({
-        ...item,
-        videoid: item.newsid || item.id,
-        title: item.newstitle || item.title,
-        image: item.images || item.image,
-        type: 'reels',
-        duration: null,
-      }));
+      // ── Client-side district filtering (strict match) ─────────────────────
+      if (district && raw.length > 0) {
+        const distObj = districtOptions.find(d => String(d.id) === String(district));
+        const distName = distObj?.title;
+        if (distName) {
+          raw = raw.filter(v => {
+            if (v.districtid && String(v.districtid) === String(district)) return true;
+            if (v.districttag === distName) return true;
+            if (v.districtengtag && distObj?.districtname &&
+              v.districtengtag === distObj.districtname) return true;
+            return false;
+          });
+        }
+      }
 
+      // ── Update videos list ────────────────────────────────────────────────
       if (append) {
         setAllVideos(prev => {
           const ids = new Set(prev.map(v => v.videoid).filter(Boolean));
-          return [...prev, ...processed.filter(v => !v.videoid || !ids.has(v.videoid))];
+          return [...prev, ...raw.filter(v => !v.videoid || !ids.has(v.videoid))];
         });
       } else {
-        setAllVideos(processed);
+        setAllVideos(raw);
       }
 
+      // ── Pagination ────────────────────────────────────────────────────────
       const cp = pagination.current_page ?? page;
       const lp = pagination.last_page ?? 1;
       setCurrentPage(cp);
       setLastPage(lp);
       setHasMore(cp < lp);
-      return;
-    }
 
-    // ── Build endpoint with smaller page size for faster loading ─────────────────
-    const params = new URLSearchParams();
-    if (cat)      params.append('cat', cat);
-    if (date)     params.append('date', date);
-    if (district) params.append('district', district);
-    if (page > 1) params.append('page', String(page));
-    
-    // Load smaller chunks for faster response - 4 sets of ~8 videos each
-    params.append('limit', '8');  // Load 8 videos per page instead of default
-    
-    const query = params.toString();
-    const endpoint = query
-      ? `${API_ENDPOINTS.VIDEO_MAIN}?${query}`
-      : `${API_ENDPOINTS.VIDEO_MAIN}?limit=8`;  // Default limit for first page
-
-    console.log('[fetchVideos] →', endpoint);
-
-    const response = await CDNApi.get(endpoint, { signal });
-
-    // Guard: ignore if this request was aborted mid-flight
-    if (signal.aborted) return;
-
-    const data = response.data;
-
-    // ── Extract videos ────────────────────────────────────────────────────
-    let raw = data?.videomix?.data ?? data?.districtnews ?? [];
-    const pagination = data?.videomix ?? {};
-
-    // ── Client-side district filtering (strict match) ─────────────────────
-    if (district && raw.length > 0) {
-      const distObj = districtOptions.find(d => String(d.id) === String(district));
-      const distName = distObj?.title;
-      if (distName) {
-        raw = raw.filter(v => {
-          if (v.districtid && String(v.districtid) === String(district)) return true;
-          if (v.districttag === distName) return true;
-          if (v.districtengtag && distObj?.districtname &&
-              v.districtengtag === distObj.districtname) return true;
-          return false;
-        });
-      }
-    }
-
-    // ── Update videos list ────────────────────────────────────────────────
-    if (append) {
-      setAllVideos(prev => {
-        const ids = new Set(prev.map(v => v.videoid).filter(Boolean));
-        return [...prev, ...raw.filter(v => !v.videoid || !ids.has(v.videoid))];
-      });
-    } else {
-      setAllVideos(raw);
-    }
-
-    // ── Pagination ────────────────────────────────────────────────────────
-    const cp = pagination.current_page ?? page;
-    const lp = pagination.last_page ?? 1;
-    setCurrentPage(cp);
-    setLastPage(lp);
-    setHasMore(cp < lp);
-
-    // ── One-time metadata (categories, filters, districts) ────────────────
-    if (data?.category?.length) {
-      setCategories(prev => {
-        if (prev.length > 0) return prev;
-        const seen = new Set();
-        return data.category.filter(c => {
-          const k = String(c.value ?? '');
-          if (seen.has(k)) return false;
-          seen.add(k);
-          return true;
-        });
-      });
-    }
-    if (data?.filter?.length)
-      setFilterOptions(prev => prev.length > 0 ? prev : data.filter);
-    if (data?.districtlist?.data?.length)
-      setDistrictOptions(prev => prev.length > 0 ? prev : data.districtlist.data);
-    if (data?.taboola_ads?.mobile)
-      setTaboolaAds(prev => prev ?? data.taboola_ads.mobile);
-
-  } catch (err) {
-    if (err?.name === 'AbortError' || err?.name === 'CanceledError') {
-      console.log('[fetchVideos] Request cancelled — new filter applied');
-      return; // Silent — expected when user switches filter quickly
-    }
-    console.error('[fetchVideos] Error:', err?.message);
-    setError(err?.message || 'பிழை ஏற்பட்டது');
-    if (!append) setAllVideos([]);
-  } finally {
-    isFetchingRef.current = false;
-    if (!append) {
-      setLoading(false);
-      setInitialLoad(false);
-    } else {
-      setLoadingMore(false);
-    }
-  }
-}, [districtOptions]); // only districtOptions needed — everything else via params
-
-
-// Debounced fetch — 300ms delay, cancels previous pending call
-const debouncedFetch = useCallback((params) => {
-  if (debounceTimerRef.current) {
-    clearTimeout(debounceTimerRef.current);
-  }
-  debounceTimerRef.current = setTimeout(() => {
-    fetchVideos(params);
-  }, 300);
-}, [fetchVideos]);
-
-
-  const handleScroll = useCallback((e) => {
-    setShowScrollTop(e.nativeEvent.contentOffset.y > 300);
-  }, []);
-
-useEffect(() => {
-  if (!initialTabKey || initialTabApplied.current) return;
-  if (categories.length === 0) return;
-  const keywords = TAB_KEY_KEYWORDS[initialTabKey] || [];
-  const matched = categories.find(cat =>
-    keywords.some(kw => (cat.title || '').toLowerCase().includes(kw.toLowerCase()))
-  );
-  if (matched) {
-    initialTabApplied.current = true;
-    const catValue = String(matched.value ?? '');
-    setFilters(prev => ({ ...prev, category: catValue }));
-    fetchVideos({ cat: catValue });
-  }
-}, [categories, initialTabKey]);
-
-// Add this useEffect near your other effects
-useEffect(() => {
-  return () => {
-    // Cancel in-flight requests and timers when screen unmounts
-    fetchControllerRef.current?.abort();
-    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
-  };
-}, []);
-
-useEffect(() => {
-  if (!initialCategory) {
-    if (!initialTabKey && !initialTabApplied.current) {
-      fetchVideos();
-    }
-    return;
-  }
-
-  initialTabApplied.current = true;
-  setFilters(prev => ({ ...prev, category: initialCategory }));
-
-  // Fetch filtered videos AND base data (for categories/tabs) in parallel with timeout
-  const parallelRequests = [
-    fetchVideos({ cat: initialCategory }),  // filtered videos
-    // Also fetch base to populate category tabs
-    CDNApi.get(API_ENDPOINTS.VIDEO_MAIN).then(res => {
-      const data = res?.data;
+      // ── One-time metadata (categories, filters, districts) ────────────────
       if (data?.category?.length) {
         setCategories(prev => {
           if (prev.length > 0) return prev;
@@ -816,110 +721,206 @@ useEffect(() => {
           });
         });
       }
-      if (data?.filter?.length) setFilterOptions(prev => prev.length > 0 ? prev : data.filter);
-      if (data?.districtlist?.data?.length) setDistrictOptions(prev => prev.length > 0 ? prev : data.districtlist.data);
-    }).catch(() => {})  // silent fail - categories are non-critical
-  ];
+      if (data?.filter?.length)
+        setFilterOptions(prev => prev.length > 0 ? prev : data.filter);
+      if (data?.districtlist?.data?.length)
+        setDistrictOptions(prev => prev.length > 0 ? prev : data.districtlist.data);
+      if (data?.taboola_ads?.mobile)
+        setTaboolaAds(prev => prev ?? data.taboola_ads.mobile);
 
-  // Add timeout to prevent hanging
-  Promise.race([
-    Promise.allSettled(parallelRequests),
-    new Promise(resolve => setTimeout(() => resolve([{ status: 'timeout' }]), 5000))
-  ]).then(results => {
-    if (results[0]?.status === 'timeout') {
-      console.warn('[VideosScreen] Initial data fetch timeout - proceeding with available data');
+    } catch (err) {
+      if (err?.name === 'AbortError' || err?.name === 'CanceledError') {
+        console.log('[fetchVideos] Request cancelled — new filter applied');
+        return; // Silent — expected when user switches filter quickly
+      }
+      console.error('[fetchVideos] Error:', err?.message);
+      setError(err?.message || 'பிழை ஏற்பட்டது');
+      if (!append) setAllVideos([]);
+    } finally {
+      isFetchingRef.current = false;
+      if (!append) {
+        setLoading(false);
+        setInitialLoad(false);
+      } else {
+        setLoadingMore(false);
+      }
     }
-  });
-}, [fetchVideos, initialCategory, initialTabKey]);
+  }, [districtOptions]); // only districtOptions needed — everything else via params
 
-useEffect(() => {
-  if (!filters.category || !categoryScrollRef.current) return;
-  const layout = tabLayoutsRef.current[filters.category];
-  if (!layout) return;
 
-  // Use requestAnimationFrame to prevent conflicts
-  requestAnimationFrame(() => {
-    if (categoryScrollRef.current) {
-      // Centre the active tab: scroll so tab sits in middle of scroll view
-      const scrollX = Math.max(0, layout.x - layout.width);
-      categoryScrollRef.current.scrollTo({ x: scrollX, animated: true });
+  // Debounced fetch — 300ms delay, cancels previous pending call
+  const debouncedFetch = useCallback((params) => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
     }
-  });
-}, [filters.category]);
+    debounceTimerRef.current = setTimeout(() => {
+      fetchVideos(params);
+    }, 300);
+  }, [fetchVideos]);
+
+
+  const handleScroll = useCallback((e) => {
+    setShowScrollTop(e.nativeEvent.contentOffset.y > 300);
+  }, []);
+
+  useEffect(() => {
+    if (!initialTabKey || initialTabApplied.current) return;
+    if (categories.length === 0) return;
+    const keywords = TAB_KEY_KEYWORDS[initialTabKey] || [];
+    const matched = categories.find(cat =>
+      keywords.some(kw => (cat.title || '').toLowerCase().includes(kw.toLowerCase()))
+    );
+    if (matched) {
+      initialTabApplied.current = true;
+      const catValue = String(matched.value ?? '');
+      setFilters(prev => ({ ...prev, category: catValue }));
+      fetchVideos({ cat: catValue });
+    }
+  }, [categories, initialTabKey]);
+
+  // Add this useEffect near your other effects
+  useEffect(() => {
+    return () => {
+      // Cancel in-flight requests and timers when screen unmounts
+      fetchControllerRef.current?.abort();
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!initialCategory) {
+      if (!initialTabKey && !initialTabApplied.current) {
+        fetchVideos();
+      }
+      return;
+    }
+
+    initialTabApplied.current = true;
+    setFilters(prev => ({ ...prev, category: initialCategory }));
+
+    // Fetch filtered videos AND base data (for categories/tabs) in parallel with timeout
+    const parallelRequests = [
+      fetchVideos({ cat: initialCategory }),  // filtered videos
+      // Also fetch base to populate category tabs
+      CDNApi.get(API_ENDPOINTS.VIDEO_MAIN).then(res => {
+        const data = res?.data;
+        if (data?.category?.length) {
+          setCategories(prev => {
+            if (prev.length > 0) return prev;
+            const seen = new Set();
+            return data.category.filter(c => {
+              const k = String(c.value ?? '');
+              if (seen.has(k)) return false;
+              seen.add(k);
+              return true;
+            });
+          });
+        }
+        if (data?.filter?.length) setFilterOptions(prev => prev.length > 0 ? prev : data.filter);
+        if (data?.districtlist?.data?.length) setDistrictOptions(prev => prev.length > 0 ? prev : data.districtlist.data);
+      }).catch(() => { })  // silent fail - categories are non-critical
+    ];
+
+    // Add timeout to prevent hanging
+    Promise.race([
+      Promise.allSettled(parallelRequests),
+      new Promise(resolve => setTimeout(() => resolve([{ status: 'timeout' }]), 5000))
+    ]).then(results => {
+      if (results[0]?.status === 'timeout') {
+        console.warn('[VideosScreen] Initial data fetch timeout - proceeding with available data');
+      }
+    });
+  }, [fetchVideos, initialCategory, initialTabKey]);
+
+  useEffect(() => {
+    if (!filters.category || !categoryScrollRef.current) return;
+    const layout = tabLayoutsRef.current[filters.category];
+    if (!layout) return;
+
+    // Use requestAnimationFrame to prevent conflicts
+    requestAnimationFrame(() => {
+      if (categoryScrollRef.current) {
+        // Centre the active tab: scroll so tab sits in middle of scroll view
+        const scrollX = Math.max(0, layout.x - layout.width);
+        categoryScrollRef.current.scrollTo({ x: scrollX, animated: true });
+      }
+    });
+  }, [filters.category]);
 
   // Add this useEffect to respond to navigation params from VideoDetailScreen
   useEffect(() => {
     const catId = route?.params?.catId ?? '';
     const catTitle = route?.params?.catTitle ?? '';
     const timestamp = route?.params?.timestamp;
-    
+
     if (catId !== undefined && catId !== '') {
       // console.log('[VideosScreen] Setting category from navigation params:', { catId, catTitle, timestamp });
-      
+
       // Set the active category to match the passed catId
       const updated = { ...filters, category: String(catId) };
       setFilters(updated);
       fetchVideos({ cat: String(catId), date: updated.date, district: updated.district });
-      
+
       // Scroll to top
       flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
     }
   }, [route?.params?.catId, route?.params?.timestamp]); // timestamp triggers re-run
 
-const handleCategoryPress = useCallback((value) => {
-  const newCat = filters.category === value ? '' : value;
-  const updated = { ...filters, category: newCat };
-  setFilters(updated);
-  flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
-  debouncedFetch({ cat: newCat, date: updated.date, district: updated.district });
-}, [filters, debouncedFetch]);
+  const handleCategoryPress = useCallback((value) => {
+    const newCat = filters.category === value ? '' : value;
+    const updated = { ...filters, category: newCat };
+    setFilters(updated);
+    flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
+    debouncedFetch({ cat: newCat, date: updated.date, district: updated.district });
+  }, [filters, debouncedFetch]);
 
-// ── Date filter press — keeps district and category selection ──────────────────
-const handleSelectFilter = useCallback((ename) => {
-  const newDate = filters.date === ename ? '' : ename;
-  const updated = { ...filters, date: newDate };
-  setFilters(updated);
-  setFilterVisible(false);
-  flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
-  debouncedFetch({ cat: updated.category, date: newDate, district: updated.district });
-}, [filters, debouncedFetch]);
+  // ── Date filter press — keeps district and category selection ──────────────────
+  const handleSelectFilter = useCallback((ename) => {
+    const newDate = filters.date === ename ? '' : ename;
+    const updated = { ...filters, date: newDate };
+    setFilters(updated);
+    setFilterVisible(false);
+    flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
+    debouncedFetch({ cat: updated.category, date: newDate, district: updated.district });
+  }, [filters, debouncedFetch]);
 
-const handleSelectDistrict = useCallback((id) => {
-  const newDistrict = filters.district === id ? '' : id;
-  const distObj = districtOptions.find(d => String(d.id) === id);
-  
-  // Find district news category (ID '1585' based on TimelineScreen)
-  const districtNewsCategory = categories.find(c => String(c.value) === '1585');
-  const districtCatValue = districtNewsCategory ? String(districtNewsCategory.value) : '';
-  
-  const updated = {
-    ...filters,
-    category: newDistrict ? districtCatValue : '', // Set district news category when district is selected, clear when deselected
-    district: newDistrict,
-    districtSlug: newDistrict ? distObj?.slug || '' : '',
-  };
-  setFilters(updated);
-  setFilterVisible(false);
-  flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
-  debouncedFetch({ cat: updated.category, date: updated.date, district: newDistrict });
-}, [filters, districtOptions, categories, debouncedFetch]);
+  const handleSelectDistrict = useCallback((id) => {
+    const newDistrict = filters.district === id ? '' : id;
+    const distObj = districtOptions.find(d => String(d.id) === id);
 
-const handleLocationSelectDistrict = useCallback((district) => {
-  setSelectedDistrictLabel(district.title);
-  setIsLocDrawerOpen(false);
-  if (!district.id) return;
-  const id = String(district.id);
-  const updated = { ...filters, district: id };
-  setFilters(updated);
-  flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
-  debouncedFetch({ cat: updated.category, date: updated.date, district: id });
-}, [filters, debouncedFetch]);
+    // Find district news category (ID '1585' based on TimelineScreen)
+    const districtNewsCategory = categories.find(c => String(c.value) === '1585');
+    const districtCatValue = districtNewsCategory ? String(districtNewsCategory.value) : '';
+
+    const updated = {
+      ...filters,
+      category: newDistrict ? districtCatValue : '', // Set district news category when district is selected, clear when deselected
+      district: newDistrict,
+      districtSlug: newDistrict ? distObj?.slug || '' : '',
+    };
+    setFilters(updated);
+    setFilterVisible(false);
+    flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
+    debouncedFetch({ cat: updated.category, date: updated.date, district: newDistrict });
+  }, [filters, districtOptions, categories, debouncedFetch]);
+
+  const handleLocationSelectDistrict = useCallback((district) => {
+    setSelectedDistrictLabel(district.title);
+    setIsLocDrawerOpen(false);
+    if (!district.id) return;
+    
+    // Navigate to DistrictNewsScreen with the selected district tab
+    navigation?.navigate?.('DistrictNewsScreen', {
+      districtId: String(district.id),
+      districtTitle: district.title
+    });
+  }, [navigation]);
 
 
-// ── Nav ───────────────────────────────────────────────────────────────────────
-const handleMenuPress = (menuItem) => {
-  // Debug: Log the menu item structure
-  // console.log('TopMenuStrip menu item clicked:', menuItem);
+  // ── Nav ───────────────────────────────────────────────────────────────────────
+  const handleMenuPress = (menuItem) => {
+    // Debug: Log the menu item structure
+    // console.log('TopMenuStrip menu item clicked:', menuItem);
     // console.log('TopMenuStrip menu item clicked:', menuItem);
 
     // Handle menu item navigation based on menu item properties
@@ -1001,7 +1002,7 @@ const handleMenuPress = (menuItem) => {
 
     // Check if any filters are active (district, date, category)
     const hasActiveFilters = !!filters.district || !!filters.date || !!filters.category;
-    
+
     // Show shorts only when no filters are active OR when shorts category is explicitly selected
     const shouldShowShorts = !hasActiveFilters || filters.category === 'shorts';
 
@@ -1036,172 +1037,176 @@ const handleMenuPress = (menuItem) => {
   }, [allVideos, taboolaAds, filters]);
 
   // ── List header ───────────────────────────────────────────────────────────────
-const ListHeader = () => {
-  // Only show skeleton when no data exists AND we're loading
-  if (loading && allVideos.length === 0) return <VideoSkeletonLoader />;
+  const ListHeader = () => {
+    // Only show skeleton when no data exists AND we're loading
+    if (loading && allVideos.length === 0) return <VideoSkeletonLoader />;
 
-  // Build active pills
-  const activePills = [];
-  if (filters.date) {
-    const label = filterOptions.find(f => f.ename === filters.date)?.name || filters.date;
-    activePills.push({ key: 'date', label, onRemove: () => {
-      const updated = { ...filters, date: '' };
-      setFilters(updated);
-      fetchVideos({ cat: updated.category, date: '', district: updated.district });
-    }});
-  }
-  if (filters.district) {
-    const label = 'மாவட்ட செய்திகள்';
-    activePills.push({ key: 'district', label, onRemove: () => {
-      const updated = { ...filters, district: '' };
-      setFilters(updated);
-      fetchVideos({ cat: updated.category, date: updated.date, district: '' });
-    }});
-  }
-// if (filters.category && filters.category !== 'shorts') {
-//   const label = categories.find(c => String(c.value) === filters.category)?.title || filters.category;
-//   activePills.push({ key: 'category', label, onRemove: () => {
-//     const updated = { ...filters, category: '' };
-//     setFilters(updated);
-//     fetchVideos({ cat: '', date: updated.date, district: updated.district });
-//   }});
-// }
+    // Build active pills
+    const activePills = [];
+    if (filters.date) {
+      const label = filterOptions.find(f => f.ename === filters.date)?.name || filters.date;
+      activePills.push({
+        key: 'date', label, onRemove: () => {
+          const updated = { ...filters, date: '' };
+          setFilters(updated);
+          fetchVideos({ cat: updated.category, date: '', district: updated.district });
+        }
+      });
+    }
+    if (filters.district) {
+      const label = 'மாவட்ட செய்திகள்';
+      activePills.push({
+        key: 'district', label, onRemove: () => {
+          const updated = { ...filters, district: '' };
+          setFilters(updated);
+          fetchVideos({ cat: updated.category, date: updated.date, district: '' });
+        }
+      });
+    }
+    // if (filters.category && filters.category !== 'shorts') {
+    //   const label = categories.find(c => String(c.value) === filters.category)?.title || filters.category;
+    //   activePills.push({ key: 'category', label, onRemove: () => {
+    //     const updated = { ...filters, category: '' };
+    //     setFilters(updated);
+    //     fetchVideos({ cat: '', date: updated.date, district: updated.district });
+    //   }});
+    // }
 
-  return (
-    <View>
-      {/* Category tabs + Filter icon */}
-      <View style={styles.catRow}>
-        <TouchableOpacity
-          style={[styles.filterIconBtn, (filters.date || filters.district) && styles.filterIconBtnActive]}
-          onPress={() => setFilterVisible(true)}
-          activeOpacity={0.8}
-        >
-          <Ionicons
-            name="filter"
-            size={20}
-            color={(filters.date || filters.district) ? PALETTE.primary : PALETTE.grey600}
-          />
-          {(filters.date || filters.district) && <View style={styles.filterDot} />}
-        </TouchableOpacity>
+    return (
+      <View>
+        {/* Category tabs + Filter icon */}
+        <View style={styles.catRow}>
+          <TouchableOpacity
+            style={[styles.filterIconBtn, (filters.date || filters.district) && styles.filterIconBtnActive]}
+            onPress={() => setFilterVisible(true)}
+            activeOpacity={0.8}
+          >
+            <Ionicons
+              name="filter"
+              size={20}
+              color={(filters.date || filters.district) ? PALETTE.primary : PALETTE.grey600}
+            />
+            {(filters.date || filters.district) && <View style={styles.filterDot} />}
+          </TouchableOpacity>
 
-        <ScrollView
-          ref={categoryScrollRef}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.catTabsContent}
-          style={{ flex: 1 }}
-        >
-          {categories.map((cat, idx) => {
-            const isActive = filters.category === String(cat.value ?? '') || 
-  (filters.category === '' && initialCategory === String(cat.value ?? ''));
-            return (
-              <TouchableOpacity
-                key={`cat_${cat.value ?? idx}`}
-                onPress={() => handleCategoryPress(String(cat.value ?? ''))}
-                style={[styles.catTab, isActive && styles.catTabActive]}
-                activeOpacity={0.8}
-                onLayout={(e) => {
-                  tabLayoutsRef.current[String(cat.value ?? '')] = {
-                    x: e.nativeEvent.layout.x,
-                    width: e.nativeEvent.layout.width,
-                  };
-                }}
-              >
-                {String(cat.value) === '5050' && (
-                  <View style={[styles.liveDot, isActive && { backgroundColor: PALETTE.white }]} />
-                )}
-                <Text style={[styles.catTabText, isActive && styles.catTabTextActive, { fontSize: sf(12) }]}>
-                  {cat.title}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-      </View>
-
-      {/* ── Active filter pills ── */}
-      {activePills.length > 0 && (
-        <View style={styles.activePillsRow}>
-          {activePills.map(pill => (
-            <View key={pill.key} style={styles.activePill}>
-              <Text style={styles.activePillText}>{pill.label}</Text>
-              <TouchableOpacity
-                onPress={pill.onRemove}
-                hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-                activeOpacity={0.7}
-              >
-                <Ionicons name="close" size={s(16)} color={PALETTE.grey500} />
-              </TouchableOpacity>
-            </View>
-          ))}
-          {/* Clear all button — only show when 2+ filters active */}
-          {activePills.length > 1 && (
-            <TouchableOpacity
-              onPress={() => {
-                setFilters({ category: '', date: '', district: '' });
-                fetchVideos({});
-              }}
-              style={styles.clearAllBtn}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.clearAllText}>அனைத்தும் நீக்கு</Text>
-            </TouchableOpacity>
-          )}
+          <ScrollView
+            ref={categoryScrollRef}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.catTabsContent}
+            style={{ flex: 1 }}
+          >
+            {categories.map((cat, idx) => {
+              const isActive = filters.category === String(cat.value ?? '') ||
+                (filters.category === '' && initialCategory === String(cat.value ?? ''));
+              return (
+                <TouchableOpacity
+                  key={`cat_${cat.value ?? idx}`}
+                  onPress={() => handleCategoryPress(String(cat.value ?? ''))}
+                  style={[styles.catTab, isActive && styles.catTabActive]}
+                  activeOpacity={0.8}
+                  onLayout={(e) => {
+                    tabLayoutsRef.current[String(cat.value ?? '')] = {
+                      x: e.nativeEvent.layout.x,
+                      width: e.nativeEvent.layout.width,
+                    };
+                  }}
+                >
+                  {String(cat.value) === '5050' && (
+                    <View style={[styles.liveDot, isActive && { backgroundColor: PALETTE.white }]} />
+                  )}
+                  <Text style={[styles.catTabText, isActive && styles.catTabTextActive, { fontSize: sf(12) }]}>
+                    {cat.title}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
         </View>
-      )}
 
- 
-    </View>
-  );
-};
+        {/* ── Active filter pills ── */}
+        {activePills.length > 0 && (
+          <View style={styles.activePillsRow}>
+            {activePills.map(pill => (
+              <View key={pill.key} style={styles.activePill}>
+                <Text style={styles.activePillText}>{pill.label}</Text>
+                <TouchableOpacity
+                  onPress={pill.onRemove}
+                  hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="close" size={s(16)} color={PALETTE.grey500} />
+                </TouchableOpacity>
+              </View>
+            ))}
+            {/* Clear all button — only show when 2+ filters active */}
+            {activePills.length > 1 && (
+              <TouchableOpacity
+                onPress={() => {
+                  setFilters({ category: '', date: '', district: '' });
+                  fetchVideos({});
+                }}
+                style={styles.clearAllBtn}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.clearAllText}>அனைத்தும் நீக்கு</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+
+
+      </View>
+    );
+  };
 
   // ── Load more handler ───────────────────────────────────────────────────────────
-const handleLoadMore = useCallback(() => {
-  if (loadingMore || loading || !hasMore || isFetchingRef.current) return;
-  fetchVideos({
-    cat: filters.category,
-    date: filters.date,
-    district: filters.district,
-    districtSlug: filters.districtSlug,
-    page: currentPage + 1,
-    append: true,
-  });
-}, [loadingMore, loading, hasMore, filters, currentPage, fetchVideos]);
+  const handleLoadMore = useCallback(() => {
+    if (loadingMore || loading || !hasMore || isFetchingRef.current) return;
+    fetchVideos({
+      cat: filters.category,
+      date: filters.date,
+      district: filters.district,
+      districtSlug: filters.districtSlug,
+      page: currentPage + 1,
+      append: true,
+    });
+  }, [loadingMore, loading, hasMore, filters, currentPage, fetchVideos]);
 
   // ── Footer component ───────────────────────────────────────────────────────────
-// Replace your existing ListFooter
-const ListFooter = useCallback(() => (
-  <View style={{ height: vs(60), justifyContent: 'center', alignItems: 'center' }}>
-    {loadingMore && <ActivityIndicator size="small" color={PALETTE.primary} />}
-  </View>
-), [loadingMore]);
-// Always render a fixed-height footer → eliminates the jump
+  // Replace your existing ListFooter
+  const ListFooter = useCallback(() => (
+    <View style={{ height: vs(60), justifyContent: 'center', alignItems: 'center' }}>
+      {loadingMore && <ActivityIndicator size="small" color={PALETTE.primary} />}
+    </View>
+  ), [loadingMore]);
+  // Always render a fixed-height footer → eliminates the jump
 
   // ── Empty state component ───────────────────────────────────────────────────────
-const ListEmpty = () => {
-  if (loading) return null;
-  
-  const isDistrictFiltered = !!filters.district;
-  const districtName = districtOptions.find(d => String(d.id) === filters.district)?.title;
-  
-  return (
-    <View style={styles.centeredState}>
-      <Text style={styles.stateIcon}>📭</Text>
-      <Text style={[styles.stateText, { fontSize: sf(14) }]}>
-        {isDistrictFiltered 
-          ? `${districtName} மாவட்டத்திற்கு தகவல்கள் இல்லை` 
-          : 'தகவல் இல்லை'
-        }
-      </Text>
-    </View>
-  );
-};
+  const ListEmpty = () => {
+    if (loading) return null;
 
-// ─────────────────────────────────────────────────────────────────────────────
-return (
-  <SafeAreaView style={styles.safe}>
+    const isDistrictFiltered = !!filters.district;
+    const districtName = districtOptions.find(d => String(d.id) === filters.district)?.title;
+
+    return (
+      <View style={styles.centeredState}>
+        <Text style={styles.stateIcon}>📭</Text>
+        <Text style={[styles.stateText, { fontSize: sf(14) }]}>
+          {isDistrictFiltered
+            ? `${districtName} மாவட்டத்திற்கு தகவல்கள் இல்லை`
+            : 'தகவல் இல்லை'
+          }
+        </Text>
+      </View>
+    );
+  };
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  return (
+    <SafeAreaView style={styles.safe}>
       <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
- 
+
       <TopMenuStrip
         onMenuPress={handleMenuPress}
         onNotification={handleNotification}
@@ -1215,14 +1220,14 @@ return (
         onLocation={() => setIsLocDrawerOpen(true)}
         selectedDistrict={selectedDistrictLabel}
       />
-      
+
 
       <FlatList
         ref={flatListRef}
         onScroll={handleScroll}
         scrollEventThrottle={16}
         data={listData}
-        
+
         keyExtractor={(item, idx) => {
           if (item._type === 'shorts_strip') return item._key || `shorts_strip_${idx}`;
           if (item._type === 'taboola_ad') return item._key || `taboola_${idx}`;
@@ -1261,16 +1266,16 @@ return (
           }
           // ── Regular video card ───────────────────────────────────────────
           return (
-         <VideoCard
-    video={item}
-    index={index}
-    onPress={(v) => navigation?.navigate?.('VideoDetailScreen', { video: v })}
-    districtLabel={filters.district
-      ? districtOptions.find(d => String(d.id) === filters.district)?.title || ''
-      : ''
-    }
-    onCategoryPress={handleCategoryPillPress}
-  />
+            <VideoCard
+              video={item}
+              index={index}
+              onPress={(v) => navigation?.navigate?.('VideoDetailScreen', { video: v })}
+              districtLabel={filters.district
+                ? districtOptions.find(d => String(d.id) === filters.district)?.title || ''
+                : ''
+              }
+              onCategoryPress={handleCategoryPillPress}
+            />
           );
         }}
         ListHeaderComponent={ListHeader}
@@ -1282,21 +1287,21 @@ return (
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.5}
       />
-<FilterSheet
-  visible={filterVisible}
-  onClose={() => setFilterVisible(false)}
-  filterOptions={filterOptions}
-  selectedFilter={filters.date}          // ← was selectedFilter
-  onSelectFilter={handleSelectFilter}
-  districtOptions={districtOptions}
-  selectedDistrict={filters.district}    // ← was selectedDistrict
-  onSelectDistrict={handleSelectDistrict}
-  onClearAll={() => {
-    setFilters({ category: '', date: '', district: '', districtSlug: '' });
-    fetchVideos({});
-    setFilterVisible(false);
-  }}
-/>
+      <FilterSheet
+        visible={filterVisible}
+        onClose={() => setFilterVisible(false)}
+        filterOptions={filterOptions}
+        selectedFilter={filters.date}          // ← was selectedFilter
+        onSelectFilter={handleSelectFilter}
+        districtOptions={districtOptions}
+        selectedDistrict={filters.district}    // ← was selectedDistrict
+        onSelectDistrict={handleSelectDistrict}
+        onClearAll={() => {
+          setFilters({ category: '', date: '', district: '', districtSlug: '' });
+          fetchVideos({});
+          setFilterVisible(false);
+        }}
+      />
       {/* Drawer Menu */}
       <DrawerMenu
         isVisible={isDrawerVisible}
@@ -1350,7 +1355,7 @@ return (
           <Ionicons name="arrow-up" size={s(20)} color={PALETTE.white} />
         </TouchableOpacity>
       )}
-      
+
       {/* WebView Modal for Shorts */}
       <Modal
         visible={webViewVisible}
@@ -1380,7 +1385,7 @@ return (
               <Ionicons name="close" size={s(24)} color="#fff" />
             </TouchableOpacity>
           </View> */}
-          
+
           <WebView
             source={{ uri: webViewUrl }}
             style={{ flex: 1 }}
@@ -1512,46 +1517,46 @@ const styles = StyleSheet.create({
     padding: s(2),
   },
   // Add these to StyleSheet.create({...})
-activePillsRow: {
-  flexDirection: 'row',
-  flexWrap: 'wrap',
-  gap: s(8),
-  paddingHorizontal: s(12),
-  paddingVertical: vs(8),
-  // backgroundColor: '#EBF5FF',
-  // borderBottomWidth: 1,
-  borderBottomColor: PALETTE.primary + '25',
-  alignItems: 'center',
-},
-activePill: {
-  flexDirection: 'row',
-  alignItems: 'center',
-  gap: s(4),
-  backgroundColor: PALETTE.white,
-  borderWidth: 1,
-  borderColor: PALETTE.grey500,
-  borderRadius: s(16),
-  paddingHorizontal: s(10),
-  paddingVertical: vs(4),
-},
-activePillText: {
-  fontSize: ms(13),
-  color: PALETTE.grey600,
-  fontFamily: FONTS.muktaMalar.semibold,
-  fontWeight: '600',
-},
-clearAllBtn: {
-  paddingHorizontal: s(10),
-  paddingVertical: vs(4),
-  borderRadius: s(16),
-  backgroundColor: PALETTE.primary,
-},
-clearAllText: {
-  fontSize: ms(12),
-  color: PALETTE.white,
-  fontFamily: FONTS.muktaMalar.semibold,
-  fontWeight: '600',
-},
+  activePillsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: s(8),
+    paddingHorizontal: s(12),
+    paddingVertical: vs(8),
+    // backgroundColor: '#EBF5FF',
+    // borderBottomWidth: 1,
+    borderBottomColor: PALETTE.primary + '25',
+    alignItems: 'center',
+  },
+  activePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: s(4),
+    backgroundColor: PALETTE.white,
+    borderWidth: 1,
+    borderColor: PALETTE.grey500,
+    borderRadius: s(16),
+    paddingHorizontal: s(10),
+    paddingVertical: vs(4),
+  },
+  activePillText: {
+    fontSize: ms(13),
+    color: PALETTE.grey600,
+    fontFamily: FONTS.muktaMalar.semibold,
+    fontWeight: '600',
+  },
+  clearAllBtn: {
+    paddingHorizontal: s(10),
+    paddingVertical: vs(4),
+    borderRadius: s(16),
+    backgroundColor: PALETTE.primary,
+  },
+  clearAllText: {
+    fontSize: ms(12),
+    color: PALETTE.white,
+    fontFamily: FONTS.muktaMalar.semibold,
+    fontWeight: '600',
+  },
 
   // Card
   card: { backgroundColor: PALETTE.white, paddingHorizontal: ms(14) },
@@ -1586,7 +1591,7 @@ clearAllText: {
     backgroundColor: 'rgba(0,0,0,0.72)',
     paddingHorizontal: s(7), paddingVertical: vs(2),
   },
-  durationText: { color: PALETTE.white, fontSize: ms(13), fontWeight: '700' ,fontFamily:FONTS.muktaMalar.semibold},
+  durationText: { color: PALETTE.white, fontSize: ms(13), fontWeight: '700', fontFamily: FONTS.muktaMalar.semibold },
   commentIndicator: {
     position: 'absolute', top: s(8), right: s(8),
     backgroundColor: 'rgba(0,0,0,0.72)',
@@ -1640,8 +1645,8 @@ clearAllText: {
     justifyContent: 'center',
     alignItems: 'center',
   },
- 
- 
+
+
   commentBtn: {
     flexDirection: 'row',
     alignItems: 'center',
