@@ -66,15 +66,5 @@
   "devDependencies": {
     "babel-preset-expo": "^55.0.13",
     "react-native-svg-transformer": "^1.5.3"
-  },
-  "expo": {
-    "android": {
-      "gradle": {
-        "exclude": [
-          "com.android.support:support-compat",
-          "com.android.support:versionedparcelable"
-        ]
-      }
-    }
   }
 }
