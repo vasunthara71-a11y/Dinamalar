@@ -31,6 +31,54 @@ import RenderHtml from 'react-native-render-html';
 // -- Taboola publisher ID for mobile (from your website TaboolaScript.js) ------
 const TABOOLA_PUBLISHER_ID = 'mdinamalarcom';
 
+// -- Load More Button Component (similar to TharpothaiyaSeithigalScreen) --
+function LoadMoreButton({ onPress, loading }) {
+  return (
+    <View style={loadMoreStyles.container}>
+      <TouchableOpacity
+        style={loadMoreStyles.button}
+        onPress={onPress}
+        disabled={loading}
+        activeOpacity={0.8}
+      >
+        {loading ? (
+          <ActivityIndicator size="small" color={COLORS.white} />
+        ) : (
+          <>
+            <Text style={loadMoreStyles.buttonText}>மேலும் பார்க்க</Text>
+            <Ionicons name="chevron-down" size={16} color={COLORS.white} style={loadMoreStyles.icon} />
+          </>
+        )}
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+const loadMoreStyles = StyleSheet.create({
+  container: {
+    paddingHorizontal: s(16),
+    paddingVertical: vs(20),
+    alignItems: 'center',
+  },
+  button: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: s(20),
+    paddingVertical: vs(12),
+    borderRadius: s(25),
+    gap: s(8),
+  },
+  buttonText: {
+    color: COLORS.white,
+    fontSize: ms(14),
+    fontFamily: FONTS.muktaMalar.medium,
+  },
+  icon: {
+    marginLeft: s(4),
+  },
+});
+
 // --- Taboola Widget -----------------------------------------------------------
 function TaboolaWidget({ pageUrl, mode, container, placement, pageType = 'homepage', targetType = 'mix' }) {
   const [height, setHeight] = useState(1);
@@ -176,6 +224,21 @@ const RASI_LIST = [
   { etitle: 'meenam', title: 'மீனம்' },
 ];
 
+// Decode HTML entities function
+const decodeHtmlEntities = (str) => {
+  if (!str) return '';
+  return str
+    .replace(/&#39;/g, "'")
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&#x27;/g, "'")
+    .replace(/&#x2F;/g, '/')
+    .replace(/&nbsp;/g, ' ');
+};
+
 // Photo section IDs
 const PHOTO_SECTION_IDS = ['81', '5001', '5002', '5003', 'top10', 'mostcommented'];
 
@@ -317,7 +380,7 @@ const RasiCard = ({ item, onPress }) => {
   const fallbackUri = (item.largeimages || item.icon || '').replace('http://', 'https://');
   const imageUri = dinamalarImage || fallbackUri;
 
-  const title = item.title || item.newstitle || '';
+  const title = decodeHtmlEntities(item.title || item.newstitle || '');
 
   return (
     <TouchableOpacity style={rc.wrap} onPress={onPress} activeOpacity={0.85}>
@@ -1454,16 +1517,19 @@ const PlayIcon = ({ size = 52 }) => (
   </View>
 );
 
-function NewsCard({ item, onPress, sectionTitle = '', isHighlighted = false }) {
+function NewsCard({ item, onPress, sectionTitle = '', isHighlighted = false, apiEndpoint = '' }) {
   const { sf } = useFontSize();
   const [imageError, setImageError] = useState(false);
+  const [isTitleHovered, setIsTitleHovered] = useState(false);
 
   const imageUri =
     (item.largeimages || item.images || item.image || item.thumbnail || item.thumb || '').trim() ||
     'https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_default.jpg?im=Resize,width=400';
 
-  const title = item.newstitle || item.title || item.videotitle ||
-    item.footnote || item.name || '';
+  const title = decodeHtmlEntities(
+    item.newstitle || item.title || item.videotitle ||
+    item.footnote || item.name || ''
+  );
   const category = item.maincat || item.categrorytitle || item.ctitle || item.maincategory || sectionTitle || '';
   const date = item.date || item.time_date || item.standarddate || item.date || '';
   const newscomment = item.newscomment || item.commentcount || item.nmcomment || item.comments?.total || '';
@@ -1516,7 +1582,24 @@ function NewsCard({ item, onPress, sectionTitle = '', isHighlighted = false }) {
 
         <View style={NewsCardStyles.contentContainer}>
           {!!title && (
-            <Text style={[NewsCardStyles.title, { fontSize: sf(13), lineHeight: sf(22) }]} numberOfLines={3}>{title}</Text>
+            <TouchableOpacity
+              onPress={() => {
+                setIsTitleHovered(false);
+                onPress();
+              }}
+              onPressIn={() => setIsTitleHovered(true)}
+              onPressOut={() => setTimeout(() => setIsTitleHovered(false), 100)}
+              activeOpacity={1}
+            >
+              <Text style={[
+                NewsCardStyles.title, 
+                { 
+                  fontSize: sf(13), 
+                  lineHeight: sf(22),
+                  color: isTitleHovered ? COLORS.primary : COLORS.grey800,
+                }
+              ]} numberOfLines={3}>{title}</Text>
+            </TouchableOpacity>
           )}
 
           {/* {!!category && (
@@ -1536,8 +1619,8 @@ function NewsCard({ item, onPress, sectionTitle = '', isHighlighted = false }) {
 
               {!!newscomment && newscomment !== '0' && (
                 <View style={NewsCardStyles.commentRow}>
-                  <Ionicons name="chatbox" size={s(15)} color={PALETTE.grey700} />
-                  <Text style={[NewsCardStyles.commentText, { fontSize: sf(12) }]}> {newscomment}</Text>
+                  <Comment size={s(15)} color={PALETTE.grey600} />
+                  <Text style={[NewsCardStyles.commentText, { fontSize: sf(14) }]}> {newscomment}</Text>
                 </View>
               )}
             </View>
@@ -3396,7 +3479,6 @@ export default function CommonSectionScreen() {
               // Update the list with all fetched data
               list = allNewsData;
               setTabNews(allNewsData);
-              
             } catch (error) {
               console.error('[NewsData] Error fetching all pages:', error);
             }
@@ -3405,6 +3487,13 @@ export default function CommonSectionScreen() {
           // Start fetching additional pages
           fetchAllNewsDataPages();
         }
+      }
+
+      // -- Handle dinamdinam API endpoints - use manual pagination only -----
+      if (apiEndpoint?.includes('dinamdinam') || tab.link?.includes('dinamdinam')) {
+        // For dinamdinam endpoints, use manual pagination via load more button only
+        console.log('[DinamDinam] Using manual pagination for dinamdinam endpoint:', tab.link || apiEndpoint);
+        console.log('[DinamDinam] Current page:', pg, 'List length:', list.length);
       }
 
       // -- Handle varamalar tab data - limit to 3 items -----------------------
@@ -4811,7 +4900,8 @@ export default function CommonSectionScreen() {
 
   const handleLoadMore = () => {
     // Allow load more for NRI region tabs even when _isAllTab is true
-    if (isAllTab && !activeTab?._isNriRegionTab) return;
+    // Allow load more for dinamdinam tabs even when _isAllTab is true
+    if (isAllTab && !activeTab?._isNriRegionTab && !apiEndpoint?.includes('dinamdinam')) return;
     if (tabLoadMore || tabPage >= tabLastPage) return;
     setTabLoadMore(true);
     fetchTabNews(activeTab, tabPage + 1, true);
@@ -5515,7 +5605,7 @@ export default function CommonSectionScreen() {
     const imageUri =
       item.largeimages || item.images || item.image ||
       'https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_default.jpg?im=Resize,width=400';
-    const title = item.newstitle || item.title || '';
+    const title = decodeHtmlEntities(item.newstitle || item.title || '');
     const date = item.date || item.time_date || item.standarddate || '';
 
     return (
@@ -5715,7 +5805,7 @@ export default function CommonSectionScreen() {
 
     if (row.type === 'news' && isWebstories) {
       const imageUri = row.item.images || row.item.largeimages || row.item.image || row.item.thumbnail || row.item.thumb || 'https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_default.jpg?im=Resize,width=400';
-      const title = row.item.newstitle || row.item.title || '';
+      const title = decodeHtmlEntities(row.item.newstitle || row.item.title || '');
       const category = row.item.categrorytitle || '';
 
       return (
@@ -6685,9 +6775,19 @@ export default function CommonSectionScreen() {
                     targetType="mix"
                   />
                 )}
-                {tabLoadMore
-                  ? <View style={styles.footerLoader}><ActivityIndicator size="small" color={COLORS.primary} /></View>
-                  : <View style={{ height: vs(40) }} />}
+                {/* Show Load More Button for dinamdinam */}
+                {apiEndpoint?.includes('dinamdinam') && tabNews.length > 0 && !tabLoading && (
+                  <LoadMoreButton onPress={handleLoadMore} loading={tabLoadMore} />
+                )}
+                {/* Default footer loader for other endpoints */}
+                {!apiEndpoint?.includes('dinamdinam') && tabLoadMore && (
+                  <View style={styles.footerLoader}>
+                    <ActivityIndicator size="small" color={COLORS.primary} />
+                  </View>
+                )}
+                {!apiEndpoint?.includes('dinamdinam') && !tabLoadMore && (
+                  <View style={{ height: vs(40) }} />
+                )}
               </>
             }
           />

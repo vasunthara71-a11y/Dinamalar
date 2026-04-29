@@ -5,16 +5,12 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="7dff0835-ba21-4555-8c27-70a8bbe09433" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/components/TopMenuStrip.js" beforeDir="false" afterPath="$PROJECT_DIR$/components/TopMenuStrip.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/navigation/AppNavigator.js" beforeDir="false" afterPath="$PROJECT_DIR$/navigation/AppNavigator.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/screens/DistrictNewsScreen.js" beforeDir="false" afterPath="$PROJECT_DIR$/screens/DistrictNewsScreen.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/screens/IndiaScreen.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/screens/NewsDetailsScreen.js" beforeDir="false" afterPath="$PROJECT_DIR$/screens/NewsDetailsScreen.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/screens/PodcastPlayer.js" beforeDir="false" afterPath="$PROJECT_DIR$/screens/PodcastPlayer.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/screens/SearchScreen.js" beforeDir="false" afterPath="$PROJECT_DIR$/screens/SearchScreen.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/screens/VideosScreen.js" beforeDir="false" afterPath="$PROJECT_DIR$/screens/VideosScreen.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/package-lock.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/screens/SportsScreen.js" beforeDir="false" afterPath="$PROJECT_DIR$/screens/SportsScreen.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/screens/TharpothaiyaSeithigalScreen.js" beforeDir="false" afterPath="$PROJECT_DIR$/screens/TharpothaiyaSeithigalScreen.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/utils/constants.js" beforeDir="false" afterPath="$PROJECT_DIR$/utils/constants.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
