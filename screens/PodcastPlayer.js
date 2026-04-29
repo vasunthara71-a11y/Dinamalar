@@ -19,6 +19,7 @@ import { useAudioPlayer, useAudioPlayerStatus, setAudioModeAsync } from 'expo-au
 import { useNavigation } from '@react-navigation/native';
 import { ms, vs } from 'react-native-size-matters';
 import UniversalHeaderComponent from '../components/UniversalHeaderComponent';
+import TopMenuStrip from '../components/TopMenuStrip';
 import AppHeaderComponent from '../components/AppHeaderComponent';
 import { addBookmark, removeBookmark, isBookmarked } from '../utils/storage';
 import { 
@@ -192,11 +193,59 @@ export default function PodcastPlayer() {
     }
   }, [cur]);
 
+  // ── Route Map for menu navigation (same as HomeScreen) ─────────────────────
+  const LINK_ROUTE_MAP = [
+    { match: ['dinamalartv', 'videodata'], screen: 'VideoScreen' },
+    { match: ['podcast'], screen: 'PodcastPlayer' },
+    { match: ['ipaper'], screen: 'IpaperScreen' },
+    { match: ['books'], screen: 'BooksScreen' },
+    { match: ['subscription'], screen: 'SubscriptionScreen' },
+    { match: ['thirukural'], screen: 'ThirukkuralScreen' },
+    { match: ['kadal'], screen: 'KadalThamaraiScreen' },
+    { match: ['latestmain', 'timeline', 'dinamdinam'], screen: 'TimelineScreen' },
+    { match: ['cinema'], screen: 'CategoryNewsScreen' },
+    { match: ['temple', 'kovilgal'], screen: 'CategoryNewsScreen' },
+  ];
+
+  const resolveScreenFromLink = (link = '') => {
+    if (!link) return null;
+    const lower = link.toLowerCase();
+    for (const { match, screen } of LINK_ROUTE_MAP) {
+      if (match.some((kw) => lower.includes(kw))) {
+        if (screen === 'CategoryNewsScreen') {
+          const m = lower.match(/cat=(\d+)/);
+          return { screen, params: m ? { catId: m[1] } : {} };
+        }
+        return { screen, params: null };
+      }
+    }
+    const m = lower.match(/cat=(\d+)/);
+    if (m) return { screen: 'HomeScreen', params: { catId: m[1] } };
+    if (link.startsWith('http') || link.startsWith('www.'))
+      return { screen: '__external__', params: null };
+    return null;
+  };
+
   // Header handlers
-  const handleMenuPress = () => setIsDrawerVisible(true);
+  const handleMenuPress = (menuItem) => {
+    const link = menuItem?.Link || menuItem?.link || '';
+    const title = menuItem?.Title || menuItem?.title || '';
+    const resolved = resolveScreenFromLink(link);
+    
+    if (!resolved) { 
+      navigation?.navigate('TimelineScreen', { catName: title }); 
+      return; 
+    }
+    if (resolved.screen === '__external__') return;
+    
+    navigation?.navigate(
+      resolved.screen,
+      resolved.params ? { catName: title, ...resolved.params } : { catName: title }
+    );
+  };
   const handleSearch = () => navigation.navigate('SearchScreen');
   const handleLocation = () => setIsLocationDrawerVisible(true);
-  const handleNotification = () => console.log('Notification pressed');
+  const handleNotification = () => navigation?.navigate('NotificationScreen');
   const onSelectDistrict = (district) => setSelectedDistrict(district);
 
   // Scroll handlers
@@ -251,26 +300,19 @@ export default function PodcastPlayer() {
 
   return (
     <SafeAreaView style={S.container}>
-      <UniversalHeaderComponent
-        statusBarStyle="dark-content"
-        statusBarBackgroundColor="#fff"
+      <TopMenuStrip
         onMenuPress={handleMenuPress}
         onNotification={handleNotification}
-        isDrawerVisible={isDrawerVisible}
-        setIsDrawerVisible={setIsDrawerVisible}
+        notifCount={0}
         navigation={navigation}
-        isLocationDrawerVisible={isLocationDrawerVisible}
-        setIsLocationDrawerVisible={setIsLocationDrawerVisible}
-        onSelectDistrict={onSelectDistrict}
+      />
+
+      <AppHeaderComponent
+        onSearch={handleSearch}
+        onMenu={handleMenuPress}
+        onLocation={handleLocation}
         selectedDistrict={selectedDistrict}
-      >
-        <AppHeaderComponent
-          onSearch={handleSearch}
-          onMenu={handleMenuPress}
-          onLocation={handleLocation}
-          selectedDistrict={selectedDistrict}
-        />
-      </UniversalHeaderComponent>
+      />
 
       <FlatList
         ref={flatListRef}
@@ -457,7 +499,7 @@ export default function PodcastPlayer() {
 // ── STYLES ────────────────────────────────────────────────────────────────────
 const S = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#fff' },
-  container: { flex: 1, backgroundColor: "#fff", paddingTop: Platform.OS === 'android' ? vs(30) : 0 },
+  container: { flex: 1, backgroundColor: "#fff", paddingTop: Platform.OS === 'android' ? vs(0) : vs(20) },
   
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff' },
 

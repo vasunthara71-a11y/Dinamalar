@@ -84,7 +84,9 @@ function MenuIcon({ uri }) {
 export default function TopMenuStrip({ onMenuPress, onNotification, notifCount = 0, navigation, hideNotification = false }) {
   const { sf } = useFontSize();
 
-  console.log('🔔 TopMenuStrip notifCount prop:', notifCount);
+  console.log('🔔 TopMenuStrip RENDERING - notifCount prop:', notifCount);
+  console.log('🔔 TopMenuStrip menuItems length:', menuItems?.length);
+  console.log('🔔 TopMenuStrip loading state:', loading);
 
   const [menuItems, setMenuItems] = useState(_cachedMenuItems || []);
   const [loading, setLoading] = useState(_cachedMenuItems === null);
@@ -130,6 +132,22 @@ export default function TopMenuStrip({ onMenuPress, onNotification, notifCount =
       return;
     }
 
+    // ── podcast navigates to PodcastPlayer ───────────────────────
+    const isPodcast =
+      lower.includes('podcast') ||
+      lower.includes('audio') ||
+      lower.includes('/podcast');
+
+    if (isPodcast) {
+      if (onMenuPress) {
+        // Let the screen handle podcast navigation via onMenuPress
+        onMenuPress(item);
+      } else if (navigation) {
+        navigation.navigate('PodcastPlayer', { catName: title });
+      }
+      return;
+    }
+
     // ── Everything else → open in WebView ─────────────────────────────────────
     let url = link;
 
@@ -151,6 +169,9 @@ export default function TopMenuStrip({ onMenuPress, onNotification, notifCount =
   if (loading) {
     return (
       <View style={styles.container}>
+        <View style={{ backgroundColor: 'yellow', height: 30, justifyContent: 'center', alignItems: 'center', flex: 1 }}>
+          <Text style={{ color: 'black', fontSize: 12 }}>Loading menu...</Text>
+        </View>
         <View style={styles.skeletonRow}>
           {[1, 2, 3, 4, 5].map(i => (
             <View key={i} style={styles.skeletonChip} />

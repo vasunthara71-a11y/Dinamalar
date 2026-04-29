@@ -56,6 +56,21 @@
     "android": {
       "package": "com.dinamalarMobileApp",
       "softwareKeyboardLayoutMode": "resize",
+      "gradle": {
+        "properties": {
+          "android.useAndroidX": "true",
+          "android.enableJetifier": "true"
+        },
+        "dependencies": {
+          "implementation": [
+            "androidx.core:core-ktx:1.12.0"
+          ],
+          "exclude": [
+            "com.android.support:support-compat:28.0.0",
+            "com.android.support:versionedparcelable:28.0.0"
+          ]
+        }
+      },
       "intentFilters": [
         {
           "action": "VIEW",

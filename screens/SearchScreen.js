@@ -18,8 +18,8 @@ import { Ionicons } from '@expo/vector-icons';
 import VoiceSearchModal from '../components/VoiceSearchModal';
 import { SpeakerIcon } from '../assets/svg/Icons';
 import TopMenuStrip from '../components/TopMenuStrip';
-import { SafeAreaView } from 'react-native';
-
+import { SafeAreaView } from 'react-native-safe-area-context';
+ 
 const SEARCH_API = 'https://api-st.dinamalar.com/searchfilter?search=';
 const INITIAL_API = 'https://api-st.dinamalar.com/search';
 const RECENT_KEY = 'dm_recent_searches';
@@ -421,54 +421,54 @@ export default function SearchScreen() {
     });
   }, []);
 
-  const handleMenuPress = (menuItem) => {
-    // Debug: Log the menu item structure
-    // console.log('TopMenuStrip menu item clicked:', menuItem);
-    // console.log('TopMenuStrip menu item clicked:', menuItem);
+  // ── Route Map for menu navigation (same as HomeScreen) ─────────────────────
+  const LINK_ROUTE_MAP = [
+    { match: ['dinamalartv', 'videodata'], screen: 'VideoScreen' },
+    { match: ['podcast'], screen: 'PodcastPlayer' },
+    { match: ['ipaper'], screen: 'IpaperScreen' },
+    { match: ['books'], screen: 'BooksScreen' },
+    { match: ['subscription'], screen: 'SubscriptionScreen' },
+    { match: ['thirukural'], screen: 'ThirukkuralScreen' },
+    { match: ['kadal'], screen: 'KadalThamaraiScreen' },
+    { match: ['latestmain', 'timeline', 'dinamdinam'], screen: 'TimelineScreen' },
+    { match: ['cinema'], screen: 'CategoryNewsScreen' },
+    { match: ['temple', 'kovilgal'], screen: 'CategoryNewsScreen' },
+  ];
 
-    // Handle menu item navigation based on menu item properties
-    if (menuItem?.screen_name) {
-      // console.log('Navigating to screen:', menuItem.screen_name);
-      navigation?.navigate?.(menuItem.screen_name);
-    } else if (menuItem?.url) {
-      // Handle URL navigation if needed
-      // console.log('Navigate to URL:', menuItem.url);
-    } else if (menuItem?.Title || menuItem?.title) {
-      // Try to navigate based on title
-      const title = menuItem.Title || menuItem.title;
-      // console.log('Menu title:', title);
-
-      // Map common titles to screen names
-      const screenMapping = {
-        'Home': 'HomeScreen',
-        'Videos': 'VideosScreen',
-        'News': 'NewsScreen',
-        'Cinema': 'CinemaScreen',
-        'Sports': 'SportsScreen',
-        'Business': 'BusinessScreen',
-        'Technology': 'TechnologyScreen',
-        'Health': 'HealthScreen',
-        'Education': 'EducationScreen',
-        'வீடியோ': 'VideosScreen',
-        'செய்திகள்': 'NewsScreen',
-        'சினிமா': 'CinemaScreen',
-        'விளையாடம்': 'SportsScreen',
-      };
-
-      const targetScreen = screenMapping[title];
-      if (targetScreen) {
-        // console.log('Mapped title to screen:', targetScreen);
-        navigation?.navigate?.(targetScreen);
-      } else {
-        // console.log('No screen mapping found for title:', title);
-        // Fallback to opening drawer
-        navigation?.openDrawer?.();
+  const resolveScreenFromLink = (link = '') => {
+    if (!link) return null;
+    const lower = link.toLowerCase();
+    for (const { match, screen } of LINK_ROUTE_MAP) {
+      if (match.some((kw) => lower.includes(kw))) {
+        if (screen === 'CategoryNewsScreen') {
+          const m = lower.match(/cat=(\d+)/);
+          return { screen, params: m ? { catId: m[1] } : {} };
+        }
+        return { screen, params: null };
       }
-    } else {
-      // console.log('No navigation info found, opening drawer');
-      // Fallback to opening drawer if no specific navigation is defined
-      navigation?.openDrawer?.();
     }
+    const m = lower.match(/cat=(\d+)/);
+    if (m) return { screen: 'HomeScreen', params: { catId: m[1] } };
+    if (link.startsWith('http') || link.startsWith('www.'))
+      return { screen: '__external__', params: null };
+    return null;
+  };
+
+  const handleMenuPress = (menuItem) => {
+    const link = menuItem?.Link || menuItem?.link || '';
+    const title = menuItem?.Title || menuItem?.title || '';
+    const resolved = resolveScreenFromLink(link);
+    
+    if (!resolved) { 
+      navigation?.navigate('TimelineScreen', { catName: title }); 
+      return; 
+    }
+    if (resolved.screen === '__external__') return;
+    
+    navigation?.navigate(
+      resolved.screen,
+      resolved.params ? { catName: title, ...resolved.params } : { catName: title }
+    );
   };
   const handleSearch = () => navigation?.navigate?.('Search');
   const handleNotification = () => console.log('Notifications');
