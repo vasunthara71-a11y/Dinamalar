@@ -27,6 +27,7 @@ import { Ionicons } from '@expo/vector-icons';
 import CustomCalendarModal from '../components/Customcalendarmodal';
 import { TaboolaAdSection } from '../components/TaboolaComponent';
 import TopMenuStrip from '../components/TopMenuStrip';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const PALETTE = {
   primary: '#096dd2',
@@ -775,7 +776,7 @@ export default function DistrictNewsScreen() {
   );
 
   return (
-    <View style={styles.container}>
+<SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
 
       {/* ── Top Menu Strip ── */}
@@ -956,17 +957,19 @@ export default function DistrictNewsScreen() {
         onDateSelect={handleDateSelect}
         onClose={() => setShowCalendar(false)}
       />
-    </View>
+    </SafeAreaView>
   );
 }
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f2f2f2',
-    paddingTop: Platform.OS === 'android' ? vs(0) : 20,
-  },
+   container: {
+     flex: 1,
+     backgroundColor: PALETTE.grey100,
+     paddingTop: Platform.OS === 'android' ? vs(0) : 20,
+     // ADD THIS:
+     position: 'relative',
+   },
 
   // ── Page title row ──────────────────────────────────────────────────────
   pageTitleRow: {

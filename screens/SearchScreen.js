@@ -12,6 +12,8 @@ import { COLORS, NewsCard as NewsCardStyles } from '../utils/constants';
 import { useFontSize } from '../context/FontSizeContext';
 import UniversalHeaderComponent from '../components/UniversalHeaderComponent';
 import AppHeaderComponent from '../components/AppHeaderComponent';
+import DrawerMenu from '../components/DrawerMenu';
+import LocationDrawer from '../components/LocationDrawer';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { Ionicons } from '@expo/vector-icons';
@@ -932,6 +934,33 @@ export default function SearchScreen() {
       <AppHeaderComponent
         onMenu={() => setIsDrawerVisible(true)}
         onLocation={() => setIsLocationDrawerVisible(true)}
+        selectedDistrict={selectedDistrict}
+      />
+      <DrawerMenu
+        isVisible={isDrawerVisible}
+        onClose={() => setIsDrawerVisible(false)}
+        onMenuPress={handleMenuPress}
+        navigation={navigation}
+      />
+
+      <LocationDrawer
+        isVisible={isLocationDrawerVisible}
+        onClose={() => setIsLocationDrawerVisible(false)}
+        onSelectDistrict={(district) => {
+          try {
+            if (!district) return;
+            setSelectedDistrict(district.title);
+            setIsLocationDrawerVisible(false);
+            if (district.id) {
+              navigation?.navigate('DistrictNewsScreen', {
+                districtId: district.id,
+                districtTitle: district.title,
+              });
+            }
+          } catch (error) {
+            console.error('Error in handleSelectDistrict:', error);
+          }
+        }}
         selectedDistrict={selectedDistrict}
       />
 

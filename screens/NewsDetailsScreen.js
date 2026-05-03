@@ -35,6 +35,7 @@ import Shorts from '../components/Shorts';
 import MoreNews from '../components/MoreNews';
 import AlsoSeeThis from '../components/AlsoSeeThis';
 import YoutubePlayer from '../components/YoutubePlayer';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 
@@ -665,6 +666,7 @@ export default function NewsDetailsScreen() {
     newsList = [],
     disableComments = false,
     nriDetailLink,
+    kalviMalarDetailLink,
     isNriEnglish,
   } = route.params || {};
 
@@ -948,6 +950,12 @@ export default function NewsDetailsScreen() {
             mainApi.get(nriDetailLink),
             timeoutPromise
           ]);
+        } else if (kalviMalarDetailLink) {
+          console.log('🎓 KALVI MALAR fetch using kalviMalarDetailLink:', kalviMalarDetailLink);
+          res = await Promise.race([
+            mainApi.get(kalviMalarDetailLink),
+            timeoutPromise
+          ]);
         } else {
           console.log('🔍 Regular fetch using detaildata endpoint for ID:', id);
           const detailUrl = `/detaildata?newsid=${id}`;
@@ -1046,7 +1054,7 @@ export default function NewsDetailsScreen() {
         setTimeout(() => setIsNavigating(false), 100);
       }
     }
-  }, [newsId, currentNewsItem, nriDetailLink, isNriEnglish, isNavigating]);
+  }, [newsId, currentNewsItem, nriDetailLink, kalviMalarDetailLink, isNriEnglish, isNavigating]);
 
   // Check bookmark status when detail changes
   useEffect(() => {
@@ -1245,9 +1253,8 @@ export default function NewsDetailsScreen() {
   // console.log('NewsDetailsScreen - alsoSeeThisItem found:', !!alsoSeeThisItem);
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
-
+   <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+        <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
     
       <TopMenuStrip
         onMenuPress={handleMenuPress}
@@ -1470,9 +1477,9 @@ export default function NewsDetailsScreen() {
                     if (newsId) {
                       console.log('Navigating to NewsDetailsScreen with newsId:', newsId);
                       navigation.navigate('NewsDetailsScreen', {
-                        newsId: newsId,
-                        newsItem: item // Pass the full item as newsItem for better context
-                      });
+                          newsId: newsId,
+                          newsItem: item // Pass the full item as newsItem for better context
+                        });
                     } else {
                       console.log('No valid news ID found in item:', item);
                       // If no ID found, try to navigate using link if available
@@ -1655,14 +1662,20 @@ export default function NewsDetailsScreen() {
           idType="newsid"
         />
       )}
-    </View>
-  );
+      </SafeAreaView>
+
+   );
 }
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  container: { flex: 1, paddingTop: Platform.OS === 'android' ? vs(0) : 20 },
-  contentContainer: { flex: 1, position: 'relative', backgroundColor: "white" },
+ container: {
+    flex: 1,
+    backgroundColor: PALETTE.grey100,
+    paddingTop: Platform.OS === 'android' ? vs(0) : 20,
+    // ADD THIS:
+    position: 'relative',
+  },  contentContainer: { flex: 1, position: 'relative', backgroundColor: "white" },
   edgeBtnLeft: {
     position: 'absolute', left: 0, top: '45%',
     zIndex: 5,
