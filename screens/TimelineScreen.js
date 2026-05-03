@@ -20,8 +20,10 @@ import { COLORS, FONTS, NewsCard } from '../utils/constants';
 import { s, vs, scaledSizes } from '../utils/scaling';
 import { useNavigation } from '@react-navigation/native';
 import { ms, mvs } from 'react-native-size-matters';
-import UniversalHeaderComponent from '../components/UniversalHeaderComponent';
+import TopMenuStrip from '../components/TopMenuStrip';
 import AppHeaderComponent from '../components/AppHeaderComponent';
+import DrawerMenu from '../components/DrawerMenu';
+import LocationDrawer from '../components/LocationDrawer';
 import TEXT_STYLES from '../utils/textStyles';
 import { useFontSize } from '../context/FontSizeContext';
 import FontSizeControl from '../components/FontSizeControl';
@@ -44,6 +46,7 @@ import {
 } from '../services/pushNotificationService';
 import RealTimeNotificationPopup from '../components/RealTimeNotificationPopup';
 import NotificationCenter from '../components/NotificationCenter';
+import { SafeAreaView } from 'react-native-safe-area-context';
 const PALETTE = {
   primary: '#096dd2',
   grey100: '#F9FAFB',
@@ -384,14 +387,14 @@ function NotificationCard({ item, onPress, navigation }) {
     console.log('Normalized category:', normalizedCategory);
     console.log('Normalized length:', normalizedCategory.length);
     console.log('Normalized char codes:', Array.from(normalizedCategory).map(c => c.charCodeAt(0)));
-    
+
     // Video categories - match exact API categories
     if (
       normalizedCategory === 'live' ||
       normalizedCategory === '5050' ||
       normalizedCategory === 'live and recorded'
     ) {
-      navigation.navigate('VideosScreen', { 
+      navigation.navigate('VideosScreen', {
         initialCategory: '5050',
         initialTabTitle: 'Live'
       });
@@ -403,7 +406,7 @@ function NotificationCard({ item, onPress, navigation }) {
       normalizedCategory === 'அரசியல்' ||
       normalizedCategory === 'அரசியல் செய்திகள்'
     ) {
-      navigation.navigate('VideosScreen', { 
+      navigation.navigate('VideosScreen', {
         initialCategory: '31',
         initialTabTitle: 'Politics'
       });
@@ -417,7 +420,7 @@ function NotificationCard({ item, onPress, navigation }) {
       normalizedCategory === 'poguthu' ||
       normalizedCategory === 'பொது'
     ) {
-      navigation.navigate('VideosScreen', { 
+      navigation.navigate('VideosScreen', {
         initialCategory: '32',
         initialTabTitle: 'General'
       });
@@ -429,7 +432,7 @@ function NotificationCard({ item, onPress, navigation }) {
       normalizedCategory === 'sambavam' ||
       normalizedCategory === 'சம்பவம்'
     ) {
-      navigation.navigate('VideosScreen', { 
+      navigation.navigate('VideosScreen', {
         initialCategory: '33',
         initialTabTitle: 'Event'
       });
@@ -441,7 +444,7 @@ function NotificationCard({ item, onPress, navigation }) {
       normalizedCategory === 'Cinema' ||
       normalizedCategory === 'சினிமா'
     ) {
-      navigation.navigate('VideosScreen', { 
+      navigation.navigate('VideosScreen', {
         initialCategory: '435',
         initialTabTitle: 'Cinema'
       });
@@ -452,18 +455,18 @@ function NotificationCard({ item, onPress, navigation }) {
       normalizedCategory === 'tamil cinema movie trailer' ||
       normalizedCategory === 'டிரைலர்'
     ) {
-      navigation.navigate('VideosScreen', { 
+      navigation.navigate('VideosScreen', {
         initialCategory: '436',
         initialTabTitle: 'Trailer'
       });
     }
-    
-   else if (
-       normalizedCategory === '594' ||
-       normalizedCategory ==='செய்திச்சுருக்கம்'
+
+    else if (
+      normalizedCategory === '594' ||
+      normalizedCategory === 'செய்திச்சுருக்கம்'
     ) {
       console.log('Short news category matched!');
-      navigation.navigate('VideosScreen', { 
+      navigation.navigate('VideosScreen', {
         initialCategory: '594',
         initialTabTitle: 'Short News'
       });
@@ -474,7 +477,7 @@ function NotificationCard({ item, onPress, navigation }) {
       normalizedCategory === 'sports tamil videos' ||
       normalizedCategory === 'விளையாட்டு'
     ) {
-      navigation.navigate('VideosScreen', { 
+      navigation.navigate('VideosScreen', {
         initialCategory: '464',
         initialTabTitle: 'Sports'
       });
@@ -486,7 +489,7 @@ function NotificationCard({ item, onPress, navigation }) {
       normalizedCategory === 'exclusive' ||
       normalizedCategory === 'சிறப்பு தொகுப்புகள்'
     ) {
-      navigation.navigate('VideosScreen', { 
+      navigation.navigate('VideosScreen', {
         initialCategory: '1238',
         initialTabTitle: 'Exclusive Videos'
       });
@@ -498,7 +501,7 @@ function NotificationCard({ item, onPress, navigation }) {
       normalizedCategory === 'spiritual' ||
       normalizedCategory === 'ஆன்மீகம்'
     ) {
-      navigation.navigate('VideosScreen', { 
+      navigation.navigate('VideosScreen', {
         initialCategory: '1316',
         initialTabTitle: 'Spiritual'
       });
@@ -509,7 +512,7 @@ function NotificationCard({ item, onPress, navigation }) {
       normalizedCategory === 'district news videos' ||
       normalizedCategory === 'மாவட்ட செய்திகள்'
     ) {
-      navigation.navigate('VideosScreen', { 
+      navigation.navigate('VideosScreen', {
         initialCategory: '1585',
         initialTabTitle: 'District News'
       });
@@ -520,7 +523,7 @@ function NotificationCard({ item, onPress, navigation }) {
       normalizedCategory === 'shorts reels' ||
       normalizedCategory === 'ஷார்ட்ஸ்'
     ) {
-      navigation.navigate('VideosScreen', { 
+      navigation.navigate('VideosScreen', {
         initialCategory: 'shorts',
         initialTabTitle: 'Shorts'
       });
@@ -616,11 +619,11 @@ function NotificationCard({ item, onPress, navigation }) {
       {/* ── Text content (always tappable → article/video screen) ── */}
       <TouchableOpacity onPress={() => onPress(item)} activeOpacity={0.88}>
         <View style={ncStyles.contentContainer}>
-          <Text style={[ncStyles.title, { fontSize: sf(14), lineHeight: sf(26) }]}  >
+          <Text style={[ncStyles.title, { fontSize: sf(15), lineHeight: sf(26) }]}  >
             {String(item.newstitle || '')}
           </Text>
           {!!category && (
-            <TouchableOpacity 
+            <TouchableOpacity
               style={ncStyles.catPill}
               onPress={(e) => {
                 e?.stopPropagation?.();
@@ -701,8 +704,11 @@ const ncStyles = StyleSheet.create({
 
 
 
-const LEFT_W = s(80);
-const LINE_LEFT = LEFT_W / 2;  // line runs through CENTER of left col
+const LEFT_W = s(110);       // wider total left column
+const DATE_W = s(72);        // wider date section so text fits
+const LINE_LEFT = DATE_W;    // line sits at right edge of date section
+const ICON_SIZE = s(28);     // icon badge size — sits ON the line
+const ICON_RADIUS = ICON_SIZE / 2;
 
 function TimelineItem({ item, isLast, onPress, navigation, resolvePhotoTab }) {
   const [imgLoad, setImgLoad] = useState(true);
@@ -742,10 +748,6 @@ function TimelineItem({ item, isLast, onPress, navigation, resolvePhotoTab }) {
   const categoryLabel = item.categrorytitle || item.catengtitle || cat.label || 'செய்தி';
   const agoLabel = String(item.ago || item.time_ago || '');
 
-  // Icon badge size — sits ON the line
-  const ICON_SIZE = s(28);
-  const ICON_RADIUS = ICON_SIZE / 2;
-
   return (
     <TouchableOpacity
       activeOpacity={0.9}
@@ -758,48 +760,50 @@ function TimelineItem({ item, isLast, onPress, navigation, resolvePhotoTab }) {
           Vertical line centered through column.
           Date + time above. Circular icon badge ON the line. */}
       <View style={tlStyles.leftCol}>
-
-        {/* Vertical grey line — absolute, centered (left = LINE_LEFT - 0.5) */}
+        {/* Vertical grey line — sits at right edge of date section */}
         <View style={tlStyles.vertLine} />
 
-        {/* Date text */}
-        <View style={{ right: 30 }}>
+        {/* Date + time — LEFT of the line */}
+        <View style={tlStyles.dateSection}>
           {!!item.standarddate && (
-            <Text style={[tlStyles.dateText, { fontSize: sf(12) }]} numberOfLines={2}>
+            <Text style={[tlStyles.dateText, { fontSize: sf(10) }]} numberOfLines={2}>
               {String(item.standarddate)}
             </Text>
           )}
-
-          {/* Time text */}
           {!!item.time && (
-            <Text style={[tlStyles.timeText, { fontSize: sf(12) }]} numberOfLines={1}>
-              {String(item.time)}
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end' }}>
+              <Text style={{ fontSize: sf(9) }}>☀️</Text>
+              <Text style={[tlStyles.timeText, { fontSize: sf(10) }]} numberOfLines={1}>
+                {' '}{String(item.time)}
+              </Text>
+            </View>
           )}
         </View>
 
-
-        {/* Category icon badge — circular, sits ON the centered line */}
+        {/* Icon badge — centered ON the line */}
+        {/* Icon badge — absolutely positioned, centered ON the line */}
         <View style={[tlStyles.iconBadge, {
           width: ICON_SIZE, height: ICON_SIZE, borderRadius: ICON_RADIUS,
-          borderColor: COLORS.grey500,
-          backgroundColor: PALETTE.white,
+          backgroundColor: PALETTE.grey300,
+          // Position centered on the line:
+          position: 'absolute',
+          left: DATE_W - ICON_SIZE / 2,   // ← centers icon on the line
+          top: vs(10),                     // ← aligns with paddingTop of leftCol
         }]}>
-          {cat.icon({ size: s(14), color: COLORS.primary })}
+          {cat.icon({ size: s(14), color: cat.color })}
         </View>
-
       </View>
 
       {/* ════ RIGHT COLUMN ════ */}
       <View style={tlStyles.rightCol}>
 
-        {/* 1. Title */}
+        {/* Title — sits at TOP, same vertical level as date+icon */}
         <TouchableOpacity
           onPress={() => onPress(item)}
           onPressIn={() => setTitleHovered(true)}
           onPressOut={() => setTitleHovered(false)}
           activeOpacity={1}
-          style={{ alignSelf: 'flex-start' }}
+          style={{ alignSelf: 'stretch' }}
         >
           <Text style={[
             tlStyles.title,
@@ -810,57 +814,51 @@ function TimelineItem({ item, isLast, onPress, navigation, resolvePhotoTab }) {
             }
           ]} numberOfLines={4}>
             {String(item.newstitle || '')}
-            {isPodcast && (
-              <View style={tlStyles.podcastRow}>
-                <Ionicons name="volume-medium" size={sf(13)} color={titleHovered ? PALETTE.primary : PALETTE.grey500} />
-                {/* <Text style={tlStyles.podcastText}> பாட்காஸ்ட்</Text> */}
-              </View>
-            )}
           </Text>
         </TouchableOpacity>
 
-        {/* 1b. Podcast/audio icon inline after title */}
-
-
-        {/* 2. Image */}
-        {hasImage ? (
+        {/* Image — below title */}
+        {hasImage && (
           <TouchableOpacity
             style={tlStyles.imgWrap}
             onPress={() => {
-              const tab = resolvePhotoTab(item);
-              navigation.navigate('CommonSectionScreen', {
-                screenTitle: tab.screenTitle,
-                apiEndpoint: 'https://api-st.dinamalar.com/photodata',
-                allTabLink: 'https://api-st.dinamalar.com/photodata',
-                useFullUrl: true,
-                // ── Pass the specific item to open ──
-                selectedNewsId: item.newsid || item.id,
-                selectedNewsItem: item,          // full item for immediate render
-                ...(tab.initialTabId && {
-                  initialTabId: tab.initialTabId,
-                  initialTabLink: tab.initialTabLink,
-                  initialTabTitle: tab.initialTabTitle,
-                }),
-              });
+              // Handle navigation based on maincat type
+              if (item?.maincat === 'photo') {
+                // For photo items, navigate to CommonSectionScreen with photodata
+                const tab = resolvePhotoTab(item);
+                navigation.navigate('CommonSectionScreen', {
+                  screenTitle: tab.screenTitle,
+                  apiEndpoint: 'https://api-st.dinamalar.com/photodata',
+                  allTabLink: 'https://api-st.dinamalar.com/photodata',
+                  useFullUrl: true,
+                  selectedNewsId: item.newsid || item.id,
+                  selectedNewsItem: item,
+                  ...(tab.initialTabId && {
+                    initialTabId: tab.initialTabId,
+                    initialTabLink: tab.initialTabLink,
+                    initialTabTitle: tab.initialTabTitle,
+                  }),
+                });
+              } else {
+                // For other types with images, use the main navigation logic
+                onPress(item);
+              }
             }}
             activeOpacity={0.8}
           >
-            {(imgLoad || imgErr) && <View style={tlStyles.imgSkeleton} />}
             <Image
               source={{ uri: imageUrl }}
-              style={[tlStyles.img, (imgLoad || imgErr) && { opacity: 0, position: 'absolute' }]}
-              resizeMode="contain"
+              style={tlStyles.img}
+              resizeMode="cover"
               onLoad={() => { setImgLoad(false); setImgErr(false); }}
               onError={() => { setImgLoad(false); setImgErr(true); }}
             />
+            {imgLoad && <View style={[tlStyles.imgSkeleton, { zIndex: 2 }]} />}
           </TouchableOpacity>
-        ) : null}
+        )}
 
-        {/* 3. Meta row */}
-        <View style={tlStyles.metaRow}>
-          {/* <Text style={tlStyles.metaText} numberOfLines={1}>
-            {categoryLabel}{agoLabel ? ' · ' + agoLabel : ''}
-          </Text> */}
+        {/* Meta row */}
+        {/* <View style={tlStyles.metaRow}>
           <View style={{ flex: 1 }} />
           {hasComment && (
             <View style={tlStyles.commentWrap}>
@@ -868,11 +866,7 @@ function TimelineItem({ item, isLast, onPress, navigation, resolvePhotoTab }) {
               <Text style={[tlStyles.commentText, { fontSize: sf(12) }]}>{String(item.newscomment)}</Text>
             </View>
           )}
-          {/* {hasAudio && (
-            <Ionicons name="volume-medium" size={s(13)} color={PALETTE.grey500} style={{ marginLeft: s(4) }} />
-          )} */}
-        </View>
-
+        </View> */}
       </View>
     </TouchableOpacity>
   );
@@ -885,20 +879,21 @@ const tlStyles = StyleSheet.create({
     minHeight: vs(60),
   },
 
-  // Left col — line runs through center, icon badge centered on line
+  // Left col — date section and icon badge side by side
   leftCol: {
     width: LEFT_W,
     position: 'relative',
-    alignItems: 'center',
+    flexDirection: 'row',        // ← KEY: date and icon side by side
+    alignItems: 'flex-start',
     paddingTop: vs(10),
     paddingBottom: vs(10),
-    left: 20
+    overflow: 'visible',         // ← prevent clipping
   },
 
-  // Vertical line — centered in column
+  // Vertical line — sits at right edge of date section
   vertLine: {
     position: 'absolute',
-    left: LINE_LEFT - 0.5,
+    left: DATE_W,                // ← line at right edge of date section
     top: 0,
     bottom: 0,
     width: 1,
@@ -906,34 +901,37 @@ const tlStyles = StyleSheet.create({
     zIndex: 0,
   },
 
+  // Date section — sits LEFT of the line
+  dateSection: {
+    width: DATE_W,
+    paddingRight: s(20),
+    alignItems: 'flex-end',      // right-align text toward the line
+    zIndex: 1,
+  },
+
   dateText: {
-    // fontSize: ms(10),
     color: PALETTE.grey600,
     lineHeight: ms(13),
-    textAlign: 'center',
+    textAlign: 'right',
     marginBottom: vs(1),
     fontFamily: FONTS.muktaMalar.regular,
     zIndex: 1,
-    paddingHorizontal: s(2),
   },
 
   timeText: {
-    // fontSize: ms(9),
     color: PALETTE.grey500,
-    textAlign: 'center',
+    textAlign: 'right',
     marginBottom: vs(5),
     fontFamily: FONTS.muktaMalar.regular,
     zIndex: 1,
   },
 
-  // Circular icon badge — sits ON the centered vertical line
+  // Icon badge — centered on the line (positioned after date section)
   iconBadge: {
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1.5,
     zIndex: 2,
     elevation: 1,
-    // shadow so it pops over the line
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.08,
@@ -943,7 +941,7 @@ const tlStyles = StyleSheet.create({
   // Right column
   rightCol: {
     flex: 1,
-    paddingLeft: s(8),
+    // paddingLeft: s(10),
     paddingRight: s(12),
     paddingTop: vs(10),
     paddingBottom: vs(12),
@@ -957,7 +955,7 @@ const tlStyles = StyleSheet.create({
     fontWeight: '700',
     color: PALETTE.grey800,
     lineHeight: ms(20),
-    marginBottom: vs(4),
+    marginBottom: vs(8),  // ← space between title and image
   },
 
   // Podcast label inline below title
@@ -975,16 +973,17 @@ const tlStyles = StyleSheet.create({
   // Image
   imgWrap: {
     width: '100%',
-
+    aspectRatio: 16 / 9,
     backgroundColor: PALETTE.grey200,
-    // borderRadius: s(3),
     overflow: 'hidden',
     marginBottom: vs(6),
-    height: ms(280)
   },
   imgSkeleton: { ...StyleSheet.absoluteFillObject, backgroundColor: '#E0E4EA' },
-  img: { width: '100%', height: '100%' },
-
+  img: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',   // ✅ Fill the frame like Image 1
+  },
   // Meta row
   metaRow: { flexDirection: 'row', alignItems: 'center' },
   metaText: {
@@ -1566,21 +1565,24 @@ export default function TimelineScreen() {
   };
 
   const goToArticle = (item) => {
-    if (isVideoItem(item)) {
-      // Navigate to VideoScreen with the Dinamalar video ID
-      const videoId = getDinaVideoId(item) || item.newsid || item.id;
-      navigation.navigate('VideoDetailScreen', { videoId, videoItem: item });
-    } else if (isPhotoItem(item)) {
-      // Use resolvePhotoTab to determine navigation
+    if (item?.maincat === 'seithigal') {
+      // For seithigal items, navigate to NewsDetailsScreen
+      const newsId = item.id || item.newsid;
+      navigation.navigate('NewsDetailsScreen', { newsId, newsItem: item });
+    } else if (item?.maincat === 'podcast') {
+      // For podcast items, navigate to PodcastPlayerScreen
+      const podcastId = item.id || item.newsid;
+      navigation.navigate('PodcastPlayerScreen', { podcastId, podcastItem: item });
+    } else if (item?.maincat === 'photo') {
+      // For photo items, navigate to CommonSectionScreen with photodata
       const tab = resolvePhotoTab(item);
-      console.log('goToArticle — item catId/maincat:', item?.maincatid, item?.maincat, '→ tab:', tab.initialTabId);
+      console.log('goToArticle — photo item catId/maincat:', item?.maincatid, item?.maincat, '→ tab:', tab.initialTabId);
 
       navigation.navigate('CommonSectionScreen', {
         screenTitle: tab.screenTitle,
         apiEndpoint: 'https://api-st.dinamalar.com/photodata',
         allTabLink: 'https://api-st.dinamalar.com/photodata',
         useFullUrl: true,
-        // Pass the specific item to open/focus
         selectedNewsId: item.newsid || item.id,
         selectedNewsItem: item,
         ...(tab.initialTabId && {
@@ -1589,7 +1591,12 @@ export default function TimelineScreen() {
           initialTabTitle: tab.initialTabTitle,
         }),
       });
+    } else if (isVideoItem(item)) {
+      // Navigate to VideoScreen with the Dinamalar video ID
+      const videoId = getDinaVideoId(item) || item.newsid || item.id;
+      navigation.navigate('VideoDetailScreen', { videoId, videoItem: item });
     } else {
+      // Default to NewsDetailsScreen for other types
       const newsId = item.id || item.newsid;
       navigation.navigate('NewsDetailsScreen', { newsId, newsItem: item });
     }
@@ -1691,31 +1698,50 @@ export default function TimelineScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
 
-      <UniversalHeaderComponent
-        statusBarStyle="dark-content"
-        statusBarBackgroundColor={COLORS.white}
+
+      <TopMenuStrip
         onMenuPress={handleMenuPress}
         onNotification={handleNotificationCenterPress}
         notifCount={notifBadgeCount}
-        hideNotification={false}
-        isDrawerVisible={isDrawerVisible}
-        setIsDrawerVisible={setIsDrawerVisible}
         navigation={navigation}
-        isLocationDrawerVisible={isLocationDrawerVisible}
-        setIsLocationDrawerVisible={setIsLocationDrawerVisible}
-        onSelectDistrict={handleSelectDistrict}
+      />
+
+      <AppHeaderComponent
+        onSearch={goToSearch}
+        onMenu={() => setIsDrawerVisible(true)}
+        onLocation={() => setIsLocationDrawerVisible(true)}
         selectedDistrict={selectedDistrict}
-      >
-        <AppHeaderComponent
-          onSearch={goToSearch}
-          onMenu={() => setIsDrawerVisible(true)}
-          onLocation={() => setIsLocationDrawerVisible(true)}
-          selectedDistrict="உள்ளூர்"
-        />
-      </UniversalHeaderComponent>
+      />
+      <DrawerMenu
+        isVisible={isDrawerVisible}
+        onClose={() => setIsDrawerVisible(false)}
+        onMenuPress={handleMenuPress}
+        navigation={navigation}
+      />
+
+      <LocationDrawer
+        isVisible={isLocationDrawerVisible}
+        onClose={() => setIsLocationDrawerVisible(false)}
+        onSelectDistrict={(district) => {
+          try {
+            if (!district) return;
+            setSelectedDistrict(district.title);
+            setIsLocationDrawerVisible(false);
+            if (district.id) {
+              navigation?.navigate('DistrictNewsScreen', {
+                districtId: district.id,
+                districtTitle: district.title,
+              });
+            }
+          } catch (error) {
+            console.error('Error in handleSelectDistrict:', error);
+          }
+        }}
+        selectedDistrict={selectedDistrict}
+      />
 
       {loading ? (
         <FlatList
@@ -1753,11 +1779,11 @@ export default function TimelineScreen() {
           showsVerticalScrollIndicator={false}
           onScroll={e => setShowScrollTop(e.nativeEvent.contentOffset.y > 400)}
           scrollEventThrottle={16}
-          ListFooterComponent={
-            loadingMore
-              ? <View style={styles.footerLoader}><ActivityIndicator size="small" color={COLORS.primary} /></View>
-              : <View style={{ height: vs(40) }} />
-          }
+          // ListFooterComponent={
+          //   loadingMore
+          //     ? <View style={styles.footerLoader}><ActivityIndicator size="small" color={COLORS.primary} /></View>
+          //     : <View style={{ height: vs(40) }} />
+          // }
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[COLORS.primary]} tintColor={COLORS.primary} />
           }
@@ -1797,15 +1823,17 @@ export default function TimelineScreen() {
         onNotificationPress={handleNotificationPress}
         onRefresh={handleNotificationCenterRefresh}
       /> */}
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: PALETTE.grey200,
-    paddingTop: Platform.OS === 'android' ? vs(0) : 0,
+    backgroundColor: PALETTE.grey100,
+    paddingTop: Platform.OS === 'android' ? vs(0) : 20,
+    // ADD THIS:
+    position: 'relative',
   },
   listContent: { paddingBottom: vs(40) },
   footerLoader: { justifyContent: 'center', alignItems: 'center', paddingVertical: vs(16) },
